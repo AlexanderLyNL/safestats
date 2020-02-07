@@ -1,0 +1,439 @@
+---
+title: "Safe Flexible Hypothesis Tests for Practical Scenarios"
+author: "Rosanne Turner and Alexander Ly"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{safestats-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(safestats)
+```
+
+Safe tests are flexible hypothesis tests that are robust to changes in the experimental design, because they conserve the type I error guarantee (false positive rate) regardless of the sample size. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping), whenever the evidence is compelling. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, which means that the researcher can extend the experiment if more funds become available, or if the evidence looks promising and a reviewer urges the experimenter to collect more data. Importantly, for safe tests neither optional stopping nor continuation leads to the test exceeding the promised type I error guarantee. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for anytime valid inferences. We illustrate these properties below. 
+
+Firstly, we show how to design an experiment based on safe tests. 
+
+<!--
+ - for testing means
+ - for testing proportions
+-->
+
+Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping. We also show that optional stopping leads to classical p-value tests to exceed their promised type I error guarantee. This demonstration further emphasises the rigidity of experimental designs when inference is based on a classical test --the experiments have to go exactly according to its protocol, even if it is clear that a treatment is effective. 
+
+<!--
+ - for testing means
+ - for testing proportions
+-->
+
+Lastly, we show the behaviour of safe tests under optional continuation. TODO
+
+<!--
+ - for testing means
+ - for testing proportions
+-->
+
+## Installation
+TODO(Alexander): When it's online on cran
+
+```{r install, eval=FALSE}
+install.packages("safestats")
+```
+
+The development version can be found on [GitHub](https://github.com/alexanderlynl/safestats), which can be installed with the `devtools` package from [CRAN](https://cran.r-project.org/package=devtools) by entering in `R`:
+
+```{r devtools, eval=FALSE}
+devtools::install_github("AlexanderLyNL/safestats")
+```
+
+
+# Test of Means: T-Tests
+## 1. Designing Safe Experiments 
+### Type I error and type II errors 
+To avoid bringing an ineffective medicine to the market, experiments need to be conducted in which the null hypothesis of no effect is tested. Here we show how flexible experiments based on safe tests can be designed. 
+
+As the problem is statistical in nature, due to patients-to-patients variability, we cannot guarantee that 0% of the medicine that pass the safe test will be ineffective. <!--This can only be accomplished by tests that reject all drugs. -->
+Instead, the target is to bound the type I error by a tolerable \( \alpha \), say, \( \alpha = 0.05 \). In other words, at most 5 out of the 100 drugs that pass the safe test are allowed to be ineffective. 
+
+At the same time, we would like to avoid a type II error, that is, missing out of on finding an effect, whenever there is one. Typically, the type II error is \( \beta = 0.20 \), which implies that we need an experiment with \( 1 - \beta = \) 80% power to detect the effect. 
+
+### Case (I): Designing experiments with the minimal clinical relevant effect size known
+Not all effects are equally important, especially, when a minimal clinical relevant effect size can be formulated. For instance, suppose that a population of interest has a  population average systolic blood pressure of \( \mu = 120 \) mmHg and that the population standard deviation is \( \sigma = 15 \). Suppose further that all approved blood pressure drugs change the blood pressure by at least 9 mmHg, then a minimal clinically relevant effect size can be defined as \( \delta_{\min} = (\mu_{\text{post}} - \mu_{\text{pre}}) / (\sqrt{2} \sigma) = 9 / (15 \sqrt{2} ) = 0.42 \), where \( \mu_{\text{post}} \) represents the average blood pressure after treatment and \( \mu_{\text{pre}} \) the average blood pressure before treatment of the population of interest. The \( \sqrt{2} \)-term in the denominator is a result of the measurements being paired.  
+
+Based on a tolerable type I error of \( \alpha = 0.05 \), type II error of \( \beta = 0.20 \), and minimal clinical effect size of \( \delta_{\min} = 0.42 \), the following code shows that we then need to plan an experiment consisting of 
+
+
+```{r}
+alpha <- 0.05
+beta <- 0.2
+
+designObj <- designSafeT(deltaMin=9/(sqrt(2)*15), alpha=alpha, beta=beta,
+                         alternative="greater", testType="pairedSampleT")
+designObj
+```
+patients. 
+
+### Case (II): Minimal clinical relevant effect size unknown, but maximum number of samples known.
+It is not always clear what the minimal clinical relevant effect size is. In that case, the design function can be called for a reasonable range of minimal clinical relevant effect sizes, when it is provided with a tolerable type I and type II errors. Furthermore, when it is a priori known that only, say, 100 samples can be collected due to budget constraints, then the following function allows for a futility analysis:
+
+```{r, fig.height=4, fig.width=8}
+alpha <- 0.05
+beta <- 0.2
+
+result <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta, 
+                                           maxN=100, testType="pairedSampleT")
+```
+The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80%, if the true effect size is at least 0.37. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for additional grant money to test an additional 44 patients, or decide that it's futile to set up this experiment, and spend our time and efforts on a different endeavour. 
+
+## 2. Inference with Safe Tests and Optional Stopping
+Firstly, we show that inference based on safe tests conserve a tolerable type I error \( \alpha \), if the null hypothesis of no effect is rejected whenever the s-value, the outcome of a safe test, is larger than \( 1/\alpha \). For instance, for \( \alpha = 0.05 \) the safe test rejects the null whenever the s-value is than 20. This type I error is also guaranteed under (early) optional stopping. Secondly, we show that there is a high chance of stopping early whenever the true effect size is at least as large as the expected minimal clinical relevant effect size. 
+
+### Data under the null: Full experiment
+To see that a wrong decision is not made very often, consider data from an experiment with the same number of samples as it was planned for, but with no effect, that is, 
+
+```{r}
+preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
+postData <- rnorm(n=designObj[["n2Plan"]], mean=120, sd=15)
+```
+then the safe test applied to this data will be larger than \( 1/\alpha = 20 \) with at most \( \alpha =  \) 5% chance
+
+```{r}
+safeTTest(x=preData, y=postData, alternative = "greater", designObj=designObj, paired=TRUE)
+```
+or equivalently with syntax closely resembling the standard t.test code in R:
+
+```{r}
+safe.t.test(x=preData, y=postData, alternative = "greater", designObj=designObj, paired=TRUE)
+```
+The following code replicates this setting a 1000 times and shows that indeed, only a very few times will the sValues cross the boundary of \( 1/alpha\)
+
+```{r}
+alpha <- 0.05
+sValues <- replicate(n=1000, expr={
+  preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
+  postData <- rnorm(n=designObj[["n2Plan"]], mean=120, sd=15)
+  safeTTest(x=preData, y=postData, alternative = "greater", designObj=designObj,
+            paired=TRUE)$sValue})
+mean(sValues > 20)
+mean(sValues > 20) < alpha
+```
+
+### Data under the alternative: Full experiment
+If the true effect size equals the minimal clinical effect size and the experiment is run as planned, then the safe tests detects the effect with \( 1 - \beta =  \) 80% power as promised. This is shown by the following code for one experiment
+
+```{r}
+preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
+postData <- rnorm(n=designObj[["n2Plan"]], mean=111, sd=15)
+safeTTest(x=preData, y=postData, alternative = "greater", designObj=designObj, paired=TRUE)$sValue
+```
+
+and by the following code by multiple experiments
+
+```{r}
+alpha <- 0.05
+beta <- 0.2
+power <- 1-beta
+
+sValues <- replicate(n=1000, expr={
+  preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
+  postData <- rnorm(n=designObj[["n2Plan"]], mean=111, sd=15)
+  safeTTest(x=preData, y=postData, alternative = "greater", designObj=designObj,
+            paired=TRUE)$sValue})
+mean(sValues > 1/alpha)
+mean(sValues > 1/alpha) >= power
+```
+Due to sampling error, the average number of times that sValue > 1/alpha might not always be larger than the specified power, but it is always close to it. The sampling error decreases as the number of replications increase. 
+
+### Data under the alternative: Stopping the experiment early
+What makes safe tests particularly interesting is that they allow for early stopping without the test exceeding the tolerable type I error \( \alpha \). This means that the evidence can be monitored as the data comes in, and when there is a sufficient amount of evidence against the null, thus, the s-value larger than \( 1/\alpha \) that the experiment can be stopped early, which increases efficiency. We highlight this with our design object 
+
+```{r}
+designObj
+```
+
+#### Optional stopping: True effect size equals minimal clinical relevant effect size
+The following code replicates
+```{r}
+mIter <- 1000
+```
+experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of \( \delta_{\min}=9/(15 \sqrt{2}) = 0.42 \). The safe test is applied to each data set sequentially and if the s-value is larger than \( 1 / \alpha \), the experiment is stopped. If the s-value does not exceed \( 1/\alpha \), the experiment is run until all samples are collected as planned.
+```{r}
+alpha <- 0.05
+beta <- 0.2
+deltaMin <- 9/(sqrt(2)*15) # = 0.42
+
+simResultDeltaTrueIsDeltaMin <- replicateTTests(n1Plan=designObj$n1Plan,
+                                                n2Plan=designObj$n2Plan, 
+                                                deltaTrue = deltaMin,
+                                                deltaS=designObj$deltaS, paired=TRUE,
+                                                seedNumber=1,
+                                                alternative="greater", alpha=alpha,
+                                                beta=beta)
+```
+To verify that the tolerable type II error \( \beta = 0.2 \) is as specified, thus, power is \( 1 - \beta = 0.8 \), the following can be run
+
+```{r}
+simResultDeltaTrueIsDeltaMin$safeSim$powerAtN1Plan
+```
+To see the distributions of stopping times, the following code can be run
+
+```{r}
+nStep <- floor(designObj$n1Plan/25)
+maxLength <- ceiling(designObj$n1Plan/nStep)
+hist(simResultDeltaTrueIsDeltaMin$safeSim$allN, breaks=nStep*seq.int(maxLength), col="lightgrey")
+```
+The plot shows that about 48 experiments (out of a 1000) stopped at n=21 and n=22, thus, early reject the null, which is the correct decision, as the true effect size is indeed non-zero. The last bar, however, counts the experiments that rejected the null at n=63, but also those experiments that did not reject the null. 
+
+On average the experiment is stopped after
+```{r}
+simResultDeltaTrueIsDeltaMin$safeSim$nMean
+```
+samples. 
+
+The proportion of experiments that led to a rejection of the null can be found with the code
+```{r}
+simResultDeltaTrueIsDeltaMin$safeSim$powerOptioStop
+```
+and note that it is larger than the targetted power of \( 1 - \beta = 0.80 \). Hence, the last bar contains about 145 experiments that did not lead to a null rejection. 
+
+To see the distributions of stopping times of only the experiments where the null is rejected, we run the following code
+```{r}
+nStep <- floor(designObj$n1Plan/25)
+maxLength <- ceiling(designObj$n1Plan/nStep)
+hist(simResultDeltaTrueIsDeltaMin$safeSim$allRejectedN, breaks=nStep*seq.int(maxLength), col="lightgrey")
+```
+
+#### Optional stopping: True effect size larger than the minimal clinical relevant effect size
+Another advantage of safe tests is that they perform even better if the true effect size is larger than the minimal clinical effect size that is used in the planning of the experiment. To see this, we run the following code
+
+```{r}
+alpha <- 0.05
+beta <- 0.2
+deltaMin <- 9/(sqrt(2)*15) # = 0.42
+deltaTrueLarger <- 0.6
+
+simResultDeltaTrueLargerThanDeltaMin <- replicateTTests(n1Plan=designObj$n1Plan,
+                                                        n2Plan=designObj$n2Plan, 
+                                                        deltaTrue = deltaTrueLarger,
+                                                        deltaS=designObj$deltaS,
+                                                        paired=TRUE, seedNumber=1,
+                                                        alternative="greater",
+                                                        alpha=alpha, beta=beta)
+```
+With a larger true effect size, the power without early stopping increases
+
+```{r}
+simResultDeltaTrueLargerThanDeltaMin$safeSim$powerAtN1Plan
+```
+This increase, however, occurs already much earlier as is shown by the histogram of the stopping times
+```{r}
+nStep <- floor(designObj$n1Plan/25)
+maxLength <- ceiling(designObj$n1Plan/nStep)
+hist(simResultDeltaTrueLargerThanDeltaMin$safeSim$allN, breaks=nStep*seq.int(maxLength), col="lightgrey")
+```
+On average the experiment is now stopped earlier, namely, 
+```{r}
+simResultDeltaTrueLargerThanDeltaMin$safeSim$nMean
+```
+Hence, this means that with safe tests a larger true effect than planned for is picked up earlier and efficiency is further increased by stopping earlier. 
+
+#### Data under the null: True effect size is zero
+The previous examples highlight the advantage of early stopping. Here we show that (1) the tolerable type I error is not exceeded for inference based on safe tests, and (2) demonstrate that early stopping with classical p-value tests *do* result in the exceedance of the tolerable type I error, thus, an increased risk of false positive claiming that a medicine is effective, while in reality it is not. 
+
+For this purpose we run the code
+```{r}
+alpha <- 0.05
+beta <- 0.2
+deltaMin <- 9/(sqrt(2)*15) # = 0.42
+deltaTrueLarger <- 0
+
+freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta, alternative="greater", testType="pairedSampleT")
+
+simResultDeltaTrueIsZero <- replicateTTests(n1Plan=designObj$n1Plan,
+                                            n2Plan=designObj$n2Plan, 
+                                            deltaTrue = deltaTrueLarger,
+                                            deltaS=designObj$deltaS, paired=TRUE,
+                                            seedNumber=1,
+                                            alternative="greater", alpha=alpha,
+                                            beta=beta, freqOptioStop=TRUE,
+                                            n1PlanFreq=freqDesignObj$n1PlanFreq,
+                                            n2PlanFreq=freqDesignObj$n2PlanFreq)
+```
+The safe test does not reject the null more often due to optional stopping as
+
+```{r}
+simResultDeltaTrueIsZero$safeSim$powerOptioStop
+simResultDeltaTrueIsZero$safeSim$powerOptioStop < alpha
+```
+On the other hand, the classical p-value test only conserve the tolerable type I error of \( \alpha = 0.05 \), if the test is performed as it was planned for
+
+```{r}
+simResultDeltaTrueIsZero$freqSim$powerAtN1Plan
+```
+However, under optional stopping 
+```{r}
+simResultDeltaTrueIsZero$freqSim$powerOptioStop
+simResultDeltaTrueIsZero$freqSim$powerOptioStop < alpha
+```
+This demonstrates how classical p-value test turn the experimental design into a prison for practitioners who care about controlling the type I error rate. 
+
+## 3. Optional Continuation
+TODO
+
+# Tests of two proportions
+## 1. Designing Safe Experiments
+The safestats package also contains a safe alternative for tests of two proportions, Fisher's exact test or the chi-squared test. These tests are applicable to data collected from two groups (indicated with "a" and "b" from here), where each data point is a binary outcome 0 (e.g., deceased) or 1 (e.g., survived). For example, group "a" might refer to the group of patients that are given the placebo, whereas group "b" is given the drug. 
+
+### Case (I): Designing experiments with the minimal clinical relevant effect size known
+As with the t-test, we might know the minimal clinical relevant effect size upfront for our test of two proportions. For example, we might only be interested in further researching or developing a drug when the difference in the proportion of cured patients in the treatment group compared to the placebo group is at least 0.3. In practice this implies, for example, that when 20% of patients get cured on average in the placebo group, we want the drug to add at least 30% to this average, so in the treated group 50% of patients should be cured. We could design a safe test for this study:
+
+```{r }
+safeDesignProportions <- designSafeTwoProportions(deltaMin = 0.3, alpha = 0.05, beta = 0.20, lowN = 100)
+```
+For detecting this difference with a power of at least 80%, while testing at significance level 0.05, we would need:
+
+```{r }
+safeDesignProportions[["n.star"]]
+```
+patients. 
+
+A safe test could now be performed with this design object; for this, some mock data are generated below:
+```{r }
+sampleExample <- as.table(matrix(c(10, safeDesignProportions[["na"]]-10, 40, safeDesignProportions[["nb"]] - 40), byrow = TRUE, nrow = 2))
+colnames(sampleExample) <- c(0, 1)
+sampleExample
+```
+
+Performing the safe test:
+```{r }
+safeTwoProportionsTest(x = sampleExample, testDesign = safeDesignProportions)
+```
+
+### Case (II): Minimal clinical relevant effect size unknown, but maximum number of samples known.
+We might not have enough resources to fund our study to detect the minimal difference of 0.3. For example, we might only have funds to treat 50 patients in each group, so 100 in total. If this is the case, we could, just as with the t-test, inspect the minimal number of patients we need to include to achieve a power of 80% at our significance level per effect size of interest:
+
+```{r }
+plotResult <- plotSafeTwoProportionsSampleSizeProfile(alpha = 0.05,
+                                                      beta = 0.20,
+                                                      highN = 100,
+                                                      numberForSeed = 5222)
+```
+
+It can be observed that the smallest absolute difference we can detect between the groups with our available resources is 0.4. This figure also highlights the average number of patients we would collect in the optional stopping setting. Note that this figure can only be generated for equal group sizes a and b.
+
+<!--If we are happy with this minimally detectable effect size, we would then design a safe test with our fixed sample sizes with the pilot function for two proportions:
+
+```{r }
+safePilotDesign <- designPilotSafeTwoProportions(na = 50, nb = 50)
+```
+
+After this first 'Pilot' we could then decide to free up further resources and funds, and to design a follow-up study with enough power to detect our desired clinically relevant effect size.
+-->
+
+## 2. Inference with Safe Tests and Optional Stopping
+#### True effect size equals minimal clinical relevant effect size
+As with the safe t-test, the safe test for two proportions can be used in the optional stopping setting while retaining the type I error guarantee. In the figure below the spread of the stopping times among 1000 simulated experiments is depicted, if the real effect size is equal to the minimal clinical relevant effect size we plan for:
+
+```{r }
+optional_stopping_sample_sizes_simulated <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.3, 0.6))
+```
+We designed the safe test such that we had a minimal power of 0.8, would the data truly come from a distribution with an absolute difference of 0.3 between the proportions of cured patients in the groups. Has this power been achieved?
+
+```{r }
+#power achieved:
+mean(optional_stopping_sample_sizes_simulated$rejected == 1)
+```
+
+#### True effect size larger than the minimal clinical relevant effect size
+We have designed the safe test for a minimal clinical relevant effect size, but what would happen if the difference between the groups was even larger in reality, i.e., if the drug had an even bigger effect?
+
+```{r }
+optional_stopping_sample_sizes_simulated <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.2, 0.9))
+```
+
+We would stop, on average, even earlier! The power of the experiment also increases:
+
+```{r }
+#power achieved:
+mean(optional_stopping_sample_sizes_simulated$rejected == 1)
+```
+
+#### Data under the null: True effect size is zero, thus, much smaller than the minimal clinical relevant effect size
+We can also illustrate what would happen under optional stopping, when our *null hypothesis* that there is no difference between the effect of the drug and the placebo would be true:
+
+```{r }
+optional_stopping_sample_sizes_simulated <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.5, 0.5))
+```
+
+Our type one error has stayed below 0.05:
+
+```{r }
+#power achieved:
+mean(optional_stopping_sample_sizes_simulated$rejected == 1)
+```
+
+#### Classical test "Fisher's exact test" under the null with optional stopping
+However, would we now use Fisher's exact test in this setting, then the type-I error would increase:
+
+```{r }
+fisher_result <- simulateFisherSpreadSampleSizeOptionalStopping(deltaDesign = 0.5, alpha = 0.05, nDesign = safeDesignProportions[["n.star"]], power = 0.8, M = 100, parametersDataGeneratingDistribution =  c(0.5, 0.5))
+```
+
+```{r }
+mean(fisher_result$rejected == 1)
+```
+
+### Short examples of usage of other testing scenarios for two proportions
+Some short examples with code snippets for other testing scenarios are illustrated.
+
+#### One-sided testing
+Safe tests for two proportions can also be designed for one-sided testing. For the case when one hypothesizes that the population mean of group "a" is higher than the population mean of group "b":
+```{r }
+safeDesignProportionsOneSided <- designSafeTwoProportions(deltaMin = 0.5,
+                                                      alternative = "greater",
+                                                      numberForSeed = 291202)
+```
+
+We can now simulate data that fit our hypothesis (more 1s observed in group "a" than in "b"):
+
+```{r }
+sampleExampleGreater <- as.table(matrix(c(5, safeDesignProportionsOneSided[["na"]] - 5, 19, safeDesignProportionsOneSided[["nb"]] - 19), byrow = TRUE, nrow = 2))
+colnames(sampleExampleGreater) <- c(0,1)
+sampleExampleGreater
+```
+
+This yields a high s-value:
+
+```{r }
+safeTwoProportionsTest(x = sampleExampleGreater, testDesign = safeDesignProportionsOneSided)
+```
+
+But if we now observe the opposite, more 1s in group "b" than in "a", the s-value will be low;
+
+```{r }
+sampleExampleLesser <- as.table(matrix(c(safeDesignProportionsOneSided[["na"]] - 5, 5, safeDesignProportionsOneSided[["nb"]] - 19, 19), byrow = TRUE, nrow = 2))
+colnames(sampleExampleGreater) <- colnames(sampleExampleLesser) <- c(0,1)
+sampleExampleLesser
+```
+
+```{r }
+safeTwoProportionsTest(x = sampleExampleLesser, testDesign = safeDesignProportionsOneSided)
+```
+
+
+#### Unbalanced design: unequal group sizes
+When a balanced design is not possible, a safe test of two proportions for unequal sample sizes can be designed as well; the final ratio between the sample sizes one is going to collect has to be known for this.
+
+```{r }
+safeDesignProportionsImbalanced <- designSafeTwoProportions(deltaMin = 0.3, alpha = 0.05, beta = 0.20, lowN = 120, sampleSizeRatio = 2)
+safeDesignProportionsImbalanced
+```
