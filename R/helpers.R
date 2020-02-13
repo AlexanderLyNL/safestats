@@ -319,6 +319,8 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
     trueMeanStatement <- "true mean"
   } else if (testType %in% c("pairedSampleT", "twoSampleT")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
+  } else if (testType == "safe2x2_result"){
+    trueMeanStatement <- "true difference between proportions in group a and b is"
   }
   nameChar <- paste(trueMeanStatement, switch(alternative,
                                               "two.sided"= "not equal to 0",
