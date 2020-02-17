@@ -57,8 +57,8 @@ safeTwoProportionsTest <- function(x, y = NULL, testDesign) {
   nb1 <- d.table[2, 2]
 
   #check if group size observed in table matches group size S-test was designed for
-  #maybe insert a warning here later
   if (all.equal(rowSums(d.table), c(na, nb), check.attributes = FALSE) != TRUE) {
+    #warning("observed group sizes not equal to group sizes S-test was designed for")
     na <- rowSums(d.table)[1]
     nb <- rowSums(d.table)[2]
   }
@@ -78,15 +78,12 @@ safeTwoProportionsTest <- function(x, y = NULL, testDesign) {
       #Bayes marginal null
       (n1 * log(point_h0) + (n - n1) * log(1 - point_h0))
   ))
-  safe_p_value <- 1 / s_value
-
   colnames(d.table) <- c(0, 1)
-
   testResult <- list('data' = d.table,
                      'na' = na,
                      'nb' = nb,
-                     's_value' = s_value,
-                     'design' = testDesign)
+                      's_value' = s_value,
+                      'design' = testDesign)
   class(testResult) <- "safe2x2_test"
 
   return(testResult)

@@ -46,6 +46,7 @@ print.safe2x2_result <- function(x, ...){
     cat("    na =", x[["na"]], "and nb =", x[["nb"]])
     cat("\n")
   }
+
 }
 
 
