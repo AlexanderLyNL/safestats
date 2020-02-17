@@ -624,7 +624,7 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
 #' #what sample size can be expected to be collected with optional stopping?
 #' mean(simulationResult$actually_collected)
 #'
-simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersDataGeneratingDistribution) {
+simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersDataGeneratingDistribution, makePlot=TRUE) {
 
   H1set <- safeDesign$H1set
   na.max <- safeDesign$na
@@ -643,7 +643,7 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
   theta.a <- H1.deltamin[1]
   theta.b <- H1.deltamin[2]
   rejected <- logical(M)
-  n.final <- numeric(M)
+  n.final <- s.final <- numeric(M)
 
   for (i in 1:M) {
     #perform the "optional stopping" experiment: collect data sequentially
@@ -673,16 +673,21 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
       #at some time point, we rejected: record the first time point
       rejected[i] <- TRUE
       n.final[i] <- n[min(which(pbar1 / pbar0 >= critical_value_s))]
+      s.final[i] <- (pbar1/pbar0)[min(which(pbar1 / pbar0 >= critical_value_s))]
     } else {
       #we have not rejected and stopped collecting according to our stopping rule
       rejected[i] <- FALSE
       n.final[i] <- na.max + nb.max
+      s.final[i] <- (pbar1/pbar0)[length(pbar1)]
     }
   }
 
-  graphics::hist(n.final, breaks = na.max+nb.max, xlim = c(0, max(n.final)), xlab = "n collected",
-                 main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~"," ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(safeDesign$alpha)))
-  return(list("actually_collected" = n.final, "rejected" = rejected))
+  if(makePlot){
+    graphics::hist(n.final, breaks = na.max+nb.max, xlim = c(0, max(n.final)), xlab = "n collected",
+                   main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~"," ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(safeDesign$alpha)))
+
+  }
+  return(list("actually_collected" = n.final, "rejected" = rejected, "s_values" = s.final))
 }
 
 #' Function that can be used to illustrate that H0 is falsely rejected too often when using
@@ -1099,3 +1104,37 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
 
   return(resultForPlot)
 }
+
+#' Function that simulates combining initial S-values with S-values resulting
+#' from a follow-up study when testing 2 proportions.
+#'
+#' @param previousSValues numeric vector of S-values from previously simulated experiments.
+#' @param nFollowUp number of samples to collect in the follow-up study
+#' @param parametersDataGeneratingDistribution group means a and b in the data
+#' generating distribution to simulate from.
+#' @param alpha significance level that will be used for testing.
+#' Default \code{0.05}.
+#'
+#' @return numeric vector with the optional continuation S-values
+#' @export
+simulateOptionalContinuationTwoProportions <- function(previousSValues,
+                                                       nFollowUp,
+                                                       parametersDataGeneratingDistribution,
+                                                       alpha = 0.05){
+  na <- nb <- nFollowUp/2
+  safeDesign <- designPilotSafeTwoProportions(na = na, nb = nb, alpha = alpha)
+  theta.a <- parametersDataGeneratingDistribution[1]
+  theta.b <- parametersDataGeneratingDistribution[2]
+  newSValues <- numeric(length(previousSValues))
+  for(i in 1:length(previousSValues)){
+    a.sample <- stats::rbinom(n = na, size = 1, prob = theta.a)
+    b.sample <- stats::rbinom(n = nb, size = 1, prob = theta.b)
+    na1 <- sum(a.sample)
+    nb1 <- sum(b.sample)
+    dataTable <- as.table(matrix(c(na-na1, na1, nb-nb1, nb1), nrow = 2, byrow = TRUE))
+    newSValues[i] <- safeTwoProportionsTest(x = dataTable, testDesign = safeDesign)$s_value
+  }
+  return(newSValues*previousSValues)
+}
+
+

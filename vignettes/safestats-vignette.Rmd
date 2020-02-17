@@ -21,7 +21,7 @@ library(safestats)
 
 Safe tests are flexible hypothesis tests that are robust to changes in the experimental design, because they conserve the type I error guarantee (false positive rate) regardless of the sample size. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping), whenever the evidence is compelling. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, which means that the researcher can extend the experiment if more funds become available, or if the evidence looks promising and a reviewer urges the experimenter to collect more data. Importantly, for safe tests neither optional stopping nor continuation leads to the test exceeding the promised type I error guarantee. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for anytime valid inferences. We illustrate these properties below. 
 
-Firstly, we show how to design an experiment based on safe tests. 
+First, we show how to design an experiment based on safe tests. 
 
 <!--
  - for testing means
@@ -344,13 +344,13 @@ After this first 'Pilot' we could then decide to free up further resources and f
 As with the safe t-test, the safe test for two proportions can be used in the optional stopping setting while retaining the type I error guarantee. In the figure below the spread of the stopping times among 1000 simulated experiments is depicted, if the real effect size is equal to the minimal clinical relevant effect size we plan for:
 
 ```{r }
-optional_stopping_sample_sizes_simulated <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.3, 0.6))
+optionalStoppingTrueMeanIsDesign <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.3, 0.6))
 ```
 We designed the safe test such that we had a minimal power of 0.8, would the data truly come from a distribution with an absolute difference of 0.3 between the proportions of cured patients in the groups. Has this power been achieved?
 
 ```{r }
 #power achieved:
-mean(optional_stopping_sample_sizes_simulated$rejected == 1)
+mean(optionalStoppingTrueMeanIsDesign$rejected == 1)
 ```
 
 #### True effect size larger than the minimal clinical relevant effect size
@@ -371,14 +371,14 @@ mean(optional_stopping_sample_sizes_simulated$rejected == 1)
 We can also illustrate what would happen under optional stopping, when our *null hypothesis* that there is no difference between the effect of the drug and the placebo would be true:
 
 ```{r }
-optional_stopping_sample_sizes_simulated <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.5, 0.5))
+optionalStoppingTrueMeanNull <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.5, 0.5))
 ```
 
 Our type one error has stayed below 0.05:
 
 ```{r }
 #power achieved:
-mean(optional_stopping_sample_sizes_simulated$rejected == 1)
+mean(optionalStoppingTrueMeanNull$rejected == 1)
 ```
 
 #### Classical test "Fisher's exact test" under the null with optional stopping
@@ -392,7 +392,45 @@ fisher_result <- simulateFisherSpreadSampleSizeOptionalStopping(deltaDesign = 0.
 mean(fisher_result$rejected == 1)
 ```
 
-### Short examples of usage of other testing scenarios for two proportions
+## 3. <a name = "optCont2x2">Optional Continuation </a>
+In each of the simulations above, a fraction of the experiments did not lead to rejection of the null hypothesis. Since safe testing allows for optional continuation, one could decide to plan a follow-up experiment after such a 'failed' first experiment, for example when the S-value looks promisingly high. The resulting S-values could then be multiplied to calculate a final S-value.
+
+If we look at the spread of the S-values at the end of data collection in the cases where we did not reject in our first simulation, where the true means were equal to our design means, we observe the following spread:
+```{r}
+sValuesNotRejected <- optionalStoppingTrueMeanIsDesign$s_values[optionalStoppingTrueMeanIsDesign$rejected == FALSE]
+graphics::plot(stats::density(sValuesNotRejected), xlim = c(0, max(sValuesNotRejected)), xlab = "S value", main = "Spread of S-values when null not rejected: under delta design")
+```
+
+When we look at this spread when the data were generated under the null hypothesis, we observe a different pattern:
+```{r}
+sValuesNotRejectedNull <- optionalStoppingTrueMeanNull$s_values[optionalStoppingTrueMeanIsDesign$rejected == FALSE]
+graphics::plot(stats::density(sValuesNotRejectedNull), xlim = c(0, max(sValuesNotRejected)), xlab = "S value", main = "Spread of S-values when null not rejected: under null")
+```
+
+Based on these plots we could conclude that studies that yielded a final S-value between 10 and 20 look promising; under the null hypothesis, such high S-values where not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting S-values?
+
+```{r optionalContinuation2x2}
+interestingSValues <- optionalStoppingTrueMeanIsDesign$s_values[optionalStoppingTrueMeanIsDesign$s_values < 20 & optionalStoppingTrueMeanIsDesign$s_values > 10]
+newSValues <- simulateOptionalContinuationTwoProportions(interestingSValues, nFollowUp = 40, parametersDataGeneratingDistribution = c(0.3, 0.6))
+graphics::plot(stats::density(newSValues), xlim = c(0, max(newSValues)), xlab = "S value", main = "Spread of optional continuation S-values")
+graphics::abline(v = 20, lty = 2, col = "red")
+```
+
+How many of the initially futile experiments will now lead to rejection of the null hypothesis?
+```{r}
+mean(newSValues>=20)
+```
+
+What happens when we apply this optional continuation when the data are trule generated under the null hypothesis? (note that we relax our bound of initial 'interesting' S-values here to 1, otherwise there would be no S-values to continue with)
+```{r optionalContinuation2x2Null}
+interestingSValues <- optionalStoppingTrueMeanNull$s_values[optionalStoppingTrueMeanNull$s_values < 20 & optionalStoppingTrueMeanNull$s_values > 1]
+newSValues <- simulateOptionalContinuationTwoProportions(interestingSValues, nFollowUp = 40, parametersDataGeneratingDistribution = c(0.5, 0.5))
+mean(newSValues>=20)
+```
+We still keep our type_-I error probability guarantee.
+
+
+## Short examples of usage of other testing scenarios for two proportions
 Some short examples with code snippets for other testing scenarios are illustrated.
 
 #### One-sided testing
