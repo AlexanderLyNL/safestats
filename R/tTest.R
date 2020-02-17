@@ -948,7 +948,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
       allNBack <- vector("integer", lastDeltaIndex)
 
     if (pb)
-      pbOptioStop <- utils::txtProgressBar("style"=3)
+      pbOptioStop <- utils::txtProgressBar("style"=1)
 
     for (i in seq.int(lastDeltaIndex)) {
       safeDesignObj <- allSafeDesignObj[[i]]
