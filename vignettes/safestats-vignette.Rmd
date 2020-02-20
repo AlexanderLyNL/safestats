@@ -11,7 +11,9 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.height = 6,
+  fig.width = 6
 )
 ```
 
@@ -23,24 +25,18 @@ Safe tests are flexible hypothesis tests that are robust to changes in the exper
 
 First, we show how to design an experiment based on safe tests. 
 
-<!--
- - for testing means
- - for testing proportions
--->
+ - [for testing means](#designT)
+ - [for testing proportions](#design2x2)
 
 Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping. We also show that optional stopping leads to classical p-value tests to exceed their promised type I error guarantee. This demonstration further emphasises the rigidity of experimental designs when inference is based on a classical test --the experiments have to go exactly according to its protocol, even if it is clear that a treatment is effective. 
 
-<!--
- - for testing means
- - for testing proportions
--->
+ - [for testing means](#optStopT)
+ - [for testing proportions](#optStop2x2)
 
-Lastly, we show the behaviour of safe tests under optional continuation. TODO
+Lastly, we show the behaviour of safe tests under optional continuation.
 
-<!--
- - for testing means
- - for testing proportions
--->
+ - [for testing means](#optContT)
+ - [for testing proportions](#optCont2x2)
 
 ## Installation
 TODO(Alexander): When it's online on cran
@@ -57,7 +53,7 @@ devtools::install_github("AlexanderLyNL/safestats")
 
 
 # Test of Means: T-Tests
-## 1. Designing Safe Experiments 
+## 1. <a name = "designT">Designing Safe Experiments </a>
 ### Type I error and type II errors 
 To avoid bringing an ineffective medicine to the market, experiments need to be conducted in which the null hypothesis of no effect is tested. Here we show how flexible experiments based on safe tests can be designed. 
 
@@ -153,7 +149,7 @@ mean(sValues > 1/alpha) >= power
 ```
 Due to sampling error, the average number of times that sValue > 1/alpha might not always be larger than the specified power, but it is always close to it. The sampling error decreases as the number of replications increase. 
 
-### Data under the alternative: Stopping the experiment early
+### Data under the alternative: <a name = "optStopT">Stopping the experiment early</a>
 What makes safe tests particularly interesting is that they allow for early stopping without the test exceeding the tolerable type I error \( \alpha \). This means that the evidence can be monitored as the data comes in, and when there is a sufficient amount of evidence against the null, thus, the s-value larger than \( 1/\alpha \) that the experiment can be stopped early, which increases efficiency. We highlight this with our design object 
 
 ```{r}
@@ -286,18 +282,18 @@ simResultDeltaTrueIsZero$freqSim$powerOptioStop < alpha
 ```
 This demonstrates how classical p-value test turn the experimental design into a prison for practitioners who care about controlling the type I error rate. 
 
-## 3. Optional Continuation
+## 3. <a name = "optContT">Optional Continuation</a>
 TODO
 
 # Tests of two proportions
-## 1. Designing Safe Experiments
+## 1. <a name = "design2x2">Designing Safe Experiments</a>
 The safestats package also contains a safe alternative for tests of two proportions, Fisher's exact test or the chi-squared test. These tests are applicable to data collected from two groups (indicated with "a" and "b" from here), where each data point is a binary outcome 0 (e.g., deceased) or 1 (e.g., survived). For example, group "a" might refer to the group of patients that are given the placebo, whereas group "b" is given the drug. 
 
 ### Case (I): Designing experiments with the minimal clinical relevant effect size known
 As with the t-test, we might know the minimal clinical relevant effect size upfront for our test of two proportions. For example, we might only be interested in further researching or developing a drug when the difference in the proportion of cured patients in the treatment group compared to the placebo group is at least 0.3. In practice this implies, for example, that when 20% of patients get cured on average in the placebo group, we want the drug to add at least 30% to this average, so in the treated group 50% of patients should be cured. We could design a safe test for this study:
 
 ```{r }
-safeDesignProportions <- designSafeTwoProportions(deltaMin = 0.3, alpha = 0.05, beta = 0.20, lowN = 100)
+safeDesignProportions <- designSafeTwoProportions(deltaMin = 0.3, alpha = 0.05, beta = 0.20, lowN = 100, numberForSeed = 5227)
 ```
 For detecting this difference with a power of at least 80%, while testing at significance level 0.05, we would need:
 
@@ -339,11 +335,12 @@ safePilotDesign <- designPilotSafeTwoProportions(na = 50, nb = 50)
 After this first 'Pilot' we could then decide to free up further resources and funds, and to design a follow-up study with enough power to detect our desired clinically relevant effect size.
 -->
 
-## 2. Inference with Safe Tests and Optional Stopping
+## 2. Inference with Safe Tests and <a name = "optStop2x2">Optional Stopping</a>
 #### True effect size equals minimal clinical relevant effect size
 As with the safe t-test, the safe test for two proportions can be used in the optional stopping setting while retaining the type I error guarantee. In the figure below the spread of the stopping times among 1000 simulated experiments is depicted, if the real effect size is equal to the minimal clinical relevant effect size we plan for:
 
 ```{r }
+set.seed(5224)
 optionalStoppingTrueMeanIsDesign <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.3, 0.6))
 ```
 We designed the safe test such that we had a minimal power of 0.8, would the data truly come from a distribution with an absolute difference of 0.3 between the proportions of cured patients in the groups. Has this power been achieved?
