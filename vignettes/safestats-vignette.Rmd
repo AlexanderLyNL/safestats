@@ -320,7 +320,8 @@ We might not have enough resources to fund our study to detect the minimal diffe
 ```{r }
 plotResult <- plotSafeTwoProportionsSampleSizeProfile(alpha = 0.05,
                                                       beta = 0.20,
-                                                      highN = 100,
+                                                      highN = 200, 
+                                                      maxN = 100,
                                                       numberForSeed = 5222)
 ```
 
@@ -354,20 +355,22 @@ mean(optionalStoppingTrueMeanIsDesign$rejected == 1)
 We have designed the safe test for a minimal clinical relevant effect size, but what would happen if the difference between the groups was even larger in reality, i.e., if the drug had an even bigger effect?
 
 ```{r }
-optional_stopping_sample_sizes_simulated <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.2, 0.9))
+set.seed(5224)
+optionalStoppingTrueDifferenceBig <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.2, 0.9))
 ```
 
 We would stop, on average, even earlier! The power of the experiment also increases:
 
 ```{r }
 #power achieved:
-mean(optional_stopping_sample_sizes_simulated$rejected == 1)
+mean(optionalStoppingTrueDifferenceBig$rejected == 1)
 ```
 
 #### Data under the null: True effect size is zero, thus, much smaller than the minimal clinical relevant effect size
 We can also illustrate what would happen under optional stopping, when our *null hypothesis* that there is no difference between the effect of the drug and the placebo would be true:
 
 ```{r }
+set.seed(5224)
 optionalStoppingTrueMeanNull <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.5, 0.5))
 ```
 
@@ -404,17 +407,11 @@ sValuesNotRejectedNull <- optionalStoppingTrueMeanNull$s_values[optionalStopping
 graphics::plot(stats::density(sValuesNotRejectedNull), xlim = c(0, max(sValuesNotRejected)), xlab = "S value", main = "Spread of S-values when null not rejected: under null")
 ```
 
-Based on these plots we could conclude that studies that yielded a final S-value between 10 and 20 look promising; under the null hypothesis, such high S-values where not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting S-values?
+Based on these plots we could conclude that studies that yielded a final S-value between 10 and 20 look promising; under the null hypothesis, such high S-values were not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting S-values? How many of the initially futile experiments will now lead to rejection of the null hypothesis?
 
 ```{r optionalContinuation2x2}
 interestingSValues <- optionalStoppingTrueMeanIsDesign$s_values[optionalStoppingTrueMeanIsDesign$s_values < 20 & optionalStoppingTrueMeanIsDesign$s_values > 10]
 newSValues <- simulateOptionalContinuationTwoProportions(interestingSValues, nFollowUp = 40, parametersDataGeneratingDistribution = c(0.3, 0.6))
-graphics::plot(stats::density(newSValues), xlim = c(0, max(newSValues)), xlab = "S value", main = "Spread of optional continuation S-values")
-graphics::abline(v = 20, lty = 2, col = "red")
-```
-
-How many of the initially futile experiments will now lead to rejection of the null hypothesis?
-```{r}
 mean(newSValues>=20)
 ```
 
@@ -424,8 +421,7 @@ interestingSValues <- optionalStoppingTrueMeanNull$s_values[optionalStoppingTrue
 newSValues <- simulateOptionalContinuationTwoProportions(interestingSValues, nFollowUp = 40, parametersDataGeneratingDistribution = c(0.5, 0.5))
 mean(newSValues>=20)
 ```
-We still keep our type_-I error probability guarantee.
-
+We still keep our type-I error probability guarantee.
 
 ## Short examples of usage of other testing scenarios for two proportions
 Some short examples with code snippets for other testing scenarios are illustrated.
