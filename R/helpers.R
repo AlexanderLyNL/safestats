@@ -342,3 +342,21 @@ round5 <- function(num) {
   stopifnot(is.numeric(num))
   round(num, 5)
 }
+
+plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, showOnlyNRejected = FALSE){
+  if(showOnlyNRejected){
+    dataToPlot <- safeSim$allRejectedN
+  } else {
+    dataToPlot <- safeSim$allN
+  }
+  nStep <- floor(nPlan/25)
+  maxLength <- ceiling(nPlan/nStep)
+  mainTitle <- bquote(~"Spread of stopping times when true difference " == .(round(deltaTrue,2)))
+  graphics::hist(dataToPlot,
+                 breaks = nStep*seq.int(maxLength),
+                 xlim = c(0, max(safeSim$allN)),
+                 xlab = "stopping time (n collected)",
+                 main = mainTitle,
+                 col = "lightgrey")
+
+}
