@@ -607,6 +607,8 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
 #' @param M number of simulations to carry out
 #' @param parametersDataGeneratingDistribution group means a and b in the data
 #' generating distribution to simulate from.
+#' @param makePlot logical indicating whether a histogram of stopping times should be
+#' plotted.
 #'
 #' @return \code{n.final}, vector of realized sample sizes, and \code{rejected},
 #' logical vector indicating whether the null hypothesis was rejected in that simulation.
@@ -624,7 +626,7 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
 #' #what sample size can be expected to be collected with optional stopping?
 #' mean(simulationResult$actually_collected)
 #'
-simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersDataGeneratingDistribution, makePlot=TRUE) {
+simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersDataGeneratingDistribution, makePlot=FALSE) {
 
   H1set <- safeDesign$H1set
   na.max <- safeDesign$na
@@ -687,7 +689,10 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
                    main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~"," ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(safeDesign$alpha)))
 
   }
-  return(list("actually_collected" = n.final, "rejected" = rejected, "s_values" = s.final))
+  return(list(allN = n.final,
+              rejected = rejected,
+              s_values = s.final,
+              allRejectedN = n.final[rejected]))
 }
 
 #' Function that can be used to illustrate that H0 is falsely rejected too often when using
@@ -711,6 +716,8 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
 #' time. Default \code{NA}.
 #' @param highN maximal nDesign: if no nDesign is found to achieve the desired power
 #' for the \code{deltaDesign} below \code{highN}, simulations are stopped.
+#' @param makePlot logical indicating whether a histogram of stopping times should be
+#' plotted.
 #'
 #' @return see \code{\link{simulateSpreadSampleSizeTwoProportions}}
 #' @export
@@ -733,7 +740,7 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
 #'
 simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, power,
                                                            M, parametersDataGeneratingDistribution,
-                                                           nDesign = NA, highN = 200) {
+                                                           nDesign = NA, highN = 200, makePlot = FALSE) {
 
   if (is.na(nDesign)) {
     cat("nDesign not known, determining sample size through power simulations.\nTrying n: ")
@@ -845,10 +852,11 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
     } # TODO(Rosanne): Wat denk je van de volgende comment: End for loop over the first sample
   } # TODO(Rosanne): Wat denk je van de volgende comment: End the number of iterations
   close(pbar)
-
-  graphics::hist(n.final, breaks = nDesign, xlim = c(0, max(n.final)), xlab = "n collected",
-                 main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~","
-                               ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(alpha)))
+  if(makePlot == TRUE){
+    graphics::hist(n.final, breaks = nDesign, xlim = c(0, max(n.final)), xlab = "n collected",
+                   main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~","
+                                 ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(alpha)))
+  }
   return(list("actually_collected" = n.final, "rejected" = rejected))
 }
 
