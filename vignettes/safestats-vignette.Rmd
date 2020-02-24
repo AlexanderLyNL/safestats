@@ -12,8 +12,8 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.height = 6,
-  fig.width = 6
+  fig.height = 4,
+  fig.width = 8
 )
 ```
 
@@ -183,10 +183,11 @@ simResultDeltaTrueIsDeltaMin$safeSim$powerAtN1Plan
 To see the distributions of stopping times, the following code can be run
 
 ```{r}
-nStep <- floor(designObj$n1Plan/25)
-maxLength <- ceiling(designObj$n1Plan/nStep)
-hist(simResultDeltaTrueIsDeltaMin$safeSim$allN, breaks=nStep*seq.int(maxLength), col="lightgrey")
+plotHistogramDistributionStoppingTimes(simResultDeltaTrueIsDeltaMin[["safeSim"]], 
+                                       nPlan = simResultDeltaTrueIsDeltaMin[["n1Plan"]],
+                                       deltaTrue = simResultDeltaTrueIsDeltaMin[["deltaTrue"]])
 ```
+
 The plot shows that about 48 experiments (out of a 1000) stopped at n=21 and n=22, thus, early reject the null, which is the correct decision, as the true effect size is indeed non-zero. The last bar, however, counts the experiments that rejected the null at n=63, but also those experiments that did not reject the null. 
 
 On average the experiment is stopped after
@@ -203,9 +204,10 @@ and note that it is larger than the targetted power of \( 1 - \beta = 0.80 \). H
 
 To see the distributions of stopping times of only the experiments where the null is rejected, we run the following code
 ```{r}
-nStep <- floor(designObj$n1Plan/25)
-maxLength <- ceiling(designObj$n1Plan/nStep)
-hist(simResultDeltaTrueIsDeltaMin$safeSim$allRejectedN, breaks=nStep*seq.int(maxLength), col="lightgrey")
+plotHistogramDistributionStoppingTimes(simResultDeltaTrueIsDeltaMin[["safeSim"]], 
+                                       nPlan = simResultDeltaTrueIsDeltaMin[["n1Plan"]],
+                                       deltaTrue = simResultDeltaTrueIsDeltaMin[["deltaTrue"]],
+                                       showOnlyNRejected = TRUE)
 ```
 
 #### Optional stopping: True effect size larger than the minimal clinical relevant effect size
@@ -232,10 +234,11 @@ simResultDeltaTrueLargerThanDeltaMin$safeSim$powerAtN1Plan
 ```
 This increase, however, occurs already much earlier as is shown by the histogram of the stopping times
 ```{r}
-nStep <- floor(designObj$n1Plan/25)
-maxLength <- ceiling(designObj$n1Plan/nStep)
-hist(simResultDeltaTrueLargerThanDeltaMin$safeSim$allN, breaks=nStep*seq.int(maxLength), col="lightgrey")
+plotHistogramDistributionStoppingTimes(simResultDeltaTrueLargerThanDeltaMin[["safeSim"]], 
+                                       nPlan = simResultDeltaTrueLargerThanDeltaMin[["n1Plan"]],
+                                       deltaTrue = simResultDeltaTrueLargerThanDeltaMin[["deltaTrue"]])
 ```
+
 On average the experiment is now stopped earlier, namely, 
 ```{r}
 simResultDeltaTrueLargerThanDeltaMin$safeSim$nMean
@@ -265,7 +268,6 @@ simResultDeltaTrueIsZero <- replicateTTests(n1Plan=designObj$n1Plan,
                                             n2PlanFreq=freqDesignObj$n2PlanFreq)
 ```
 The safe test does not reject the null more often due to optional stopping as
-
 ```{r}
 simResultDeltaTrueIsZero$safeSim$powerOptioStop
 simResultDeltaTrueIsZero$safeSim$powerOptioStop < alpha
@@ -343,7 +345,11 @@ As with the safe t-test, the safe test for two proportions can be used in the op
 ```{r }
 set.seed(5224)
 optionalStoppingTrueMeanIsDesign <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.3, 0.6))
+plotHistogramDistributionStoppingTimes(optionalStoppingTrueMeanIsDesign, 
+                                       nPlan = safeDesignProportions[["n.star"]], 
+                                       deltaTrue = 0.3)
 ```
+
 We designed the safe test such that we had a minimal power of 0.8, would the data truly come from a distribution with an absolute difference of 0.3 between the proportions of cured patients in the groups. Has this power been achieved?
 
 ```{r }
@@ -357,6 +363,9 @@ We have designed the safe test for a minimal clinical relevant effect size, but 
 ```{r }
 set.seed(5224)
 optionalStoppingTrueDifferenceBig <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.2, 0.9))
+plotHistogramDistributionStoppingTimes(optionalStoppingTrueDifferenceBig, 
+                                       nPlan = safeDesignProportions[["n.star"]], 
+                                       deltaTrue = 0.7)
 ```
 
 We would stop, on average, even earlier! The power of the experiment also increases:
@@ -372,6 +381,9 @@ We can also illustrate what would happen under optional stopping, when our *null
 ```{r }
 set.seed(5224)
 optionalStoppingTrueMeanNull <- simulateSpreadSampleSizeTwoProportions(safeDesign = safeDesignProportions, M = 1000, parametersDataGeneratingDistribution = c(0.5, 0.5))
+plotHistogramDistributionStoppingTimes(optionalStoppingTrueMeanNull, 
+                                       nPlan = safeDesignProportions[["n.star"]], 
+                                       deltaTrue = 0)
 ```
 
 Our type one error has stayed below 0.05:
@@ -386,13 +398,11 @@ However, would we now use Fisher's exact test in this setting, then the type-I e
 
 ```{r }
 fisher_result <- simulateFisherSpreadSampleSizeOptionalStopping(deltaDesign = 0.5, alpha = 0.05, nDesign = safeDesignProportions[["n.star"]], power = 0.8, M = 100, parametersDataGeneratingDistribution =  c(0.5, 0.5))
-```
-
-```{r }
 mean(fisher_result$rejected == 1)
 ```
 
-## 3. <a name = "optCont2x2">Optional Continuation </a>
+
+## 3. <a name = "optCont2x2">Optional Continuation </a> will be available after the next version of the package: code does not run with old library version
 In each of the simulations above, a fraction of the experiments did not lead to rejection of the null hypothesis. Since safe testing allows for optional continuation, one could decide to plan a follow-up experiment after such a 'failed' first experiment, for example when the S-value looks promisingly high. The resulting S-values could then be multiplied to calculate a final S-value.
 
 If we look at the spread of the S-values at the end of data collection in the cases where we did not reject in our first simulation, where the true means were equal to our design means, we observe the following spread:
