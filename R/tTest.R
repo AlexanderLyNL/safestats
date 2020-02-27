@@ -948,7 +948,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
       allNBack <- vector("integer", lastDeltaIndex)
 
     if (pb)
-      pbOptioStop <- utils::txtProgressBar("style"=3)
+      pbOptioStop <- utils::txtProgressBar("style"=1)
 
     for (i in seq.int(lastDeltaIndex)) {
       safeDesignObj <- allSafeDesignObj[[i]]
@@ -1218,7 +1218,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
     }
 
     if (pb)
-      pbSafe <- utils::txtProgressBar(style=3, title="Safe optional stopping")
+      pbSafe <- utils::txtProgressBar(style=1, title="Safe optional stopping")
 
 
     for (iter in seq.int(mIter)) {
@@ -1336,7 +1336,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
     }
 
     if (pb)
-      pbFreq <- utils::txtProgressBar(style=3, title="Frequentist optional stopping")
+      pbFreq <- utils::txtProgressBar(style=1, title="Frequentist optional stopping")
 
     for (iter in seq.int(mIter)) {
       subData1 <- repData1[iter, ]

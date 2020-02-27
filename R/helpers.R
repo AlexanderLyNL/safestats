@@ -319,9 +319,10 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
     trueMeanStatement <- "true mean"
   } else if (testType %in% c("pairedSampleT", "twoSampleT")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
-  } else if (testType == "safe2x2_result"){
-    trueMeanStatement <- "true difference between proportions in group a and b is"
+  } else if (testType == "safe2x2_result") {	
+	    trueMeanStatement <- "true difference between proportions in group a and b is"
   }
+  
   nameChar <- paste(trueMeanStatement, switch(alternative,
                                               "two.sided"= "not equal to 0",
                                               "greater"= "greater than 0",
@@ -343,4 +344,22 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 round5 <- function(num) {
   stopifnot(is.numeric(num))
   round(num, 5)
+}
+
+plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, showOnlyNRejected = FALSE){
+  if(showOnlyNRejected){
+    dataToPlot <- safeSim$allRejectedN
+  } else {
+    dataToPlot <- safeSim$allN
+  }
+  nStep <- floor(nPlan/25)
+  maxLength <- ceiling(nPlan/nStep)
+  mainTitle <- bquote(~"Spread of stopping times when true difference " == .(round(deltaTrue,2)))
+  graphics::hist(dataToPlot,
+                 breaks = nStep*seq.int(maxLength),
+                 xlim = c(0, max(safeSim$allN)),
+                 xlab = "stopping time (n collected)",
+                 main = mainTitle,
+                 col = "lightgrey")
+
 }
