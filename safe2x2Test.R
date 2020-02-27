@@ -231,37 +231,37 @@ create_data_generating_distributions <- function(deltaDesign, alternative, lengt
 
 perform_MC_simulations_for_each_data_generating_distribution <- function(H1.deltamin, na, nb, seed.time, M,
                                                                          H1set, w1, point_h0, alpha) {
-  # reserve memory space for the current delta star results
-  percent.reject.S <- numeric(nrow(H1.deltamin))
-  set.seed(seed.time)
+    # reserve memory space for the current delta star results
+    percent.reject.S <- numeric(nrow(H1.deltamin))
+    set.seed(seed.time)
 
-  n <- na + nb
+    n <- na + nb
 
-  #start sampling
-  for (i in 1:nrow(H1.deltamin)) {
-    mu.a <- H1.deltamin[i, 1]
-    mu.b <- H1.deltamin[i, 2]
-    reject.S <- numeric(M)
+    #start sampling
+    for (i in 1:nrow(H1.deltamin)) {
+      mu.a <- H1.deltamin[i, 1]
+      mu.b <- H1.deltamin[i, 2]
+      reject.S <- numeric(M)
 
-    for (m in 1:M) {
-      na1 <- sum(stats::rbinom(na, 1, mu.a))
-      nb1 <- sum(stats::rbinom(nb, 1, mu.b))
-      n1 <- na1 + nb1
+      for (m in 1:M) {
+        na1 <- sum(stats::rbinom(na, 1, mu.a))
+        nb1 <- sum(stats::rbinom(nb, 1, mu.b))
+        n1 <- na1 + nb1
 
-      #perform the S-test
-      s_value <- sum(exp(
-        #Bayes marginal alternative
-        na1 * log(H1set[, 1]) + (na - na1) * log(1 - H1set[, 1]) +
-          nb1 * log(H1set[, 2]) + (nb - nb1) * log(1 - H1set[, 2]) + log(w1) -
-          #Bayes marginal null
-          (n1 * log(point_h0) + (n - n1) * log(1 - point_h0))
-      ))
+        #perform the S-test
+        s_value <- sum(exp(
+          #Bayes marginal alternative
+          na1 * log(H1set[, 1]) + (na - na1) * log(1 - H1set[, 1]) +
+            nb1 * log(H1set[, 2]) + (nb - nb1) * log(1 - H1set[, 2]) + log(w1) -
+            #Bayes marginal null
+            (n1 * log(point_h0) + (n - n1) * log(1 - point_h0))
+        ))
 
-      reject.S[m] <- s_value >= (1 / alpha)
+        reject.S[m] <- s_value >= (1 / alpha)
+      }
+      percent.reject.S[i] <- mean(reject.S)
     }
-    percent.reject.S[i] <- mean(reject.S)
-  }
-  return(percent.reject.S)
+    return(percent.reject.S)
 }
 
 simulate_maximin_delta_and_power <- function(delta.min, na, nb, delta.stars, seed.time, M, alpha, alternative) {
@@ -296,8 +296,8 @@ simulate_maximin_delta_and_power <- function(delta.min, na, nb, delta.stars, see
 
     percent.reject.S <-
       perform_MC_simulations_for_each_data_generating_distribution(H1.deltamin = H1.deltamin, na = na, nb = nb,
-                                                                   seed.time = seed.time, M = M, H1set = H1set,
-                                                                   w1 = w1, point_h0 = point_h0, alpha = alpha)
+                                                                     seed.time = seed.time, M = M, H1set = H1set,
+                                                                     w1 = w1, point_h0 = point_h0, alpha = alpha)
 
     all.powers[j,] <- percent.reject.S
   }
@@ -493,7 +493,7 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
 
   #for H1_delta.min, we want to test the power:
   H1DeltaMin <- create_data_generating_distributions(deltaDesign = deltaMin, alternative = alternative,
-                                                     length.out = 5)
+                                                      length.out = 5)
 
   notreached <- TRUE
 
@@ -610,8 +610,6 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
 #' @param M number of simulations to carry out
 #' @param parametersDataGeneratingDistribution group means a and b in the data
 #' generating distribution to simulate from.
-#' @param makePlot logical indicating whether a histogram of stopping times should be
-#' plotted.
 #'
 #' @return \code{n.final}, vector of realized sample sizes, and \code{rejected},
 #' logical vector indicating whether the null hypothesis was rejected in that simulation.
@@ -629,7 +627,7 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
 #' #what sample size can be expected to be collected with optional stopping?
 #' mean(simulationResult$actually_collected)
 #'
-simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersDataGeneratingDistribution, makePlot=FALSE) {
+simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersDataGeneratingDistribution) {
 
   H1set <- safeDesign$H1set
   na.max <- safeDesign$na
@@ -648,7 +646,7 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
   theta.a <- H1.deltamin[1]
   theta.b <- H1.deltamin[2]
   rejected <- logical(M)
-  n.final <- s.final <- numeric(M)
+  n.final <- numeric(M)
 
   for (i in 1:M) {
     #perform the "optional stopping" experiment: collect data sequentially
@@ -678,24 +676,16 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
       #at some time point, we rejected: record the first time point
       rejected[i] <- TRUE
       n.final[i] <- n[min(which(pbar1 / pbar0 >= critical_value_s))]
-      s.final[i] <- (pbar1/pbar0)[min(which(pbar1 / pbar0 >= critical_value_s))]
     } else {
       #we have not rejected and stopped collecting according to our stopping rule
       rejected[i] <- FALSE
       n.final[i] <- na.max + nb.max
-      s.final[i] <- (pbar1/pbar0)[length(pbar1)]
     }
   }
 
-  if(makePlot){
-    graphics::hist(n.final, breaks = na.max+nb.max, xlim = c(0, max(n.final)), xlab = "n collected",
-                   main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~"," ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(safeDesign$alpha)))
-
-  }
-  return(list(allN = n.final,
-              rejected = rejected,
-              s_values = s.final,
-              allRejectedN = n.final[rejected]))
+  graphics::hist(n.final, breaks = na.max+nb.max, xlim = c(0, max(n.final)), xlab = "n collected",
+                 main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~"," ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(safeDesign$alpha)))
+  return(list("actually_collected" = n.final, "rejected" = rejected))
 }
 
 #' Function that can be used to illustrate that H0 is falsely rejected too often when using
@@ -719,8 +709,6 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
 #' time. Default \code{NA}.
 #' @param highN maximal nDesign: if no nDesign is found to achieve the desired power
 #' for the \code{deltaDesign} below \code{highN}, simulations are stopped.
-#' @param makePlot logical indicating whether a histogram of stopping times should be
-#' plotted.
 #'
 #' @return see \code{\link{simulateSpreadSampleSizeTwoProportions}}
 #' @export
@@ -743,7 +731,7 @@ simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersData
 #'
 simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, power,
                                                            M, parametersDataGeneratingDistribution,
-                                                           nDesign = NA, highN = 200, makePlot = FALSE) {
+                                                           nDesign = NA, highN = 200) {
 
   if (is.na(nDesign)) {
     cat("nDesign not known, determining sample size through power simulations.\nTrying n: ")
@@ -783,7 +771,7 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
 
           # TODO(Rosanne): Dit heb ik uit elkaar getrokken. Klopt dit nog?
           somePValue <- stats::fisher.test(x = matrix(c(na - na1, na1, nb - nb1, nb1),
-                                                      byrow = TRUE, nrow = 2))$p.value
+                                               byrow = TRUE, nrow = 2))$p.value
 
           reject.F[m] <- somePValue <= alpha
         }
@@ -845,7 +833,7 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
       nb1.cur <- nb1[j]
 
       somePValue <- stats::fisher.test(x = matrix(c(na.cur - na1.cur, na1.cur, nb.cur - nb1.cur, nb1.cur),
-                                                  byrow = TRUE,nrow = 2))$p.value
+                                           byrow = TRUE,nrow = 2))$p.value
 
       if (somePValue <= alpha) {
         n.final[i] <- na.cur + nb.cur
@@ -855,11 +843,10 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
     } # TODO(Rosanne): Wat denk je van de volgende comment: End for loop over the first sample
   } # TODO(Rosanne): Wat denk je van de volgende comment: End the number of iterations
   close(pbar)
-  if(makePlot == TRUE){
-    graphics::hist(n.final, breaks = nDesign, xlim = c(0, max(n.final)), xlab = "n collected",
-                   main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~","
-                                 ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(alpha)))
-  }
+
+  graphics::hist(n.final, breaks = nDesign, xlim = c(0, max(n.final)), xlab = "n collected",
+                 main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~","
+                               ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(alpha)))
   return(list("actually_collected" = n.final, "rejected" = rejected))
 }
 
@@ -1115,37 +1102,3 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
 
   return(resultForPlot)
 }
-
-#' Function that simulates combining initial S-values with S-values resulting
-#' from a follow-up study when testing 2 proportions.
-#'
-#' @param previousSValues numeric vector of S-values from previously simulated experiments.
-#' @param nFollowUp number of samples to collect in the follow-up study
-#' @param parametersDataGeneratingDistribution group means a and b in the data
-#' generating distribution to simulate from.
-#' @param alpha significance level that will be used for testing.
-#' Default \code{0.05}.
-#'
-#' @return numeric vector with the optional continuation S-values
-#' @export
-simulateOptionalContinuationTwoProportions <- function(previousSValues,
-                                                       nFollowUp,
-                                                       parametersDataGeneratingDistribution,
-                                                       alpha = 0.05){
-  na <- nb <- nFollowUp/2
-  safeDesign <- designPilotSafeTwoProportions(na = na, nb = nb, alpha = alpha)
-  theta.a <- parametersDataGeneratingDistribution[1]
-  theta.b <- parametersDataGeneratingDistribution[2]
-  newSValues <- numeric(length(previousSValues))
-  for(i in 1:length(previousSValues)){
-    a.sample <- stats::rbinom(n = na, size = 1, prob = theta.a)
-    b.sample <- stats::rbinom(n = nb, size = 1, prob = theta.b)
-    na1 <- sum(a.sample)
-    nb1 <- sum(b.sample)
-    dataTable <- as.table(matrix(c(na-na1, na1, nb-nb1, nb1), nrow = 2, byrow = TRUE))
-    newSValues[i] <- safeTwoProportionsTest(x = dataTable, testDesign = safeDesign)$s_value
-  }
-  return(newSValues*previousSValues)
-}
-
-
