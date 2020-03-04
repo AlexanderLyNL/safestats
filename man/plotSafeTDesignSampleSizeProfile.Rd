@@ -12,15 +12,15 @@ plotSafeTDesignSampleSizeProfile(
   highDelta = 1,
   tol = 0.1,
   testType = c("oneSampleT", "pairedSampleT", "twoSampleT"),
+  nsim = 1000L,
   alternative = c("two.sided", "greater", "less"),
   sampleSizeRatio = 1,
-  mIter = 1000L,
   deltaFactor = 0.5,
   nFactor = 2,
   simulateSafeOptioStop = FALSE,
   logging = FALSE,
   backTest = FALSE,
-  seedNumber = NULL,
+  seed = NULL,
   freqPlot = FALSE,
   pb = TRUE,
   ...
@@ -43,12 +43,12 @@ and "deltaS". Note that 1-beta defines the power.}
 
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 
+\item{nsim}{the number of replications, that is, experiments with max samples n1Plan and n2Plan}
+
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
 
 \item{sampleSizeRatio}{numeric representing n2/n1. If is.null(n2) then sampleSizeRatio=1}
-
-\item{mIter}{the number of replications, that is, experiments with max samples n1Plan and n2Plan}
 
 \item{deltaFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
 deltaTrue = 0.8) of lowDelta}
@@ -64,7 +64,7 @@ simulateSafeOptioStop==TRUE}
 \item{backTest}{logical, if TRUE it provides the frequentist sample size necessary to attain the power that the
 safe test attains due to optional stopping}
 
-\item{seedNumber}{To set the seed for the simulated data}
+\item{seed}{To set the seed for the simulated data}
 
 \item{freqPlot}{logical, if TRUE plot frequentist sample size profiles}
 
