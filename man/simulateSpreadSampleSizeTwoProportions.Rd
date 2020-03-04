@@ -7,7 +7,8 @@
 simulateSpreadSampleSizeTwoProportions(
   safeDesign,
   M,
-  parametersDataGeneratingDistribution
+  parametersDataGeneratingDistribution,
+  makePlot = FALSE
 )
 }
 \arguments{
@@ -18,6 +19,9 @@ through \code{\link{designSafeTwoProportions}}}
 
 \item{parametersDataGeneratingDistribution}{group means a and b in the data
 generating distribution to simulate from.}
+
+\item{makePlot}{logical indicating whether a histogram of stopping times should be
+plotted.}
 }
 \value{
 \code{n.final}, vector of realized sample sizes, and \code{rejected},

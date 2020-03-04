@@ -319,10 +319,10 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
     trueMeanStatement <- "true mean"
   } else if (testType %in% c("pairedSampleT", "twoSampleT")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
-  } else if (testType == "safe2x2_result") {	
+  } else if (testType == "safe2x2_result") {
 	    trueMeanStatement <- "true difference between proportions in group a and b is"
   }
-  
+
   nameChar <- paste(trueMeanStatement, switch(alternative,
                                               "two.sided"= "not equal to 0",
                                               "greater"= "greater than 0",
@@ -346,6 +346,33 @@ round5 <- function(num) {
   round(num, 5)
 }
 
+# Plot helper -----------------------------------------------------
+#' Plot distribution of stopping times in simulated early stopping scenarios
+#'
+#' @param safeSim a safeSim result generated with \code{\link{simulateSpreadSampleSizeTwoProportions}} or
+#' \code{\link{replicateTTests}}.
+#' @param nPlan maximal planned sample size in optional stopping scenario
+#' @param deltaTrue true effect size
+#' @param showOnlyNRejected only show the spread of the sample sizes from experiments where H0
+#' was rejected; default \code{FALSE}
+#'
+#' @return does not return anything
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' safeDesignProportions <- designSafeTwoProportions(deltaMin = 0.3,
+#' alpha = 0.05, beta = 0.20, lowN = 100, numberForSeed = 5227)
+#' set.seed(5224)
+#' optionalStoppingTrueMeanIsDesign <- simulateSpreadSampleSizeTwoProportions(
+#'    safeDesign = safeDesignProportions,
+#'    M = 1000,
+#'    parametersDataGeneratingDistribution = c(0.3, 0.6)
+#'  )
+#' plotHistogramDistributionStoppingTimes(optionalStoppingTrueMeanIsDesign,
+#'                                        nPlan = safeDesignProportions[["n.star"]],
+#'                                        deltaTrue = 0.3)
+#' }
 plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, showOnlyNRejected = FALSE){
   if(showOnlyNRejected){
     dataToPlot <- safeSim$allRejectedN

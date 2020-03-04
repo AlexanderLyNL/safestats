@@ -7,7 +7,7 @@ setting. For examples and explanation about which test to choose for which study
 The development version can be found on [GitHub](https://github.com/alexanderlynl/safestats), which can be installed with the `devtools` package from [CRAN](https://cran.r-project.org/package=devtools) by entering in `R`:
 
 ```{r devtools, eval=FALSE}
-devtools::install_github("AlexanderLyNL/safestats")
+devtools::install_github("AlexanderLyNL/safestats", build_vignettes = TRUE)
 ```
 Once a stable version is finished, you can install it from CRAN in R through:
 ```
@@ -21,5 +21,5 @@ library("safestats")
 ```
 For an extensive overview of all functions and their usage, we recommend following the safestats vignette tutorial:
 ```
-vignette(package = "safestats")
+browseVignettes("safestats")
 ```
