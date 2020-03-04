@@ -12,7 +12,8 @@ simulateFisherSpreadSampleSizeOptionalStopping(
   M,
   parametersDataGeneratingDistribution,
   nDesign = NA,
-  highN = 200
+  highN = 200,
+  makePlot = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ time. Default \code{NA}.}
 
 \item{highN}{maximal nDesign: if no nDesign is found to achieve the desired power
 for the \code{deltaDesign} below \code{highN}, simulations are stopped.}
+
+\item{makePlot}{logical indicating whether a histogram of stopping times should be
+plotted.}
 }
 \value{
 see \code{\link{simulateSpreadSampleSizeTwoProportions}}
