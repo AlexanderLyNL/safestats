@@ -594,6 +594,7 @@ print.safeTDesign <- function(x, ...) {
 #' @inheritParams replicateTTests
 #'
 #' @return a safeTSim object
+#' @import stats
 #' @export
 #'
 #' @examples
