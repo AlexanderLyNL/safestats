@@ -346,6 +346,9 @@ round5 <- function(num) {
   round(num, 5)
 }
 
+
+# Vignette helpers ---------
+
 #' Plots the histogram of stopping times
 #'
 #' @param safeSim A safeSim object, returned from "replicateTTests" and "simulateSpreadSampleSizeTwoProportions"
@@ -355,7 +358,6 @@ round5 <- function(num) {
 #' @param nBin numeric > 0, the minimum number of bins in the histogram
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return a histogram plot of the stopping times
 #' @export
 #'
 #' @examples
@@ -396,4 +398,160 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
                  xlab = "stopping time (n collected)",
                  main = mainTitle,
                  col = "lightgrey", ...)
+}
+
+
+#' Selectively continue experiments that did not lead to a null rejection for a (safe) t-test
+#'
+#' @inheritParams simulate.safeTDesign
+#' @param oldValues vector of "sValues" or "pValues"
+#' @param valuesType character either "sValues" or "pValues"
+#' @param designObj a safeTDesign object, or NULL if valuesType=="pValues"
+#' @param oldData a list of matrices with names "dataGroup1" and "dataGroup2"
+#' @param n1Extra integer, that defines the additional number of samples of the first group. If NULL and
+#' valuesType=="sValues", then n1Extra <- designObj$n1Plan
+#' use designSafeT to find this)
+#' @param n2Plan optional integer, that defines the additional number of samples of the second group. If NULL, and
+#' valuesType=="sValues", then n2Extra <- designObj$n2Plan
+#'
+#' @return a list that includes the continued s or p-values based on the combined data, and a list of the combined
+#' data
+#' @export
+#'
+#' @examples
+#' alpha <- 0.05
+#' mIter <- 1000L
+#'
+#' designObj <- designSafeT(deltaMin=1, alpha=alpha)
+#' oldData <- generateTTestData(n1Plan=designObj$n1Plan, deltaTrue=0, nsim=mIter, seed=1)
+#'
+#' sValues <- vector("numeric", length=mIter)
+#'
+#' for (i in seq_along(sValues)) {
+#'   sValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$sValue
+#' }
+#' # First run: 7 false null rejections
+#' sum(sValues > 1/alpha)
+#'
+#' continuedSafe <- selectivelyContinueTTestCombineData(oldValues=sValues, designObj=designObj, oldData=oldData,
+#' deltaTrue=0, seed=2)
+#'
+#' # Second run: 8 false null rejections
+#' sum(continuedSafe$newValues > 1/alpha)
+#'
+#' for (i in 1:3) {
+#'   sValues <- continuedSafe$newValues
+#'   oldData <- continuedSafe$combinedData
+#'   continuedSafe <- selectivelyContinueTTestCombineData(oldValues=sValues, designObj=designObj, oldData=oldData,
+#'   deltaTrue=0, seed=i+2)
+#'
+#'   print(paste("Iteration", i+2))
+#'   print("Number of false null rejections")
+#'   print(sum(continuedSafe$newValues > 1/alpha))
+#' }
+selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues", "pValues"), designObj=NULL,
+                                                alternative=c("two.sided", "greater", "less"),
+                                                oldData, deltaTrue, alpha=NULL,
+                                                n1Extra=NULL, n2Extra=NULL, seed=NULL, paired=FALSE) {
+  valuesType <- match.arg(valuesType)
+  alternative <- match.arg(alternative)
+
+  if (valuesType=="pValues") {
+    if (is.null(alpha)) {
+      stop('For valuesType="pValues" an alpha is required')
+    }
+
+    if (is.null(n1Extra) && is.null(n2Extra)) {
+      stop("Can't sample extra data without being specified the number of extra samples")
+    }
+  } else if (valuesType=="sValues") {
+    if (is.null(designObj)) {
+      stop("Can't continue safe test analysis without a design object")
+    }
+
+    alpha <- designObj[["alpha"]]
+
+    if (is.null(n1Extra) && is.null(n2Extra)) {
+      n1Extra <- designObj[["n1Plan"]]
+      n2Extra <- designObj[["n2Plan"]]
+    }
+  }
+
+  if (is.null(oldData[["dataGroup1"]]))
+    stop("Can't combine data from old experiment without a matrix of old data referred to as oldData$dataGroup1")
+
+  result <- list("oldValues"=oldValues, "newValues"=NULL, "valuesType"=valuesType, "combinedData"=NULL, "deltaTrue"=deltaTrue,
+                 "cal"=sys.call())
+
+  if (valuesType=="sValues") {
+    notRejectedIndex <- which(oldValues <= 1/alpha)
+  } else if (valuesType=="pValues") {
+    notRejectedIndex <- which(oldValues >= alpha)
+  }
+
+  notRejectedIndex <- which(1:10 >= 12)
+
+  if (length(notRejectedIndex)==0)
+    stop("All experiments led to a null rejection. Nothing to selectively continue.")
+
+  oldDataGroup1 <- oldData[["dataGroup1"]][notRejectedIndex, ]
+  oldDataGroup2 <- oldData[["dataGroup2"]][notRejectedIndex, ]
+
+  newData <- generateTTestData("n1Plan"=n1Extra, "n2Plan"=n2Extra,
+                               "deltaTrue"=deltaTrue, "nsim"=length(notRejectedIndex),
+                               "paired"=paired, "seed"=seed)
+
+  dataGroup1 <- cbind(oldDataGroup1, newData[["dataGroup1"]])
+  dataGroup2 <- cbind(oldDataGroup2, newData[["dataGroup2"]])
+
+  newValues <- vector("numeric", length(notRejectedIndex))
+
+  if (valuesType=="sValues") {
+    for (i in seq_along(newValues)) {
+      newValues[i] <- safeTTest("x"=dataGroup1[i, ], "y"=dataGroup2[i, ],
+                                "designObj"=designObj, "alternative"=alternative,
+                                "paired"=paired)$sValue
+    }
+
+    minX <- log(min(oldValues, newValues))
+    maxX <- log(max(oldValues, newValues))
+
+    yOld <- log(oldValues[notRejectedIndex])
+    yNew <- log(newValues)
+
+    xLabText <- "log(sValues)"
+    mainText <- "Histogram of s-values"
+
+    threshValue <- log(1/alpha)
+  } else if (valuesType=="pValues") {
+    for (i in seq_along(newValues)) {
+      newValues[i] <- t.test("x"=dataGroup1[i, ], "y"=dataGroup2[i, ],
+                             "alternative"=alternative, "paired"=paired)$p.value
+    }
+    minX <- 0
+    maxX <- 1
+
+    yOld <- oldValues[notRejectedIndex]
+    yNew <- newValues
+
+    xLabText <- "p-values"
+    mainText <- "Histogram of p-values"
+
+    threshValue <- alpha
+  }
+
+  oldHist <- graphics::hist("x"=yOld, plot=FALSE)
+  newHist <- graphics::hist("x"=yNew, plot=FALSE)
+
+  yMax <- max(oldHist[["counts"]], newHist[["counts"]])
+
+  graphics::plot(oldHist, "xlim"=c(minX, maxX), ylim=c(0, yMax), "col"="blue",
+                 "density"=20, "angle"=45, "xlab"=xLabText, "main"=mainText)
+  graphics::plot(newHist, "add"=TRUE, "col"="red", "density"=20, "angle"=-45)
+  graphics::abline("v"=threshValue, "col"="grey", "lwd"=2, "lty"=2)
+
+  result[["newValues"]] <- newValues
+  result[["combinedData"]] <-list("dataGroup1"=dataGroup1, "dataGroup2"=dataGroup2)
+
+  return(result)
 }

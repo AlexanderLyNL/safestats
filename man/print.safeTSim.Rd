@@ -11,9 +11,6 @@
 
 \item{...}{further arguments to be passed to or from methods.}
 }
-\value{
-Prints a safeTSim object
-}
 \description{
 Prints a safeTSim object
 }

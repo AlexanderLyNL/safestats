@@ -24,6 +24,14 @@
 #' safeTTestStat(t=3, n1=100, deltaS=0.3)
 safeTTestStat <- function(t, deltaS, n1, n2=NULL, alternative=c("two.sided", "less", "greater"), tDensity=FALSE,
                           paired=FALSE, ...) {
+  # TODO(Alexander):
+  #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
+  #   1. Use Kummer's transform again (??)
+  #   2. Switch to numerical integration. Boundary case
+  #
+  # safeTTestStat(t=-3.1878, deltaS=0.29, n1=315, alternative="greater")
+  # safeTTestStat(t=-3.1879, deltaS=0.29, n1=315, alternative="greater")
+  # safeTTestStat(t=-3.188, deltaS=0.29, n1=315, alternative="greater")
   alternative <- match.arg(alternative)
 
   if (is.null(n2) | paired==TRUE) {
@@ -64,6 +72,11 @@ safeTTestStat <- function(t, deltaS, n1, n2=NULL, alternative=c("two.sided", "le
         Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
       result[!zeroIndex] <- expTerm[!zeroIndex]*(aKummerFunction + bKummerFunction)
     }
+  }
+
+  if (result < 0) {
+    warning("Overflow: s-value smaller than 0")
+    result <- 2^(-15)
   }
   return(result)
 }
@@ -201,12 +214,11 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "l
   return(result)
 }
 
-#' Prints a safeTDesign object
+#' Prints a safeTResult object
 #'
 #' @param x a safeTResult object
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Prints a safeTDesign object
 #' @export
 #'
 #' @examples
@@ -513,7 +525,6 @@ designSafeT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' @param x a safeTDesign object
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return prints a safeTDesign object
 #' @export
 #'
 #' @examples
@@ -652,7 +663,6 @@ simulate.safeTDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGl
 #' @param x a safeTSim object
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Prints a safeTSim object
 #' @export
 #'
 #' @examples
@@ -738,7 +748,6 @@ print.safeTSim <- function(x, ...) {
 #' @param y NULL
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return A histogram plot of the stopping times
 #' @export
 #'
 #' @examples
@@ -1373,8 +1382,8 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
   someData <- generateTTestData("n1Plan"=n1Plan, "n2Plan"=n2Plan, "nsim"=nsim, "deltaTrue"=deltaTrue,
                                 "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed)
 
-  repData1 <- someData[["repData1"]]
-  repData2 <- someData[["repData2"]]
+  dataGroup1 <- someData[["dataGroup1"]]
+  dataGroup2 <- someData[["dataGroup2"]]
 
   if (safeOptioStop) {
     n1Samples <- seq.int(lowN, n1Plan)
@@ -1389,8 +1398,8 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
       pbSafe <- utils::txtProgressBar(style=1, title="Safe optional stopping")
 
     for (iter in seq.int(nsim)) {
-      subData1 <- repData1[iter, ]
-      subData2 <- repData2[iter, ]
+      subData1 <- dataGroup1[iter, ]
+      subData2 <- dataGroup2[iter, ]
 
       someT <- unname(stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternative,
                                     "var.equal"=TRUE, "paired"=paired)[["statistic"]])
@@ -1444,8 +1453,8 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
       safeSim[["probLeqN1PlanFreq"]] <- mean(allSafeN <= n1PlanFreq)
 
     if (isTRUE(logging)) {
-      safeSim[["repData1"]] <- repData1
-      safeSim[["repData2"]] <- repData2
+      safeSim[["dataGroup1"]] <- dataGroup1
+      safeSim[["dataGroup2"]] <- dataGroup2
     }
 
     result[["safeSim"]] <- safeSim
@@ -1458,7 +1467,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
       sampleSizeRatio <- 1
 
       if (n1PlanFreq < n1Plan) {
-        repData1 <- repData1[, seq.int(n1PlanFreq)]
+        dataGroup1 <- dataGroup1[, seq.int(n1PlanFreq)]
       }
 
       if (n1PlanFreq > n1Plan) {
@@ -1466,7 +1475,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
 
         someData <- generateTTestData("n1Plan"=n1Diff, "n2Plan"=n2Plan, "nsim"=nsim, "deltaTrue"=deltaTrue,
                                       "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed+1)
-        repData1 <- cbind(repData1, someData[["repData1"]])
+        dataGroup1 <- cbind(dataGroup1, someData[["dataGroup1"]])
       }
     } else {
       # Note(Alexander): Two-sample case
@@ -1478,23 +1487,23 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
       }
 
       if (n1PlanFreq < n1Plan) {
-        repData1 <- repData1[, seq.int(n1PlanFreq)]
+        dataGroup1 <- dataGroup1[, seq.int(n1PlanFreq)]
       } else if (n1PlanFreq > n1Plan) {
         n1Diff <- n1PlanFreq - n1Plan
 
         someData <- generateTTestData("n1Plan"=n1Diff, "n2Plan"=n2Plan, "nsim"=nsim, "deltaTrue"=deltaTrue,
                                       "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed+1)
-        repData1 <- cbind(repData1, someData[["repData1"]])
+        dataGroup1 <- cbind(dataGroup1, someData[["dataGroup1"]])
       }
 
       if (n2PlanFreq < n2Plan) {
-        repData2 <- repData2[, seq.int(n2PlanFreq)]
+        dataGroup2 <- dataGroup2[, seq.int(n2PlanFreq)]
       } else if (n2PlanFreq > n2Plan) {
         n2Diff <- n2PlanFreq - n2Plan
 
         someData <- generateTTestData("n1Plan"=1, "n2Plan"=n2Diff, "nsim"=nsim, "deltaTrue"=deltaTrue,
                                       "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed+1)
-        repData2 <- cbind(repData2, someData[["repData2"]])
+        dataGroup2 <- cbind(dataGroup2, someData[["dataGroup2"]])
       }
     }
 
@@ -1510,8 +1519,8 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
       pbFreq <- utils::txtProgressBar(style=1, title="Frequentist optional stopping")
 
     for (iter in seq.int(nsim)) {
-      subData1 <- repData1[iter, ]
-      subData2 <- repData2[iter, ]
+      subData1 <- dataGroup1[iter, ]
+      subData2 <- dataGroup2[iter, ]
       someP <- stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternative,
                              "var.equal"=TRUE, "paired"=paired)[["p.value"]]
 
@@ -1553,8 +1562,8 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
       freqSim[["probLeqNSafe"]] <- mean(allFreqN <= n1Plan)
 
     if (isTRUE(logging)) {
-      freqSim[["repData1"]] <- repData1
-      freqSim[["repData2"]] <- repData2
+      freqSim[["dataGroup1"]] <- dataGroup1
+      freqSim[["dataGroup2"]] <- dataGroup2
     }
 
     result[["freqSim"]] <- freqSim
@@ -1574,26 +1583,26 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
 generateTTestData <- function(n1Plan, n2Plan=NULL, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaTrue=1, paired=FALSE,
                               seed=NULL) {
 
-  result <- list("repData1"=NULL, "repData2"=NULL)
+  result <- list("dataGroup1"=NULL, "dataGroup2"=NULL)
   set.seed(seed)
 
   if (is.null(n2Plan)) {
-    repData1 <- stats::rnorm("n"=n1Plan*nsim, "mean"=deltaTrue*sigmaTrue, "sd"=sigmaTrue)
-    repData1 <- matrix(repData1, "ncol"=n1Plan, "nrow"=nsim)
-    repData2 <- NULL
+    dataGroup1 <- stats::rnorm("n"=n1Plan*nsim, "mean"=deltaTrue*sigmaTrue, "sd"=sigmaTrue)
+    dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nsim)
+    dataGroup2 <- NULL
   } else {
     if (paired) {
-      repData1 <- stats::rnorm("n"=n1Plan*nsim, "mean"=muGlobal + deltaTrue*sigmaTrue/sqrt(2), "sd"=sigmaTrue)
-      repData1 <- matrix(repData1, "ncol"=n1Plan, "nrow"=nsim)
-      repData2 <- stats::rnorm("n"=n2Plan*nsim, "mean"=muGlobal - deltaTrue*sigmaTrue/sqrt(2), "sd"=sigmaTrue)
-      repData2 <- matrix(repData2, "ncol"=n2Plan, "nrow"=nsim)
+      dataGroup1 <- stats::rnorm("n"=n1Plan*nsim, "mean"=muGlobal + deltaTrue*sigmaTrue/sqrt(2), "sd"=sigmaTrue)
+      dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nsim)
+      dataGroup2 <- stats::rnorm("n"=n2Plan*nsim, "mean"=muGlobal - deltaTrue*sigmaTrue/sqrt(2), "sd"=sigmaTrue)
+      dataGroup2 <- matrix(dataGroup2, "ncol"=n2Plan, "nrow"=nsim)
     } else {
-      repData1 <- stats::rnorm("n"=n1Plan*nsim, "mean"=muGlobal + deltaTrue*sigmaTrue/2, "sd"=sigmaTrue)
-      repData1 <- matrix(repData1, "ncol"=n1Plan, "nrow"=nsim)
-      repData2 <- stats::rnorm("n"=n2Plan*nsim, "mean"=muGlobal - deltaTrue*sigmaTrue/2, "sd"=sigmaTrue)
-      repData2 <- matrix(repData2, "ncol"=n2Plan, "nrow"=nsim)
+      dataGroup1 <- stats::rnorm("n"=n1Plan*nsim, "mean"=muGlobal + deltaTrue*sigmaTrue/2, "sd"=sigmaTrue)
+      dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nsim)
+      dataGroup2 <- stats::rnorm("n"=n2Plan*nsim, "mean"=muGlobal - deltaTrue*sigmaTrue/2, "sd"=sigmaTrue)
+      dataGroup2 <- matrix(dataGroup2, "ncol"=n2Plan, "nrow"=nsim)
     }
   }
 
-  return(list("repData1"=repData1, "repData2"=repData2))
+  return(list("dataGroup1"=dataGroup1, "dataGroup2"=dataGroup2))
 }

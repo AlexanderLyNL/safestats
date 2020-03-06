@@ -17,9 +17,6 @@
 
 \item{...}{further arguments to be passed to or from methods.}
 }
-\value{
-A histogram plot of the stopping times
-}
 \description{
 Plots a safeTSim object
 }

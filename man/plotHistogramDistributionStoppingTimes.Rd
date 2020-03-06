@@ -26,9 +26,6 @@ plotHistogramDistributionStoppingTimes(
 
 \item{...}{further arguments to be passed to or from methods.}
 }
-\value{
-a histogram plot of the stopping times
-}
 \description{
 Plots the histogram of stopping times
 }

@@ -114,7 +114,7 @@ or equivalently with syntax closely resembling the standard t.test code in R:
 ```{r}
 safe.t.test(x=preData, y=postData, alternative = "greater", designObj=designObj, paired=TRUE)
 ```
-The following code replicates this setting a 1000 times and shows that indeed, only a very few times will the sValues cross the boundary of $1/\alpha$
+The following code replicates this setting a 1,000 times and shows that indeed, only a very few times will the sValues cross the boundary of $1/\alpha$
 
 ```{r}
 alpha <- 0.05
@@ -164,13 +164,14 @@ designObj
 ```
 
 #### Optional stopping: True effect size equals minimal clinical relevant effect size
-The following code replicates 1000 experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of $\delta_{\min}=9/(15 \sqrt{2}) = 0.42$. The safe test is applied to each data set sequentially and if the s-value is larger than $1 / \alpha$, the experiment is stopped. If the s-value does not exceed $1/\alpha$, the experiment is run until all samples are collected as planned.
+The following code replicates 1,000 experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of $\delta_{\min}=9/(15 \sqrt{2}) = 0.42$. The safe test is applied to each data set sequentially and if the s-value is larger than $1 / \alpha$, the experiment is stopped. If the s-value does not exceed $1/\alpha$, the experiment is run until all samples are collected as planned.
 ```{r}
 alpha <- 0.05
 beta <- 0.2
 deltaMin <- 9/(sqrt(2)*15) # = 0.42
 
-simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nsim=1000L, seed=1, deltaTrue=deltaMin)
+simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nsim=1000L,
+                                         seed=1, deltaTrue=deltaMin)
 simResultDeltaTrueIsDeltaMin
 ```
 The simulations show that the tolerable type II error rate of $\beta = 0.2$, which was planned is almost reached 1 - 0.795 = 0.205. The discrepancy of 0.5% is due to sampling error and vanishes as the number of simulations increases. Note that optional stopping increases power to larger than the targetted 1 - $\beta$ = 80%. Furthermore, the average sample at which the experiment is stopped is much lower than what was planned for. 
@@ -194,7 +195,8 @@ alpha <- 0.05
 beta <- 0.2
 deltaMin <- 9/(sqrt(2)*15) # = 0.42
 deltaTrueLarger <- 0.6
-simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj, nsim=1000L, seed=1, 
+simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
+                                                 nsim=1000L, seed=1,
                                                  deltaTrue=deltaTrueLarger)
 simResultDeltaTrueLargerThanDeltaMin
 ```
@@ -216,8 +218,9 @@ deltaMin <- 9/(sqrt(2)*15) # = 0.42
 freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta, 
                              alternative="greater", testType="pairedSampleT")
 
-simResultDeltaTrueIsZero <- simulate(object=designObj, nsim=1000L, seed=1, deltaTrue=0, 
-                                     freqOptioStop=TRUE, n1PlanFreq=freqDesignObj$n1PlanFreq,
+simResultDeltaTrueIsZero <- simulate(object=designObj, nsim=1000L, seed=1,
+                                     deltaTrue=0, freqOptioStop=TRUE,
+                                     n1PlanFreq=freqDesignObj$n1PlanFreq,
                                      n2PlanFreq=freqDesignObj$n2PlanFreq)
 simResultDeltaTrueIsZero
 ```
@@ -237,173 +240,105 @@ We show that both procedures are safe, that is, they do not lead to the tolerabl
 Firstly, we show that when there is an effect (more precisely, deltaTrue equal deltaMin) that there is a drift in s-values towards higher values. In the following we consider the situation in which we continue studies for which the original s-values did not lead to a rejection. The follow-up study will be of the same size as the original study, thus, n1Plan=63 and n2Plan=63, and generated under the same assumption that deltaTrue equal deltaMin. The drift we mentioned will become apparent by plotting the histogram of s-values of the original simulation that did not resulted in a rejection in blue, and the histogram of s-values computed over the combined data in red. To ease visualisation we do this on the log scale; a negative log s-value implies that the s-value is smaller than one, whereas a positive log s-value corresponds to s-values larger than one. For this we run the following code:
 
 ```{r}
-notRejected1Index <- which(simResultDeltaTrueIsDeltaMin$safeSim$allSafeDecisions==0)
+oldSValues <- simResultDeltaTrueIsDeltaMin$safeSim$sValues
+oldData <- list(dataGroup1=simResultDeltaTrueIsDeltaMin$safeSim$dataGroup1,
+                dataGroup2=simResultDeltaTrueIsDeltaMin$safeSim$dataGroup2)
 
-oriSValues <- simResultDeltaTrueIsDeltaMin$safeSim$sValues[notRejected1Index]
-
-oriNotRejectedData1 <- simResultDeltaTrueIsDeltaMin$safeSim$repData1[notRejected1Index, ]
-oriNotRejectedData2 <- simResultDeltaTrueIsDeltaMin$safeSim$repData2[notRejected1Index, ]
-
-newData <- generateTTestData(n1Plan=designObj$n1Plan, n2Plan=designObj$n2Plan, 
-                             deltaTrue=designObj$deltaMin, nsim=length(notRejected1Index), 
-                             paired=TRUE, seed=2)
-
-combinedRepData1 <- cbind(oriNotRejectedData1, newData$repData1)
-combinedRepData2 <- cbind(oriNotRejectedData2, newData$repData2)
-
-combinedDataSValues <- vector("numeric", length(notRejected1Index))
-
-for (i in seq_along(combinedDataSValues)) {
-  combinedDataSValues[i] <- safeTTest(x=combinedRepData1[i, ], 
-                                      y=combinedRepData2[i, ], 
-                                      designObj=designObj, alternative="greater", 
-                                      paired=TRUE)$sValue
-}
-
-minS <- min(oriSValues, combinedDataSValues)
-maxS <- max(oriSValues, combinedDataSValues)
-
-graphics::hist(log(oriSValues), xlim=log(c(minS, maxS)), col="blue", 
-               density=20, angle=45, xlab="log(sValues)", 
-               main="Histogram of sValues")
-graphics::abline(v=log(20), col="grey", lwd=2)
-graphics::hist(log(combinedDataSValues), add=TRUE, col="red", density=20, angle=-45)
+selectivelyContinueDeltaTrueIsDeltaMin <- 
+  selectivelyContinueTTestCombineData(oldValues=oldSValues,
+                                      designObj=designObj,
+                                      alternative="greater", 
+                                      oldData=oldData,
+                                      deltaTrue=designObj[["deltaMin"]],
+                                      seed=2, paired=TRUE)
 ```
 The grey vertical line represent the log(1/alpha) threshold, and note that there is indeed a shift in the distribution of s-values. Moreover, the code
 ```{r}
-mean(oriSValues >= 1/alpha)
-mean(combinedDataSValues >= 1/alpha)
+length(selectivelyContinueDeltaTrueIsDeltaMin$newValues)
+mean(selectivelyContinueDeltaTrueIsDeltaMin$newValues >= 1/alpha)
 ```
-shows that 93.1% of the original studies that did not lead to a null rejection now do reject the null, which is the right decision, since the data were generated with a true effect that was equal to deltaMin. 
+shows that of the 145 experiments that did not lead to a null rejection now 93.1% do lead to a null rejection, which is the right decision, since the data were generated with a true effect that was equal to deltaMin. 
 
 #### Optional continuation: True effect size is zero
-In this section, we show that there is no drift of the s-values to larger values, when the null holds true. Instead, there is slow drift to lower values. We consider the situation in which we continue studies for which the original s-values did not lead to a null rejection. The follow-up studies will be of the same size as the original study, thus, n1Plan=63 and n2Plan=63 and are also generated under the null. The slow drift to lower values is visualised by plotting the histogram of s-values of the original simulation that did not resulted in a rejection in blue, and the histogram of s-values computed over the combined data in red. For this we run the following code:
+In this section, we show that s-values do not drift to larger values, when the null holds true. Instead, there is slow drift to lower values. We consider the situation in which we continue studies for which the original s-values did not lead to a null rejection. The follow-up studies will be of the same size as the original study, thus, n1Plan=63 and n2Plan=63 and are also generated under the null. The slow drift to lower values is visualised by plotting the histogram of s-values of the original simulation that did not resulted in a rejection in blue, and the histogram of s-values computed over the combined data in red. For this we run the following code:
 
 ```{r}
-notRejected1Index <- which(simResultDeltaTrueIsZero$safeSim$allSafeDecisions==0)
+oldSValues <- simResultDeltaTrueIsZero$safeSim$sValues
+oldData <- list(dataGroup1=simResultDeltaTrueIsZero$safeSim$dataGroup1,
+                dataGroup2=simResultDeltaTrueIsZero$safeSim$dataGroup2)
 
-oriSValues <- simResultDeltaTrueIsZero$safeSim$sValues[notRejected1Index]
+selectivelyContinueDeltaTrueIsZero <- 
+  selectivelyContinueTTestCombineData(oldValues=oldSValues,
+                                      designObj=designObj,
+                                      alternative="greater", 
+                                      oldData=oldData,
+                                      deltaTrue=0,
+                                      seed=2, paired=TRUE)
+```
+Hence, most of the s-values that did not lead to a null rejection also do not lead to a null rejection for the combined data. Recall that optional stopping with the s-value led to 24 false rejection and that 
+```{r}
+sum(selectivelyContinueDeltaTrueIsZero$newValues >= 1/alpha)
+length(selectivelyContinueDeltaTrueIsZero$newValues)
+```
+shows that 7 out of the 976 of continued experiments (0.7%) lead to a null rejection due to optional continuation. Hence, after one replication attempt the total number of total false null rejection is 31 out of a total of a 1,000 original experiment, thus, 3.1%. <!-- is still below the tolerable $\alpha$-level of 5%. -->
 
-oriNotRejectedData1 <- simResultDeltaTrueIsZero$safeSim$repData1[notRejected1Index, ]
-oriNotRejectedData2 <- simResultDeltaTrueIsZero$safeSim$repData2[notRejected1Index, ]
+One might wonder whether further extending the non-rejected experiment will cause the total rejection rate go above 5%. The following code suggests not.
 
-newData <- generateTTestData(n1Plan=designObj$n1Plan, n2Plan=designObj$n2Plan, deltaTrue=0,
-                             nsim=length(notRejected1Index), paired=TRUE, seed=2) # Here deltaTrue=0
-
-combinedRepData1 <- cbind(oriNotRejectedData1, newData$repData1)
-combinedRepData2 <- cbind(oriNotRejectedData2, newData$repData2)
-
-combinedDataSValues <- vector("numeric", length(notRejected1Index))
-
-for (i in seq_along(combinedDataSValues)) {
-  combinedDataSValues[i] <- safeTTest(x=combinedRepData1[i, ], 
-                                      y=combinedRepData2[i, ], 
-                                      designObj=designObj, alternative="greater", 
-                                      paired=TRUE)$sValue
+```{r}
+for (j in 1:3) {
+  oldSValues <- selectivelyContinueDeltaTrueIsZero$newValues
+  oldData <- selectivelyContinueDeltaTrueIsZero$combinedData
+  
+  selectivelyContinueDeltaTrueIsZero <- 
+  selectivelyContinueTTestCombineData(oldValues=oldSValues,
+                                      designObj=designObj,
+                                      alternative="greater", 
+                                      oldData=oldData,
+                                      deltaTrue=0,
+                                      seed=2+j, paired=TRUE)
+  print(paste("Replication attempt", j+1))
+  print(sum(selectivelyContinueDeltaTrueIsZero$newValues > 1/alpha))
 }
 
-minS <- min(oriSValues, combinedDataSValues)
-maxS <- max(oriSValues, combinedDataSValues)
-
-graphics::hist(log(oriSValues), xlim=log(c(minS, maxS)), 
-               ylim=c(0, 230), col="blue", density=20, angle=45, 
-               xlab="log(sValues)", main="Histogram of sValues") # Here ylim=c(0, 230)
-graphics::abline(v=log(20), col="grey", lwd=2)
-graphics::hist(log(combinedDataSValues), add=TRUE, col="red", density=20, angle=-45)
 ```
-Hence, most of the s-values that did not lead to a null rejection also do not lead to a null rejection for the combined data. Moreover, 
-```{r}
-mean(oriSValues >= 1/alpha)
-sum(combinedDataSValues >= 1/alpha)
-length(combinedDataSValues)
-mean(combinedDataSValues >= 1/alpha)
-```
-shows that 7 out of the 976 of continued experiments (0.7%) lead to a null rejection due to optional continuation. Hence, after one replication attempt the total number of total false null rejection is 31 out of a total of a 1000 original experiment, thus, 3.1%. <!-- is still below the tolerable $\alpha$-level of 5%. -->
-
-One might wonder whether further extending the non-rejected experiment will cause the total rejection rate go above 5%. The following code suggests not. 
-
-```{r}
-notRejected1Index <- which(combinedDataSValues < 1/alpha)
-
-newData <- generateTTestData(n1Plan=designObj$n1Plan, n2Plan=designObj$n2Plan, deltaTrue=0, nsim=length(notRejected1Index), paired=TRUE, seed=3) # Here deltaTrue=0
-
-combinedRepData1 <- cbind(combinedRepData1[notRejected1Index, ], newData$repData1)
-combinedRepData2 <- cbind(combinedRepData2[notRejected1Index, ], newData$repData2)
-
-combinedDataSValues2 <- vector("numeric", length(notRejected1Index))
-
-for (i in seq_along(combinedDataSValues2)) {
-  combinedDataSValues2[i] <- safeTTest(x=combinedRepData1[i, ], y=combinedRepData2[i, ], designObj=designObj,
-                   alternative="greater", paired=TRUE)$sValue
-}
-
-minS <- min(combinedDataSValues, combinedDataSValues2)
-maxS <- max(combinedDataSValues, combinedDataSValues2)
-
-graphics::hist(log(combinedDataSValues), xlim=log(c(minS, maxS)), ylim=c(0, 230), col="blue", density=20, angle=45, xlab="log(sValues)", main="Histogram of sValues") # Here ylim=c(0, 230)
-graphics::abline(v=log(20), col="grey", lwd=2)
-graphics::hist(log(combinedDataSValues2), add=TRUE, col="red", density=20, angle=-45)
-```
-and the code
-```{r}
-sum(combinedDataSValues2 >= 1/alpha)
-```
-shows that now only one experiment resulted in a null rejection. A fourth replication does not result in any new rejections, nor a fifth. Hence, the number of rejected cases decreases as the number of replication attempts increases (24, 7, 1, 0, 0, ...), and the total number of false null rejections remains well below the tolerable $\alpha$-level. 
+and shows that the number of false null rejections decreases as the number of replication attempts increases (24, 7, 1, 0, 0, ...), and the total number of false null rejections remains well below the tolerable $\alpha$-level. 
 
 ### How optional continuation is problematic for p-values
-The situation for $p$-values however is different, as the number of additional rejections do not decrease with the number of replications attempts. We start with a total of 1000 experiments, all ran as planned:
+The situation for $p$-values however is different, as the number of additional rejections do not decrease with the number of replications attempts. As optional stopping is not adviced for $p$-values, we restart with a total of 1,000 experiments, all ran as planned:
 
 ```{r}
-oriData <- generateTTestData(n1Plan=freqDesignObj$n1PlanFreq, n2Plan=freqDesignObj$n2PlanFreq, 
+oriData <- generateTTestData(n1Plan=freqDesignObj$n1PlanFreq,
+                             n2Plan=freqDesignObj$n2PlanFreq, 
                              deltaTrue=0, nsim=1000, paired=TRUE, seed=1)
 
-repData1 <- oriData$repData1
-repData2 <- oriData$repData2
+dataGroup1 <- oriData$dataGroup1
+dataGroup2 <- oriData$dataGroup2
 
 pValues <- vector("numeric", length=1000)
 
 for (i in seq_along(pValues)) {
-  pValues[i] <- t.test(x=repData1[i, ], y=repData2[i, ], 
+  pValues[i] <- t.test(x=dataGroup1[i, ], y=dataGroup2[i, ], 
                        alternative="greater", paired=TRUE)$p.value
 }
 mean(pValues > alpha)
 sum(pValues < alpha)
 ```
-Thus resulted in 46 null rejection out of a 1000, hence, 4.6%. A first replication attempt shows that 
+This results in 46 null rejection out of a 1,000, hence, 4.6%. A first replication attempt shows that 
 
 ```{r}
-notRejected1Index <- which(pValues > alpha)
-
-pValues <- pValues[notRejected1Index]
-
-repData1 <- repData1[notRejected1Index, ]
-repData2 <- repData2[notRejected1Index, ]
-
-newData <- generateTTestData(n1Plan=freqDesignObj$n1PlanFreq, n2Plan=freqDesignObj$n2PlanFreq, 
-                             deltaTrue=0, nsim=length(notRejected1Index), paired=TRUE, seed=2) # Here deltaTrue=0
-
-combinedRepData1 <- cbind(repData1, newData$repData1)
-combinedRepData2 <- cbind(repData2, newData$repData2)
-
-combinedDataPValues <- vector("numeric", length(notRejected1Index))
-
-for (i in seq_along(combinedDataPValues)) {
-  combinedDataPValues[i] <- t.test(x=combinedRepData1[i, ], y=combinedRepData2[i, ], 
-                   alternative="greater", paired=TRUE)$p.value
-}
-
-graphics::hist(pValues, xlim=c(0, 1), col="blue", density=20, angle=45, xlab="p-values", 
-               main="Histogram of p-values") # Here ylim=c(0, 230)
-graphics::abline(v=0.05, col="grey", lwd=2)
-graphics::hist(combinedDataPValues, add=TRUE, col="red", density=20, angle=-45)
+selectivelyContinueDeltaTrueIsZeroWithP <-
+  selectivelyContinueTTestCombineData(oldValues=pValues,
+                                      valuesType="pValues", 
+                                      alternative="greater", 
+                                      oldData=oriData,
+                                      deltaTrue=0,
+                                      n1Extra=freqDesignObj$n1PlanFreq,
+                                      n2Extra=freqDesignObj$n2PlanFreq,
+                                      alpha=alpha,
+                                      seed=2, paired=TRUE)
+sum(selectivelyContinueDeltaTrueIsZeroWithP$newValues < alpha)
 ```
-and the code 
-```{r}
-sum(combinedDataPValues < alpha)
-length(combinedDataPValues < alpha)
-mean(combinedDataPValues < alpha)
-```
-reveals an additional 28 false null rejections, thus, in total 74 out of 1,000 experiments, hence, 7.4%, which is above the tolerable $\alpha$-level.  
+reveals an additional 28 false null rejections, thus, in total 74 out of 1,000 experiments, hence, 7.4%, which is already above the tolerable $\alpha$-level. 
 
 # Tests of two proportions
 ## 1. <a name = "design2x2">Designing Safe Experiments</a>
@@ -460,7 +395,7 @@ After this first 'Pilot' we could then decide to free up further resources and f
 
 ## 2. Inference with Safe Tests and <a name = "optStop2x2">Optional Stopping</a>
 #### True effect size equals minimal clinical relevant effect size
-As with the safe t-test, the safe test for two proportions can be used in the optional stopping setting while retaining the type I error guarantee. In the figure below the spread of the stopping times among 1000 simulated experiments is depicted, if the real effect size is equal to the minimal clinical relevant effect size we plan for:
+As with the safe t-test, the safe test for two proportions can be used in the optional stopping setting while retaining the type I error guarantee. In the figure below the spread of the stopping times among 1,000 simulated experiments is depicted, if the real effect size is equal to the minimal clinical relevant effect size we plan for:
 
 ```{r }
 set.seed(5224)

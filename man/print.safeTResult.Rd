@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{print.safeTResult}
 \alias{print.safeTResult}
-\title{Prints a safeTDesign object}
+\title{Prints a safeTResult object}
 \usage{
 \method{print}{safeTResult}(x, ...)
 }
@@ -11,11 +11,8 @@
 
 \item{...}{further arguments to be passed to or from methods.}
 }
-\value{
-Prints a safeTDesign object
-}
 \description{
-Prints a safeTDesign object
+Prints a safeTResult object
 }
 \examples{
 safeDesignObj <- designSafeT(0.7)
