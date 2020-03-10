@@ -15,7 +15,10 @@ selectivelyContinueTTestCombineData(
   n1Extra = NULL,
   n2Extra = NULL,
   seed = NULL,
-  paired = FALSE
+  paired = FALSE,
+  muGlobal = 0,
+  sigmaTrue = 1,
+  moreMainText = ""
 )
 }
 \arguments{
@@ -25,18 +28,34 @@ selectivelyContinueTTestCombineData(
 
 \item{designObj}{a safeTDesign object, or NULL if valuesType=="pValues"}
 
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+"greater" or "less"}
+
 \item{oldData}{a list of matrices with names "dataGroup1" and "dataGroup2"}
 
-\item{deltaTrue}{numeric, if NULL, then deltaTrue <- object[["deltaMin"]]}
+\item{deltaTrue}{numeric, the value of the true effect size (test-relevant parameter)}
+
+\item{alpha}{the tolerable type I error to be conserved. Also defines the decision rule s > 1/alpha, and for
+frequentist tests the decision rule is p < alpha.}
 
 \item{n1Extra}{integer, that defines the additional number of samples of the first group. If NULL and
 valuesType=="sValues", then n1Extra <- designObj$n1Plan
 use designSafeT to find this)}
 
-\item{seed}{numeric, seed number}
-
-\item{n2Plan}{optional integer, that defines the additional number of samples of the second group. If NULL, and
+\item{n2Extra}{optional integer, that defines the additional number of samples of the second group. If NULL, and
 valuesType=="sValues", then n2Extra <- designObj$n2Plan}
+
+\item{seed}{To set the seed for the simulated data}
+
+\item{paired}{logical, true if the simulated data are paired.}
+
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't matter for the
+test. This parameter treated is treated as a nuisance.}
+
+\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
+This parameter treated is treated as a nuisance.}
+
+\item{moreMainText}{character, additional remarks in the title of the histogram}
 }
 \value{
 a list that includes the continued s or p-values based on the combined data, and a list of the combined
