@@ -73,11 +73,14 @@ freqObj <- designFreqT(deltaMin, alpha=alpha, beta=beta)
 simResultsDeltaTrueIsDeltaMin <- simulate(object=designObj, nsim=100)
 
 # Simulate based on deltaTrue > deltaMin
-simResultsDeltaTrueIsLargerThanDeltaMin <- simulate(object=designObj, nsim=100, deltaTrue=2)
+simResultsDeltaTrueIsLargerThanDeltaMin <- simulate(
+  object=designObj, nsim=100, deltaTrue=2)
 
 # Simulate under the null deltaTrue = 0
-simResultsDeltaTrueIsNull <- simulate(object=designObj, nsim=100, deltaTrue=0)
+simResultsDeltaTrueIsNull <- simulate(
+  object=designObj, nsim=100, deltaTrue=0)
 
-simulate(object=designObj, deltraTrue=0, nsim=100, freqOptioStop=TRUE, n1PlanFreq=freqObj$n1PlanFreq, n2PlanFreq=freqObj$n2PlanFreq)
+simulate(object=designObj, deltraTrue=0, nsim=100, freqOptioStop=TRUE,
+         n1PlanFreq=freqObj$n1PlanFreq, n2PlanFreq=freqObj$n2PlanFreq)
 
 }

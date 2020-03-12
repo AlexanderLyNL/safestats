@@ -13,7 +13,7 @@ Description: This package is for designing and applying safe hypothesis tests.
   where the tests can be used under optional stopping. The 'pilot' functions in 
   the package also enable using the safe tests in the observational/ retrospective
   setting. The current version includes safe t-tests and tests of two proportions.
-License: LGPL (>= 3)
+License: LGPL (>= 3) + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends:

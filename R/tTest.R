@@ -622,12 +622,15 @@ print.safeTDesign <- function(x, ...) {
 #' simResultsDeltaTrueIsDeltaMin <- simulate(object=designObj, nsim=100)
 #'
 #' # Simulate based on deltaTrue > deltaMin
-#' simResultsDeltaTrueIsLargerThanDeltaMin <- simulate(object=designObj, nsim=100, deltaTrue=2)
+#' simResultsDeltaTrueIsLargerThanDeltaMin <- simulate(
+#'   object=designObj, nsim=100, deltaTrue=2)
 #'
 #' # Simulate under the null deltaTrue = 0
-#' simResultsDeltaTrueIsNull <- simulate(object=designObj, nsim=100, deltaTrue=0)
+#' simResultsDeltaTrueIsNull <- simulate(
+#'   object=designObj, nsim=100, deltaTrue=0)
 #'
-#' simulate(object=designObj, deltraTrue=0, nsim=100, freqOptioStop=TRUE, n1PlanFreq=freqObj$n1PlanFreq, n2PlanFreq=freqObj$n2PlanFreq)
+#' simulate(object=designObj, deltraTrue=0, nsim=100, freqOptioStop=TRUE,
+#'          n1PlanFreq=freqObj$n1PlanFreq, n2PlanFreq=freqObj$n2PlanFreq)
 #'
 simulate.safeTDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlobal=0, sigmaTrue=1, lowN=3,
                                  safeOptioStop=TRUE, freqOptioStop=FALSE, n1PlanFreq=NULL, n2PlanFreq=NULL,
@@ -707,7 +710,7 @@ print.safeTSim <- function(x, ...) {
   cat("\n")
 
   cat("\n")
-  cat("Is estimated to have a power of")
+  cat("Is estimated to have a null rejection rate of")
   cat("\n")
   cat("    powerAtNPlan =", x[["safeSim"]][["powerAtN1Plan"]])
   cat("\n")
@@ -715,12 +718,12 @@ print.safeTSim <- function(x, ...) {
   cat("\n")
   freqPowerAtN1Plan <- x[["freqSim"]][["powerAtN1Plan"]]
   if (!is.null(freqPowerAtN1Plan)) {
-    cat("For the frequentist test:    freqPowerAtNPlan =", freqPowerAtN1Plan)
+    cat("For the p-value test:    freqPowerAtNPlan =", freqPowerAtN1Plan)
     cat("\n")
   }
   cat("\n")
 
-  cat("Is estimated to have power ")
+  cat("Is estimated to have a null rejection rate of ")
   cat("\n")
   cat("    powerOptioStop =", x[["safeSim"]][["powerOptioStop"]])
   cat("\n")
@@ -736,7 +739,7 @@ print.safeTSim <- function(x, ...) {
 
   freqPowerOptioStop <- x[["freqSim"]][["powerOptioStop"]]
   if (!is.null(freqPowerAtN1Plan)) {
-    cat("For the frequentist test:    freqPowerOptioStop =", freqPowerOptioStop)
+    cat("For the p-value test:    freqPowerOptioStop =", freqPowerOptioStop)
     cat("\n")
   }
 }
@@ -1106,10 +1109,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
   result[["allDeltaS"]] <- allDeltaS
 
   # 2.a. Plot Safe -----
-  graphics::par(cex.main=1.5, mar=c(5, 6, 4, 7)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
-                font.lab=2, cex.axis=1.3, bty="n", las=1)
-
-
+  setSafeStatsPlotOptions()
   graphics::plot(deltaDomain, allN1PlanSafe, type="l", col="blue", lty=1, lwd=2, xlim=c(minDeltaDomain, maxDeltaDomain),
                  ylab="n1", xlab=expression(delta["min"]),
                  main=bquote(~alpha == ~.(alpha) ~ "and" ~beta== ~.(beta)))
@@ -1186,8 +1186,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
       result[["allNBack"]] <- allNBack
 
     # 3.a. Plot Sim  -----
-    graphics::par(cex.main=1.5, mar=c(5, 6, 4, 7)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
-                  font.lab=2, cex.axis=1.3, bty="n", las=1)
+    setSafeStatsPlotOptions()
 
     graphics::plot(deltaDomain, allN1PlanSafe, type="l", col="blue", lty=2, lwd=2, xlim=c(minDeltaDomain, maxDeltaDomain),
                    ylab="n1", xlab=expression(delta["min"]),

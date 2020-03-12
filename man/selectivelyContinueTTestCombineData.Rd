@@ -79,8 +79,9 @@ for (i in seq_along(sValues)) {
 # First run: 7 false null rejections
 sum(sValues > 1/alpha)
 
-continuedSafe <- selectivelyContinueTTestCombineData(oldValues=sValues, designObj=designObj, oldData=oldData,
-deltaTrue=0, seed=2)
+continuedSafe <- selectivelyContinueTTestCombineData(
+  oldValues=sValues, designObj=designObj, oldData=oldData,
+  deltaTrue=0, seed=2)
 
 # Second run: 8 false null rejections
 sum(continuedSafe$newValues > 1/alpha)
@@ -88,9 +89,9 @@ sum(continuedSafe$newValues > 1/alpha)
 for (i in 1:3) {
   sValues <- continuedSafe$newValues
   oldData <- continuedSafe$combinedData
-  continuedSafe <- selectivelyContinueTTestCombineData(oldValues=sValues, designObj=designObj, oldData=oldData,
-  deltaTrue=0, seed=i+2)
-
+  continuedSafe <- selectivelyContinueTTestCombineData(
+   oldValues=sValues, designObj=designObj, oldData=oldData,
+   deltaTrue=0, seed=i+2)
   print(paste("Iteration", i+2))
   print("Number of false null rejections")
   print(sum(continuedSafe$newValues > 1/alpha))

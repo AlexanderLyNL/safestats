@@ -29,3 +29,22 @@ plotHistogramDistributionStoppingTimes(
 \description{
 Plots the histogram of stopping times
 }
+\examples{
+\dontrun{
+# Design safe test
+alpha <- 0.05
+beta <- 0.20
+designObj <- designSafeT(1, alpha=alpha, beta=beta)
+
+# Design frequentist test
+freqObj <- designFreqT(1, alpha=alpha, beta=beta)
+
+# Simulate under the alternative with deltaTrue=deltaMin
+simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
+n1PlanFreq=freqObj$n1PlanFreq)
+
+plotHistogramDistributionStoppingTimes(
+  simResults$safeSim, nPlan = simResults$n1Plan,
+  deltaTrue = simResults$deltaTrue)
+}
+}

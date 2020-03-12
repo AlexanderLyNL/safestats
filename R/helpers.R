@@ -289,6 +289,7 @@ isEveryFinite <- function(...) {
 #' @param testType A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".
 #'
 #' @return Returns a character with the name of the analysis.
+#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -346,6 +347,19 @@ round5 <- function(num) {
   round(num, 5)
 }
 
+# Plot helper -----
+#' Sets plot options
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @examples
+#' \dontrun{
+#' safestats::setSafeStatsPlotOptions()
+#' plot(1:10, 1:10)
+#' }
+setSafeStatsPlotOptions <- function(...) {
+  graphics::par(cex.main=1.5, mar=c(5, 6, 4, 7)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
+                font.lab=2, cex.axis=1.3, bty="n", las=1, ...)
+}
 
 # Vignette helpers ---------
 
@@ -374,8 +388,9 @@ round5 <- function(num) {
 #' simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
 #' n1PlanFreq=freqObj$n1PlanFreq)
 #'
-#' plotHistogramDistributionStoppingTimes(simResults[["safeSim"]], nPlan = simResults[["n1Plan"]],
-#' deltaTrue = simResults[["deltaTrue"]])'
+#' plotHistogramDistributionStoppingTimes(
+#'   simResults$safeSim, nPlan = simResults$n1Plan,
+#'   deltaTrue = simResults$deltaTrue)
 #' }
 plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, showOnlyNRejected=FALSE, nBin=25L, ...) {
   if(showOnlyNRejected) {
@@ -392,6 +407,7 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
   maxLength <- ceiling(nPlan/nStep)
 
   mainTitle <- bquote(~"Spread of stopping times when true difference " == .(round(deltaTrue,2)))
+  setSafeStatsPlotOptions()
   graphics::hist(dataToPlot,
                  breaks = nStep*seq.int(maxLength),
                  xlim = c(0, max(safeSim[["allN"]])),
@@ -433,8 +449,9 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' # First run: 7 false null rejections
 #' sum(sValues > 1/alpha)
 #'
-#' continuedSafe <- selectivelyContinueTTestCombineData(oldValues=sValues, designObj=designObj, oldData=oldData,
-#' deltaTrue=0, seed=2)
+#' continuedSafe <- selectivelyContinueTTestCombineData(
+#'   oldValues=sValues, designObj=designObj, oldData=oldData,
+#'   deltaTrue=0, seed=2)
 #'
 #' # Second run: 8 false null rejections
 #' sum(continuedSafe$newValues > 1/alpha)
@@ -442,9 +459,9 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' for (i in 1:3) {
 #'   sValues <- continuedSafe$newValues
 #'   oldData <- continuedSafe$combinedData
-#'   continuedSafe <- selectivelyContinueTTestCombineData(oldValues=sValues, designObj=designObj, oldData=oldData,
-#'   deltaTrue=0, seed=i+2)
-#'
+#'   continuedSafe <- selectivelyContinueTTestCombineData(
+#'    oldValues=sValues, designObj=designObj, oldData=oldData,
+#'    deltaTrue=0, seed=i+2)
 #'   print(paste("Iteration", i+2))
 #'   print("Number of false null rejections")
 #'   print(sum(continuedSafe$newValues > 1/alpha))
@@ -545,6 +562,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
 
   yMax <- max(oldHist[["counts"]], newHist[["counts"]])
 
+  setSafeStatsPlotOptions()
   graphics::plot(oldHist, "xlim"=c(minX, maxX), ylim=c(0, yMax), "col"="blue",
                  "density"=20, "angle"=45, "xlab"=xLabText, "main"=mainText)
   graphics::plot(newHist, "add"=TRUE, "col"="red", "density"=20, "angle"=-45)
