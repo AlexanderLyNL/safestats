@@ -357,7 +357,7 @@ round5 <- function(num) {
 #' plot(1:10, 1:10)
 #' }
 setSafeStatsPlotOptions <- function(...) {
-  graphics::par(cex.main=1.5, mar=c(5, 6, 4, 7)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
+  graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
                 font.lab=2, cex.axis=1.3, bty="n", las=1, ...)
 }
 
