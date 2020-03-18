@@ -784,7 +784,7 @@ mean(optionalStoppingTrueMeanNull$rejected == 1)
 ```
 
 #### Classical test "Fisher's exact test" under the null with optional stopping
-Optional stopping, however, causes Fisher's exact test to overreject the null. When the null is true, the rate of incorrect null rejections exceed the tolerable $\alpha$-level:
+Optional stopping, however, causes Fisher's exact test to overreject the null. When the null is true, the rate of incorrect null rejections exceeds the tolerable $\alpha$-level:
 
 ```{r }
 set.seed(5224)
@@ -800,37 +800,31 @@ Thus, 20% which is four times as much as promised.
 ## 3. <a name = "optCont2x2">Optional Continuation </a>for tests of two proportions
 In each of the simulations above, a fraction of the experiments did not lead to the rejection of the null hypothesis. Since safe tests allow for optional continuation, one could decide to plan a replication experiment after such a 'failed' first experiment, for example when the s-value looks promisingly high. The resulting s-values from these replication studies could then be multiplied to calculate a final s-value.
 
-In one of our previous optional stopping simulations, the true mean difference between the groups was equal to our design mean difference of 0.3. In 13.2% of the simulations, we failed to reject the null hypothesis. We could now look at the spread of the s-values in these experiments:
+We are now going to zoom in on two of the optional stopping simulations we carried out above, where the true difference between the groups equaled our design difference (0.3), and where the true difference equaled 0. In the experiment where the true difference was 0.3, we did not reject the null in 13.2% of the studies. If we now imagine the situation we would encounter in reality, where we would not know that we were really sampling from the alternative hypothesis, how high should s-values then be to support starting a replication study? To give us some handles, we could look at the spread of s-values from studies where the null was not rejected, from our experiments under the null and under the alternative:
 
 ```{r}
 notRejectedIndex <- which(optionalStoppingTrueMeanIsDesign$rejected==FALSE)
-
-sValuesNotRejected <- 
-  optionalStoppingTrueMeanIsDesign$s_values[notRejectedIndex]
-
-mainTitle <- "Spread of s-values when null not rejected: under delta design"
-
-graphics::plot(stats::density(sValuesNotRejected), 
-               xlim=c(0, max(sValuesNotRejected)), xlab="s-values", 
-               main=mainTitle)
+sValuesNotRejected <- optionalStoppingTrueMeanIsDesign$s_values[notRejectedIndex]
+nullNotRejectedIndex <- which(optionalStoppingTrueMeanNull$rejected == FALSE)
+sValuesNotRejectedNull <- optionalStoppingTrueMeanNull$s_values[nullNotRejectedIndex]
+```
+```{r, echo = FALSE}
+trueHist <- graphics::hist(x = sValuesNotRejected, plot = FALSE)
+nullHist <- graphics::hist(x = sValuesNotRejectedNull, plot = FALSE)
+yMax <- max(trueHist[["counts"]], nullHist[["counts"]])
+graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
+              font.lab=2, cex.axis=1.3, bty="n", las=1)
+graphics::plot(nullHist, xlim = c(0, max(sValuesNotRejected, sValuesNotRejectedNull)), 
+               freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "s-values", 
+               main = "Histogram of s-values where null not rejected")
+graphics::plot(trueHist, add = TRUE, freq = FALSE, col = "red", density = 20, 
+               angle = -45)
+graphics::legend(x = "topright", legend = c("True delta: null", "True delta: design"), fill = c("blue", "red"))
 ```
 
-It can be observed that the s-values are spread out between 0 and 13. How would this pattern behave when this experiment was carried out under the null? Below, the s-values from unrejected experiments under the null are plotted:
+It can be observed that, when the true difference between the groups equals our design difference, the s-values are spread out between 0 and 13. On the other hand, whith our experiment under the null, all s-values were smaller than 8.
 
-```{r}
-rejectedIndex <- which(optionalStoppingTrueMeanIsDesign$rejected == FALSE)
-
-sValuesNotRejectedNull <- 
-  optionalStoppingTrueMeanNull$s_values[rejectedIndex]
-
-mainTitle <- "Spread of S-values when null not rejected: under null"
-
-graphics::plot(stats::density(sValuesNotRejectedNull), 
-               xlim=c(0, max(sValuesNotRejected)), xlab="s-values", 
-               main=mainTitle)
-```
-
-Based on these plots we could conclude that studies that yielded a final S-value between 10 and 20 look promising; under the null hypothesis, such high S-values were not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting S-values? How many of the initially futile experiments will now lead to rejection of the null hypothesis?
+Based on this plot we could for example conclude that studies that yielded a final S-value between 10 and 20 look promising; under the null hypothesis, such high S-values were not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting S-values? How many of the initially futile experiments will now lead to rejection of the null hypothesis?
 
 ```{r optionalContinuation2x2}
 continueIndex <- which(optionalStoppingTrueMeanIsDesign$s_values < 20 & 
