@@ -13,7 +13,7 @@ replicateTTests(
   paired = FALSE,
   alternative = c("two.sided", "greater", "less"),
   lowN = 3,
-  mIter = 1000L,
+  nsim = 1000L,
   alpha = 0.05,
   safeOptioStop = TRUE,
   deltaS = NULL,
@@ -21,7 +21,7 @@ replicateTTests(
   n1PlanFreq = NULL,
   n2PlanFreq = NULL,
   logging = TRUE,
-  seedNumber = NULL,
+  seed = NULL,
   pb = TRUE,
   ...
 )
@@ -47,7 +47,7 @@ This parameter treated is treated as a nuisance.}
 
 \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins}
 
-\item{mIter}{the number of replications, that is, experiments with max samples n1Plan and n2Plan}
+\item{nsim}{the number of replications, that is, experiments with max samples n1Plan and n2Plan}
 
 \item{alpha}{the tolerable type I error to be conserved. Also defines the decision rule s > 1/alpha, and for
 frequentist tests the decision rule is p < alpha.}
@@ -63,9 +63,9 @@ test,use designFreqT to find this)}
 
 \item{n2PlanFreq}{optional integer, that defines the maximum number of samples of the second group to plan for}
 
-\item{logging}{logical, if TRUE, then return the sampled sample sizes}
+\item{logging}{logical, if TRUE, then return the simulated data}
 
-\item{seedNumber}{To set the seed for the simulated data}
+\item{seed}{To set the seed for the simulated data}
 
 \item{pb}{logical, if TRUE, then show progress bar}
 
@@ -133,5 +133,5 @@ simResults$freqSim$powerAtN1Plan
 
 # This is larger than alpha, due to optional stopping.
 simResults$freqSim$powerOptioStop
- simResults$freqSim$powerOptioStop > alpha
+simResults$freqSim$powerOptioStop > alpha
 }
