@@ -29,7 +29,7 @@ safe test should be designed for, i.e. the minimal relevant difference we want t
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha. Default
 \code{0.05}.}
 
-\item{beta}{numeric in (0, 1) that speficies the target type II error control necessary to calculate both "n"
+\item{beta}{numeric in (0, 1) that specifies the target type II error control necessary to calculate both "n"
 and "deltaS". Note that 1-beta defines the power. Default \code{0.20}.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),

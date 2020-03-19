@@ -445,7 +445,7 @@ designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "
 #' @param alpha numeric in (0, 1) that specifies the target type 1 error control --independent on n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha. Default
 #' \code{0.05}.
-#' @param beta numeric in (0, 1) that speficies the target type II error control necessary to calculate both "n"
+#' @param beta numeric in (0, 1) that specifies the target type II error control necessary to calculate both "n"
 #' and "deltaS". Note that 1-beta defines the power. Default \code{0.20}.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 #' "greater" or "less"
