@@ -1259,7 +1259,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 #'
 #' # Simulate under the alternative with deltaTrue=deltaMin
 #' simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
-#' n1PlanFreq=freqObj$n1PlanFreq)
+#' n1PlanFreq=freqObj$n1PlanFreq, nsim=500)
 #'
 #' # Should be about 1-beta
 #' simResults$safeSim$powerAtN1Plan
@@ -1274,7 +1274,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 #'
 #' # Simulate under the alternative with deltaTrue > deltaMin
 #' simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1.5, deltaS=designObj$deltaS,
-#' n1PlanFreq=freqObj$n1PlanFreq)
+#' n1PlanFreq=freqObj$n1PlanFreq, nsim=500)
 #'
 #' # Should be larger than 1-beta
 #' simResults$safeSim$powerAtN1Plan
@@ -1289,7 +1289,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 #'
 #' # Under the null deltaTrue=0
 #' simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=0, deltaS=designObj$deltaS,
-#' n1PlanFreq=freqObj$n1PlanFreq, freqOptioStop=TRUE)
+#' n1PlanFreq=freqObj$n1PlanFreq, freqOptioStop=TRUE, nsim=500)
 #'
 #'# Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
 #' simResults$safeSim$powerAtN1Plan
