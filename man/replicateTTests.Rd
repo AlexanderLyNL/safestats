@@ -89,7 +89,7 @@ freqObj <- designFreqT(1, alpha=alpha, beta=beta)
 
 # Simulate under the alternative with deltaTrue=deltaMin
 simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
-n1PlanFreq=freqObj$n1PlanFreq, nsim=500)
+n1PlanFreq=freqObj$n1PlanFreq, nsim=400)
 
 # Should be about 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -104,7 +104,7 @@ breaks=seq.int(designObj$n1Plan))
 
 # Simulate under the alternative with deltaTrue > deltaMin
 simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1.5, deltaS=designObj$deltaS,
-n1PlanFreq=freqObj$n1PlanFreq, nsim=500)
+n1PlanFreq=freqObj$n1PlanFreq, nsim=400)
 
 # Should be larger than 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -119,7 +119,7 @@ breaks=seq.int(designObj$n1Plan))
 
 # Under the null deltaTrue=0
 simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=0, deltaS=designObj$deltaS,
-n1PlanFreq=freqObj$n1PlanFreq, freqOptioStop=TRUE, nsim=500)
+n1PlanFreq=freqObj$n1PlanFreq, freqOptioStop=TRUE, nsim=400)
 
 # Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
 simResults$safeSim$powerAtN1Plan

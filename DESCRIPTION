@@ -4,15 +4,16 @@ Title: Safe Anytime-Valid Inference
 Version: 0.8.0
 Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
-  role = c("cre", "aut")),
+  role = "aut"),
   person("Alexander", "Ly", email = "a.ly@jasp-stats.org", 
-  role = "aut"))
+  role = c("cre", "aut")))
 Maintainer: Alexander Ly <a.ly@jasp-stats.org>
-Description: This package is for designing and applying safe hypothesis tests.
-  It can be used for designing hypothesis tests in the prospective/ RCT setting,
-  where the tests can be used under optional stopping. The 'pilot' functions in 
-  the package also enable using the safe tests in the observational/ retrospective
-  setting. The current version includes safe t-tests and tests of two proportions.
+Description: Functions to design and apply tests that are anytime valid. The 
+  functions can be used to design hypothesis tests in the prospective/randomised 
+  control trial setting, where the tests remain valid under optional stopping. 
+  The 'pilot' functions in the package also enable using the safe tests in the 
+  observational/retrospective setting. The current version includes safe t-tests 
+  and tests of two proportions.
 License: LGPL (>= 3) + file LICENSE
 Encoding: UTF-8
 LazyData: true
