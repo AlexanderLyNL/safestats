@@ -2,44 +2,49 @@
 % Please edit documentation in R/helpers.R
 \name{plotHistogramDistributionStoppingTimes}
 \alias{plotHistogramDistributionStoppingTimes}
-\title{Plot distribution of stopping times in simulated early stopping scenarios}
+\title{Plots the histogram of stopping times}
 \usage{
 plotHistogramDistributionStoppingTimes(
   safeSim,
   nPlan,
   deltaTrue,
-  showOnlyNRejected = FALSE
+  showOnlyNRejected = FALSE,
+  nBin = 25L,
+  ...
 )
 }
 \arguments{
-\item{safeSim}{a safeSim result generated with \code{\link{simulateSpreadSampleSizeTwoProportions}} or
-\code{\link{replicateTTests}}.}
+\item{safeSim}{A safeSim object, returned from "replicateTTests" and "simulateSpreadSampleSizeTwoProportions"}
 
-\item{nPlan}{maximal planned sample size in optional stopping scenario}
+\item{nPlan}{numeric > 0, the planned sample size (for the first sample)}
 
-\item{deltaTrue}{true effect size}
+\item{deltaTrue}{numeric, that represents the true underlying effect size delta}
 
-\item{showOnlyNRejected}{only show the spread of the sample sizes from experiments where H0
-was rejected; default \code{FALSE}}
-}
-\value{
-does not return anything
+\item{showOnlyNRejected}{logical, when TRUE discards the cases that are}
+
+\item{nBin}{numeric > 0, the minimum number of bins in the histogram}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \description{
-Plot distribution of stopping times in simulated early stopping scenarios
+Plots the histogram of stopping times
 }
 \examples{
 \dontrun{
-safeDesignProportions <- designSafeTwoProportions(deltaMin = 0.3,
-alpha = 0.05, beta = 0.20, lowN = 100, numberForSeed = 5227)
-set.seed(5224)
-optionalStoppingTrueMeanIsDesign <- simulateSpreadSampleSizeTwoProportions(
-   safeDesign = safeDesignProportions,
-   M = 1000,
-   parametersDataGeneratingDistribution = c(0.3, 0.6)
- )
-plotHistogramDistributionStoppingTimes(optionalStoppingTrueMeanIsDesign,
-                                       nPlan = safeDesignProportions[["n.star"]],
-                                       deltaTrue = 0.3)
+# Design safe test
+alpha <- 0.05
+beta <- 0.20
+designObj <- designSafeT(1, alpha=alpha, beta=beta)
+
+# Design frequentist test
+freqObj <- designFreqT(1, alpha=alpha, beta=beta)
+
+# Simulate under the alternative with deltaTrue=deltaMin
+simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
+n1PlanFreq=freqObj$n1PlanFreq)
+
+plotHistogramDistributionStoppingTimes(
+  simResults$safeSim, nPlan = simResults$n1Plan,
+  deltaTrue = simResults$deltaTrue)
 }
 }

@@ -11,9 +11,6 @@
 
 \item{...}{further arguments to be passed to or from methods.}
 }
-\value{
-prints a safeTDesign object
-}
 \description{
 Prints a safeTDesign object
 }

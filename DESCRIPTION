@@ -1,7 +1,7 @@
 Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
-Version: 0.0.0.900
+Version: 0.0.0.910
 Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = c("cre", "aut")),
@@ -13,7 +13,7 @@ Description: This package is for designing and applying safe hypothesis tests.
   where the tests can be used under optional stopping. The 'pilot' functions in 
   the package also enable using the safe tests in the observational/ retrospective
   setting. The current version includes safe t-tests and tests of two proportions.
-License: LGPL (>= 3)
+License: LGPL (>= 3) + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends:
@@ -22,7 +22,7 @@ Imports:
   stats (>= 3.6),
   hypergeo (>= 1.2-13),
   purrr (>= 0.3.3)
-Suggests: testthat, knitr, rmarkdown
+Suggests: testthat, knitr, rmarkdown, graphics
 VignetteBuilder: knitr
 NeedsCompilation: no
 RoxygenNote: 7.0.2
