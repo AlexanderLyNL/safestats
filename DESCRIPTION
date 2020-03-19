@@ -13,8 +13,9 @@ Description: Functions to design and apply tests that are anytime valid. The
   control trial setting, where the tests remain valid under optional stopping. 
   The 'pilot' functions in the package also enable using the safe tests in the 
   observational/retrospective setting. The current version includes safe t-tests 
-  and tests of two proportions.
-License: LGPL (>= 3) + file LICENSE
+  and tests of two proportions. For details on the theory of safe tests, see 
+  Grunwald, de Heide and Koolen (2019) Safe Testing. <arXiv:1906.07801>.
+License: LGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Depends:
