@@ -428,7 +428,7 @@ designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "
 #-----------------------------------------------------------------------------
 
 #' Design an S-value for a test of two proportions with a certain minimal power
-#' for detecting at least a certain difference delta.min in proportionts between
+#' for detecting at least a certain difference delta.min in proportions between
 #' group a and b.
 #'
 #' \code{designSafeTwoProportions} finds for a given delta.min indicating the minimal

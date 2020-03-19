@@ -221,7 +221,7 @@ isTryError <- function(...) {
 
 # Every/all checks -----------
 
-#' Checks whether all objects evalutes to TRUE for a provided function criterion
+#' Checks whether all objects evaluates to TRUE for a provided function criterion
 #'
 #' @inheritParams isSome
 #'

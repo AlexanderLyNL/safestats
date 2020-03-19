@@ -22,13 +22,13 @@ designSafeT(
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant effect size, the smallests effect size that we want to
+\item{deltaMin}{numeric that defines the minimal relevant effect size, the smallest effect size that we want to
 detect.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
 
-\item{beta}{numeric in (0, 1) that speficies the tolerable type II error control necessary to calculate both "n"
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 and "deltaS". Note that 1-beta defines the power.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),

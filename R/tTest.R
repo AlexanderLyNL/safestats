@@ -379,11 +379,11 @@ safeTTestStatAlpha <- function(t, deltaS, n1, n2=NULL, alpha, alternative="two.s
 #' type II error. Outputs a list that includes (1) the deltaS that defines the safe test, and (2) nPlan, the sample
 #' size to  plan for.
 #'
-#' @param deltaMin numeric that defines the minimal relevant effect size, the smallests effect size that we want to
+#' @param deltaMin numeric that defines the minimal relevant effect size, the smallest effect size that we want to
 #' detect.
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha
-#' @param beta numeric in (0, 1) that speficies the tolerable type II error control necessary to calculate both "n"
+#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 #' and "deltaS". Note that 1-beta defines the power.
 #' @param lowDelta numeric that defines the smallest delta of our search space for the test-defining deltaS
 #' @param highDelta numeric that defines the largest delta of our search space for the test-defining deltaS

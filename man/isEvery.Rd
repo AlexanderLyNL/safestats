@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{isEvery}
 \alias{isEvery}
-\title{Checks whether all objects evalutes to TRUE for a provided function criterion}
+\title{Checks whether all objects evaluates to TRUE for a provided function criterion}
 \usage{
 isEvery(..., func)
 }
@@ -15,7 +15,7 @@ isEvery(..., func)
 Returns TRUE if any objects are a try error, returns FALSE otherwise
 }
 \description{
-Checks whether all objects evalutes to TRUE for a provided function criterion
+Checks whether all objects evaluates to TRUE for a provided function criterion
 }
 \examples{
 \dontrun{

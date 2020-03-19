@@ -3,7 +3,7 @@
 \name{designSafeTwoProportions}
 \alias{designSafeTwoProportions}
 \title{Design an S-value for a test of two proportions with a certain minimal power
-for detecting at least a certain difference delta.min in proportionts between
+for detecting at least a certain difference delta.min in proportions between
 group a and b.}
 \usage{
 designSafeTwoProportions(

@@ -30,7 +30,7 @@ plotSafeTDesignSampleSizeProfile(
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
 
-\item{beta}{numeric in (0, 1) that speficies the tolerable type II error control necessary to calculate both "n"
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 and "deltaS". Note that 1-beta defines the power.}
 
 \item{maxN}{numeric, the maximum number of samples one has budget for to collect data}
