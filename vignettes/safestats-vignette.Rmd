@@ -26,17 +26,17 @@ A big advantage of the s-values over their $p$-value equivalents is that safe te
 
 Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the promised type I error guarantee. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. We illustrate these properties below. 
 
-First, we show how to design an experiment based on safe tests. 
+Firstly, we show how to design an experiment based on safe tests. 
 
  - [for testing means](#designT)
  - [for testing proportions](#design2x2)
 
-Second, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping. We also show that optional stopping causes the false null rejection rate of the classical $p$-value test to exceed the promised level $\alpha$ type I error guarantee. This implies that with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
+Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping. We also show that optional stopping causes the false null rejection rate of the classical $p$-value test to exceed the promised level $\alpha$ type I error guarantee. This implies that with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
 
  - [for testing means](#optStopT)
  - [for testing proportions](#optStop2x2)
 
-Finally, it is shown that _optionally continuing non-significant experiments_ also causes the $p$-value tests to exceed the promised level $\alpha$ type I error guarantee, whereas this is not the case for safe tests. 
+Lastly, it is shown that _optionally continuing non-significant experiments_ also causes the $p$-value tests to exceed the promised level $\alpha$ type I error guarantee, whereas this is not the case for safe tests. 
 
  - [for testing means](#optContT)
  - [for testing proportions](#optCont2x2)
@@ -100,8 +100,9 @@ designObj
 It is not always clear what the minimal clinically relevant effect size is. In that case, the design function can be called for a reasonable range of minimal clinically relevant effect sizes, when it is provided with the tolerable type I and type II error rates. Furthermore, when it is a priori known that only, say, 100 samples can be collected due to budget constraints, then the following function allows for a futility analysis:
 
 ```{r, fig.height=4, fig.width=8}
-alpha <- 0.05
-beta <- 0.2
+# Recall:
+# alpha <- 0.05
+# beta <- 0.2
 
 result <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta, 
                                            maxN=100, 
@@ -120,6 +121,8 @@ To see that safe tests only lead to a false null rejection very infrequently, we
 set.seed(1)
 preData <- rnorm(n=designObj$n1Plan, mean=120, sd=15)
 postData <- rnorm(n=designObj$n2Plan, mean=120, sd=15)
+# Thus, the true delta is 0:
+# deltaTrue <- (120-120)/(sqrt(2)*15)     
 ```
 
 The safe test applied to data under the null results in an s-value that is larger than $1/\alpha = 20$ with at most $\alpha =$ 5% chance. In particular,
@@ -168,8 +171,9 @@ safeTTest(x=preData, y=postData, alternative = "greater",
 and by the following code for multiple experiments
 
 ```{r}
-alpha <- 0.05
-beta <- 0.2
+# Recall:
+# alpha <- 0.05
+# beta <- 0.2
 power <- 1-beta
 
 set.seed(1)
@@ -190,7 +194,7 @@ What makes the safe tests in this package particularly interesting is that they 
 
 > Note that <a name = "martingale">not all s-values necessarily allow for optional stopping</a>: this only holds for some special s-values, that are also _test martingales_. More information can be found, for example, in the first author's [master thesis](https://www.universiteitleiden.nl/binaries/content/assets/science/mi/scripties/statscience/2019-2020/thesis_rjturner_for_publication.pdf), Chapter 5.
 
-We highlight this with our design object 
+For this purpose, we use the design that was derived above, that is, 
 
 ```{r}
 designObj
@@ -201,6 +205,10 @@ designObj
 The following code replicates 1,000 experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of $\delta_{\min}=9/(15 \sqrt{2}) = 0.42$. The safe test is applied to each data set sequentially and if the s-value is larger than $1 / \alpha$, the experiment is stopped. If the s-value does not exceed $1 / \alpha$, the experiment is run until all samples are collected as planned.
 
 ```{r}
+# Recall:
+# alpha <- 0.05
+# beta <- 0.2
+# deltaMin <- 9/(sqrt(2)*15)      # = 0.42
 simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nsim=1000L,
                                          seed=1, deltaTrue=deltaMin,
                                          muGlobal=120, sigmaTrue=15)
@@ -227,7 +235,10 @@ plot(simResultDeltaTrueIsDeltaMin, showOnlyNRejected=TRUE)
 What we believe is clinically minimally relevant might not match reality. One advantage of safe tests is that they perform even better, if the true effect size is larger than the minimal clinical effect size that is used in the planning of the experiment. To see this, we run the following code
 
 ```{r}
-# our deltaMin is: 9/(sqrt(2)*15) = 0.42
+# Recall:
+# alpha <- 0.05
+# beta <- 0.2
+# deltaMin <- 9/(sqrt(2)*15)      # = 0.42
 deltaTrueLarger <- 0.6
 
 simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
@@ -251,6 +262,11 @@ The previous examples highlight how optional stopping results in an increase in 
 For this purpose we run the code
 
 ```{r}
+# Recall:
+# alpha <- 0.05
+# beta <- 0.2
+# deltaMin <- 9/(sqrt(2)*15)      # = 0.42
+
 freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta,
                              alternative="greater", testType="pairedSampleT")
 
@@ -274,7 +290,7 @@ The inability of $p$-values to conserve the $\alpha$-level under optional stoppi
 
 With safe tests one does not need to choose between correct inferences and the ability to adapt to new circumstances, as they were constructed to provide practitioners with additional flexibility in the experimental design without sacrificing the level $\alpha$ type I error control. As safe tests conserve the $\alpha$-level under both optional stopping and continuation, they yield anytime-valid inferences. The robustness of safe tests to optional continuation is illustrated with additional simulations. 
 
-### How optional continuation is problematic for p-values
+### How optional continuation is problematic for $p$-values
 Firstly, we show that optional continuation also causes $p$-values to overreject the null. In the following we consider the situation in which we continue studies for which a first batch of data resulted in $p \geq \alpha$. These non-significant experiments are extended with a second batch of data with the same sample sizes as the first batch, that is, n1PlanFreq=36 and n2PlanFreq=36. We see that selectively continuing non-significant experiments causes the collective rate of false null rejections to be larger than $\alpha$. 
 
 The following code simulates 1,000 (first batch) experiments under the null, each with the same (frequentist) sample sizes as planned for resulting in 1,000 $p$-values: 
@@ -369,7 +385,7 @@ Replication attempts, however, are typically based on samples from a different p
 We show that both procedures are safe, that is, they do not lead to the tolerable type I error rate be exceeded, whereas classical $p$-values once again overreject. 
 -->
 
-### Two ways to optionally continue studies with safe testing
+### Two ways to optionally continue studies with safe tests
 Safe tests, as we will show below, do conserve the type I error rate under optional continuation. Optional continuation implies gathering more samples than was planned for because, for instance, (1) more funding came available and the experimenter wants to learn more, (2) the evidence looked promising, (3) a reviewer or editor urged the experimenter to collect more data, or (4) other researchers attempt to replicate the first finding. 
 
 A natural way to deal with the first three cases is by computing an s-value over the combined data set. This is permitted if the data come from the same population, and if the s-value used is a [_test martingale_](#martingale), which the s-values in this package are.
@@ -378,7 +394,7 @@ Replication attempts, however, are typically based on samples from a different p
 
 We show that both procedures are safe, that is, they do not lead to the tolerable type I error rate be exceeded, whereas classical $p$-values once again overreject. 
 
-### a. Optional continuation by _extending_ the sample size does not result in safe tests exceeding the tolerable $\alpha$-level
+### a. Optional continuation by _extending_ the experiment does not result in safe tests exceeding the tolerable $\alpha$-level
 In this subsection, we show that only continuing studies for which $S \leq 1/ \alpha$ does *not* lead to an overrejection of the null. This is because the sampling distribution of s-values under the null slowly drifts towards smaller values as the number of samples increases. 
 
 Again, we consider the situation in which we only continue studies for which the original s-values did not lead to a null rejection. For the first batch of s-values, we use the simulation study ran in the previous section, and we recall that under optional stopping we get 
