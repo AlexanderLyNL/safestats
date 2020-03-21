@@ -516,6 +516,17 @@ designSafeT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
       break()
     }
   }
+
+  if(isSomeNull(result[["n1Plan"]], result[["deltaS"]])) {
+    warning("Increase deltaMin, or increase highN, currently: ", highN,
+            ". Try the function plotSafeTDesignSampleSizeProfile to find  minimal",
+            "sample size for deltaMin.")
+
+    result[["lowN"]] <- highN + 1
+    result[["highN"]] <- 2*highN
+    return(result)
+  }
+
   return(result)
 }
 
