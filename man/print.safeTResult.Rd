@@ -7,9 +7,12 @@
 \method{print}{safeTResult}(x, ...)
 }
 \arguments{
-\item{x}{a safeTResult object}
+\item{x}{a \code{safeTResult} object}
 
 \item{...}{further arguments to be passed to or from methods.}
+}
+\value{
+No returned value, called for side effects
 }
 \description{
 Prints a safeTResult object

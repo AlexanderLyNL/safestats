@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{getNameAlternative}
 \alias{getNameAlternative}
-\title{Gets the name of alternative}
+\title{Gets the name of the alternative hypothesis}
 \usage{
 getNameAlternative(alternative = c("two.sided", "greater", "less"), testType)
 }
@@ -12,13 +12,11 @@ getNameAlternative(alternative = c("two.sided", "greater", "less"), testType)
 \item{testType}{A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".}
 }
 \value{
-Returns a character with the name of the analysis.
+Returns a character string with the name of the analysis.
 }
 \description{
-Gets the name of alternative
+Gets the name of the alternative hypothesis
 }
 \examples{
-\dontrun{
-getNameTestType("oneSampleT")
-}
+safestats:::getNameAlternative("two.sided", testType="oneSampleT")
 }

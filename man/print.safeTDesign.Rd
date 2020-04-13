@@ -11,6 +11,9 @@
 
 \item{...}{further arguments to be passed to or from methods.}
 }
+\value{
+No returned value, called for side effects
+}
 \description{
 Prints a safeTDesign object
 }

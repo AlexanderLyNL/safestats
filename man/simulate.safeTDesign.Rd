@@ -38,23 +38,54 @@ This parameter treated is treated as a nuisance.}
 
 \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins}
 
-\item{safeOptioStop}{logical, TRUE implies that optional stopping simulation is performed for the safe test}
+\item{safeOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for the safe test}
 
-\item{freqOptioStop}{logical, TRUE implies that optional stopping simulation is performed for the frequentist test}
+\item{freqOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for the frequentist test}
 
 \item{n1PlanFreq}{integer, that defines the maximum number of samples to plan for (according to the frequentist
 test,use designFreqT to find this)}
 
 \item{n2PlanFreq}{optional integer, that defines the maximum number of samples of the second group to plan for}
 
-\item{logging}{logical, if TRUE, then return the simulated data}
+\item{logging}{logical, if \code{TRUE}, then return the simulated data}
 
-\item{pb}{logical, if TRUE, then show progress bar}
+\item{pb}{logical, if \code{TRUE}, then show progress bar}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-a safeTSim object
+Returns an object of class "safeTSim". An object of class "safeTSim" is a list containing at least the
+following components:
+
+\describe{
+  \item{n1Plan}{the planned sample size of the first group}
+  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+  or a two-sample test}
+  \item{deltaS}{the deltaS that defines the safe test}
+  \item{deltaMin}{the minimal clinical effect size provided by the user}
+  \item{alpha}{the tolerable type I error provided by the user}
+  \item{beta}{the tolerable type II error provided by the user}
+  \item{lowDelta}{the smallest delta of the search space for delta provided by the user}
+  \item{highDelta}{the largest delta of the search space for delta provided by the user}
+  \item{tol}{the step size between lowDelta and highDelta provided by the user}
+  \item{lowN}{the smallest n of the search space for n provided by the user}
+  \item{highN}{the largest n of the search space for n provided by the user}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
+  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
+  \item{sampleSizeRatio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
+  sampleSizeRatio equals n2/n1}
+  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study}
+  \item{call}{the expression with which this function is called}
+  \item{deltaTrue}{the true data generating delta specified by the user}
+  \item{muGlobal}{the true (nuisance) global population mean, but nuisance parameter, of the data generating process
+  specified by the user.}
+  \item{sigmaTrue}{the true (nuisance) population standard deviation the data generating process specified by the
+  user.}
+  \item{paired}{if \code{TRUE} then paired t-test}
+  \item{nsim}{the number of replications of the experiment.}
+  \item{safeSim}{list with the simulation results of the safe test under optional stopping}
+  \item{freqSim}{list with the simulation results of the frequentist test under optional stopping}
+}
 }
 \description{
 Simulate function for a safeTDesign object
