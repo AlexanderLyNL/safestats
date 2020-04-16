@@ -32,6 +32,8 @@ implies that the t-statistic is based on one-sample}
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
 
+\item{tDensity}{Uses the the representation of the safe t-test as the likelihood ratio of t densities}
+
 \item{paired}{a logical indicating whether you want a paired t-test.}
 
 \item{...}{further arguments to be passed to or from methods.}

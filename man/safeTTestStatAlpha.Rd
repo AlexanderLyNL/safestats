@@ -33,6 +33,8 @@ shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
+
+\item{tDensity}{Uses the the representation of the safe t-test as the likelihood ratio of t densities}
 }
 \value{
 Returns a numeric that represent the s10 - 1/alpha, that is, the s-value in favour of the alternative over

@@ -36,7 +36,14 @@ This parameter treated is treated as a nuisance.}
 \item{seed}{To set the seed for the simulated data}
 }
 \value{
-a list of two data matrices
+
+
+Returns a list of two data matrices contains at least the following components:
+
+\describe{
+  \item{dataGroup1}{a matrix of data dimension nsim by n1Plan}
+  \item{dataGroup2}{a matrix of data dimension nsim by n2Plan}
+}
 }
 \description{
 Generates normal data depending on the design: "oneSampleT", "pairedSampleT", "twoSampleT"

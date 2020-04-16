@@ -18,6 +18,6 @@ Returns the evaluation of the expression, or \code{value} if it doesn't work out
 Try to evaluate an expression, if not fail with NA (default)
 }
 \examples{
-safestats:::tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
-safestats:::tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
+tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
+tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
 }
