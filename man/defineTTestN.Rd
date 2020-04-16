@@ -9,7 +9,8 @@ defineTTestN(
   lowN = 3,
   highN = 100,
   sampleSizeRatio = 1,
-  testType = c("oneSampleT", "pairedSampleT", "twoSampleT")
+  testType = c("oneSampleT", "pairedSampleT", "twoSampleT", "oneSampleZ",
+    "pairedSampleZ", "twoSampleZ")
 )
 }
 \arguments{

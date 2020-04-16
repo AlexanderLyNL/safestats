@@ -73,8 +73,19 @@ safe test attains due to optional stopping}
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
 }
 \value{
-returns a list that contains the planned sample size needed for the frequentist and safe test.
-The function also produces a plot.
+Returns a list that contains the planned sample size needed for the frequentist and safe tests as a function
+of the minimal clinically relevant effect sizes. The returned list contains at least the following components:
+
+\describe{
+  \item{alpha}{the tolerable type I error provided by the user}
+  \item{beta}{the tolerable type II error provided by the user}
+  \item{maxN}{the largest number of samples provided by the user}
+  \item{deltaDomain}{vector of the domain of deltaMin}
+  \item{allN1PlanFreq}{vector of the planned sample sizes needed for the frequentist test corresponding to alpha and
+  beta}
+  \item{allN1PlanSafe}{vector of the planned sample sizes needed for the safe test corresponding to alpha and beta}
+  \item{allDeltaS}{vector of safe test defining deltaS}
+}
 }
 \description{
 For given tolerable alpha and beta, as a function of the minimal clinical relevant effect size deltaMin, plots (1) the

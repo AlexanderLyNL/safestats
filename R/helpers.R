@@ -6,10 +6,11 @@
 #' @param value Return value if there is an error, default is NA_real_
 #'
 #' @return Returns the evaluation of the expression, or \code{value} if it doesn't work out
+#' @export
 #'
 #' @examples
-#' safestats:::tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
-#' safestats:::tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
+#' tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
+#' tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
 tryOrFailWithNA <- function(expr, value=NA_real_) {
   tryCatch(
     error=function(cnd) value,
@@ -52,7 +53,10 @@ getNameTestType <- function(testType) {
   nameChar <- switch(testType,
                      "oneSampleT"="Safe One Sample T-Test",
                      "pairedSampleT"="Safe Paired Sample T-Test",
-                     "twoSampleT"="Safe Two Sample T-Test")
+                     "twoSampleT"="Safe Two Sample T-Test",
+                     "oneSampleZ"="Safe One Sample Z-Test",
+                     "pairedSampleZ"="Safe Paired Sample Z-Test",
+                     "twoSampleZ"="Safe Two Sample Z-Test")
   return(nameChar)
 }
 
@@ -68,9 +72,9 @@ getNameTestType <- function(testType) {
 getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), testType) {
   alternative <- match.arg(alternative)
 
-  if (testType=="oneSampleT") {
+  if (testType %in% c("oneSampleT", "oneSampleZ")) {
     trueMeanStatement <- "true mean"
-  } else if (testType %in% c("pairedSampleT", "twoSampleT")) {
+  } else if (testType %in% c("pairedSampleT", "twoSampleT", "pairedSampleZ", "twoSampleZ")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
   } else if (testType == "safe2x2_result") {
 	    trueMeanStatement <- "true difference between proportions in group a and b is"

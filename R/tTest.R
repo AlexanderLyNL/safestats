@@ -48,14 +48,17 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
     threshold <- 1-alpha
   }
 
-
   for (n in seq.int(lowN, highN)) {
     if (testType=="twoSampleT") {
-      powerT <- stats::pt(stats::qt(threshold, df=((1+sampleSizeRatio)*n-2), ncp=0), df=(1+sampleSizeRatio)*n-2,
-                   ncp=sqrt(sampleSizeRatio/(1+sampleSizeRatio)*n)*deltaMin, lower.tail=FALSE)
+      someDf <- (1+sampleSizeRatio)*n-2
+      someNcp <- sqrt(sampleSizeRatio/(1+sampleSizeRatio)*n)*deltaMin
     } else {
-      powerT <- stats::pt(stats::qt(threshold, df=(n-1), ncp=0), df=(n-1), ncp=sqrt(n)*deltaMin, lower.tail=FALSE)
+      someDf <- n-1
+      someNcp <- sqrt(n)*deltaMin
     }
+
+    powerT <- stats::pt(stats::qt(threshold, df=someDf, ncp=0),
+                        df=someDf, ncp=someNcp, lower.tail=FALSE)
 
     if (powerT >= (1-beta)) {
       result[["n1PlanFreq"]] <- n
@@ -134,40 +137,35 @@ designSafeT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
                         logging=FALSE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, beta > 0, beta < 1)
+
   alternative <- match.arg(alternative)
+  testType <- match.arg(testType)
+
+  paired <- if (testType=="pairedSampleZ") TRUE else FALSE
 
   result <- list("n1Plan"=NULL, "n2Plan"=NULL, "mu0"=mu0, "deltaS"=NULL,
                  "deltaMin"=deltaMin, "alpha"=alpha, "beta"=beta,
-                 "lowDelta"=lowDelta, "highDelta"=highDelta, "tol"=tol,
+                 "lowDelta"=lowDelta, "highDelta"=highDelta, "tol"=tol, "paired"=paired,
                  "lowN"=lowN, "highN"=highN, "alternative"=alternative, "testType"=testType,
                  "sampleSizeRatio"=sampleSizeRatio, "pilot"=FALSE, "call"=sys.call())
   class(result) <- "safeTDesign"
 
   deltaMin <- abs(deltaMin)
 
-  alternative <- match.arg(alternative)
-  testType <- match.arg(testType)
-
   sCutOff <- 1/alpha
 
   nDefinitions <- defineTTestN("lowN"=lowN, "highN"=highN, "sampleSizeRatio"=sampleSizeRatio, "testType"=testType)
 
-  if (testType=="pairedSampleT") {
-    paired <- TRUE
-  } else {
-    paired <- FALSE
-  }
 
   n1 <- nDefinitions[["n1"]]
   n2 <- nDefinitions[["n2"]]
   candidateNEff <- nDefinitions[["candidateNEff"]]
   candidateNu <- nDefinitions[["candidateNu"]]
 
-  if (alternative=="two.sided") {
+  if (alternative=="two.sided")
     candidateFNcp <- candidateNEff*deltaMin^2
-  } else {
+  else
     candidateTNcp <- sqrt(candidateNEff)*deltaMin
-  }
 
   # TODO(Alexander): Should highDelta just be deltaMin.
   #   Perhaps show that deltaS < deltaMin for alpha, beta. Use monotonicity
@@ -175,11 +173,11 @@ designSafeT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
   candidateDeltas <- seq(from=lowDelta, to=highDelta, by=tol)
 
   for (i in seq_along(candidateNEff)) {
-    if (alternative=="two.sided") {
+    if (alternative=="two.sided")
       deltaMinThresh <- sqrt(stats::qf("p"=beta, "df1"=1, "df2"=candidateNu[i], "ncp"=candidateFNcp[i])) #*deltaMin^2)
-    } else {
+    else
       deltaMinThresh <- stats::qt("p"=beta, "df"=candidateNu[i], "ncp"=candidateTNcp[i])
-    }
+
     # TODO(Alexander): Under the assumption that this is unimodal, then stop once the value goes down
     if (testType=="twoSampleT") {
       altSThreshes <- purrr::map_dbl(".x"=candidateDeltas, ".f"=safeTTestStat, "t"=deltaMinThresh,
@@ -198,9 +196,9 @@ designSafeT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
       } else if (testType %in% c("oneSampleT", "pairedSampleT")) {
         result[["n1Plan"]] <- nEff
 
-        if (testType=="pairedSampleT") {
+        if (testType=="pairedSampleT")
           result[["n2Plan"]] <- nEff
-        }
+
       }
 
       deltaIndex <- which(altSThreshes >= sCutOff)[1]
@@ -353,15 +351,10 @@ simulate.safeTDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGl
   if (object[["pilot"]])
     stop("No simulation for unplanned pilot designs")
 
-  if (is.null(deltaTrue)) {
+  if (is.null(deltaTrue))
     deltaTrue <- object[["deltaMin"]]
-  }
 
-  if (object[["testType"]]=="pairedSampleT") {
-    paired <- TRUE
-  } else {
-    paired <- FALSE
-  }
+  paired <- if (object[["testType"]]=="pairedSampleT") TRUE else FALSE
 
   result <- replicateTTests("n1Plan"=object[["n1Plan"]], "n2Plan"=object[["n2Plan"]], "deltaTrue"=deltaTrue,
                             "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired,
@@ -501,6 +494,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
                             safeOptioStop=TRUE, deltaS=NULL,
                             freqOptioStop=FALSE, n1PlanFreq=NULL, n2PlanFreq=NULL,
                             logging=TRUE, seed=NULL, pb=TRUE, ...) {
+
   stopifnot(n1Plan > 0, n1Plan > lowN, nsim > 0, alpha > 0, alpha < 1,
             any(safeOptioStop, freqOptioStop))
 
@@ -509,6 +503,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
   result <- list(n1Plan=n1Plan, n2Plan=n2Plan, deltaTrue=deltaTrue, muGlobal=muGlobal, paired=paired,
                  alternative=alternative, lowN=lowN, nsim=nsim, alpha=alpha,
                  deltaS=deltaS, n1PlanFreq=n1PlanFreq, n2PlanFreq=n2PlanFreq, safeSim=list(), freqSim=list())
+
   class(result) <- "safeTSim"
 
   if (safeOptioStop) {
@@ -563,11 +558,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
     pValues <- freqDecisionAtN <- allFreqDecisions <- vector("integer", nsim)
   }
 
-  if (is.null(n2Plan) || paired) {
-    sampleSizeRatio <- 1
-  } else {
-    sampleSizeRatio <- n2Plan/n1Plan
-  }
+  sampleSizeRatio <- if (is.null(n2Plan) || paired) 1 else n2Plan/n1Plan
 
   someData <- generateTTestData("n1Plan"=n1Plan, "n2Plan"=n2Plan, "nsim"=nsim, "deltaTrue"=deltaTrue,
                                 "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed)
@@ -578,11 +569,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
   if (safeOptioStop) {
     n1Samples <- seq.int(lowN, n1Plan)
 
-    if (is.null(n2Plan)) {
-      n2Samples <- NULL
-    } else {
-      n2Samples <- ceiling(sampleSizeRatio*n1Samples)
-    }
+    n2Samples <- if (is.null(n2Plan)) NULL else ceiling(sampleSizeRatio*n1Samples)
 
     if (pb)
       pbSafe <- utils::txtProgressBar(style=1, title="Safe optional stopping")
@@ -656,9 +643,8 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
     if (is.null(n2Plan)) {
       sampleSizeRatio <- 1
 
-      if (n1PlanFreq < n1Plan) {
+      if (n1PlanFreq < n1Plan)
         dataGroup1 <- dataGroup1[, seq.int(n1PlanFreq)]
-      }
 
       if (n1PlanFreq > n1Plan) {
         n1Diff <- n1PlanFreq - n1Plan
@@ -670,11 +656,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
     } else {
       # Note(Alexander): Two-sample case
 
-      if (paired) {
-        sampleSizeRatio <- 1
-      } else {
-        sampleSizeRatio <- n2PlanFreq/n1PlanFreq
-      }
+      sampleSizeRatio <- if (paired) 1 else n2PlanFreq/n1PlanFreq
 
       if (n1PlanFreq < n1Plan) {
         dataGroup1 <- dataGroup1[, seq.int(n1PlanFreq)]
@@ -699,11 +681,7 @@ replicateTTests <- function(n1Plan, n2Plan=NULL, deltaTrue, muGlobal=0, sigmaTru
 
     n1Samples <- seq.int(lowN, n1PlanFreq)
 
-    if (is.null(n2PlanFreq)) {
-      n2Samples <- NULL
-    } else {
-      n2Samples <- ceiling(sampleSizeRatio*n1Samples)
-    }
+    n2Samples <- if (is.null(n2PlanFreq)) NULL else n2Samples <- ceiling(sampleSizeRatio*n1Samples)
 
     if (pb)
       pbFreq <- utils::txtProgressBar(style=1, title="Frequentist optional stopping")
@@ -890,15 +868,17 @@ plot.safeTSim <- function(x, y=NULL, showOnlyNRejected=FALSE, nBin=25, ...) {
 #'
 #' @examples
 #' safestats:::defineTTestN()
-defineTTestN <- function(lowN=3, highN=100, sampleSizeRatio=1, testType=c("oneSampleT", "pairedSampleT", "twoSampleT")) {
+defineTTestN <- function(lowN=3, highN=100, sampleSizeRatio=1,
+                         testType=c("oneSampleT", "pairedSampleT", "twoSampleT",
+                                    "oneSampleZ", "pairedSampleZ", "twoSampleZ")) {
   testType <- match.arg(testType)
 
-  if (testType=="twoSampleT") {
+  if (testType %in% c("twoSampleT", "twoSampleZ")) {
     n1 <- lowN:highN
-    n2 <- sampleSizeRatio*n1
+    n2 <- ceiling(sampleSizeRatio*n1)
     candidateNEff <- sampleSizeRatio/(1+sampleSizeRatio)*n1
     candidateNu <- (1+sampleSizeRatio)*n1-2
-  } else if (testType %in% c("oneSampleT", "pairedSampleT")) {
+  } else if (testType %in% c("oneSampleT", "pairedSampleT", "oneSampleZ", "pairedSampleZ")) {
     n1 <- lowN:highN
     n2 <- NULL
     candidateNEff <- n1
@@ -945,7 +925,6 @@ designPilotSafeT <- function(n1=50, n2=NULL, alpha=0.05, mu0=0, alternative=c("t
   alternative <- match.arg(alternative)
   stopifnot(n1 > 2, n2 > 2)
 
-
   if (!is.null(n2)) {
     sampleSizeRatio <- n2/n1
 
@@ -962,7 +941,8 @@ designPilotSafeT <- function(n1=50, n2=NULL, alpha=0.05, mu0=0, alternative=c("t
     testType <- "oneSampleT"
 
     if (isTRUE(paired)) {
-      stop("Paired designed specified, but n2 not provided")
+      n2 <- n1
+      warning("Paired designed specified, but n2 not provided. n2 is set to n1")
     }
   }
 
@@ -971,6 +951,7 @@ designPilotSafeT <- function(n1=50, n2=NULL, alpha=0.05, mu0=0, alternative=c("t
                  "lowDelta"=lowDelta, "highDelta"=highDelta, "tol"=tol,
                  "lowN"=NULL, "highN"=NULL, "alternative"=alternative, "testType"=testType,
                  "sampleSizeRatio"=sampleSizeRatio, "pilot"=TRUE, "call"=sys.call())
+
   class(result) <- "safeTDesign"
 
   candidateDeltas <- seq(lowDelta, highDelta, by=tol)
@@ -1085,11 +1066,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
     stop("Either maxN or deltaDomain is too small. Please lower lowDelta or make highDelta larger")
 
 
-  if (testType=="pairedSampleT") {
-    paired <- TRUE
-  } else {
-    paired <- FALSE
-  }
+  paired <- if (testType=="pairedSampleT") TRUE else FALSE
 
   allN1PlanFreq <- vector("integer", lastDeltaIndex)
 
@@ -1098,13 +1075,9 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
   freqDesign <- list("n1PlanFreq"=3)
 
   for (i in seq.int(lastDeltaIndex)) {
-    if (i==1) {
-      tempLowN <- 3
-    } else {
-      # Note(Alexander): Use previous found n1
-      # TODO(Alexander): Show that as deltaMin decreases that n1PlanFreq increases
-      tempLowN <- freqDesign[["n1PlanFreq"]]
-    }
+    # TODO(Alexander): Show that as deltaMin decreases that n1PlanFreq increases
+
+    tempLowN <- if (i==1) 3 else freqDesign[["n1PlanFreq"]]
 
     freqDesign <- designFreqT("deltaMin"=deltaDomain[i], "alpha"=alpha, "beta"=beta, "lowN"=tempLowN,
                               "highN"=maxN, "sampleSizeRatio"=sampleSizeRatio)
@@ -1236,12 +1209,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
     for (i in seq.int(lastDeltaIndex)) {
       safeDesignObj <- allSafeDesignObj[[i]]
 
-      if (i==1) {
-        tempLowN <- 3
-      } else {
-        # Note(Alexander): Use for lowN the smallest N found in the previous simulations
-        tempLowN <- simObj[["safeSim"]][["lowN"]]
-      }
+      tempLowN <- if (i==1) 3 else simObj[["safeSim"]][["lowN"]]
 
       simObj <- replicateTTests("n1Plan"=safeDesignObj[["n1Plan"]], "n2Plan"=safeDesignObj[["n2Plan"]],
                                 "deltaTrue"=deltaDomain[i], "paired"=paired, "alternative"=alternative,
@@ -1328,7 +1296,6 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 #' generateTTestData(20, 15)
 generateTTestData <- function(n1Plan, n2Plan=NULL, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaTrue=1, paired=FALSE,
                               seed=NULL) {
-
   result <- list("dataGroup1"=NULL, "dataGroup2"=NULL)
   set.seed(seed)
 
@@ -1512,11 +1479,10 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "l
   result <- safeTTest("x"=x, "y"=y, "alternative"=alternative, "designObj"=designObj, "mu0"=mu0, "paired"=paired,
                       "varEqual"=var.equal, "confLevel"=conf.level, "pilot"=pilot, "alpha"=alpha, ...)
 
-  if (is.null(y)) {
+  if (is.null(y))
     dataName <- as.character(sys.call())[2]
-  } else {
+  else
     dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
-  }
 
   result[["dataName"]] <- dataName
   return(result)
@@ -1572,6 +1538,8 @@ safeTTestStat <- function(t, deltaS, n1, n2=NULL, alternative=c("two.sided", "le
   #
   #
   # Problem: t=0, n=1
+  #
+  # PERHAPS add warning and assume t is then y2-y1, otherwise t must be Inf
   if (nu == 0) {
     if (t==0)
       return(NA)
