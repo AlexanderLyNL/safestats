@@ -259,7 +259,7 @@ perform_MC_simulations_for_each_data_generating_distribution <- function(H1.delt
 
       reject.S[m] <- s_value >= (1 / alpha)
     }
-    percent.reject.S[i] <- mean(reject.S)
+    percent.reject.S[i] <- mean(reject.S, na.rm = TRUE)
   }
   return(percent.reject.S)
 }
@@ -353,11 +353,25 @@ simulate_maximin_delta_and_power <- function(delta.min, na, nb, delta.stars, see
 designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "greater", "less"),
                                           alpha = 0.05, M = 100, deltaMins = seq(0.1, 0.9, 0.1),
                                           lowDelta = 0.1, highDelta = 0.8, tol = 0.1,
-                                          numberForSeed = NA) {
+                                          numberForSeed = NA, priorInfo = NA) {
   alternative <- match.arg(alternative)
   safe_2x2_design <- create_safe_2x2_design(list('na' = na, 'nb' = nb, 'pilot' = TRUE))
 
   delta.stars <- seq(lowDelta, highDelta, by = tol)
+
+  if(!any(is.na(priorInfo))){
+    #we have a point prior: design independent of n
+    H1set <- matrix(c(priorInfo[["h0"]], priorInfo[["RR"]]*priorInfo[["h0"]]),
+                    nrow = 1)
+    point_h0 <- (na*H1set[1,1]+nb*H1set[1,2])/(na+nb)
+    w1 <- 1
+    safe_2x2_design <- add_attributes(safe_2x2_design, list('point_h0' = point_h0,
+                                                            'H1set' = H1set,
+                                                            'w1' = w1,
+                                                            'call' = sys.call())
+    )
+    return(safe_2x2_design)
+  }
 
   #check if delta ump can be found analytically
   if (na == nb & alternative == "two.sided") {
@@ -503,6 +517,8 @@ designSafeTwoProportions <- function(deltaMin = NA, alpha = 0.05, beta = 0.20,
     #sampling from a point alternative hypothesis of interest
     H1DeltaMin <- matrix(c(priorInfo[["h0"]], priorInfo[["RR"]]*priorInfo[["h0"]]),
                          nrow = 1)
+    #do not need to try different deltas: one best S.
+    deltas <- 1
   } else {
     H1DeltaMin <- create_data_generating_distributions(deltaDesign = deltaMin, alternative = alternative,
                                                        length.out = 5)
@@ -548,12 +564,11 @@ designSafeTwoProportions <- function(deltaMin = NA, alpha = 0.05, beta = 0.20,
       delta <- deltas[j]
 
       if(!any(is.na(priorInfo))){
-        #prior knowledge on H0: construct simple S
-        point_h0 <- priorInfo[["h0"]]
-        xa1 <-  point_h0 - delta/(1+na/nb)
-        xa2 <- point_h0 + delta/(1+na/nb)
-        H1set <- matrix(c(xa1, xa1+delta, xa2, xa2-delta), nrow = 2, byrow = TRUE)
-        w1 <- c(0.5, 0.5)
+        #prior knowledge on theta_a: construct simple S
+        H1set <- matrix(c(priorInfo[["h0"]], priorInfo[["RR"]]*priorInfo[["h0"]]),
+                        nrow = 1)
+        point_h0 <- (na*H1set[1,1]+nb*H1set[1,2])/(na+nb)
+        w1 <- 1
       } else {
         #construct parameters to use in the S-test
         if (alternative == "two.sided") {
@@ -582,7 +597,7 @@ designSafeTwoProportions <- function(deltaMin = NA, alpha = 0.05, beta = 0.20,
       }
 
       #check if parameters valid, between 0 and 1
-      if(any(H1set < 0) | any(H1set > 1)){
+      if(any(H1set <= 0) | any(H1set >=  1)){
         next
       }
 
