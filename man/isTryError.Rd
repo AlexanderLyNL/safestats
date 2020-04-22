@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{isTryError}
 \alias{isTryError}
-\title{Checks whether some object is a try error.}
+\title{Checks whether the provided objects contain a try error.}
 \usage{
 isTryError(...)
 }
@@ -10,18 +10,15 @@ isTryError(...)
 \item{...}{objects that need testing}
 }
 \value{
-Returns TRUE if there's some object that's a try-error, FALSE when all objects are not try-errors
+Returns \code{TRUE} if there's some object that's a try-error, \code{FALSE} when all objects are not try-errors
 }
 \description{
-Checks whether some object is a try error.
+Checks whether the provided objects contain a try error.
 }
 \examples{
-\dontrun{
 x <- 1
 y <- "a"
 z <- try(integrate(exp, -Inf, Inf))
 isTryError(x, y)
 isTryError(x, y, z)
-}
-
 }

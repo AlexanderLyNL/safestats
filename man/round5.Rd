@@ -16,7 +16,5 @@ number rounded up to 5 decimal places
 Rounds a numeric to 5
 }
 \examples{
-\dontrun{
-round5(pi)
-}
+safestats:::round5(pi)
 }

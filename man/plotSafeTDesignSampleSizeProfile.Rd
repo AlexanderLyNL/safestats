@@ -27,11 +27,11 @@ plotSafeTDesignSampleSizeProfile(
 )
 }
 \arguments{
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "deltaS". Note that 1-beta defines the power.}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
+the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{maxN}{numeric, the maximum number of samples one has budget for to collect data}
 
@@ -48,7 +48,7 @@ and "deltaS". Note that 1-beta defines the power.}
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If is.null(n2) then sampleSizeRatio=1}
+\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
 
 \item{deltaFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
 deltaTrue = 0.8) of lowDelta}
@@ -56,24 +56,25 @@ deltaTrue = 0.8) of lowDelta}
 \item{nFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
 deltaTrue = 0.8) of highN}
 
-\item{simulateSafeOptioStop}{logical, if TRUE then provides}
+\item{simulateSafeOptioStop}{logical, if \code{TRUE} then provides}
 
-\item{logging}{logical, if TRUE then output all the safe designs objects including mean n stop if
-simulateSafeOptioStop==TRUE}
+\item{logging}{logical, if \code{TRUE} then output all the safe designs objects including mean n stop if
+simulateSafeOptioStop equal \code{TRUE}}
 
-\item{backTest}{logical, if TRUE it provides the frequentist sample size necessary to attain the power that the
+\item{backTest}{logical, if \code{TRUE} it provides the frequentist sample size necessary to attain the power that the
 safe test attains due to optional stopping}
 
 \item{seed}{To set the seed for the simulated data}
 
-\item{freqPlot}{logical, if TRUE plot frequentist sample size profiles}
+\item{freqPlot}{logical, if \code{TRUE} plot frequentist sample size profiles}
 
-\item{pb}{logical, if TRUE, then show progress bar}
+\item{pb}{logical, if \code{TRUE}, then show progress bar}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
 }
 \value{
-Plot of the sample size profiles for tolerable type I and type II error, also outputs results object
+returns a list that contains the planned sample size needed for the frequentist and safe test.
+The function also produces a plot.
 }
 \description{
 For given tolerable alpha and beta, as a function of the minimal clinical relevant effect size deltaMin, plots (1) the

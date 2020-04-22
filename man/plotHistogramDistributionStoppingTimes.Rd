@@ -14,7 +14,7 @@ plotHistogramDistributionStoppingTimes(
 )
 }
 \arguments{
-\item{safeSim}{A safeSim object, returned from "replicateTTests" and "simulateSpreadSampleSizeTwoProportions"}
+\item{safeSim}{A safeSim object, returned from 'replicateTTests()' and 'simulateSpreadSampleSizeTwoProportions()'}
 
 \item{nPlan}{numeric > 0, the planned sample size (for the first sample)}
 
@@ -26,11 +26,13 @@ plotHistogramDistributionStoppingTimes(
 
 \item{...}{further arguments to be passed to or from methods.}
 }
+\value{
+a histogram object, and called for its side-effect to plot the histogram
+}
 \description{
 Plots the histogram of stopping times
 }
 \examples{
-\dontrun{
 # Design safe test
 alpha <- 0.05
 beta <- 0.20
@@ -46,5 +48,4 @@ n1PlanFreq=freqObj$n1PlanFreq)
 plotHistogramDistributionStoppingTimes(
   simResults$safeSim, nPlan = simResults$n1Plan,
   deltaTrue = simResults$deltaTrue)
-}
 }

@@ -12,14 +12,12 @@ tryOrFailWithNA(expr, value = NA_real_)
 \item{value}{Return value if there is an error, default is NA_real_}
 }
 \value{
-Returns the evaluation of the expression, or value if it doesn't work out
+Returns the evaluation of the expression, or \code{value} if it doesn't work out
 }
 \description{
 Try to evaluate an expression, if not fail with NA (default)
 }
 \examples{
-\dontrun{
-tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
-tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
-}
+safestats:::tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
+safestats:::tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
 }

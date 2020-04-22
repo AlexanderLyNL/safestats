@@ -1,7 +1,7 @@
 Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
-Version: 0.8.0
+Version: 0.8.1
 Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = "aut"),
@@ -10,11 +10,11 @@ Authors@R: c(
 Maintainer: Alexander Ly <a.ly@jasp-stats.org>
 Description: Functions to design and apply tests that are anytime valid. The 
   functions can be used to design hypothesis tests in the prospective/randomised 
-  control trial setting, where the tests remain valid under optional stopping. 
-  The 'pilot' functions in the package also enable using the safe tests in the 
-  observational/retrospective setting. The current version includes safe t-tests 
-  and tests of two proportions. For details on the theory of safe tests, see 
-  Grunwald, de Heide and Koolen (2019) Safe Testing. <arXiv:1906.07801>.
+  control trial setting or in the observational/retrospective setting. The 
+  resulting tests remain valid under both optional stopping and optional 
+  continuation. The current version includes safe t-tests and safe tests of 
+  two proportions. For details on the theory of safe tests, see 
+  Grunwald, de Heide and Koolen (2019) "Safe Testing". <arXiv:1906.07801>.
 License: LGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
