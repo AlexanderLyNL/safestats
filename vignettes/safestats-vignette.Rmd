@@ -77,7 +77,7 @@ loads the package.
 To avoid bringing an ineffective medicine to the market, experiments need to be conducted in which the null hypothesis of no effect is tested. Here we show how flexible experiments based on safe tests can be designed. 
 
 As the problem is statistical in nature, due to variability between patients, we cannot guarantee that 0% of the medicine that pass the test will be ineffective. <!--This can only be accomplished by tests that never reject the null. -->
-Instead, the target is to bound the type I error rate by a tolerable $\alpha$, say, $\alpha = 0.05$. In other words, at most 5 out of the 100 drugs that pass the safe test are allowed to be ineffective. 
+Instead, the target is to bound the type I error rate by a tolerable $\alpha$, say, $\alpha = 0.05$. In other words, at most 5 out of the 100 inneffective drugs are allowed to pass the safe test.  
 
 At the same time, we would like to avoid a type II error, that is, missing out on finding an effect, while there is one. Typically, the targetted type II error rate is $\beta = 0.20$, which implies that whenever there truly is an effect, an experiment needs to be designed in such a way that with $1 - \beta =$ 80% chance the effect is detected. <!-- In other words, whenever there is an effect, then 80 out of a 100 experiment should reject the null hypothesis of no effect. -->
 
