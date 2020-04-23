@@ -26,38 +26,6 @@ create_safe_2x2_design <- function(attributes_defined) {
   return(safe_2x2_design)
 }
 
-#finds the greatest common divisor of two integers a and b
-#returns this as 'n.iter'
-#together with a/n.iter and b/n.iter
-# findGreatestCommonDivisor <- function(a, b) {
-#   imax <- 100
-#
-#   for (i in 1:imax) {
-#     ratio <- i * a / b
-#     if (abs(round(ratio) - ratio) < 1e-8) {
-#       a.iter <- ratio
-#       b.iter <- i
-#       n.iter <- a / ratio
-#       break
-#     }
-#   }
-#
-#   if (!exists("a.iter")) {
-#     #no greatest common divisor has been found
-#     a.iter <- a
-#     b.iter <- b
-#     n.iter <- 1
-#   }
-#
-#   return(
-#     list(
-#       'a.iter' = a.iter,
-#       'b.iter' = b.iter,
-#       'n.iter' = n.iter
-#     )
-#   )
-# }
-
 #helper function for finding adjustment phi to simple S
 #for case of unequal group sizes
 #calculates the expected capital growth of a simple S value adjusted with
