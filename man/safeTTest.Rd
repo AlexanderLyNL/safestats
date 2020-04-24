@@ -23,22 +23,22 @@ safeTTest(
 
 \item{y}{an optional (non-empty) numeric vector of data values}
 
-\item{designObj}{an object from 'designSafeT()', or \code{NULL}, when pilot equals \code{TRUE}}
+\item{designObj}{an object from designSafeT, or NULL, when pilot=TRUE}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
 
 \item{mu0}{a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0}
 
-\item{paired}{a logical indicating whether you want a paired t-test.}
+\item{paired}{a logical indicating whether you want to paired t-test.}
 
 \item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For the moment,
-this is always \code{TRUE}.}
+this is always TRUE.}
 
 \item{confLevel}{confidence level of the interval. Not yet implemented}
 
-\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned.}
+\item{pilot}{a logical indicating whether a pilot study is run. If TRUE, it is assumed that the number of samples is
+exactly as planned.}
 
 \item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
@@ -46,30 +46,10 @@ shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-Returns an object of class "safeTResult". An object of class "safeTResult" is a list containing at least the
-following components:
-
-\describe{
-  \item{statistic}{the value of the t-statistic}
-  \item{parameter}{the parameter (point prior) used in the safe test derived from the design}
-  \item{sValue}{the s-value for the safe test}
-  \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
-  hypothesis}
-  \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-  sample test or a two-sample test}
-  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test}
-  \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-  \item{dataName}{a character string giving the name(s) of the data}
-  \item{designObj}{an object of class "safeTDesign" described in 'designSafeT()'}
-  \item{n1}{The realised sample size of the first group}
-  \item{call}{the expression with which this function is called}
-}
+Returns a safeTest object
 }
 \description{
-A safe version of 't.test()' to perform one and two sample t-tests on vectors of data
+A safe version of t.test to perform one and two sample t-tests on vectors of data
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",

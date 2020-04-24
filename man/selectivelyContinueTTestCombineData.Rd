@@ -22,11 +22,11 @@ selectivelyContinueTTestCombineData(
 )
 }
 \arguments{
-\item{oldValues}{vector of s-values or p-values}
+\item{oldValues}{vector of "sValues" or "pValues"}
 
-\item{valuesType}{character string either "sValues" or "pValues"}
+\item{valuesType}{character either "sValues" or "pValues"}
 
-\item{designObj}{a safeTDesign object, or \code{NULL} if valuesType=="pValues"}
+\item{designObj}{a safeTDesign object, or NULL if valuesType=="pValues"}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
@@ -39,10 +39,11 @@ selectivelyContinueTTestCombineData(
 frequentist tests the decision rule is p < alpha.}
 
 \item{n1Extra}{integer, that defines the additional number of samples of the first group. If NULL and
-valuesType equals "sValues", then n1Extra equals \code{designObj$n1Plan}.}
+valuesType=="sValues", then n1Extra <- designObj$n1Plan
+use designSafeT to find this)}
 
 \item{n2Extra}{optional integer, that defines the additional number of samples of the second group. If NULL, and
-valuesType equals "sValues", then n2Extra equals \code{designObj$n2Plan}.}
+valuesType=="sValues", then n2Extra <- designObj$n2Plan}
 
 \item{seed}{To set the seed for the simulated data}
 

@@ -7,9 +7,9 @@
 \method{plot}{safeTSim}(x, y = NULL, showOnlyNRejected = FALSE, nBin = 25, ...)
 }
 \arguments{
-\item{x}{A "safeTDesign" object}
+\item{x}{A safeTDesign object}
 
-\item{y}{\code{NULL}}
+\item{y}{NULL}
 
 \item{showOnlyNRejected}{logical, when TRUE discards the cases that are}
 
@@ -17,13 +17,11 @@
 
 \item{...}{further arguments to be passed to or from methods.}
 }
-\value{
-a histogram object, and called for its side-effect to plot the histogram
-}
 \description{
 Plots a safeTSim object
 }
 \examples{
+\dontrun{
 # Design safe test
 alpha <- 0.05
 beta <- 0.20
@@ -38,4 +36,6 @@ simResults <- simulate(designObj, nsim=100)
 plot(simResults)
 
 plot(simResults, showOnlyNRejected=TRUE)
+}
+
 }

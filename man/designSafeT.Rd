@@ -25,11 +25,11 @@ designSafeT(
 \item{deltaMin}{numeric that defines the minimal relevant effect size, the smallest effect size that we want to
 detect.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+and "deltaS". Note that 1-beta defines the power.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
@@ -49,20 +49,18 @@ are able to fund.}
 
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{sampleSizeRatio}{numeric representing n2/n1. If is.null(n2) then sampleSizeRatio=1}
 
-\item{logging}{logical, if \code{TRUE} return altSThreshes}
+\item{logging}{logical, if TRUE return altSThreshes}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
 }
 \value{
-Returns an object of class "safeTDesign". An object of class "safeTDesign" is a list containing at least the
-following components:
+Returns a safeDesign object that includes:
 
 \describe{
-  \item{n1Plan}{the planned sample size of the first group}
-  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test}
+  \item{n2Plan}{the sample size of the second group when testType=="twoSampleT" or "pairedSampleT", otherwise NULL}
+  \item{nEffPlan}{the resulting effective sample size when testType=="twoSampleT", otherwise non-existing}
   \item{deltaS}{the deltaS that defines the safe test}
   \item{deltaMin}{the minimal clinical effect size provided by the user}
   \item{alpha}{the tolerable type I error provided by the user}
@@ -74,10 +72,11 @@ following components:
   \item{highN}{the largest n of the search space for n provided by the user}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-  \item{sampleSizeRatio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
-  sampleSizeRatio equals n2/n1}
-  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study}
+  \item{sampleSizeRatio}{default is 1, only used when testType=="twoSampleT" and defines n2=sampleSizeRatio*n1}
+  \item{pilot}{FALSE to indicate that the design is not a pilot study}
   \item{call}{the expression with which this function is called}
+  \item{altSThreshes}{if logging=TRUE then shows the s-values at the t-value corresponding to the type II error
+  under the alternative at deltaMin}
 }
 }
 \description{

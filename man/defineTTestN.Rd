@@ -19,7 +19,7 @@ defineTTestN(
 \item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
 are able to fund.}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{sampleSizeRatio}{numeric representing n2/n1. If is.null(n2) then sampleSizeRatio=1}
 
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 }
@@ -31,5 +31,7 @@ Helper function that outputs the sample sizes, effect sample sizes and the degre
 the type of t-test.
 }
 \examples{
-safestats:::defineTTestN()
+\dontrun{
+defineTTestN()
+}
 }

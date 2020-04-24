@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{designFreqT}
 \alias{designFreqT}
-\title{Design a frequentist t-test}
+\title{Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test}
 \usage{
 designFreqT(
   deltaMin,
@@ -20,11 +20,11 @@ designFreqT(
 \item{deltaMin}{numeric that defines the minimal relevant effect size, the smallest effect size that we want to
 detect.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+and "deltaS". Note that 1-beta defines the power.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
@@ -36,23 +36,12 @@ are able to fund.}
 
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{sampleSizeRatio}{numeric representing n2/n1. If is.null(n2) then sampleSizeRatio=1}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
 }
 \value{
-Returns an object of class "freqTDesign". An object of class "freqTDesign" is a list containing at least the
-following components:
-\describe{
-  \item{n1PlanFreq}{the planned sample size of the first group}
-  \item{deltaMin}{the minimal clinical effect size provided by the user}
-  \item{alpha}{the tolerable type I error provided by the user}
-  \item{beta}{the tolerable type II error provided by the user}
-  \item{lowN}{the smallest n of the search space for n provided by the user}
-  \item{highN}{the largest n of the search space for n provided by the user}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}#'
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-}
+returns a freqDesign object
 }
 \description{
 Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test

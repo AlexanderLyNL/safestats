@@ -10,11 +10,13 @@ getNameTestType(testType)
 \item{testType}{A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".}
 }
 \value{
-Returns a character string with the name of the analysis.
+Returns a character with the name of the analysis.
 }
 \description{
 Gets the name of the analysis
 }
 \examples{
+\dontrun{
 getNameTestType("oneSampleT")
+}
 }
