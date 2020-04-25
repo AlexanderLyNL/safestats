@@ -96,7 +96,7 @@ safeZ10Inverse <- function(phiS, n, sigma=1, alpha=0.05) {
 #'
 #' @examples
 #' designObj <- designSafeZ(phiMin=0.6, alpha=0.008, alternative="greater",
-#' testType="twoSampleZ", sampleSizeRatio=1.2)
+#' testType="twoSampleZ", ratio=1.2)
 #'
 #' set.seed(1)
 #' x <- rnorm(100)
@@ -183,11 +183,10 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   sValue <- safeZTestStat("z"=zStat, "phiS"=designObj[["phiS"]], "n1"=n1, "n2"=n2,
                           "alternative"=alternative, "paired"=paired)
 
-  if (is.null(y)) {
+  if (is.null(y))
     dataName <- as.character(sys.call())[2]
-  } else {
+  else
     dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
-  }
 
   # TODO(Alexander): Add sCIs
 
@@ -212,11 +211,10 @@ safe.z.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "l
   result <- safeZTest("x"=x, "y"=y, "designObj"=designObj, "alternative"=alternative,
                       "mu0"=mu0, "paired"=paired, "sigma"=sigma, "confLevel"=confLevel, "pilot"=pilot, "alpha"=alpha, ...)
 
-  if (is.null(y)) {
+  if (is.null(y))
     dataName <- as.character(sys.call())[2]
-  } else {
+  else
     dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
-  }
 
   result[["dataName"]] <- dataName
   return(result)
@@ -270,9 +268,9 @@ print.safeZResult <- function(x, ...) {
 
     cat("\n")
     if (is.null(designObj[["n2Plan"]])) {
-      cat(paste("Experiments required n1Plan =", designObj[["n1Plan"]], "samples."))
+      cat(paste("Experiments is powered for n1Plan =", designObj[["n1Plan"]], "samples."))
     } else {
-      cat(paste("Experiments required n1Plan =", designObj[["n1Plan"]], "and n2Plan =",
+      cat(paste("Experiments is powered for n1Plan =", designObj[["n1Plan"]], "and n2Plan =",
                 designObj[["n2Plan"]], "samples."))
     }
     cat("\n")
@@ -322,7 +320,7 @@ print.safeZResult <- function(x, ...) {
 #' designFreqT(0.5)
 designFreqZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
                         lowN=3L, highN=100L, testType=c("oneSampleT", "pairedSampleT", "twoSampleT"),
-                        sampleSizeRatio=1, sigma=1, kappa=sigma, ...) {
+                        ratio=1, sigma=1, kappa=sigma, ...) {
 
   stopifnot(lowN >= 1, highN > lowN, alpha > 0, beta >0)
 
@@ -345,7 +343,7 @@ designFreqZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided",
   }
 
   for (n in seq.int(lowN, highN)) {
-    nEff <- if (testType=="twoSampleZ") sampleSizeRatio/(1+sampleSizeRatio)*n else n
+    nEff <- if (testType=="twoSampleZ") ratio/(1+ratio)*n else n
 
     powerZ <- stats::pnorm(stats::qnorm(threshold, mean=0, sd=kappa/sigma),
                            mean=sqrt(nEff)*(phiMin)/sigma, sd=kappa/sigma, lower.tail=FALSE)
@@ -354,7 +352,7 @@ designFreqZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided",
       result[["n1PlanFreq"]] <- n
 
       if (testType=="twoSampleZ")
-        result[["n2PlanFreq"]] <- ceiling(sampleSizeRatio*n)
+        result[["n2PlanFreq"]] <- ceiling(ratio*n)
 
       if (testType=="pairedSampleZ")
         result[["n2PlanFreq"]] <- n
@@ -395,7 +393,7 @@ designFreqZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided",
 #'   \item{highN}{NULL}
 #'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
 #'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-#'   \item{sampleSizeRatio}{default is 1, only used when testType=="twoSampleT" and defines n2=sampleSizeRatio*n1}
+#'   \item{ratio}{default is 1, only used when testType=="twoSampleT" and defines n2=ratio*n1}
 #'   \item{pilot}{TRUE to indicate that the design is a pilot study. The assumption is that the sample sizes are as if they were planned for, thus, known in advance.}
 #'   \item{call}{the expression with which this function is called}
 #'   \item{error}{the error estimated from the inverse function}
@@ -412,7 +410,7 @@ designPilotSafeZ <- function(n1=50, n2=NULL, alpha=0.05, alternative=c("two.side
   stopifnot(n1 > 1, n2 > 1)
 
   if (!is.null(n2)) {
-    sampleSizeRatio <- n2/n1
+    ratio <- n2/n1
 
     if (paired) {
       if (n1 != n2)
@@ -426,7 +424,7 @@ designPilotSafeZ <- function(n1=50, n2=NULL, alpha=0.05, alternative=c("two.side
     }
   } else {
     nEff <- n1
-    sampleSizeRatio <- 1
+    ratio <- 1
     testType <- "oneSampleZ"
 
     if (isTRUE(paired)) {
@@ -439,7 +437,7 @@ designPilotSafeZ <- function(n1=50, n2=NULL, alpha=0.05, alternative=c("two.side
                  "phiMin"=NULL, "alpha"=alpha, "beta"=NULL,
                  # "lowDelta"=lowDelta, "highDelta"=highDelta,
                  "tol"=tol, "lowN"=NULL, "highN"=NULL, "alternative"=alternative,
-                 "testType"=testType, "sampleSizeRatio"=sampleSizeRatio, "pilot"=TRUE,
+                 "testType"=testType, "ratio"=ratio, "pilot"=TRUE,
                  "call"=sys.call())
   class(result) <- "safeZDesign"
 
@@ -488,7 +486,7 @@ designPilotSafeZ <- function(n1=50, n2=NULL, alpha=0.05, alternative=c("two.side
 #' "greater" or "less"
 #' @param mu0 a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0
 #' @param testType either one of "oneSampleT", "pairedSampleT", "twoSampleT"
-#' @param sampleSizeRatio numeric representing n2/n1. If is.null(n2) then sampleSizeRatio=1
+#' @param ratio numeric representing n2/n1. If is.null(n2) then ratio=1
 #' @param logging logical, if TRUE return altSThreshes
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls
 #'
@@ -508,7 +506,7 @@ designPilotSafeZ <- function(n1=50, n2=NULL, alpha=0.05, alternative=c("two.side
 #'   \item{highN}{the largest n of the search space for n provided by the user}
 #'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
 #'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-#'   \item{sampleSizeRatio}{default is 1, only used when testType=="twoSampleT" and defines n2=sampleSizeRatio*n1}
+#'   \item{ratio}{default is 1, only used when testType=="twoSampleT" and defines n2=ratio*n1}
 #'   \item{pilot}{FALSE to indicate that the design is not a pilot study}
 #'   \item{call}{the expression with which this function is called}
 #'   \item{altSThreshes}{if logging=TRUE then shows the s-values at the t-value corresponding to the type II error
@@ -521,7 +519,7 @@ designPilotSafeZ <- function(n1=50, n2=NULL, alpha=0.05, alternative=c("two.side
 #' designObj
 designSafeZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
                         mu0=0, sigma=1, kappa=sigma, tol=1e-5, lowN=NULL, highN=5000L,
-                        testType=c("oneSampleZ", "pairedSampleZ", "twoSampleZ"), sampleSizeRatio=1,
+                        testType=c("oneSampleZ", "pairedSampleZ", "twoSampleZ"), ratio=1,
                         logging=FALSE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, beta > 0, beta < 1)
@@ -535,7 +533,7 @@ designSafeZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided",
                  "phiS"=NULL, "phiMin"=phiMin, "alpha"=alpha, "beta"=beta,
                  "lowN"=lowN, "highN"=highN,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
-                 "sampleSizeRatio"=sampleSizeRatio, "pilot"=FALSE, "call"=sys.call())
+                 "ratio"=ratio, "pilot"=FALSE, "call"=sys.call())
 
   class(result) <- "safeZDesign"
 
@@ -552,9 +550,9 @@ designSafeZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided",
 
   if (alternative %in% c("greater", "less")) {
     if (testType == "twoSampleZ") {
-      n1Exact <- (sampleSizeRatio+1)/sampleSizeRatio*nExact
+      n1Exact <- (ratio+1)/ratio*nExact
       result[["n1Plan"]] <- n1Plan <- ceiling(n1Exact)
-      result[["n2Plan"]] <- n2Plan <- ceiling(sampleSizeRatio*n1Exact)
+      result[["n2Plan"]] <- n2Plan <- ceiling(ratio*n1Exact)
       nEff <- (1/n1Plan+1/n2Plan)^(-1)
     } else {
       nEff <- ceiling(nExact)
@@ -583,7 +581,7 @@ designSafeZ <- function(phiMin, alpha=0.05, beta=0.2, alternative=c("two.sided",
     if (lowN > highN)
       stop("Can't find the two-sided n1Plan, because lowN is larger than highN. Please increase highN. lowN =", lowN)
 
-    nDefinitions <- defineTTestN("lowN"=lowN, "highN"=highN, "sampleSizeRatio"=sampleSizeRatio, "testType"=testType)
+    nDefinitions <- defineTTestN("lowN"=lowN, "highN"=highN, "ratio"=ratio, "testType"=testType)
 
     n1 <- nDefinitions[["n1"]]
     n2 <- nDefinitions[["n2"]]
@@ -658,12 +656,12 @@ print.safeZDesign <- function(x, ...) {
 
   if (isFALSE(x[["pilot"]])) {
     if (is.null(x[["n2Plan"]])) {
-      cat("requires an experiment with a sample size of: ")
+      cat("Requires an experiment with a sample size of: ")
       cat("\n")
       cat(paste("    n1Plan =", x[["n1Plan"]]))
       cat("\n")
     } else {
-      cat("Requires an experiment with sample sizes: ")
+      cat("Powered for an experiment with sample sizes: ")
       cat("\n")
       cat(paste("    n1Plan =", x[["n1Plan"]], "and n2Plan =", x[["n2Plan"]]))
       cat("\n")
@@ -854,7 +852,7 @@ print.safeZDesign <- function(x, ...) {
 #'   if (is.null(x[["n2Plan"]])) {
 #'     cat("    n1Mean =", x[["safeSim"]][["nMean"]])
 #'   } else {
-#'     cat("    n1Mean =", x[["safeSim"]][["nMean"]], "and n2Mean =", x[["sampleSizeRatio"]]*x[["safeSim"]][["nMean"]])
+#'     cat("    n1Mean =", x[["safeSim"]][["nMean"]], "and n2Mean =", x[["ratio"]]*x[["safeSim"]][["nMean"]])
 #'   }
 #'   cat("\n")
 #'
@@ -930,7 +928,7 @@ print.safeZDesign <- function(x, ...) {
 #' #' plotSafeZDesignSampleSizeProfile()
 #' plotSafeZDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, lowDelta=0.01, highDelta=1, tol=0.1,
 #'                                              testType=c("oneSampleT", "pairedSampleT", "twoSampleT"), nsim=1000L,
-#'                                              alternative=c("two.sided", "greater", "less"), sampleSizeRatio=1,
+#'                                              alternative=c("two.sided", "greater", "less"), ratio=1,
 #'                                              deltaFactor=0.5, nFactor=2, simulateSafeOptioStop=FALSE,
 #'                                              logging=FALSE, backTest=FALSE, seed=NULL, freqPlot=FALSE, pb=TRUE,
 #'                                              ...) {
@@ -971,7 +969,7 @@ print.safeZDesign <- function(x, ...) {
 #'     }
 #'
 #'     freqDesign <- designFreqT("deltaMin"=deltaDomain[i], "alpha"=alpha, "beta"=beta, "lowN"=tempLowN,
-#'                               "highN"=maxN, "sampleSizeRatio"=sampleSizeRatio)
+#'                               "highN"=maxN, "ratio"=ratio)
 #'
 #'     if (is.null(freqDesign[["n1PlanFreq"]]) || is.na(freqDesign[["n1PlanFreq"]])) {
 #'       lastDeltaIndex <- i-1
@@ -1031,7 +1029,7 @@ print.safeZDesign <- function(x, ...) {
 #'
 #'     safeDesignObj <- designSafeZ("deltaMin"=deltaDomain[i], "alpha"=alpha, "beta"=beta, "alternative"=alternative,
 #'                                  "lowDelta"=tempLowDelta, "highDelta"=tempHighDelta, "lowN"=tempLowN,
-#'                                  "highN"=tempHighN, "testType"=testType, "sampleSizeRatio"=sampleSizeRatio)
+#'                                  "highN"=tempHighN, "testType"=testType, "ratio"=ratio)
 #'
 #'     if (is.null(safeDesignObj[["n1Plan"]]) || is.na(safeDesignObj[["n1Plan"]])) {
 #'       lastDeltaIndex <- i-1
@@ -1116,7 +1114,7 @@ print.safeZDesign <- function(x, ...) {
 #'         backFreqDesign <- designFreqT("deltaMin"=deltaDomain[i], "alpha"=alpha,
 #'                                       "beta"=1-safeDesign[["safeSim"]][["powerOptioStop"]],
 #'                                       "alternative"=alternative, "testType"=testType,
-#'                                       "sampleSizeRatio"=sampleSizeRatio)
+#'                                       "ratio"=ratio)
 #'
 #'         safeDesign[["safeSim"]][["nBack"]] <- backFreqDesign[["n1PlanFreq"]]
 #'         allNBack[i] <- backFreqDesign[["n1PlanFreq"]]
@@ -1327,9 +1325,9 @@ print.safeZDesign <- function(x, ...) {
 #'   }
 #'
 #'   if (is.null(n2Plan) || paired) {
-#'     sampleSizeRatio <- 1
+#'     ratio <- 1
 #'   } else {
-#'     sampleSizeRatio <- n2Plan/n1Plan
+#'     ratio <- n2Plan/n1Plan
 #'   }
 #'
 #'   someData <- generateTTestData("n1Plan"=n1Plan, "n2Plan"=n2Plan, "nsim"=nsim, "deltaTrue"=deltaTrue,
@@ -1344,7 +1342,7 @@ print.safeZDesign <- function(x, ...) {
 #'     if (is.null(n2Plan)) {
 #'       n2Samples <- NULL
 #'     } else {
-#'       n2Samples <- ceiling(sampleSizeRatio*n1Samples)
+#'       n2Samples <- ceiling(ratio*n1Samples)
 #'     }
 #'
 #'     if (pb)
@@ -1417,7 +1415,7 @@ print.safeZDesign <- function(x, ...) {
 #'     # Note(Alexander): Adjust data set
 #'     #
 #'     if (is.null(n2Plan)) {
-#'       sampleSizeRatio <- 1
+#'       ratio <- 1
 #'
 #'       if (n1PlanFreq < n1Plan) {
 #'         dataGroup1 <- dataGroup1[, seq.int(n1PlanFreq)]
@@ -1434,9 +1432,9 @@ print.safeZDesign <- function(x, ...) {
 #'       # Note(Alexander): Two-sample case
 #'
 #'       if (paired) {
-#'         sampleSizeRatio <- 1
+#'         ratio <- 1
 #'       } else {
-#'         sampleSizeRatio <- n2PlanFreq/n1PlanFreq
+#'         ratio <- n2PlanFreq/n1PlanFreq
 #'       }
 #'
 #'       if (n1PlanFreq < n1Plan) {
@@ -1465,7 +1463,7 @@ print.safeZDesign <- function(x, ...) {
 #'     if (is.null(n2PlanFreq)) {
 #'       n2Samples <- NULL
 #'     } else {
-#'       n2Samples <- ceiling(sampleSizeRatio*n1Samples)
+#'       n2Samples <- ceiling(ratio*n1Samples)
 #'     }
 #'
 #'     if (pb)
