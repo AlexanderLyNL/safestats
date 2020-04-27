@@ -2,28 +2,29 @@
 % Please edit documentation in R/tTest.R
 \name{designSafeT}
 \alias{designSafeT}
-\title{Designs a Safe Experiment to Test Means}
+\title{Designs a Safe T Experiment to Test Means}
 \usage{
 designSafeT(
-  deltaMin,
+  deltaMin = NULL,
   alpha = 0.05,
   beta = 0.2,
   alternative = c("two.sided", "greater", "less"),
   mu0 = 0,
-  lowDelta = 0.01,
-  highDelta = 1.5 * abs(deltaMin),
-  tol = 0.01,
+  nPlan = NULL,
   lowN = 3L,
   highN = 100L,
+  lowParam = 0.01,
+  highParam = 1.5 * abs(deltaMin),
+  tol = 0.01,
   testType = c("oneSampleT", "pairedSampleT", "twoSampleT"),
-  sampleSizeRatio = 1,
+  ratio = 1,
   logging = FALSE,
   ...
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant effect size, the smallest effect size that we want to
-detect.}
+\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
+we would the experiment to be able to detect.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
@@ -36,54 +37,60 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{mu0}{a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0}
 
-\item{lowDelta}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
-
-\item{highDelta}{numeric that defines the largest delta of our search space for the test-defining deltaS}
-
-\item{tol}{a number that defines the stepsizes between the lowDelta and highDelta}
+\item{nPlan}{vector of max length 2 representing the planned sample sizes}
 
 \item{lowN}{integer that defines the smallest n of our search space for n}
 
 \item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
 are able to fund.}
 
+\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
+
+\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS}
+
+\item{tol}{a number that defines the stepsizes between the lowParam and highParam}
+
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1}
 
 \item{logging}{logical, if \code{TRUE} return altSThreshes}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
 }
 \value{
-Returns an object of class "safeTDesign". An object of class "safeTDesign" is a list containing at least the
+Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
 following components:
 
+
 \describe{
-  \item{n1Plan}{the planned sample size of the first group}
-  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test}
-  \item{deltaS}{the deltaS that defines the safe test}
-  \item{deltaMin}{the minimal clinical effect size provided by the user}
+  \item{nPlan}{the planned sample size(s)}
+  \item{parameter}{the safe test defining parameter. Here deltaS}
+  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user}
   \item{alpha}{the tolerable type I error provided by the user}
   \item{beta}{the tolerable type II error provided by the user}
-  \item{lowDelta}{the smallest delta of the search space for delta provided by the user}
-  \item{highDelta}{the largest delta of the search space for delta provided by the user}
-  \item{tol}{the step size between lowDelta and highDelta provided by the user}
-  \item{lowN}{the smallest n of the search space for n provided by the user}
-  \item{highN}{the largest n of the search space for n provided by the user}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-  \item{sampleSizeRatio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
-  sampleSizeRatio equals n2/n1}
+  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise}
+  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on
+  whether it was a one-sample or a two-sample test}
+  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
+  ratio equals n2/n1}
+  \item{lowN}{the smallest n of the search space for n provided by the user}
+  \item{highN}{the largest n of the search space for n provided by the user}
+  \item{lowParam}{the smallest delta of the search space for delta provided by the user}
+  \item{highParam}{the largest delta of the search space for delta provided by the user}
+  \item{tol}{the step size between lowParam and highParam provided by the user}
   \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study}
   \item{call}{the expression with which this function is called}
 }
 }
 \description{
-Designs a safe experiment for a prespecified minimum clinical relevant effect size, tolerable type I and
-type II error. Outputs a list that includes (1) the deltaS that defines the safe test, and (2) nPlan, the sample
-size to  plan for.
+A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
+deltaS. If nPlan is provided only the safe test defining parameter deltaS needs to determined. That resulting
+deltaS leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
+(i) a tolerable type II error beta, and (ii) a clinically relevant minimal population standardised effect size
+deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.8, alpha=0.08, beta=0.01, alternative="greater")

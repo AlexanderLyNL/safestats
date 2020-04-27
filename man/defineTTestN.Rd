@@ -8,8 +8,9 @@ the type of t-test.}
 defineTTestN(
   lowN = 3,
   highN = 100,
-  sampleSizeRatio = 1,
-  testType = c("oneSampleT", "pairedSampleT", "twoSampleT")
+  ratio = 1,
+  testType = c("oneSampleT", "pairedSampleT", "twoSampleT", "oneSampleZ",
+    "pairedSampleZ", "twoSampleZ")
 )
 }
 \arguments{
@@ -18,7 +19,7 @@ defineTTestN(
 \item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
 are able to fund.}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1}
 
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 }

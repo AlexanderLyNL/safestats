@@ -92,7 +92,7 @@ safeLogrankTest.IndependenceProblem <- function(object, ties.method=c("mid-ranks
 #' @examples
 safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=NULL) {
   if (!inherits(logrankObj, "ScalarIndependenceTest"))
-    stop("Unable to compute the relevant test statistic. Debug in coin::logrank_test()")
+    stop("The provided logrankObj is not of the right type derived from coin::logrank_test()")
 
   groupLevels <- levels(logrankObj@statistic@x[[groupLabel]])
 
@@ -105,15 +105,21 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
     stop("K-sample log rank test not yet implemented")
 
   zStat <- unname(logrankObj@statistic@standardizedlinearstatistic)
-  nEvents <- sum(logrankObj@statistic@ytrans < 0)
-  dataName <- names(logrankObj@statistic@y)
+  names(zStat) <- "z"
 
-  groupLabel <- names(logrankObj@statistic@x)
+  nEvents <- sum(logrankObj@statistic@ytrans < 0)
+  names(nEvents) <- "nEvents"
+
+  dataName <- paste0(names(logrankObj@statistic@y), " by ",
+                     names(logrankObj@statistic@x), " (",
+                     paste(groupLevels, collapse=", "), ")")
+
+  # result <- list("statistic"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
+  #                "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "mu0"=mu0, "sigma"=sigma)
 
   result <- list("statistic"=zStat, "n1"=nEvents, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
-                 "theta0"=1, "alternative"=alternative, "testType"="logrank", "dataName"=dataName,
-                 "groupLabel"=groupLabel, "groupLevels"=groupLevels)
-  class(result) <- "safeLogrank"
+                 "theta0"=1, "alternative"=alternative, "testType"="logrank", "dataName"=dataName)
+  class(result) <- "safeTest"
 
   if (isTRUE(pilot)) {
 
@@ -121,11 +127,11 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
       alpha <- 0.05
 
     designObj <- designSafeLogrank("nPlan"=nEvents, "alpha"=alpha)
+    designObj[["pilot"]] <- TRUE
   }
 
-  sValue <- safeZTestStat("z"=zStat, "phiS"=designObj[["thetaS"]], "n1"=nEvents,
-                          "n2"=NULL, "alternative"="two.sided",
-                          "paired"=FALSE, "sigma"=1)
+  sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEvents,
+                          "n2"=NULL, "alternative"="two.sided", "paired"=FALSE, "sigma"=1)
 
   result[["sValue"]] <- sValue
   result[["designObj"]] <- designObj
@@ -138,7 +144,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #'
 #' Designs a safe experiment for a prespecified tolerable type I error combined with (1) a targetted number
 #' of events nPlan, or (2) a tolerable type II beta and a minimal clinically relevant hazard ratio thetaMin.
-#' Outputs a list that includes the thetaS that defines the safe test.
+#' Outputs a list that includes the parameter that defines the safe test.
 #'
 #' @inheritParams designSafeT
 #' @param nPlan numeric > 0, targetted number of events
@@ -150,7 +156,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #'
 #' \describe{
 #'   \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin}
-#'   \item{thetaS}{the thetaS that defines the safe test}
+#'   \item{parameter}{the parameter that defines the safe test}
 #'   \item{thetaMin}{the minimally clinically relevant hazard ratio specified by the user}
 #'   \item{alpha}{the tolerable type I error provided by the user}
 #'   \item{beta}{the tolerable type II error provided by the user}
@@ -165,115 +171,62 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #' @export
 #'
 #' @examples
-designSafeLogrank <- function(nPlan=50, alpha=0.05, beta=NULL, alternative="two.sided",
-                              ratio=1, thetaMin=NULL, zApprox=TRUE, tol=1e-5, ...) {
+designSafeLogrank <- function(alpha=0.05, beta=NULL, thetaMin=NULL, alternative=c("two.sided", "greater", "less"),
+                              nPlan=NULL, ratio=1, zApprox=TRUE, tol=1e-5, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
   alternative <- match.arg(alternative)
 
-  result <- list("nPlan"=nPlan, "thetaS"=NA, "thetaMin"=thetaMin, "alpha"=alpha, "beta"=beta,
-                 # "tol"=tol, "lowN"=NULL, "highN"=NULL,
-                 "alternative"=alternative, "testType"="logrank", "ratio"=ratio, "pilot"=FALSE,
-                 "call"=sys.call())
-  class(result) <- "safeLogrankDesign"
+  if (alternative != "two.sided")
+    warning("Currently, only the two.sided method is implemented, and therefore used.")
+
+  names(nPlan) <- "nPlan"
+
+  result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=thetaMin, "alpha"=alpha, "beta"=beta,
+                 "alternative"=alternative, "testType"="logrank", "ratio"=ratio,
+                 "pilot"=FALSE, "call"=sys.call())
+  class(result) <- "safeDesign"
+
+  if (!is.null(beta))
+    warning("Currently, only the method based on nPlan is implemented, and therefore used. beta ignored")
+
+  if (!is.null(thetaMin))
+    warning("Currently, only the method based on nPlan is implemented, and therefore used. thetaMin ignored")
 
   if (is.null(beta) && is.null(thetaMin)) {
     if (zApprox) {
-      safeZObj <- try(designPilotSafeZ("n1"=nPlan, "alpha"=alpha, "alternative"=alternative))
+      safeZObj <- try(designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative))
     } else {
-      warning("Not yet implemented. Used z approximation instead.")
+      warning("Currently, only the z-approximation method is implemented, and therefore used.")
 
-      safeZObj <- try(designPilotSafeZ("n1"=nPlan, "alpha"=alpha, "alternative"=alternative))
+      # TODO(Alexander): Replace by hypergeometric method
+      #
+      safeZObj <- try(designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative))
     }
 
     if (isTryError(safeZObj))
-      stop("Design based on the given alpha and nPlan")
+      stop("Unable to design the given alpha and nPlan")
 
-    result[["thetaS"]] <- safeZObj[["phiS"]]
   } else {
 
     if (is.null(nPlan))
       stop("Can't design without targetted nPlan number of events.")
 
-    warning("Not yet implemented. Used z approximation instead.")
+    warning("Currently, only the z-approximation method is implemented, and therefore used.")
 
-    safeZObj <- try(designPilotSafeZ("n1"=nPlan, "alpha"=alpha, "alternative"=alternative))
-    result[["thetaS"]] <- safeZObj[["phiS"]]
+    # TODO(Alexander): Replace by most likely a z approximation power analysis based on beta and thetaMin
+    #
+    safeZObj <- try(designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative))
   }
+
+  result[["parameter"]] <- safeZObj[["parameter"]]
+  names(result[["parameter"]]) <- "thetaS"
 
   return(result)
 }
 
-designObj <- designSafeLogrank(nPlan=89, alpha=0.05)
-class(designObj)
 
-designObj
 
-bob
 
-zDesign <- designSafeZ(0.5)
 
-print.safeZDesign <- function(x, ...) {
-  analysisName <- getNameTestType(testType = x[["testType"]])
 
-  cat("\n")
-  cat(paste("       ", analysisName, "\n"))
-  cat("\n")
-
-  if (isFALSE(x[["pilot"]])) {
-    if (is.null(x[["n2Plan"]])) {
-      cat("is powered for an experiment with a sample size of: ")
-      cat("\n")
-      cat(paste("    n1Plan =", x[["n1Plan"]]))
-      cat("\n")
-    } else {
-      cat("Powered for an experiment with sample sizes: ")
-      cat("\n")
-      cat(paste("    n1Plan =", x[["n1Plan"]], "and n2Plan =", x[["n2Plan"]]))
-      cat("\n")
-    }
-    cat("to find an effect size of at least: ")
-    cat("\n")
-    cat("    deltaMin =", round5(x[["phiMin"]]))
-    cat("\n")
-    cat("\n")
-
-    cat("with:")
-    cat("\n")
-    cat("    power = ", 1 - x[["beta"]], " (thus, beta = ", x[["beta"]], ")", sep="")
-    cat("\n")
-
-    cat("under the alternative:")
-    cat("\n")
-    cat("   ", getNameAlternative(x[["alternative"]], x[["testType"]]))
-    cat("\n")
-    cat("\n")
-
-    cat("Based on the decision rule S > 1/alpha:")
-    cat("\n")
-    cat("    S > ", round5(1/x[["alpha"]]), sep="")
-    cat("\n")
-
-    cat("which occurs with chance less than:")
-    cat("\n")
-    cat("    alpha =", x[["alpha"]])
-    cat("\n")
-
-    cat("under iid normally distributed data and the null hypothesis:")
-    cat("\n")
-    cat("    mu =", x[["mu0"]])
-  } else {
-    cat("The experiment is not planned.")
-    cat("\n")
-    cat("This design object only valid for experiments with:")
-    cat("\n")
-
-    if (is.null(x[["n2Plan"]])) {
-      cat("    n1 =", x[["n1Plan"]])
-      cat("\n")
-    } else {
-      cat("    n1 =", x[["n1Plan"]], "and n2 =", x[["n2Plan"]])
-      cat("\n")
-    }
-  }
-}

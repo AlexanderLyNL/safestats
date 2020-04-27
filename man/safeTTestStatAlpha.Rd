@@ -6,7 +6,7 @@
 \usage{
 safeTTestStatAlpha(
   t,
-  deltaS,
+  parameter,
   n1,
   n2 = NULL,
   alpha,
@@ -16,11 +16,6 @@ safeTTestStatAlpha(
 }
 \arguments{
 \item{t}{numeric that represents the observed t-statistic}
-
-\item{deltaS}{numeric this defines the safe test S, i.e., a likelihood ratio of t distributions with in the
-denominator the likelihood with delta = 0 and in the numerator an average likelihood defined by
-1/2 time the likelihood at the non-centrality parameter sqrt(nEff)*deltaS and 1/2 times the likelihood at the
-non-centrality parameter -sqrt(nEff)*deltaS}
 
 \item{n1}{integer that represents the size in a one-sample t-test, (n2=\code{NULL}). When n2 is not \code{NULL}, this specifies
 the size of the first sample for a two-sample test}
@@ -33,6 +28,8 @@ shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
+
+\item{tDensity}{Uses the the representation of the safe t-test as the likelihood ratio of t densities}
 }
 \value{
 Returns a numeric that represent the s10 - 1/alpha, that is, the s-value in favour of the alternative over

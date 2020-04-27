@@ -12,13 +12,13 @@ designFreqT(
   lowN = 3L,
   highN = 100L,
   testType = c("oneSampleT", "pairedSampleT", "twoSampleT"),
-  sampleSizeRatio = 1,
+  ratio = 1,
   ...
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant effect size, the smallest effect size that we want to
-detect.}
+\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
+we would the experiment to be able to detect.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
@@ -36,7 +36,7 @@ are able to fund.}
 
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
 }

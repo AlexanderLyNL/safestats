@@ -12,7 +12,7 @@ safeTTest(
   mu0 = 0,
   paired = FALSE,
   varEqual = TRUE,
-  confLevel = 0.95,
+  confLevel = 1 - alpha,
   pilot = FALSE,
   alpha = 0.05,
   ...
@@ -73,12 +73,14 @@ A safe version of 't.test()' to perform one and two sample t-tests on vectors of
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-testType="twoSampleT", sampleSizeRatio=1.2)
+testType="twoSampleT", ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)
 y <- rnorm(100)
 safeTTest(x, y, alternative="greater", designObj=designObj)      #0.2959334
 
-safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 3121.604 > 1/alpha
+safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
+
+
 }

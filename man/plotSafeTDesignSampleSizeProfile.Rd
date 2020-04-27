@@ -8,13 +8,13 @@ plotSafeTDesignSampleSizeProfile(
   alpha = 0.05,
   beta = 0.2,
   maxN = 200,
-  lowDelta = 0.01,
-  highDelta = 1,
+  lowParam = 0.01,
+  highParam = 1,
   tol = 0.1,
   testType = c("oneSampleT", "pairedSampleT", "twoSampleT"),
   nsim = 1000L,
   alternative = c("two.sided", "greater", "less"),
-  sampleSizeRatio = 1,
+  ratio = 1,
   deltaFactor = 0.5,
   nFactor = 2,
   simulateSafeOptioStop = FALSE,
@@ -35,11 +35,11 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{maxN}{numeric, the maximum number of samples one has budget for to collect data}
 
-\item{lowDelta}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
+\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
 
-\item{highDelta}{numeric that defines the largest delta of our search space for the test-defining deltaS}
+\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS}
 
-\item{tol}{a number that defines the stepsizes between the lowDelta and highDelta}
+\item{tol}{a number that defines the stepsizes between the lowParam and highParam}
 
 \item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
 
@@ -48,10 +48,10 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less"}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1}
 
 \item{deltaFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
-deltaTrue = 0.8) of lowDelta}
+deltaTrue = 0.8) of lowParam}
 
 \item{nFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
 deltaTrue = 0.8) of highN}
@@ -73,14 +73,25 @@ safe test attains due to optional stopping}
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
 }
 \value{
-returns a list that contains the planned sample size needed for the frequentist and safe test.
-The function also produces a plot.
+Returns a list that contains the planned sample size needed for the frequentist and safe tests as a function
+of the minimal clinically relevant effect sizes. The returned list contains at least the following components:
+
+\describe{
+  \item{alpha}{the tolerable type I error provided by the user}
+  \item{beta}{the tolerable type II error provided by the user}
+  \item{maxN}{the largest number of samples provided by the user}
+  \item{deltaDomain}{vector of the domain of deltaMin}
+  \item{allN1PlanFreq}{vector of the planned sample sizes needed for the frequentist test corresponding to alpha and
+  beta}
+  \item{allN1PlanSafe}{vector of the planned sample sizes needed for the safe test corresponding to alpha and beta}
+  \item{allDeltaS}{vector of safe test defining deltaS}
+}
 }
 \description{
-For given tolerable alpha and beta, as a function of the minimal clinical relevant effect size deltaMin, plots (1) the
-sample sizes to plan for for a safe test (2) the frequentist test, (3) the average sample size necessary due to
-optional stopping.
+For given tolerable alpha and beta, (1) the planned sample sizes to using a safe test, (2) the
+frequentist test, and (3) the average sample size necessary due to optional stopping are plotted
+as a  function of the minimal clinically relevant standardised effect size deltaMin.
 }
 \examples{
-plotSafeTDesignSampleSizeProfile()
+plotSafeTDesignSampleSizeProfile(freqPlot=TRUE, backTest=TRUE)
 }
