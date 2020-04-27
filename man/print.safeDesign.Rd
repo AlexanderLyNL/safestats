@@ -7,19 +7,19 @@
 \method{print}{safeDesign}(x, digits = getOption("digits"), prefix = "\\t", ...)
 }
 \arguments{
-\item{x}{a safeTest object}
+\item{x}{a safeTest object.}
 
 \item{digits}{number of significant digits to be used.}
 
-\item{prefix}{string, passed to strwrap for displaying the method components}
+\item{prefix}{string, passed to strwrap for displaying the method components.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-
+No returned value, called for side effects.
 }
 \description{
-Printing objects of class "safeTest" modelled after 'print.power.htest()'
+Printing objects of class "safeTest" modelled after \code{\link[stats]{print.power.htest}}.
 }
 \examples{
 designSafeZ(meanDiffMin=0.5)

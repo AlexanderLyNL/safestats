@@ -2,14 +2,15 @@
 % Please edit documentation in R/zTest.R
 \name{safeZTest}
 \alias{safeZTest}
-\title{Safe z-test.}
+\alias{safe.z.test}
+\title{Safe Z-Test}
 \usage{
 safeZTest(
   x,
   y = NULL,
   designObj = NULL,
   alternative = c("two.sided", "less", "greater"),
-  mu0 = 0,
+  h0 = 0,
   sigma = 1,
   paired = FALSE,
   confLevel = 1 - alpha,
@@ -18,22 +19,38 @@ safeZTest(
   tol = 1e-05,
   ...
 )
+
+safe.z.test(
+  x,
+  y = NULL,
+  designObj = NULL,
+  alternative = c("two.sided", "less", "greater"),
+  h0 = 0,
+  sigma = 1,
+  paired = FALSE,
+  confLevel = 1 - alpha,
+  pilot = FALSE,
+  alpha = 0.05,
+  ...
+)
 }
 \arguments{
-\item{x}{a (non-empty) numeric vector of data values}
+\item{x}{a (non-empty) numeric vector of data values.}
 
-\item{y}{an optional (non-empty) numeric vector of data values}
+\item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{designObj}{an object from designSafeZ(), or \code{NULL}, when pilot is set to \code{TRUE}}
+\item{designObj}{an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{mu0}{a number indicating the hypothesised true value of the mean under the null.}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null.}
+
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{paired}{a logical indicating whether you want the paired z-test.}
 
-\item{confLevel}{confidence level of the interval. If alpha is given, then set to 1-alpha. Not yet implemented}
+\item{confLevel}{confidence level of the interval. If alpha is given, then set to 1-alpha. Not yet implemented.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the observed
 number of samples is exactly as planned.}
@@ -42,7 +59,7 @@ number of samples is exactly as planned.}
 shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
 
 \item{tol}{numeric > 0, the mesh between consecutive parameter values in the candidate space. Only used when pilot
-is set to \code{TRUE}}
+is set to \code{TRUE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -52,25 +69,25 @@ following components:
 
 
 \describe{
-  \item{statistic}{the value of the test statistic. Here the z-statistic}
-  \item{sValue}{the s-value of the safe test}
+  \item{statistic}{the value of the test statistic. Here the z-statistic.}
+  \item{n}{The realised sample size(s).}
+  \item{sValue}{the s-value of the safe test.}
   \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
-  hypothesis}
+  hypothesis.}
   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-  sample test or a two-sample test}
-  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test}
-  \item{sigma}{the assumed population standard deviation provided by the user}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-  \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user}
-  \item{dataName}{a character string giving the name(s) of the data}
-  \item{designObj}{an object of class "safeDesign" described in 'designSafeZ()'}
-  \item{n}{The realised sample size(s)}
-  \item{call}{the expression with which this function is called}
+  sample test or a two-sample test.}
+  \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+  or a two-sample test.}
+  \item{sigma}{the assumed population standard deviation provided by the user.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user.}
+  \item{dataName}{a character string giving the name(s) of the data.}
+  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}}.}
+  \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-A safe one and two sample z-tests on vectors of data
+A safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}}.
 }
 \examples{
 designObj <- designSafeZ(meanDiffMin=0.6, alpha=0.008, beta=0.2,

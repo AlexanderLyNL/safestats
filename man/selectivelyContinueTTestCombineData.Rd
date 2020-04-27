@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{selectivelyContinueTTestCombineData}
 \alias{selectivelyContinueTTestCombineData}
-\title{Selectively continue experiments that did not lead to a null rejection for a (safe) t-test}
+\title{Selectively Continue Experiments that Did Not Lead to a Null Rejection for a (Safe) T-Test}
 \usage{
 selectivelyContinueTTestCombineData(
   oldValues,
@@ -22,51 +22,54 @@ selectivelyContinueTTestCombineData(
 )
 }
 \arguments{
-\item{oldValues}{vector of s-values or p-values}
+\item{oldValues}{vector of s-values or p-values.}
 
-\item{valuesType}{character string either "sValues" or "pValues"}
+\item{valuesType}{character string either "sValues" or "pValues".}
 
-\item{designObj}{a safeTDesign object, or \code{NULL} if valuesType=="pValues"}
+\item{designObj}{a safeDesign object obtained from \code{\link{designSafeT}}, or \code{NULL}
+if valuesType equal "pValues".}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{oldData}{a list of matrices with names "dataGroup1" and "dataGroup2"}
+\item{oldData}{a list of matrices with names "dataGroup1" and "dataGroup2".}
 
-\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter)}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
-\item{n1Extra}{integer, that defines the additional number of samples of the first group. If NULL and
-valuesType equals "sValues", then n1Extra equals \code{designObj$n1Plan}.}
+\item{n1Extra}{integer, that defines the additional number of samples of the first group. If
+\code{NULL} and valuesType equals "sValues", then n1Extra equals \code{designObj$nPlan[1]}.}
 
-\item{n2Extra}{optional integer, that defines the additional number of samples of the second group. If NULL, and
-valuesType equals "sValues", then n2Extra equals \code{designObj$n2Plan}.}
+\item{n2Extra}{optional integer, that defines the additional number of samples of the second group.
+If \code{NULL}, and valuesType equals "sValues", then n2Extra equals \code{designObj$nPlan[2]}.}
 
-\item{seed}{To set the seed for the simulated data}
+\item{seed}{To set the seed for the simulated data.}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't
+\item{paired}{logical, if \code{TRUE} then paired t-test.}
+
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
 matter for the test. This parameter is treated as a nuisance.}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
-This parameter treated is treated as a nuisance.}
+\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
+for the test.This parameter treated is treated as a nuisance.}
 
-\item{moreMainText}{character, additional remarks in the title of the histogram}
+\item{moreMainText}{character, additional remarks in the title of the histogram.}
 }
 \value{
-a list that includes the continued s or p-values based on the combined data, and a list of the combined
-data
+a list that includes the continued s or p-values based on the combined data, and a list of the
+combined data.
 }
 \description{
-Selectively continue experiments that did not lead to a null rejection for a (safe) t-test
+Helper function used in the vignette.
 }
 \examples{
 alpha <- 0.05
 mIter <- 1000L
 
 designObj <- designSafeT(deltaMin=1, alpha=alpha)
-oldData <- generateTTestData(n1Plan=designObj$n1Plan, deltaTrue=0, nsim=mIter, seed=1)
+oldData <- generateTTestData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
 
 sValues <- vector("numeric", length=mIter)
 

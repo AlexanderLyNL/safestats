@@ -2,18 +2,19 @@
 % Please edit documentation in R/helpers.R
 \name{isTryError}
 \alias{isTryError}
-\title{Checks whether the provided objects contain a try error.}
+\title{Checks Whether a Vector of Object Inherits from the Class "try-error"}
 \usage{
 isTryError(...)
 }
 \arguments{
-\item{...}{objects that need testing}
+\item{...}{objects that need testing.}
 }
 \value{
-Returns \code{TRUE} if there's some object that's a try-error, \code{FALSE} when all objects are not try-errors
+Returns \code{TRUE} if there's some object that's a try-error, \code{FALSE} when all objects are
+not try-errors.
 }
 \description{
-Checks whether the provided objects contain a try error.
+Checks whether any of the provided objects contains a try error.
 }
 \examples{
 x <- 1

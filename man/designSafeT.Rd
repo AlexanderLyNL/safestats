@@ -9,7 +9,7 @@ designSafeT(
   alpha = 0.05,
   beta = 0.2,
   alternative = c("two.sided", "greater", "less"),
-  mu0 = 0,
+  h0 = 0,
   nPlan = NULL,
   lowN = 3L,
   highN = 100L,
@@ -27,67 +27,66 @@ designSafeT(
 we would the experiment to be able to detect.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{mu0}{a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
-\item{nPlan}{vector of max length 2 representing the planned sample sizes}
+\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
-\item{lowN}{integer that defines the smallest n of our search space for n}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
 \item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
 are able to fund.}
 
-\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
+\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS.}
 
-\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS}
+\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS.}
 
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam}
+\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
-\item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
+\item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT".}
 
-\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1}
+\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.}
 
-\item{logging}{logical, if \code{TRUE} return altSThreshes}
+\item{logging}{logical, if \code{TRUE} return altSThreshes.}
 
-\item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
+\item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
 Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
 following components:
 
-
 \describe{
-  \item{nPlan}{the planned sample size(s)}
-  \item{parameter}{the safe test defining parameter. Here deltaS}
-  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user}
-  \item{alpha}{the tolerable type I error provided by the user}
-  \item{beta}{the tolerable type II error provided by the user}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise}
-  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on
-  whether it was a one-sample or a two-sample test}
+  \item{nPlan}{the planned sample size(s).}
+  \item{parameter}{the safe test defining parameter. Here deltaS.}
+  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+  \item{alpha}{the tolerable type I error provided by the user.}
+  \item{beta}{the tolerable type II error provided by the user.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
+  \item{h0}{the specified hypothesised value of the mean or mean difference depending on
+  whether it was a one-sample or a two-sample test.}
   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
-  ratio equals n2/n1}
-  \item{lowN}{the smallest n of the search space for n provided by the user}
-  \item{highN}{the largest n of the search space for n provided by the user}
-  \item{lowParam}{the smallest delta of the search space for delta provided by the user}
-  \item{highParam}{the largest delta of the search space for delta provided by the user}
-  \item{tol}{the step size between lowParam and highParam provided by the user}
-  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study}
-  \item{call}{the expression with which this function is called}
+  ratio equals n2/n1.}
+  \item{lowN}{the smallest n of the search space for n provided by the user.}
+  \item{highN}{the largest n of the search space for n provided by the user.}
+  \item{lowParam}{the smallest delta of the search space for delta provided by the user.}
+  \item{highParam}{the largest delta of the search space for delta provided by the user.}
+  \item{tol}{the step size between lowParam and highParam provided by the user.}
+  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
+  \item{call}{the expression with which this function is called.}
 }
 }
 \description{
 A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
-deltaS. If nPlan is provided only the safe test defining parameter deltaS needs to determined. That resulting
+deltaS. If nPlan is provided, then only the safe test defining parameter deltaS needs to determined. That resulting
 deltaS leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
 (i) a tolerable type II error beta, and (ii) a clinically relevant minimal population standardised effect size
 deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.

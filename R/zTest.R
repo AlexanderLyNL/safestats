@@ -1,27 +1,29 @@
-#' Safe t-test defined at deltaS based on the t-statistic and the sample sizes
+#' Computes S-Values Based on the Z-Statistic
 #'
-#' @param z numeric that represents the observed z-statistic
+#' Computes s-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
+#'
+#' @param z numeric that represents the observed z-statistic.
 #' @param parameter numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
 #' denominator the likelihood with mean difference 0 and in the numerator an average likelihood defined by
 #' the likelihood at the parameter value. For the two sided case 1/2 at the parameter value and 1/2 at minus the
-#' parameter value
-#' @param n1 integer that represents the size in a one-sample z-test, (n2=NULL). When n2 is not NULL, this specifies
-#' the size of the first sample for a two-sample test
-#' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus, NULL it
-#' implies that the z-statistic is based on one-sample
+#' parameter value.
+#' @param n1 integer that represents the size in a one-sample z-test, (n2=\code{NULL}). When n2 is not
+#' \code{NULL}, this specifies the size of the first sample for a two-sample test.
+#' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
+#' \code{NULL} it implies that the z-statistic is based on one-sample.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less"
-#' @param paired a logical, if TRUE ignores n2, and indicates that a paired z-test is performed
-#' @param sigma numeric, the assumed known standard deviation, default 1
+#' "greater" or "less".
+#' @param paired a logical, if \code{TRUE} ignores n2, and indicates that a paired z-test is performed.
+#' @param sigma numeric, the assumed known standard deviation, default 1.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns a safeZest object
+#' @return Returns an s-value.
 #'
 #' @export
 #'
 #' @examples
-#' safeZTestStat(t=1, n1=100, 0.4)
-#' safeZTestStat(t=3, n1=100, deltaS=0.3)
+#' safeZTestStat(z=1, n1=100, parameter=0.4)
+#' safeZTestStat(z=3, n1=100, parameter=0.3)
 safeZTestStat <- function(z, parameter, n1, n2=NULL, alternative=c("two.sided", "less", "greater"),
                           paired=FALSE, sigma=1, ...) {
   alternative <- match.arg(alternative)
@@ -46,15 +48,18 @@ safeZTestStat <- function(z, parameter, n1, n2=NULL, alternative=c("two.sided", 
   return(result)
 }
 
-#' Computes the inverse of the two-sided safe z-test
+#' Computes the Inverse of the Two-Sided Safe Z-Test
+#'
+#' The two-sided safe z-test is based on two point priors on the mean differences. It puts half its mass on
+#' phiS and the other half on - phiS. To determine the value of phiS, the test is inverted.
 #'
 #' @inheritParams safeZTestStat
 #' @inheritParams designSafeZ
 #'
-#' @param nEff numeric > 0, the effective sample size
+#' @param nEff numeric > 0, the effective sample size.
 #'
-#' @return A number that represents a z-value. The function's domain is the positive real line and the range is
-#' the real line, i.e., the outcome space of the z-statistic.
+#' @return A number that represents a z-value. The function's domain is the positive real line and the range
+#' is the real line, i.e., the outcome space of the z-statistic.
 #' @export
 #'
 #' @examples
@@ -64,24 +69,28 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
   sigma/(sqrt(nEff)*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
 }
 
-#' Safe z-test.
+
+
+#' Safe Z-Test
 #'
-#' A safe one and two sample z-tests on vectors of data
+#' A safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}}.
 #'
-#' @param x a (non-empty) numeric vector of data values
-#' @param y an optional (non-empty) numeric vector of data values
+#' @aliases safe.z.test
+#' @param x a (non-empty) numeric vector of data values.
+#' @param y an optional (non-empty) numeric vector of data values.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less"
-#' @param designObj an object from designSafeZ(), or \code{NULL}, when pilot is set to \code{TRUE}
-#' @param mu0 a number indicating the hypothesised true value of the mean under the null.
+#' "greater" or "less".
+#' @param designObj an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.
+#' @param h0 a number indicating the hypothesised true value of the mean under the null.
+#' @param sigma numeric > 0 representing the assumed population standard deviation used for the test.
 #' @param paired a logical indicating whether you want the paired z-test.
-#' @param confLevel confidence level of the interval. If alpha is given, then set to 1-alpha. Not yet implemented
+#' @param confLevel confidence level of the interval. If alpha is given, then set to 1-alpha. Not yet implemented.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the observed
 #' number of samples is exactly as planned.
 #' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 #' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
 #' @param tol numeric > 0, the mesh between consecutive parameter values in the candidate space. Only used when pilot
-#' is set to \code{TRUE}
+#' is set to \code{TRUE}.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -89,21 +98,21 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'
 #'
 #' \describe{
-#'   \item{statistic}{the value of the test statistic. Here the z-statistic}
-#'   \item{sValue}{the s-value of the safe test}
+#'   \item{statistic}{the value of the test statistic. Here the z-statistic.}
+#'   \item{n}{The realised sample size(s).}
+#'   \item{sValue}{the s-value of the safe test.}
 #'   \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
-#'   hypothesis}
+#'   hypothesis.}
 #'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-#'   sample test or a two-sample test}
-#'   \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-#'   or a two-sample test}
-#'   \item{sigma}{the assumed population standard deviation provided by the user}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-#'   \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user}
-#'   \item{dataName}{a character string giving the name(s) of the data}
-#'   \item{designObj}{an object of class "safeDesign" described in 'designSafeZ()'}
-#'   \item{n}{The realised sample size(s)}
-#'   \item{call}{the expression with which this function is called}
+#'   sample test or a two-sample test.}
+#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+#'   or a two-sample test.}
+#'   \item{sigma}{the assumed population standard deviation provided by the user.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user.}
+#'   \item{dataName}{a character string giving the name(s) of the data.}
+#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}}.}
+#'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
 #'
@@ -118,13 +127,15 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'
 #' safeZTest(1:10, y = c(7:20), pilot=TRUE)      # s = 7.7543e+20 > 1/alpha
 safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                      mu0=0, sigma=1, paired=FALSE, confLevel=1-alpha, pilot=FALSE,
+                      h0=0, sigma=1, paired=FALSE, confLevel=1-alpha, pilot=FALSE,
                       alpha=0.05, tol=1e-05, ...) {
 
   alternative <- match.arg(alternative)
 
-  result <- list("statistic"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
-                 "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "mu0"=mu0, "sigma"=sigma,
+  names(h0) <- "mu"
+
+  result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
+                 "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "h0"=h0, "sigma"=sigma,
                  "call"=sys.call())
 
   class(result) <- "safeTest"
@@ -144,7 +155,7 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 
     estimate <- mean(x)
     names(estimate) <- "mean of x"
-    zStat <- tryOrFailWithNA(sqrt(n1)*(estimate - mu0)/sigma)
+    zStat <- tryOrFailWithNA(sqrt(n1)*(estimate - h0)/sigma)
   } else {
     n1 <- length(x)
     n2 <- length(y)
@@ -176,7 +187,7 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   if (pilot) {
     nPlan <- if (is.null(n2)) n1 else c(n1, n2)
 
-    designObj <- designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative, "mu0"=mu0,
+    designObj <- designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative, "h0"=h0,
                                   "sigma"=sigma, "paired"=paired, "tol"=tol)
     designObj[["pilot"]] <- TRUE
   }
@@ -218,15 +229,15 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   return(result)
 }
 
-#' Alias for \code{\link{safeZTest}()}
+#' Alias for safeZTest
 #'
-#' @inheritParams safeZTest
+#' @rdname safeZTest
 #'
 #' @export
 safe.z.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                        mu0=0, sigma=1, paired=FALSE, confLevel=1-alpha, pilot=FALSE, alpha=0.05, ...) {
+                        h0=0, sigma=1, paired=FALSE, confLevel=1-alpha, pilot=FALSE, alpha=0.05, ...) {
   result <- safeZTest("x"=x, "y"=y, "designObj"=designObj, "alternative"=alternative,
-                      "mu0"=mu0, "paired"=paired, "sigma"=sigma, "confLevel"=confLevel, "pilot"=pilot, "alpha"=alpha, ...)
+                      "h0"=h0, "paired"=paired, "sigma"=sigma, "confLevel"=confLevel, "pilot"=pilot, "alpha"=alpha, ...)
 
   if (is.null(y))
     dataName <- as.character(sys.call())[2]
@@ -237,16 +248,20 @@ safe.z.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "l
   return(result)
 }
 
-#' Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test
+#' Design a Frequentist Z-Test
+#'
+#' Computes the number of samples necessary to reach a tolerable type I and type II error for the
+#' frequentist z-test.
 #'
 #' @inheritParams designSafeZ
-#' @return returns a freqDesign object
+#'
+#' @return returns a freqZDesign object.
 #' @export
 #'
 #' @examples
 #' designFreqT(0.5)
 designFreqZ <- function(alpha=0.05, beta=0.2, meanDiffMin, alternative=c("two.sided", "greater", "less"),
-                        lowN=3L, highN=100L, testType=c("oneSampleT", "pairedSampleT", "twoSampleT"),
+                        lowN=3L, highN=100L, testType=c("oneSampleZ", "pairedSampleZ", "twoSampleZ"),
                         ratio=1, sigma=1, kappa=sigma, ...) {
 
   stopifnot(lowN >= 1, highN > lowN, alpha > 0, beta >0)
@@ -254,12 +269,12 @@ designFreqZ <- function(alpha=0.05, beta=0.2, meanDiffMin, alternative=c("two.si
   testType <- match.arg(testType)
   alternative <- match.arg(alternative)
 
-  result <- list("n1Plan"=NA, "deltaMin"=deltaMin, "alpha"=alpha, "beta"=beta,
+  result <- list("nPlan"=NA, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
                  "lowN"=lowN, "highN"=highN, "testType"=testType, "alternative"=alternative)
   class(result) <- "freqZDesign"
 
   if (meanDiffMin < 0 && alternative=="greater")
-    warning("meanDiffMin < 0, but in the calculations abs(deltaMin) is used instead.")
+    warning("meanDiffMin < 0, but in the calculations abs(meanDiffMin) is used instead.")
 
   meanDiffMin <- abs(meanDiffMin)
 
@@ -277,20 +292,15 @@ designFreqZ <- function(alpha=0.05, beta=0.2, meanDiffMin, alternative=c("two.si
     powerZ <- stats::pnorm(stats::qnorm(threshold, mean=0, sd=kappa/sigma),
                            mean=sqrt(nEff)*(meanDiffMin)/sigma, sd=kappa/sigma, lower.tail=FALSE)
 
-    if (powerT >= (1-beta)) {
-      n1 <- n
-      n2 <- NA
+    if (powerZ >= (1-beta)) {
+      n1Plan <- n
 
       if (testType=="twoSampleZ")
-        n2 <- ceiling(ratio*n)
+        n2Plan <- ceiling(ratio*n)
 
       if (testType=="pairedSampleZ")
-        n2 <- n
+        n2Plan <- n
 
-      # TODO(Alexander): remove later
-      n1Plan <- n1
-      n1Plan <- n2
-      #
       break()
     }
   }
@@ -310,40 +320,40 @@ designFreqZ <- function(alpha=0.05, beta=0.2, meanDiffMin, alternative=c("two.si
   return(result)
 }
 
-#' Designs a safe z-test based on planned samples nPlan
+#' Designs a Safe Z-Test Based on Planned Samples nPlan
 #'
 #' Designs a safe experiment for a prespecified tolerable type I error based on planned sample size(s),
 #' which are fixed ahead of time. Outputs a list that includes phiS, i.e., the safe test defining parameter.
 #'
 #' @inheritParams designSafeZ
-#' @param nPlan vector of max length 2 representing the planned sample sizes
-#' @param paired logical, if TRUE then paired z-test
+#' @param nPlan vector of max length 2 representing the planned sample sizes.
+#' @param paired logical, if \code{TRUE} then paired z-test.
 #'
 #' @return Returns a safeDesign object
 #' \describe{
-#'   \item{nPlan}{the sample size(s) to plan for. Provided by the user}
-#'   \item{parameter}{the safe test defining parameter. Here phiS}
-#'   \item{esMin}{\code{NULL} no minimally clinically relevant effect size provided}
-#'   \item{alpha}{the tolerable type I error provided by the user}
-#'   \item{beta}{\code{NULL}, no tolerable type II error specified}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-#'   \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user}
-#'   \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise}
-#'   \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-#'   or a two-sample test}
-#'   \item{sigma}{the assumed population standard deviation used for the test provided by the user}
-#'   \item{kappa}{the true population standard deviation, typically, sigma=kappa}
-#'   \item{ratio}{default is 1, only used when testType=="twoSampleZ" and defines n2=ratio*n1}
-#'   \item{tol}{the step size between parameter values in the candidate space}
-#'   \item{pilot}{logical, specifying whether it's a pilot design}
-#'   \item{call}{the expression with which this function is called}
+#'   \item{nPlan}{the sample size(s) to plan for. Provided by the user.}
+#'   \item{parameter}{the safe test defining parameter. Here phiS.}
+#'   \item{esMin}{\code{NULL} no minimally clinically relevant effect size provided.}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{\code{NULL}, no tolerable type II error specified.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user.}
+#'   \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
+#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+#'   or a two-sample test.}
+#'   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
+#'   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
+#'   \item{ratio}{default is 1, only used when testType=="twoSampleZ" and defines n2=ratio*n1.}
+#'   \item{tol}{the step size between parameter values in the candidate space.}
+#'   \item{pilot}{logical, specifying whether it's a pilot design.}
+#'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
 #'
 #' @examples
 #' designPilotSafeZ(0.05, nPlan=30)
 designPilotSafeZ <- function(nPlan, alpha=0.05, alternative=c("two.sided", "greater", "less"),
-                             mu0=0, sigma=1, kappa=sigma, tol=1e-5, paired=FALSE) {
+                             h0=0, sigma=1, kappa=sigma, tol=1e-5, paired=FALSE) {
 
   alternative <- match.arg(alternative)
   stopifnot(all(nPlan > 0))
@@ -382,9 +392,11 @@ designPilotSafeZ <- function(nPlan, alpha=0.05, alternative=c("two.sided", "grea
     }
   }
 
+  names(h0) <- "mu"
+
   result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=NULL, "alpha"=alpha, "beta"=NULL,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
-                 "mu0"=mu0, "sigma"=sigma, "kappa"=kappa,
+                 "h0"=h0, "sigma"=sigma, "kappa"=kappa,
                  "ratio"=ratio, "tol"=tol, "pilot"=FALSE, "call"=sys.call())
 
   class(result) <- "safeDesign"
@@ -416,54 +428,58 @@ designPilotSafeZ <- function(nPlan, alpha=0.05, alternative=c("two.sided", "grea
 #' Designs a Safe Z Experiment to Test Means with Population Standard Error Assumed to be Known
 #'
 #' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
-#' phiS. If nPlan is provided only the safe test defining parameter phiS needs to determined. That resulting phiS
+#' phiS. If nPlan is provided, then only the safe test defining parameter phiS needs to determined. That resulting phiS
 #' leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
 #' (i) a tolerable type II error beta, and (b) a clinically relevant minimal population mean difference meanDiffMin.
 #' The procedure finds the smallest nPlan for which meanDiffMin is found with power of at least 1 - beta.
 #'
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha
+#' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 #' and "deltaS". Note that 1-beta defines the power.
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
 #' that we would like to detect.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less"
+#' "greater" or "less".
 #' @param nPlan optional numeric vector of length at most 2. When provided, it is used to find the safe test
 #' defining parameter phiS.
-#' @param mu0 a number indicating the hypothesised true value of the mean under the null.
-#' @param sigma numeric > 0 representing the assumed population standard deviation used for the test
-#' @param kappa the true population standard deviation. Default kappa=sigma
-#' @param testType either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ"
-#' @param ratio numeric representing n2/n1. If is.null(n2) then ratio=1
-#' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls
+#' @param h0 a number indicating the hypothesised true value of the mean under the null.
+#' @param sigma numeric > 0 representing the assumed population standard deviation used for the test.
+#' @param kappa the true population standard deviation. Default kappa=sigma.
+#' @param tol a number that defines the stepsizes between the lowParam and highParam.
+#' @param lowN integer that defines the smallest n of our search space for n.
+#' @param highN integer that defines the largest n of our search space for n. This might be the largest n that we
+#' are able to fund.
+#' @param testType either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ".
+#' @param ratio numeric representing n2/n1. If is.null(n2) then ratio=1.
+#' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a safeDesign object that includes:
 #'
 #' \describe{
-#'   \item{nPlan}{the sample size(s) to plan for. Provided by the user}
-#'   \item{parameter}{the safe test defining parameter. Here phiS}
-#'   \item{esMin}{the minimally clinically relevant effect size provided by the user}
-#'   \item{alpha}{the tolerable type I error provided by the user}
-#'   \item{beta}{the tolerable type II error specified by the user}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-#'   \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user}
-#'   \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise}
-#'   \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-#'   or a two-sample test}
-#'   \item{sigma}{the assumed population standard deviation used for the test provided by the user}
-#'   \item{kappa}{the true population standard deviation, typically, sigma=kappa}
-#'   \item{ratio}{default is 1, only used when testType=="twoSampleZ" and defines n2=ratio*n1}
-#'   \item{tol}{the step size between parameter values in the candidate space}
-#'   \item{pilot}{logical, specifying whether it's a pilot design}
-#'   \item{call}{the expression with which this function is called}
+#'   \item{nPlan}{the sample size(s) to plan for. Computed based on beta and esMin, or provided by the user if known.}
+#'   \item{parameter}{the safe test defining parameter. Here phiS.}
+#'   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{the tolerable type II error specified by the user.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user.}
+#'   \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
+#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+#'   or a two-sample test.}
+#'   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
+#'   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
+#'   \item{ratio}{default is 1, only used when testType=="twoSampleZ" and defines n2=ratio*n1.}
+#'   \item{tol}{the step size between parameter values in the candidate space.}
+#'   \item{pilot}{logical, specifying whether it's a pilot design.}
+#'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
 #'
 #' @examples
 #' designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
 designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alternative=c("two.sided", "greater", "less"),
-                        mu0=0, sigma=1, kappa=sigma, tol=1e-5, lowN=NULL, highN=5000L,
+                        h0=0, sigma=1, kappa=sigma, tol=1e-5, lowN=NULL, highN=5000L,
                         testType=c("oneSampleZ", "pairedSampleZ", "twoSampleZ"), ratio=1, ...) {
 
   stopifnot(alpha > 0, alpha < 1)
@@ -488,7 +504,7 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alte
 
   if (!is.null(nPlan)) {
     return(designPilotSafeZ("nPlan"=nPlan, "alpha"=alpha, "alternative"=alternative,
-                            "mu0"=mu0, "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired))
+                            "h0"=h0, "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired))
   }
 
   names(meanDiffMin) <- switch(alternative,
@@ -496,9 +512,11 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alte
                                "less"="mean differences smaller than phi",
                                "greater"="mean differences larger than phi")
 
+  names(h0) <- "mu"
+
   result <- list("nPlan"=NULL, "parameter"=NULL, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
-                 "mu0"=mu0, "sigma"=sigma, "kappa"=kappa,
+                 "h0"=h0, "sigma"=sigma, "kappa"=kappa,
                  "ratio"=ratio, "pilot"=FALSE, "lowN"=lowN, "highN"=highN, "call"=sys.call())
   class(result) <- "safeDesign"
 
@@ -615,6 +633,17 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alte
   return(result)
 }
 
+#' Builds a Criterion Function Used to Search for the Parameters of a Safe Z-Test
+#'
+#' Helper function used in the optimisation process.
+#'
+#' @inheritParams designSafeZ
+#' @param criterionType character string any of "lower", "upper", and "exact".
+#'
+#' @return returns a function to be optimised.
+#'
+#' @examples
+#' safestats:::criterionFunctionFactory(0.05, 0.2, 1, 1, meanDiffMin=0.5, "exact")
 criterionFunctionFactory <- function(alpha, beta, sigma, kappa, meanDiffMin,
                                      criterionType=c("lower", "upper", "exact")) {
 

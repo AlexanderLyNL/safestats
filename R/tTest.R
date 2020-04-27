@@ -1,22 +1,22 @@
 # 1. Design t-test functions -------
 
-#' Design a frequentist t-test
+#' Design a Frequentist T-Test
 #'
-#' Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test
+#' Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test.
 #'
 #' @inheritParams designSafeT
 #'
 #' @return Returns an object of class "freqTDesign". An object of class "freqTDesign" is a list containing at least the
 #' following components:
 #' \describe{
-#'   \item{n1PlanFreq}{the planned sample size of the first group}
-#'   \item{deltaMin}{the minimal clinical effect size provided by the user}
-#'   \item{alpha}{the tolerable type I error provided by the user}
-#'   \item{beta}{the tolerable type II error provided by the user}
-#'   \item{lowN}{the smallest n of the search space for n provided by the user}
-#'   \item{highN}{the largest n of the search space for n provided by the user}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}#'
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
+#'   \item{nPlan}{the planned sample size(s).}
+#'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{the tolerable type II error provided by the user.}
+#'   \item{lowN}{the smallest n of the search space for n provided by the user.}
+#'   \item{highN}{the largest n of the search space for n provided by the user.}
+#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
 #' }
 #' @export
 #'
@@ -94,7 +94,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' Designs a Safe T Experiment to Test Means
 #'
 #' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
-#' deltaS. If nPlan is provided only the safe test defining parameter deltaS needs to determined. That resulting
+#' deltaS. If nPlan is provided, then only the safe test defining parameter deltaS needs to determined. That resulting
 #' deltaS leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
 #' (i) a tolerable type II error beta, and (ii) a clinically relevant minimal population standardised effect size
 #' deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
@@ -102,48 +102,47 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' @param deltaMin numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 #' we would the experiment to be able to detect.
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha
+#' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 #' the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less"
-#' @param mu0 a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0
-#' @param nPlan vector of max length 2 representing the planned sample sizes
-#' @param lowN integer that defines the smallest n of our search space for n
+#' "greater" or "less".
+#' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.
+#' @param nPlan vector of max length 2 representing the planned sample sizes.
+#' @param lowN integer that defines the smallest n of our search space for n.
 #' @param highN integer that defines the largest n of our search space for n. This might be the largest n that we
 #' are able to fund.
-#' @param lowParam numeric that defines the smallest delta of our search space for the test-defining deltaS
-#' @param highParam numeric that defines the largest delta of our search space for the test-defining deltaS
-#' @param tol a number that defines the stepsizes between the lowParam and highParam
-#' @param testType either one of "oneSampleT", "pairedSampleT", "twoSampleT"
-#' @param ratio numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1
-#' @param logging logical, if \code{TRUE} return altSThreshes
-#' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls
+#' @param lowParam numeric that defines the smallest delta of our search space for the test-defining deltaS.
+#' @param highParam numeric that defines the largest delta of our search space for the test-defining deltaS.
+#' @param tol a number that defines the stepsizes between the lowParam and highParam.
+#' @param testType either one of "oneSampleT", "pairedSampleT", "twoSampleT".
+#' @param ratio numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.
+#' @param logging logical, if \code{TRUE} return altSThreshes.
+#' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
 #'
 #' @return Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
 #' following components:
 #'
-#'
 #' \describe{
-#'   \item{nPlan}{the planned sample size(s)}
-#'   \item{parameter}{the safe test defining parameter. Here deltaS}
-#'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user}
-#'   \item{alpha}{the tolerable type I error provided by the user}
-#'   \item{beta}{the tolerable type II error provided by the user}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-#'   \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise}
-#'   \item{mu0}{the specified hypothesised value of the mean or mean difference depending on
-#'   whether it was a one-sample or a two-sample test}
+#'   \item{nPlan}{the planned sample size(s).}
+#'   \item{parameter}{the safe test defining parameter. Here deltaS.}
+#'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{the tolerable type II error provided by the user.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+#'   \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
+#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
+#'   whether it was a one-sample or a two-sample test.}
 #'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
-#'   ratio equals n2/n1}
-#'   \item{lowN}{the smallest n of the search space for n provided by the user}
-#'   \item{highN}{the largest n of the search space for n provided by the user}
-#'   \item{lowParam}{the smallest delta of the search space for delta provided by the user}
-#'   \item{highParam}{the largest delta of the search space for delta provided by the user}
-#'   \item{tol}{the step size between lowParam and highParam provided by the user}
-#'   \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study}
-#'   \item{call}{the expression with which this function is called}
+#'   ratio equals n2/n1.}
+#'   \item{lowN}{the smallest n of the search space for n provided by the user.}
+#'   \item{highN}{the largest n of the search space for n provided by the user.}
+#'   \item{lowParam}{the smallest delta of the search space for delta provided by the user.}
+#'   \item{highParam}{the largest delta of the search space for delta provided by the user.}
+#'   \item{tol}{the step size between lowParam and highParam provided by the user.}
+#'   \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
+#'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
 #'
@@ -151,7 +150,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' designObj <- designSafeT(deltaMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
 #' designObj
 designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
-                        mu0=0, nPlan=NULL, lowN=3L, highN=100L, lowParam=0.01, highParam=1.5*abs(deltaMin),
+                        h0=0, nPlan=NULL, lowN=3L, highN=100L, lowParam=0.01, highParam=1.5*abs(deltaMin),
                         tol=0.01, testType=c("oneSampleT", "pairedSampleT", "twoSampleT"),
                         ratio=1, logging=FALSE, ...) {
   stopifnot(alpha > 0, alpha < 1)
@@ -174,8 +173,10 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
 
   paired <- if (testType=="pairedSampleT") TRUE else FALSE
 
+  names(h0) <- "mu"
+
   if (!is.null(nPlan)) {
-    return(designPilotSafeT("nPlan"=nPlan, "alpha"=alpha, "mu0"=mu0, "alternative"=alternative,
+    return(designPilotSafeT("nPlan"=nPlan, "alpha"=alpha, "h0"=h0, "alternative"=alternative,
                             "lowParam"=lowParam, "highParam"=highParam, "tol"=tol, "logging"=logging,
                             "paired"=paired))
   }
@@ -186,7 +187,7 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
                             "greater"="standardised effect sizes larger than delta")
 
   result <- list("nPlan"=NULL, "parameter"=NULL, "esMin"=deltaMin, "alpha"=alpha, "beta"=beta,
-                 "alternative"=alternative, "testType"=testType, "paired"=paired, "mu0"=mu0,
+                 "alternative"=alternative, "testType"=testType, "paired"=paired, "h0"=h0,
                  "ratio"=ratio, "lowN"=lowN, "highN"=highN, "lowParam"=lowParam,
                  "highParam"=highParam, "tol"=tol, "pilot"=FALSE, "call"=sys.call())
   class(result) <- "safeDesign"
@@ -282,12 +283,16 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
 }
 
 
-#' Simulate function for a safeDesign object
+#' Simulate Early Stopping Experiments
 #'
-#' @param object A safeDesign object
-#' @param nsim numeric, number of iterations
-#' @param seed numeric, seed number
-#' @param deltaTrue numeric, if NULL, then deltaTrue <- object[["parameter"]]
+#' Applied to a safeDesign object this function empirically shows the performance of a safe experiments under
+#' optional stopping.
+#'
+#' @param object A safeDesign obtained obtained from \code{\link{designSafeT}}.
+#' @param nsim numeric, number of iterations.
+#' @param seed numeric, seed number.
+#' @param deltaTrue numeric, if NULL, then the minimally clinically relevant standardised effect size is used
+#' as the true data generating effect size deltaTrue.
 #' @inherit replicateTTests
 #'
 #' @import stats
@@ -345,45 +350,51 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
 }
 
 
+#' Simulate Early Stopping Experiments
+#'
 #' Simulate multiple data sets to show the effects of optional testing for safe (and frequentist) tests.
 #'
 #' @inheritParams designSafeT
-#' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter)
-#' @param muGlobal numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't
+#' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
+#' @param muGlobal numeric, the true global mean of a paired or two-sample t-test. Its value should not
 #' matter for the test. This parameter is treated as a nuisance.
-#' @param sigmaTrue numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
-#' This parameter treated is treated as a nuisance.
-#' @param lowN the smallest number of samples (first group) at which monitoring of the tests begins
-#' @param nsim the number of replications, that is, experiments with max samples n1Plan and n2Plan
-#' @param safeOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for the safe test
-#' @param parameter numeric, the safe test defining parameter, i.e., deltaS (use designSafeT to find this)
-#' @param freqOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for the frequentist test
-#' @param nPlanFreq the frequentist sample size(s) to plan for. Acquired from designFreqT.
-#' @param seed To set the seed for the simulated data
-#' @param logging logical, if \code{TRUE}, then return the simulated data
-#' @param pb logical, if \code{TRUE}, then show progress bar
+#' @param sigmaTrue numeric > 0,the true standard deviation of the data. Its value should not  matter
+#' for the test.This parameter treated is treated as a nuisance.
+#' @param lowN the smallest number of samples (first group) at which monitoring of the tests begins.
+#' @param nsim the number of replications, that is, experiments with max samples nPlan.
+#' @param safeOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for
+#' the safe test.
+#' @param parameter numeric, the safe test defining parameter, i.e., deltaS (use designSafeT to find this).
+#' @param freqOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for
+#' the frequentist test.
+#' @param nPlanFreq the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}}.
+#' @param paired logical, if \code{TRUE} then paired t-test.
+#' @param seed To set the seed for the simulated data.
+#' @param logging logical, if \code{TRUE}, then return the simulated data.
+#' @param pb logical, if \code{TRUE}, then show progress bar.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class "safeTSim". An object of class "safeTSim" is a list containing at least the
-#' following components:
+#' @return Returns an object of class "safeTSim". An object of class "safeTSim" is a list containing at
+#' least the following components:
 #'
 #' \describe{
-#'   \item{nPlan}{the planned sample size(s)}
+#'   \item{nPlan}{the planned sample size(s).}
 #'   \item{deltaTrue}{the value of the true standardised effect size (test-relevant parameter) provided by
-#'   the user}
+#'   the user.}
 #'   \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
 #'   the user.}
-#'   \item{paired}{if \code{TRUE} then paired t-test}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-#'   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins}
+#'   \item{paired}{if \code{TRUE} then paired t-test.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
 #'   \item{nsim}{the number of replications of the experiment.}
-#'   \item{alpha}{the tolerable type I error provided by the user}
-#'   \item{beta}{the tolerable type II error provided by the user}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-#'   \item{parameter}{the parameter (point prior) used in the safe test derived from the design}
-#'   \item{nPlan}{the frequentist planned sample size(s)}
-#'   \item{safeSim}{list with the simulation results of the safe test under optional stopping}
-#'   \item{freqSim}{list with the simulation results of the frequentist test under optional stopping}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{the tolerable type II error provided by the user.}
+#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+#'   \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
+#'   Acquired from \code{\link{designSafeT}}.}
+#'   \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}
+#'   \item{safeSim}{list with the simulation results of the safe test under optional stopping.}
+#'   \item{freqSim}{list with the simulation results of the frequentist test under optional stopping.}
 #'}
 #'
 #' @export
@@ -447,7 +458,7 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
 #' simResults$freqSim$powerOptioStop > alpha
 replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FALSE,
                             alternative=c("two.sided", "greater", "less"), lowN=3,
-                            nsim=1000L, alpha=0.05, beta=beta,
+                            nsim=1000L, alpha=0.05, beta=0.2,
                             safeOptioStop=TRUE, parameter=NULL,
                             freqOptioStop=FALSE, nPlanFreq=NULL,
                             logging=TRUE, seed=NULL, pb=TRUE, ...) {
@@ -722,12 +733,12 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
   return(result)
 }
 
-#' Prints a safeTSim object
+#' Prints a safeTSim Object
 #'
-#' @param x a "safeTSim" object
+#' @param x a "safeTSim" object.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return No returned value, called for side effects
+#' @return No returned value, called for side effects.
 #'
 #' @export
 #'
@@ -739,7 +750,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
 #' simObj
 #'
 #' # Data under the null deltaTrue=0
-#' simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, n1PlanFreq=10)
+#' simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
 #' simObj
 print.safeTSim <- function(x, ...) {
   analysisName <- getNameTestType(testType = x[["testType"]])
@@ -809,14 +820,14 @@ print.safeTSim <- function(x, ...) {
   }
 }
 
-#' Plots a safeTSim object
+#' Plots a safeTSim Object
 #'
 #' @inheritParams plotHistogramDistributionStoppingTimes
-#' @param x A "safeTDesign" object
-#' @param y \code{NULL}
+#' @param x a "safeDesign" object acquired from \code{\link{designSafeT}}.
+#' @param y \code{NULL}.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return a histogram object, and called for its side-effect to plot the histogram
+#' @return a histogram object, and called for its side-effect to plot the histogram.
 #'
 #' @export
 #'
@@ -842,14 +853,16 @@ plot.safeTSim <- function(x, y=NULL, showOnlyNRejected=FALSE, nBin=25, ...) {
                                          "showOnlyNRejected" = showOnlyNRejected, "nBin"=nBin)
 }
 
-#' Helper function that outputs the sample sizes, effect sample sizes and the degrees of freedom depending on
-#' the type of t-test.
+#' Computes a Sequence of (Effective) Sample Sizes
+#'
+#' Helper function that outputs the sample sizes, effective sample sizes and the degrees of
+#' freedom depending on the type of t-test. Also used for z-tests.
 #'
 #'
 #' @inheritParams designSafeT
 #' @inheritParams replicateTTests
 #'
-#' @return Returns the sample sizes and degrees of freedom
+#' @return Returns the sample sizes and degrees of freedom.
 #'
 #' @examples
 #' safestats:::defineTTestN()
@@ -875,17 +888,16 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 
 
 
-#' Designs a safe t-test based on planned samples nPlan
+#' Designs a Safe T-Test Based on Planned Samples nPlan
 #'
-#' Designs a safe experiment for a prespecified tolerable type I error based on planned sample size(s),
-#' which are fixed ahead of time. Outputs a list that includes the deltaS, i.e., the safe test defining
-#' parameter.
+#' Designs a safe experiment for a prespecified tolerable type I error based on planned sample
+#' size(s), which are fixed ahead of time. Outputs a list that includes the deltaS, i.e., the
+#' safe test defining parameter.
 #'
-#'
-#' @param nPlan the planned sample size(s)
-#' @param inverseMethod logical, always \code{TRUE} for the moment
-#' @param paired logical, if \code{TRUE} then paired t-test
-#' @param logging ‘logical, if \code{TRUE}, then add invSToTThresh to output
+#' @param nPlan the planned sample size(s).
+#' @param inverseMethod logical, always \code{TRUE} for the moment.
+#' @param paired logical, if \code{TRUE} then paired t-test.
+#' @param logging ‘logical, if \code{TRUE}, then add invSToTThresh to output.
 #' @inheritParams replicateTTests
 #' @inherit designSafeT
 #'
@@ -893,7 +905,7 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #'
 #' @examples
 #' designPilotSafeT(nPlan=30)
-designPilotSafeT <- function(nPlan=50, alpha=0.05, mu0=0, alternative=c("two.sided", "greater", "less"),
+designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.sided", "greater", "less"),
                              lowParam=0.01, highParam=1.2, tol=0.01, inverseMethod=TRUE,
                              logging=FALSE, paired=FALSE) {
   # TODO(Alexander): Check relation with forward method, that is, the least conservative test and maximally powered
@@ -943,9 +955,11 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, mu0=0, alternative=c("two.sid
     names(nPlan) <- c("n1Plan", "n2Plan")
   }
 
+  names(h0) <- "mu"
+
   result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=NULL, "alpha"=alpha, "beta"=NULL,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
-                 "mu0"=mu0, "sigma"=sigma, "kappa"=kappa, "testType"=testType,
+                 "h0"=h0, "sigma"=sigma, "kappa"=kappa, "testType"=testType,
                  "ratio"=ratio, "lowParam"=NULL, "highParam"=NULL,
                  "pilot"=FALSE, "call"=sys.call())
   class(result) <- "safeDesign"
@@ -1014,7 +1028,7 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, mu0=0, alternative=c("two.sid
 
 
 
-#' Plots the sample sizes necessary for a tolerable alpha and beta as a function of deltaMin
+#' Plots the Sample Sizes Necessary for a Tolerable Alpha and Beta as a Function of deltaMin
 #'
 #' For given tolerable alpha and beta, (1) the planned sample sizes to using a safe test, (2) the
 #' frequentist test, and (3) the average sample size necessary due to optional stopping are plotted
@@ -1022,30 +1036,31 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, mu0=0, alternative=c("two.sid
 #'
 #' @inheritParams designSafeT
 #' @inheritParams replicateTTests
-#' @param maxN numeric, the maximum number of samples one has budget for to collect data
+#' @param maxN numeric, the maximum number of samples one has budget for to collect data.
 #' @param deltaFactor numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
-#' deltaTrue = 0.8) of lowParam
+#' deltaTrue = 0.8) of lowParam.
 #' @param nFactor numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
-#' deltaTrue = 0.8) of highN
-#' @param simulateSafeOptioStop logical, if \code{TRUE} then provides
+#' deltaTrue = 0.8) of highN.
+#' @param simulateSafeOptioStop logical, if \code{TRUE} then provides the simulation for safe tests.
 #' @param logging logical, if \code{TRUE} then output all the safe designs objects including mean n stop if
-#' simulateSafeOptioStop equal \code{TRUE}
-#' @param backTest logical, if \code{TRUE} it provides the frequentist sample size necessary to attain the power that the
-#' safe test attains due to optional stopping
-#' @param freqPlot logical, if \code{TRUE} plot frequentist sample size profiles
+#' simulateSafeOptioStop equal \code{TRUE}.
+#' @param backTest logical, if \code{TRUE} it provides the frequentist sample size necessary to attain the power
+#' that the safe test attains due to optional stopping.
+#' @param freqPlot logical, if \code{TRUE} plot frequentist sample size profiles.
 #'
 #' @return Returns a list that contains the planned sample size needed for the frequentist and safe tests as a function
 #' of the minimal clinically relevant effect sizes. The returned list contains at least the following components:
 #'
 #' \describe{
-#'   \item{alpha}{the tolerable type I error provided by the user}
-#'   \item{beta}{the tolerable type II error provided by the user}
-#'   \item{maxN}{the largest number of samples provided by the user}
-#'   \item{deltaDomain}{vector of the domain of deltaMin}
-#'   \item{allN1PlanFreq}{vector of the planned sample sizes needed for the frequentist test corresponding to alpha and
-#'   beta}
-#'   \item{allN1PlanSafe}{vector of the planned sample sizes needed for the safe test corresponding to alpha and beta}
-#'   \item{allDeltaS}{vector of safe test defining deltaS}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{the tolerable type II error provided by the user.}
+#'   \item{maxN}{the largest number of samples provided by the user.}
+#'   \item{deltaDomain}{vector of the domain of deltaMin.}
+#'   \item{allN1PlanFreq}{vector of the planned sample sizes needed for the frequentist test corresponding to
+#'   alpha and beta.}
+#'   \item{allN1PlanSafe}{vector of the planned sample sizes needed for the safe test corresponding to alpha
+#'   and beta.}
+#'   \item{allDeltaS}{vector of safe test defining deltaS.}
 #' }
 #'
 #' @export
@@ -1148,7 +1163,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
                                  "lowParam"=tempLowParam, "highParam"=tempHighParam, "lowN"=tempLowN,
                                  "highN"=tempHighN, "testType"=testType, "ratio"=ratio)
 
-    if (is.null(safeDesignObj[["nPlan"]]) || is.na(safeDesignObj[["nPlan"]])) {
+    if (is.null(safeDesignObj[["nPlan"]][1]) || is.na(safeDesignObj[["nPlan"]][1])) {
       lastDeltaIndex <- i-1
       break()
     }
@@ -1156,7 +1171,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
     # TODO(Alexander): Not necessary anymore, with normal function call
     safeDesignObj[["n1PlanFreq"]] <- allN1PlanFreq[i]
     allSafeDesignObj[[i]] <- safeDesignObj
-    allN1PlanSafe[i] <- safeDesignObj[["nPlan"]]
+    allN1PlanSafe[i] <- safeDesignObj[["nPlan"]][1]
     allDeltaS[i] <- safeDesignObj[["parameter"]]
   }
 
@@ -1285,7 +1300,9 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 
 # 2. Data generating helper functions ------
 
-#' Generates normal data depending on the design: "oneSampleT", "pairedSampleT", "twoSampleT"
+#' Generates Normally Distributed Data Depending on the Design
+#'
+#' The designs supported are "oneSampleT", "pairedSampleT", "twoSampleT".
 #'
 #' @inheritParams replicateTTests
 #'
@@ -1293,8 +1310,8 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 #' @return Returns a list of two data matrices contains at least the following components:
 #'
 #' \describe{
-#'   \item{dataGroup1}{a matrix of data dimension nsim by n1Plan}
-#'   \item{dataGroup2}{a matrix of data dimension nsim by n2Plan}
+#'   \item{dataGroup1}{a matrix of data dimension nsim by \code{nPlan[1]}.}
+#'   \item{dataGroup2}{a matrix of data dimension nsim by \code{nPlan[2]}.}
 #' }
 #' @export
 #'
@@ -1336,46 +1353,45 @@ generateTTestData <- function(nPlan, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaT
 
 # 3. Inference functions -------
 
-#' Safe Student's t-test.
+#' Safe Student's T-Test.
 #'
-#' A safe version of 't.test()' to perform one and two sample t-tests on vectors of data
+#' A safe t-test adapted from  \code{\link[stats]{t.test}} to perform one and two sample t-tests on vectors of data.
 #'
-#' @param x a (non-empty) numeric vector of data values
-#' @param y an optional (non-empty) numeric vector of data values
+#' @param x a (non-empty) numeric vector of data values.
+#' @param y an optional (non-empty) numeric vector of data values.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less"
-#' @param designObj an object from 'designSafeT()', or \code{NULL}, when pilot equals \code{TRUE}
-#' @param mu0 a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0
+#' "greater" or "less".
+#' @param designObj an object obtained from \code{\link{designSafeT}}, or \code{NULL}, when pilot equals \code{TRUE}..
+#' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0
 #' @param paired a logical indicating whether you want a paired t-test.
 #' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For the moment,
 #' this is always \code{TRUE}.
-#' @param confLevel confidence level of the interval. Not yet implemented
+#' @param confLevel confidence level of the interval. Not yet implemented.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned.
 #' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 #' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class "safeTResult". An object of class "safeTResult" is a list containing at least the
+#' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
 #' following components:
 #'
 #' \describe{
-#'   \item{statistic}{the value of the t-statistic}
-#'   \item{parameter}{the parameter (point prior) used in the safe test derived from the design}
-#'   \item{sValue}{the s-value for the safe test}
+#'   \item{statistic}{the value of the t-statistic.}
+#'   \item{n}{The realised sample size(s).}
+#'   \item{sValue}{the realised s-value from the safe test.}
 #'   \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
-#'   hypothesis}
+#'   hypothesis.}
 #'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-#'   sample test or a two-sample test}
-#'   \item{mu0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-#'   or a two-sample test}
+#'   sample test or a two-sample test.}
+#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+#'   or a two-sample test.}
 #'   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-#'   \item{dataName}{a character string giving the name(s) of the data}
-#'   \item{designObj}{an object of class "safeTDesign" described in 'designSafeT()'}
-#'   \item{n1}{The realised sample size of the first group}
-#'   \item{call}{the expression with which this function is called}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+#'   \item{dataName}{a character string giving the name(s) of the data.}
+#'   \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
+#'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
 #'
@@ -1392,13 +1408,15 @@ generateTTestData <- function(nPlan, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaT
 #'
 #'
 safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                      mu0=0, paired=FALSE, varEqual=TRUE, confLevel=1-alpha, pilot=FALSE,
+                      h0=0, paired=FALSE, varEqual=TRUE, confLevel=1-alpha, pilot=FALSE,
                       alpha=0.05, ...) {
-  # TODO(Alexander): Generalise mu0 = 0 to other mu0
+  # TODO(Alexander): Generalise h0 = 0 to other h0
   alternative <- match.arg(alternative)
 
+  names(h0) <- "mu"
+
   result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
-                 "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "mu0"=mu0, "stderr"=NULL,
+                 "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "h0"=h0, "stderr"=NULL,
                  "call"=sys.call())
   class(result) <- "safeTest"
 
@@ -1407,7 +1425,7 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
          "this to safeTTest/safe.t.test, or run safeTTest with pilot=TRUE")
   }
 
-  freqObject <- try(stats::t.test("x"=x, "y"=y, "alternative"=alternative, "mu"=mu0,
+  freqObject <- try(stats::t.test("x"=x, "y"=y, "alternative"=alternative, "mu"=h0,
                                   "paired"=paired, "var.equal"=varEqual))
   t <- freqObject[["statistic"]]
 
@@ -1469,12 +1487,13 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   return(result)
 }
 
-#' Alias for 'safeTTest()'
+#' Alias for safeTTest
 #'
-#' @inherit safeTTest
+#' @rdname safeTTest
+#'
 #' @param var.equal a logical variable indicating whether to treat the two variances as being equal. For the moment,
 #' this is always \code{TRUE}.
-#' @param conf.level confidence level of the interval. Not yet implemented
+#' @param conf.level confidence level of the interval. Not yet implemented.
 #'
 #' @export
 #'
@@ -1489,9 +1508,9 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 #'
 #' safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
 safe.t.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                        mu0=0, paired=FALSE, var.equal=TRUE, conf.level=0.95, pilot=FALSE,
+                        h0=0, paired=FALSE, var.equal=TRUE, conf.level=0.95, pilot=FALSE,
                         alpha=0.05, ...) {
-  result <- safeTTest("x"=x, "y"=y, "alternative"=alternative, "designObj"=designObj, "mu0"=mu0, "paired"=paired,
+  result <- safeTTest("x"=x, "y"=y, "alternative"=alternative, "designObj"=designObj, "h0"=h0, "paired"=paired,
                       "varEqual"=var.equal, "confLevel"=conf.level, "pilot"=pilot, "alpha"=alpha, ...)
 
   if (is.null(y))
@@ -1503,21 +1522,21 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "l
   return(result)
 }
 
-#' Safe t-test defined at deltaS based on the t-statistic and the sample sizes
+#' Computes S-Values Based on the T-Statistic
 #'
-#' A summary stats version of 'safeTTest()' with the data replaced by t, n1 and n2, and the design object by deltaS
+#' A summary stats version of \code{\link{safeTTest}} with the data replaced by t, n1 and n2, and the
+#' design object by deltaS.
 #'
-#'
-#' @param t numeric that represents the observed t-statistic
-#' @param deltaS numeric this defines the safe test S, i.e., a likelihood ratio of t distributions with in the
-#' denominator the likelihood with delta = 0 and in the numerator an average likelihood defined by
-#' 1/2 time the likelihood at the non-centrality parameter sqrt(nEff)*deltaS and 1/2 times the likelihood at the
-#' non-centrality parameter -sqrt(nEff)*deltaS
-#' @param n1 integer that represents the size in a one-sample t-test, (n2=\code{NULL}). When n2 is not \code{NULL}, this specifies
-#' the size of the first sample for a two-sample test
-#' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus, \code{NULL} it
-#' implies that the t-statistic is based on one-sample
-#' @param tDensity Uses the the representation of the safe t-test as the likelihood ratio of t densities
+#' @param t numeric that represents the observed t-statistic.
+#' @param parameter numeric this defines the safe test S, i.e., a likelihood ratio of t distributions with in
+#' the denominator the likelihood with delta = 0 and in the numerator an average likelihood defined by
+#' 1/2 time the likelihood at the non-centrality parameter sqrt(nEff)*parameter and 1/2 times the likelihood at
+#' the non-centrality parameter -sqrt(nEff)*parameter.
+#' @param n1 integer that represents the size in a one-sample t-test, (n2=\code{NULL}). When n2 is not \code{NULL},
+#' this specifies the size of the first sample for a two-sample test.
+#' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
+#' \code{NULL} it implies that the t-statistic is based on one-sample.
+#' @param tDensity Uses the the representation of the safe t-test as the likelihood ratio of t densities.
 #' @inherit safeTTest
 #'
 #' @return Returns a numeric that represent the s10, that is, the s-value in favour of the alternative over the null
@@ -1526,7 +1545,7 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "l
 #'
 #' @examples
 #' safeTTestStat(t=1, n1=100, 0.4)
-#' safeTTestStat(t=3, n1=100, deltaS=0.3)
+#' safeTTestStat(t=3, n1=100, parameter=0.3)
 safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", "less", "greater"), tDensity=FALSE,
                           paired=FALSE, ...) {
   # TODO(Alexander):
@@ -1534,9 +1553,9 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
   #   1. Use Kummer's transform again (??)
   #   2. Switch to numerical integration. Boundary case
   #
-  # safeTTestStat(t=-3.1878, deltaS=0.29, n1=315, alternative="greater")
-  # safeTTestStat(t=-3.1879, deltaS=0.29, n1=315, alternative="greater")
-  # safeTTestStat(t=-3.188, deltaS=0.29, n1=315, alternative="greater")
+  # safeTTestStat(t=-3.1878, parameter=0.29, n1=315, alternative="greater")
+  # safeTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
+  # safeTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
   alternative <- match.arg(alternative)
   deltaS <- parameter
 
@@ -1602,16 +1621,16 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
   return(result)
 }
 
-#' Basically just 'safeTTestStat()' - 1/alpha
+#' safeTTestStat Subtracted with 1/alpha.
 #'
-#' This function is used for root finding for pilot designs
+#' This is basically just \code{\link{safeTTestStat}} - 1/alpha. This function is used for root finding for
+#' pilot designs.
 #'
-#' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-#' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
+#' @inheritParams safeTTest
 #' @inherit safeTTestStat
 #'
-#' @return Returns a numeric that represent the s10 - 1/alpha, that is, the s-value in favour of the alternative over
-#' the null - 1/alpha
+#' @return Returns a numeric that represent the s10 - 1/alpha, that is, the s-value in favour of the
+#' alternative over the null - 1/alpha.
 #'
 safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="two.sided", tDensity=FALSE) {
   safeTTestStat("t"=t, "parameter"=parameter, "n1"=n1, "n2"=n2, "alternative"=alternative, "tDensity"=tDensity) - 1/alpha
@@ -1620,14 +1639,14 @@ safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="tw
 
 #' Print Method for Safe Tests
 #'
-#' Printing objects of class "safeTest" modelled after 'print.htest()'
+#' Printing objects of class "safeTest" modelled after \code{\link[stats]{print.htest}}.
 #'
-#' @param x a safeTest object
+#' @param x a safeTest object.
 #' @param digits number of significant digits to be used.
-#' @param prefix string, passed to strwrap for displaying the method components
+#' @param prefix string, passed to strwrap for displaying the method components.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return
+#' @return No returned value, called for side effects.
 #' @export
 #'
 #' @examples
@@ -1757,11 +1776,11 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
 
 #' Print Method for Safe Tests
 #'
-#' Printing objects of class "safeTest" modelled after 'print.power.htest()'
+#' Printing objects of class "safeTest" modelled after \code{\link[stats]{print.power.htest}}.
 #'
 #' @inheritParams print.safeTest
 #'
-#' @return
+#' @return No returned value, called for side effects.
 #' @export
 #'
 #' @examples
@@ -1776,7 +1795,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
   if (testType=="logrank") {
     analysisName <- "Safe Logrank Test Design"
     alternativeName <- "true theta is not equal to 1"
-    names(designObj[["parameter"]]) <- "log(thetaS)"
+    # names(designObj[["parameter"]]) <- "log(thetaS)"
     note <- "Based on a z approximation"
   } else {
     analysisName <- paste(getNameTestType("testType"=testType), "Design")
@@ -1881,7 +1900,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
 #'
 #'     cat("under iid normally distributed data and the null hypothesis:")
 #'     cat("\n")
-#'     cat("    mu =", x[["mu0"]])
+#'     cat("    mu =", x[["h0"]])
 #'   } else {
 #'     cat("The experiment is not planned.")
 #'     cat("\n")

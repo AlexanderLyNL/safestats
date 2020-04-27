@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{safeZ10Inverse}
 \alias{safeZ10Inverse}
-\title{Computes the inverse of the two-sided safe z-test}
+\title{Computes the Inverse of the Two-Sided Safe Z-Test}
 \usage{
 safeZ10Inverse(parameter, nEff, sigma = 1, alpha = 0.05)
 }
@@ -10,21 +10,22 @@ safeZ10Inverse(parameter, nEff, sigma = 1, alpha = 0.05)
 \item{parameter}{numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
 denominator the likelihood with mean difference 0 and in the numerator an average likelihood defined by
 the likelihood at the parameter value. For the two sided case 1/2 at the parameter value and 1/2 at minus the
-parameter value}
+parameter value.}
 
-\item{nEff}{numeric > 0, the effective sample size}
+\item{nEff}{numeric > 0, the effective sample size.}
 
-\item{sigma}{numeric, the assumed known standard deviation, default 1}
+\item{sigma}{numeric, the assumed known standard deviation, default 1.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 }
 \value{
-A number that represents a z-value. The function's domain is the positive real line and the range is
-the real line, i.e., the outcome space of the z-statistic.
+A number that represents a z-value. The function's domain is the positive real line and the range
+is the real line, i.e., the outcome space of the z-statistic.
 }
 \description{
-Computes the inverse of the two-sided safe z-test
+The two-sided safe z-test is based on two point priors on the mean differences. It puts half its mass on
+phiS and the other half on - phiS. To determine the value of phiS, the test is inverted.
 }
 \examples{
 safeZ10Inverse(0.4, n=13)

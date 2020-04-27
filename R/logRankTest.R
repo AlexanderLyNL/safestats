@@ -1,15 +1,57 @@
-#' Title
+#' Safe Logrank Test
 #'
-#' @param object
-#' @param designObj
-#' @param pilot
-#' @param alpha
-#' @param ...
+#' Tests the equality of the survival distributions in two independent groups.
 #'
-#' @return
+#' The functions safeLogrankTest are modelled after \code{\link[coin]{logrank_test}} and consists of two
+#' S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Details of the arguments are
+#' provided in \code{\link[coin]{logrank_test}}.
+#'
+#' @param object either a logrank object derived from \code{\link[coin]{logrank_test}} or a formula
+#' with as outcome variable an object resulting from \code{\link[survival]{Surv}}.
+#' @param designObj a safe logrank design derived from \code{\link{designSafeLogrank}}.
+#' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
+#' samples is exactly as planned.
+#' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
+#' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
+#'
+#' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+#' following components:
+#'
+#' \describe{
+#'   \item{statistic}{the value of the z-statistic.}
+#'   \item{n}{The realised sample size(s).}
+#'   \item{sValue}{the s-value for the safe test.}
+#'   \item{confInt}{To be implemented: a safe confidence interval for the hazard ratio.}
+#'   \item{estimate}{To be implemented: an estimate of the hazard ratio.}
+#'   \item{h0}{the specified hypothesised value of hazard ratio.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user. Currently, only "two.sided".}
+#'   \item{testType}{"logrank".}
+#'   \item{dataName}{a character string giving the name(s) of the data.}
+#'   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}
+#'   \item{logrankObj}{an object obtained from \code{\link[coin]{logrank_test}}.}
+#'   \item{call}{the expression with which this function is called.}
+#' }
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Examples taken from coin::logrank_test
+#' ## Example data (Callaert, 2003, Tab. 1)
+#' callaert <- data.frame(
+#' time = c(1, 1, 5, 6, 6, 6, 6, 2, 2, 2, 3, 4, 4, 5, 5),
+#' group = factor(rep(0:1, c(7, 8)))
+#' )
+#'
+#' designObj <- designSafeLogrank(nPlan=89)
+#' ## Data based on exact logrank test using mid-ranks (p = 0.0505)
+#' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
+#'                 distribution = "exact", designObj = designObj)
+#'
+#' ## Data based on exact logrank test using average-scores (p = 0.0468)
+#' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
+#'                 distribution = "exact", ties.method = "average-scores",
+#'                 designObj = designObj)
+#' }
 safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
   if (isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
@@ -26,21 +68,20 @@ safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...
   UseMethod("safeLogrankTest")
 }
 
-#' Title
+
+#' safeLogrankTest formula version of the generic
 #'
-#' @param formula
-#' @param data
-#' @param subset
-#' @param weights
-#' @param designObj
-#' @param pilot
-#' @param alpha
-#' @param ...
+#' @rdname safeLogrankTest
 #'
-#' @return
-#' @export
+#' @param formula a formula of the form y ~ x where y is an object obtained from
+#' \code{\link[survival]{Surv}} and x is a factor.
+#' @param data an optional data frame containing the variables in the model formula.
+#' @param subset an optional vector specifying a subset of observations to be used. Defaults to \code{NULL}.
+#' @param weights an optional formula of the form ~ w defining integer valued case weights for each observation.
+#' Defaults to \code{NULL}, implying equal weight for all observations.
+#' @param designObj an object obtained from \code{\link{designSafeLogrank}}, or \code{NULL}, when
+#' pilot equals \code{TRUE}.
 #'
-#' @examples
 safeLogrankTest.formula <- function (formula, data=list(), subset=NULL, weights=NULL, designObj=NULL,
                                      pilot=FALSE, alpha=NULL, ...) {
   logrankObj <- try(
@@ -51,22 +92,26 @@ safeLogrankTest.formula <- function (formula, data=list(), subset=NULL, weights=
 }
 
 
-#' Title
+
+#' safeLogrankTest IndependenceProblem version of the generic
 #'
-#' @param object
-#' @param ties.method
-#' @param type
-#' @param rho
-#' @param gamma
-#' @param designObj
-#' @param pilot
-#' @param alpha
-#' @param ...
+#' @rdname safeLogrankTest
 #'
-#' @return
-#' @export
+#' @param object an object inheriting from class "IndependenceProblem" obtained from
+#' \code{\link[coin]{logrank_test}}.
+#' @param ties.method a character, the method used to handle ties: the score generating function
+#' either uses mid-ranks ("mid-ranks", default), the Hothorn-Lausen method ("Hothorn-Lausen")
+#' or averages the scores of randomly broken ties ("average-scores"); see \code{\link[coin]{logrank_test}}
+#' for further details.
+#' @param type a character, the type of test: either "logrank" (default), "Gehan-Breslow",
+#' "Tarone-Ware", "Prentice", "Prentice-Marek", "Andersen-Borgan-Gill-Keiding", "Fleming-Harrington",
+#' "Gaugler-Kim-Liao" or "Self; see \code{\link[coin]{logrank_test}} for further details.
+#' @param rho a numeric, the ρ constant when type is "Tarone-Ware", "Fleming-Harrington", "Gaugler-Kim-Liao"
+#' or "Self"; see 'help(coin::logrank_test)' for further details. Defaults to \code{NULL}, implying
+#' 0.5 for type = "Tarone-Ware" and 0 otherwise.
+#' @param gamma a numeric, the γ constant when type is "Fleming-Harrington", "Gaugler-Kim-Liao" or
+#' "Self"; see 'help(coin::logrank_test)' for further details. Defaults to \code{NULL}, implying 0.
 #'
-#' @examples
 safeLogrankTest.IndependenceProblem <- function(object, ties.method=c("mid-ranks", "Hothorn-Lausen", "average-scores"),
                                                 type=c("logrank", "Gehan-Breslow", "Tarone-Ware", "Prentice",
                                                        "Prentice-Marek", "Andersen-Borgan-Gill-Keiding",
@@ -79,20 +124,19 @@ safeLogrankTest.IndependenceProblem <- function(object, ties.method=c("mid-ranks
 }
 
 
-#' Title
+#' Core function of safeLogrankTest
 #'
-#' @param logrankObj
-#' @param designObj
-#' @param pilot
-#' @param alpha
+#' @rdname safeLogrankTest
+#' @param logrankObj a logrank object obtained from \code{\link[coin]{logrank_test}}.
+#' @param ... further arguments to be passed to or from methods.
 #'
-#' @return
 #' @export
 #'
-#' @examples
-safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=NULL) {
+safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
   if (!inherits(logrankObj, "ScalarIndependenceTest"))
     stop("The provided logrankObj is not of the right type derived from coin::logrank_test()")
+
+  groupLabel <- names(logrankObj@statistic@x)
 
   groupLevels <- levels(logrankObj@statistic@x[[groupLabel]])
 
@@ -117,8 +161,11 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
   # result <- list("statistic"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
   #                "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "mu0"=mu0, "sigma"=sigma)
 
-  result <- list("statistic"=zStat, "n1"=nEvents, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
-                 "theta0"=1, "alternative"=alternative, "testType"="logrank", "dataName"=dataName)
+  h0 <- 1
+  names(h0) <- "theta"
+
+  result <- list("statistic"=zStat, "n"=nEvents, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
+                 "h0"=h0, "alternative"=alternative, "testType"="logrank", "dataName"=dataName)
   class(result) <- "safeTest"
 
   if (isTRUE(pilot)) {
@@ -140,39 +187,41 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
   return(result)
 }
 
-#' Designs a safe logrank rest
+#' Designs a Safe Logrank Test
 #'
-#' Designs a safe experiment for a prespecified tolerable type I error combined with (1) a targetted number
-#' of events nPlan, or (2) a tolerable type II beta and a minimal clinically relevant hazard ratio thetaMin.
-#' Outputs a list that includes the parameter that defines the safe test.
+#' Designs a safe logrank test experiment for a prespecified tolerable type I error based on planned sample size(s),
+#' which are fixed ahead of time. Outputs a list that includes thetaS, i.e., the safe test defining parameter.
+#' Computations exploits the asymptotic normality results of the sampling distribution.
 #'
-#' @inheritParams designSafeT
-#' @param nPlan numeric > 0, targetted number of events
+#' @inheritParams designSafeZ
+#' @param nPlan numeric > 0, targetted number of events.
+#' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null, i.e., h0=1.
 #' @param thetaMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
-#' detect
-#' @param zApprox logical, default TRUE to use the asymptotic normality
+#' detect.
+#' @param zApprox logical, default TRUE to use the asymptotic normality results.
 #'
 #' @return Returns a safeDesign object that includes:
 #'
 #' \describe{
-#'   \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin}
-#'   \item{parameter}{the parameter that defines the safe test}
-#'   \item{thetaMin}{the minimally clinically relevant hazard ratio specified by the user}
-#'   \item{alpha}{the tolerable type I error provided by the user}
-#'   \item{beta}{the tolerable type II error provided by the user}
-#'   \item{tol}{the step size between lowTheta and highTheta provided by the user}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-#'   \item{testType}{"logrank"}
-#'   \item{ratio}{default is 1}
-#'   \item{pilot}{FALSE to indicate that the design is not a pilot study}
+#'   \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin.}
+#'   \item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
+#'   \item{thetaMin}{the minimally clinically relevant hazard ratio specified by the user.}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{the tolerable type II error provided by the user.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{testType}{"logrank".}
+#'   \item{ratio}{default is 1.}
+#'   \item{pilot}{\code{FALSE} to indicate that the design is not a pilot study.}
 #'   \item{call}{the expression with which this function is called}
 #' }
 #'
 #' @export
 #'
 #' @examples
-designSafeLogrank <- function(alpha=0.05, beta=NULL, thetaMin=NULL, alternative=c("two.sided", "greater", "less"),
-                              nPlan=NULL, ratio=1, zApprox=TRUE, tol=1e-5, ...) {
+#' designSafeLogrank(nPlan=89)
+designSafeLogrank <- function(nPlan=NULL, alpha=0.05, beta=0.2, thetaMin=NULL,
+                              alternative=c("two.sided", "greater", "less"), h0=1,
+                              ratio=1, zApprox=TRUE, tol=1e-5, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
   alternative <- match.arg(alternative)
@@ -182,18 +231,19 @@ designSafeLogrank <- function(alpha=0.05, beta=NULL, thetaMin=NULL, alternative=
 
   names(nPlan) <- "nPlan"
 
-  result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=thetaMin, "alpha"=alpha, "beta"=beta,
-                 "alternative"=alternative, "testType"="logrank", "ratio"=ratio,
+  names(h0) <- "theta"
+
+  result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=thetaMin, "alpha"=alpha, "beta"=NULL,
+                 "alternative"=alternative, "testType"="logrank", "ratio"=ratio, "h0"=h0,
                  "pilot"=FALSE, "call"=sys.call())
   class(result) <- "safeDesign"
 
-  if (!is.null(beta))
-    warning("Currently, only the method based on nPlan is implemented, and therefore used. beta ignored")
+  # if (!is.null(beta))
+  #   warning("Currently, only the method based on nPlan is implemented, and therefore used. beta ignored")
 
-  if (!is.null(thetaMin))
-    warning("Currently, only the method based on nPlan is implemented, and therefore used. thetaMin ignored")
+  if (is.null(thetaMin)) {
+    # warning("Currently, only the method based on nPlan is implemented, and therefore used. thetaMin ignored")
 
-  if (is.null(beta) && is.null(thetaMin)) {
     if (zApprox) {
       safeZObj <- try(designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative))
     } else {
@@ -209,8 +259,8 @@ designSafeLogrank <- function(alpha=0.05, beta=NULL, thetaMin=NULL, alternative=
 
   } else {
 
-    if (is.null(nPlan))
-      stop("Can't design without targetted nPlan number of events.")
+    # if (is.null(nPlan))
+    #   stop("Can't design without targetted nPlan number of events.")
 
     warning("Currently, only the z-approximation method is implemented, and therefore used.")
 
@@ -220,7 +270,7 @@ designSafeLogrank <- function(alpha=0.05, beta=NULL, thetaMin=NULL, alternative=
   }
 
   result[["parameter"]] <- safeZObj[["parameter"]]
-  names(result[["parameter"]]) <- "thetaS"
+  names(result[["parameter"]]) <- "log(thetaS)"
 
   return(result)
 }

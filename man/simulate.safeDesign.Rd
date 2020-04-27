@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{simulate.safeDesign}
 \alias{simulate.safeDesign}
-\title{Simulate function for a safeDesign object}
+\title{Simulate Early Stopping Experiments}
 \usage{
 \method{simulate}{safeDesign}(
   object,
@@ -21,59 +21,64 @@
 )
 }
 \arguments{
-\item{object}{A safeDesign object}
+\item{object}{A safeDesign obtained obtained from \code{\link{designSafeT}}.}
 
-\item{nsim}{numeric, number of iterations}
+\item{nsim}{numeric, number of iterations.}
 
-\item{seed}{numeric, seed number}
+\item{seed}{numeric, seed number.}
 
-\item{deltaTrue}{numeric, if NULL, then deltaTrue <- object[["parameter"]]}
+\item{deltaTrue}{numeric, if NULL, then the minimally clinically relevant standardised effect size is used
+as the true data generating effect size deltaTrue.}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
 matter for the test. This parameter is treated as a nuisance.}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
-This parameter treated is treated as a nuisance.}
+\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
+for the test.This parameter treated is treated as a nuisance.}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins}
+\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
 
-\item{safeOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for the safe test}
+\item{safeOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
+the safe test.}
 
-\item{freqOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for the frequentist test}
+\item{freqOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
+the frequentist test.}
 
-\item{nPlanFreq}{the frequentist sample size(s) to plan for. Acquired from designFreqT.}
+\item{nPlanFreq}{the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}}.}
 
-\item{logging}{logical, if \code{TRUE}, then return the simulated data}
+\item{logging}{logical, if \code{TRUE}, then return the simulated data.}
 
-\item{pb}{logical, if \code{TRUE}, then show progress bar}
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-Returns an object of class "safeTSim". An object of class "safeTSim" is a list containing at least the
-following components:
+Returns an object of class "safeTSim". An object of class "safeTSim" is a list containing at
+least the following components:
 
 \describe{
-  \item{nPlan}{the planned sample size(s)}
+  \item{nPlan}{the planned sample size(s).}
   \item{deltaTrue}{the value of the true standardised effect size (test-relevant parameter) provided by
-  the user}
+  the user.}
   \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
   the user.}
-  \item{paired}{if \code{TRUE} then paired t-test}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-  \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins}
+  \item{paired}{if \code{TRUE} then paired t-test.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
   \item{nsim}{the number of replications of the experiment.}
-  \item{alpha}{the tolerable type I error provided by the user}
-  \item{beta}{the tolerable type II error provided by the user}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-  \item{parameter}{the parameter (point prior) used in the safe test derived from the design}
-  \item{nPlan}{the frequentist planned sample size(s)}
-  \item{safeSim}{list with the simulation results of the safe test under optional stopping}
-  \item{freqSim}{list with the simulation results of the frequentist test under optional stopping}
+  \item{alpha}{the tolerable type I error provided by the user.}
+  \item{beta}{the tolerable type II error provided by the user.}
+  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+  \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
+  Acquired from \code{\link{designSafeT}}.}
+  \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}
+  \item{safeSim}{list with the simulation results of the safe test under optional stopping.}
+  \item{freqSim}{list with the simulation results of the frequentist test under optional stopping.}
 }
 }
 \description{
-Simulate function for a safeDesign object
+Applied to a safeDesign object this function empirically shows the performance of a safe experiments under
+optional stopping.
 }
 \examples{
 # Design safe test

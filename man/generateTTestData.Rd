@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{generateTTestData}
 \alias{generateTTestData}
-\title{Generates normal data depending on the design: "oneSampleT", "pairedSampleT", "twoSampleT"}
+\title{Generates Normally Distributed Data Depending on the Design}
 \usage{
 generateTTestData(
   nPlan,
@@ -15,19 +15,21 @@ generateTTestData(
 )
 }
 \arguments{
-\item{nPlan}{vector of max length 2 representing the planned sample sizes}
+\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
-\item{nsim}{the number of replications, that is, experiments with max samples n1Plan and n2Plan}
+\item{nsim}{the number of replications, that is, experiments with max samples nPlan.}
 
-\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter)}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
 matter for the test. This parameter is treated as a nuisance.}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
-This parameter treated is treated as a nuisance.}
+\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
+for the test.This parameter treated is treated as a nuisance.}
 
-\item{seed}{To set the seed for the simulated data}
+\item{paired}{logical, if \code{TRUE} then paired t-test.}
+
+\item{seed}{To set the seed for the simulated data.}
 }
 \value{
 
@@ -35,12 +37,12 @@ This parameter treated is treated as a nuisance.}
 Returns a list of two data matrices contains at least the following components:
 
 \describe{
-  \item{dataGroup1}{a matrix of data dimension nsim by n1Plan}
-  \item{dataGroup2}{a matrix of data dimension nsim by n2Plan}
+  \item{dataGroup1}{a matrix of data dimension nsim by \code{nPlan[1]}.}
+  \item{dataGroup2}{a matrix of data dimension nsim by \code{nPlan[2]}.}
 }
 }
 \description{
-Generates normal data depending on the design: "oneSampleT", "pairedSampleT", "twoSampleT"
+The designs supported are "oneSampleT", "pairedSampleT", "twoSampleT".
 }
 \examples{
 generateTTestData(20, 15)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{designFreqZ}
 \alias{designFreqZ}
-\title{Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test}
+\title{Design a Frequentist Z-Test}
 \usage{
 designFreqZ(
   alpha = 0.05,
@@ -11,7 +11,7 @@ designFreqZ(
   alternative = c("two.sided", "greater", "less"),
   lowN = 3L,
   highN = 100L,
-  testType = c("oneSampleT", "pairedSampleT", "twoSampleT"),
+  testType = c("oneSampleZ", "pairedSampleZ", "twoSampleZ"),
   ratio = 1,
   sigma = 1,
   kappa = sigma,
@@ -20,7 +20,7 @@ designFreqZ(
 }
 \arguments{
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 and "deltaS". Note that 1-beta defines the power.}
@@ -29,23 +29,29 @@ and "deltaS". Note that 1-beta defines the power.}
 that we would like to detect.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{testType}{either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ"}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
-\item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1}
+\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
+are able to fund.}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test}
+\item{testType}{either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ".}
 
-\item{kappa}{the true population standard deviation. Default kappa=sigma}
+\item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
 
-\item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+
+\item{kappa}{the true population standard deviation. Default kappa=sigma.}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-returns a freqDesign object
+returns a freqZDesign object.
 }
 \description{
-Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test
+Computes the number of samples necessary to reach a tolerable type I and type II error for the
+frequentist z-test.
 }
 \examples{
 designFreqT(0.5)

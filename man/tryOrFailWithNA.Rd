@@ -2,20 +2,20 @@
 % Please edit documentation in R/helpers.R
 \name{tryOrFailWithNA}
 \alias{tryOrFailWithNA}
-\title{Try to evaluate an expression, if not fail with NA (default)}
+\title{Tries to Evaluate an Expression and Fails with \code{NA}}
 \usage{
 tryOrFailWithNA(expr, value = NA_real_)
 }
 \arguments{
-\item{expr}{Expression to be evaluated}
+\item{expr}{Expression to be evaluated.}
 
-\item{value}{Return value if there is an error, default is NA_real_}
+\item{value}{Return value if there is an error, default is \code{NA_real_}.}
 }
 \value{
-Returns the evaluation of the expression, or \code{value} if it doesn't work out
+Returns the evaluation of the expression, or \code{value} if it doesn't work out.
 }
 \description{
-Try to evaluate an expression, if not fail with NA (default)
+The evaluation fails with \code{NA} by default, but it is also able to fail with other values.
 }
 \examples{
 tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)

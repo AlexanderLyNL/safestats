@@ -2,20 +2,20 @@
 % Please edit documentation in R/tTest.R
 \name{print.safeTSim}
 \alias{print.safeTSim}
-\title{Prints a safeTSim object}
+\title{Prints a safeTSim Object}
 \usage{
 \method{print}{safeTSim}(x, ...)
 }
 \arguments{
-\item{x}{a "safeTSim" object}
+\item{x}{a "safeTSim" object.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-No returned value, called for side effects
+No returned value, called for side effects.
 }
 \description{
-Prints a safeTSim object
+Prints a safeTSim Object
 }
 \examples{
 designObj <- designSafeT(1)
@@ -25,6 +25,6 @@ simObj <- simulate(designObj, nsim=100)
 simObj
 
 # Data under the null deltaTrue=0
-simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, n1PlanFreq=10)
+simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
 simObj
 }

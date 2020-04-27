@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{getNameAlternative}
 \alias{getNameAlternative}
-\title{Gets the name of the alternative hypothesis}
+\title{Gets the Label of the Alternative Hypothesis}
 \usage{
 getNameAlternative(alternative = c("two.sided", "greater", "less"), testType)
 }
@@ -15,7 +15,7 @@ getNameAlternative(alternative = c("two.sided", "greater", "less"), testType)
 Returns a character string with the name of the analysis.
 }
 \description{
-Gets the name of the alternative hypothesis
+Helper function that outputs the alternative hypothesis of the analysis.
 }
 \examples{
 safestats:::getNameAlternative("two.sided", testType="oneSampleT")

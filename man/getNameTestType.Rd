@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{getNameTestType}
 \alias{getNameTestType}
-\title{Gets the name of the analysis}
+\title{Gets the Label of the Test}
 \usage{
 getNameTestType(testType)
 }
@@ -13,7 +13,7 @@ getNameTestType(testType)
 Returns a character string with the name of the analysis.
 }
 \description{
-Gets the name of the analysis
+Helper function that outputs the name of the analysis.
 }
 \examples{
 getNameTestType("oneSampleT")

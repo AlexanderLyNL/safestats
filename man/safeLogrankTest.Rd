@@ -2,16 +2,132 @@
 % Please edit documentation in R/logRankTest.R
 \name{safeLogrankTest}
 \alias{safeLogrankTest}
-\title{Title}
+\alias{safeLogrankTest.formula}
+\alias{safeLogrankTest.IndependenceProblem}
+\alias{safeLogrankTestCore}
+\title{Safe Logrank Test}
 \usage{
 safeLogrankTest(object, designObj = NULL, pilot = FALSE, alpha = NULL, ...)
+
+\method{safeLogrankTest}{formula}(
+  formula,
+  data = list(),
+  subset = NULL,
+  weights = NULL,
+  designObj = NULL,
+  pilot = FALSE,
+  alpha = NULL,
+  ...
+)
+
+\method{safeLogrankTest}{IndependenceProblem}(
+  object,
+  ties.method = c("mid-ranks", "Hothorn-Lausen", "average-scores"),
+  type = c("logrank", "Gehan-Breslow", "Tarone-Ware", "Prentice", "Prentice-Marek",
+    "Andersen-Borgan-Gill-Keiding", "Fleming-Harrington", "Gaugler-Kim-Liao", "Self"),
+  rho = NULL,
+  gamma = NULL,
+  designObj = NULL,
+  pilot = FALSE,
+  alpha = NULL,
+  ...
+)
+
+safeLogrankTestCore(
+  logrankObj,
+  designObj = NULL,
+  pilot = FALSE,
+  alpha = NULL,
+  ...
+)
 }
 \arguments{
-\item{...}{}
+\item{object}{an object inheriting from class "IndependenceProblem" obtained from
+\code{\link[coin]{logrank_test}}.}
+
+\item{designObj}{an object obtained from \code{\link{designSafeLogrank}}, or \code{NULL}, when
+pilot equals \code{TRUE}.}
+
+\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
+samples is exactly as planned.}
+
+\item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
+shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
+
+\item{...}{further arguments to be passed to or from methods.}
+
+\item{formula}{a formula of the form y ~ x where y is an object obtained from
+\code{\link[survival]{Surv}} and x is a factor.}
+
+\item{data}{an optional data frame containing the variables in the model formula.}
+
+\item{subset}{an optional vector specifying a subset of observations to be used. Defaults to \code{NULL}.}
+
+\item{weights}{an optional formula of the form ~ w defining integer valued case weights for each observation.
+Defaults to \code{NULL}, implying equal weight for all observations.}
+
+\item{ties.method}{a character, the method used to handle ties: the score generating function
+either uses mid-ranks ("mid-ranks", default), the Hothorn-Lausen method ("Hothorn-Lausen")
+or averages the scores of randomly broken ties ("average-scores"); see \code{\link[coin]{logrank_test}}
+for further details.}
+
+\item{type}{a character, the type of test: either "logrank" (default), "Gehan-Breslow",
+"Tarone-Ware", "Prentice", "Prentice-Marek", "Andersen-Borgan-Gill-Keiding", "Fleming-Harrington",
+"Gaugler-Kim-Liao" or "Self; see \code{\link[coin]{logrank_test}} for further details.}
+
+\item{rho}{a numeric, the ρ constant when type is "Tarone-Ware", "Fleming-Harrington", "Gaugler-Kim-Liao"
+or "Self"; see 'help(coin::logrank_test)' for further details. Defaults to \code{NULL}, implying
+0.5 for type = "Tarone-Ware" and 0 otherwise.}
+
+\item{gamma}{a numeric, the γ constant when type is "Fleming-Harrington", "Gaugler-Kim-Liao" or
+"Self"; see 'help(coin::logrank_test)' for further details. Defaults to \code{NULL}, implying 0.}
+
+\item{logrankObj}{a logrank object obtained from \code{\link[coin]{logrank_test}}.}
 }
 \value{
+Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+following components:
 
+\describe{
+  \item{statistic}{the value of the z-statistic.}
+  \item{n}{The realised sample size(s).}
+  \item{sValue}{the s-value for the safe test.}
+  \item{confInt}{To be implemented: a safe confidence interval for the hazard ratio.}
+  \item{estimate}{To be implemented: an estimate of the hazard ratio.}
+  \item{h0}{the specified hypothesised value of hazard ratio.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user. Currently, only "two.sided".}
+  \item{testType}{"logrank".}
+  \item{dataName}{a character string giving the name(s) of the data.}
+  \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}
+  \item{logrankObj}{an object obtained from \code{\link[coin]{logrank_test}}.}
+  \item{call}{the expression with which this function is called.}
+}
 }
 \description{
-Title
+Tests the equality of the survival distributions in two independent groups.
+}
+\details{
+The functions safeLogrankTest are modelled after \code{\link[coin]{logrank_test}} and consists of two
+S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Details of the arguments are
+provided in \code{\link[coin]{logrank_test}}.
+}
+\examples{
+\dontrun{
+# Examples taken from coin::logrank_test
+## Example data (Callaert, 2003, Tab. 1)
+callaert <- data.frame(
+time = c(1, 1, 5, 6, 6, 6, 6, 2, 2, 2, 3, 4, 4, 5, 5),
+group = factor(rep(0:1, c(7, 8)))
+)
+
+designObj <- designSafeLogrank(nPlan=89)
+## Data based on exact logrank test using mid-ranks (p = 0.0505)
+safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
+                distribution = "exact", designObj = designObj)
+
+## Data based on exact logrank test using average-scores (p = 0.0468)
+safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
+                distribution = "exact", ties.method = "average-scores",
+                designObj = designObj)
+}
 }

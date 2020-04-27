@@ -2,12 +2,12 @@
 % Please edit documentation in R/tTest.R
 \name{designPilotSafeT}
 \alias{designPilotSafeT}
-\title{Designs a safe t-test based on planned samples nPlan}
+\title{Designs a Safe T-Test Based on Planned Samples nPlan}
 \usage{
 designPilotSafeT(
   nPlan = 50,
   alpha = 0.05,
-  mu0 = 0,
+  h0 = 0,
   alternative = c("two.sided", "greater", "less"),
   lowParam = 0.01,
   highParam = 1.2,
@@ -18,59 +18,58 @@ designPilotSafeT(
 )
 }
 \arguments{
-\item{nPlan}{the planned sample size(s)}
+\item{nPlan}{the planned sample size(s).}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
-\item{mu0}{a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
+\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS.}
 
-\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS}
+\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS.}
 
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam}
+\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
-\item{inverseMethod}{logical, always \code{TRUE} for the moment}
+\item{inverseMethod}{logical, always \code{TRUE} for the moment.}
 
-\item{logging}{‘logical, if \code{TRUE}, then add invSToTThresh to output}
+\item{logging}{‘logical, if \code{TRUE}, then add invSToTThresh to output.}
 
-\item{paired}{logical, if \code{TRUE} then paired t-test}
+\item{paired}{logical, if \code{TRUE} then paired t-test.}
 }
 \value{
 Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
 following components:
 
-
 \describe{
-  \item{nPlan}{the planned sample size(s)}
-  \item{parameter}{the safe test defining parameter. Here deltaS}
-  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user}
-  \item{alpha}{the tolerable type I error provided by the user}
-  \item{beta}{the tolerable type II error provided by the user}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise}
-  \item{mu0}{the specified hypothesised value of the mean or mean difference depending on
-  whether it was a one-sample or a two-sample test}
+  \item{nPlan}{the planned sample size(s).}
+  \item{parameter}{the safe test defining parameter. Here deltaS.}
+  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+  \item{alpha}{the tolerable type I error provided by the user.}
+  \item{beta}{the tolerable type II error provided by the user.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
+  \item{h0}{the specified hypothesised value of the mean or mean difference depending on
+  whether it was a one-sample or a two-sample test.}
   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
-  ratio equals n2/n1}
-  \item{lowN}{the smallest n of the search space for n provided by the user}
-  \item{highN}{the largest n of the search space for n provided by the user}
-  \item{lowParam}{the smallest delta of the search space for delta provided by the user}
-  \item{highParam}{the largest delta of the search space for delta provided by the user}
-  \item{tol}{the step size between lowParam and highParam provided by the user}
-  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study}
-  \item{call}{the expression with which this function is called}
+  ratio equals n2/n1.}
+  \item{lowN}{the smallest n of the search space for n provided by the user.}
+  \item{highN}{the largest n of the search space for n provided by the user.}
+  \item{lowParam}{the smallest delta of the search space for delta provided by the user.}
+  \item{highParam}{the largest delta of the search space for delta provided by the user.}
+  \item{tol}{the step size between lowParam and highParam provided by the user.}
+  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
+  \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-Designs a safe experiment for a prespecified tolerable type I error based on planned sample size(s),
-which are fixed ahead of time. Outputs a list that includes the deltaS, i.e., the safe test defining
-parameter.
+Designs a safe experiment for a prespecified tolerable type I error based on planned sample
+size(s), which are fixed ahead of time. Outputs a list that includes the deltaS, i.e., the
+safe test defining parameter.
 }
 \examples{
 designPilotSafeT(nPlan=30)

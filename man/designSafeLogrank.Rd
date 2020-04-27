@@ -2,14 +2,15 @@
 % Please edit documentation in R/logRankTest.R
 \name{designSafeLogrank}
 \alias{designSafeLogrank}
-\title{Designs a safe logrank rest}
+\title{Designs a Safe Logrank Test}
 \usage{
 designSafeLogrank(
+  nPlan = NULL,
   alpha = 0.05,
-  beta = NULL,
+  beta = 0.2,
   thetaMin = NULL,
   alternative = c("two.sided", "greater", "less"),
-  nPlan = NULL,
+  h0 = 1,
   ratio = 1,
   zApprox = TRUE,
   tol = 1e-05,
@@ -17,47 +18,51 @@ designSafeLogrank(
 )
 }
 \arguments{
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
+\item{nPlan}{numeric > 0, targetted number of events.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
+
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+and "deltaS". Note that 1-beta defines the power.}
 
 \item{thetaMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
-detect}
+detect.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{nPlan}{numeric > 0, targetted number of events}
+\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null, i.e., h0=1.}
 
-\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1}
+\item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
 
-\item{zApprox}{logical, default TRUE to use the asymptotic normality}
+\item{zApprox}{logical, default TRUE to use the asymptotic normality results.}
 
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam}
+\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
-\item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls}
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 Returns a safeDesign object that includes:
 
 \describe{
-  \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin}
-  \item{parameter}{the parameter that defines the safe test}
-  \item{thetaMin}{the minimally clinically relevant hazard ratio specified by the user}
-  \item{alpha}{the tolerable type I error provided by the user}
-  \item{beta}{the tolerable type II error provided by the user}
-  \item{tol}{the step size between lowTheta and highTheta provided by the user}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-  \item{testType}{"logrank"}
-  \item{ratio}{default is 1}
-  \item{pilot}{FALSE to indicate that the design is not a pilot study}
+  \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin.}
+  \item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
+  \item{thetaMin}{the minimally clinically relevant hazard ratio specified by the user.}
+  \item{alpha}{the tolerable type I error provided by the user.}
+  \item{beta}{the tolerable type II error provided by the user.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{testType}{"logrank".}
+  \item{ratio}{default is 1.}
+  \item{pilot}{\code{FALSE} to indicate that the design is not a pilot study.}
   \item{call}{the expression with which this function is called}
 }
 }
 \description{
-Designs a safe experiment for a prespecified tolerable type I error combined with (1) a targetted number
-of events nPlan, or (2) a tolerable type II beta and a minimal clinically relevant hazard ratio thetaMin.
-Outputs a list that includes the parameter that defines the safe test.
+Designs a safe logrank test experiment for a prespecified tolerable type I error based on planned sample size(s),
+which are fixed ahead of time. Outputs a list that includes thetaS, i.e., the safe test defining parameter.
+Computations exploits the asymptotic normality results of the sampling distribution.
+}
+\examples{
+designSafeLogrank(nPlan=89)
 }
