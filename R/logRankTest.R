@@ -6,13 +6,15 @@
 #' S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Details of the arguments are
 #' provided in \code{\link[coin]{logrank_test}}.
 #'
-#' @param object either a logrank object derived from \code{\link[coin]{logrank_test}} or a formula
-#' with as outcome variable an object resulting from \code{\link[survival]{Surv}}.
-#' @param designObj a safe logrank design derived from \code{\link{designSafeLogrank}}.
+#' @param object either a formula with as outcome variable an object resulting from \code{\link[survival]{Surv}}, or
+#' and object of class "IndependenceProblem" as described in \code{\link[coin]{logrank_test}}.
+#' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned.
 #' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 #' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
+#' @param ... further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
+#' and distribution.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
 #' following components:
@@ -46,7 +48,7 @@
 #' ## Data based on exact logrank test using mid-ranks (p = 0.0505)
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 distribution = "exact", designObj = designObj)
-#'
+#' #'
 #' ## Data based on exact logrank test using average-scores (p = 0.0468)
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 distribution = "exact", ties.method = "average-scores",
@@ -65,68 +67,19 @@ safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...
     alpha <- NULL
   }
 
-  UseMethod("safeLogrankTest")
-}
-
-
-#' safeLogrankTest formula version of the generic
-#'
-#' @rdname safeLogrankTest
-#'
-#' @param formula a formula of the form y ~ x where y is an object obtained from
-#' \code{\link[survival]{Surv}} and x is a factor.
-#' @param data an optional data frame containing the variables in the model formula.
-#' @param subset an optional vector specifying a subset of observations to be used. Defaults to \code{NULL}.
-#' @param weights an optional formula of the form ~ w defining integer valued case weights for each observation.
-#' Defaults to \code{NULL}, implying equal weight for all observations.
-#' @param designObj an object obtained from \code{\link{designSafeLogrank}}, or \code{NULL}, when
-#' pilot equals \code{TRUE}.
-#'
-safeLogrankTest.formula <- function (formula, data=list(), subset=NULL, weights=NULL, designObj=NULL,
-                                     pilot=FALSE, alpha=NULL, ...) {
   logrankObj <- try(
-    coin:::logrank_test.formula("formula"=formula, "data"=data, "subset"=subset, "weights"=weights, ...)
+    coin::logrank_test(object, ...)
   )
 
   safeLogrankTestCore("logrankObj"=logrankObj, "designObj"=designObj, "pilot"=pilot, "alpha"=alpha)
 }
 
-
-
-#' safeLogrankTest IndependenceProblem version of the generic
+#' Core Function of safeLogrankTest
 #'
-#' @rdname safeLogrankTest
+#' Takes as input an object obtained from \code{\link[coin]{logrank_test}} and a design obtained from
+#' \code{\link{designSafeLogrank}} to output an object of class "safeTest".
 #'
-#' @param object an object inheriting from class "IndependenceProblem" obtained from
-#' \code{\link[coin]{logrank_test}}.
-#' @param ties.method a character, the method used to handle ties: the score generating function
-#' either uses mid-ranks ("mid-ranks", default), the Hothorn-Lausen method ("Hothorn-Lausen")
-#' or averages the scores of randomly broken ties ("average-scores"); see \code{\link[coin]{logrank_test}}
-#' for further details.
-#' @param type a character, the type of test: either "logrank" (default), "Gehan-Breslow",
-#' "Tarone-Ware", "Prentice", "Prentice-Marek", "Andersen-Borgan-Gill-Keiding", "Fleming-Harrington",
-#' "Gaugler-Kim-Liao" or "Self; see \code{\link[coin]{logrank_test}} for further details.
-#' @param rho a numeric, the ρ constant when type is "Tarone-Ware", "Fleming-Harrington", "Gaugler-Kim-Liao"
-#' or "Self"; see 'help(coin::logrank_test)' for further details. Defaults to \code{NULL}, implying
-#' 0.5 for type = "Tarone-Ware" and 0 otherwise.
-#' @param gamma a numeric, the γ constant when type is "Fleming-Harrington", "Gaugler-Kim-Liao" or
-#' "Self"; see 'help(coin::logrank_test)' for further details. Defaults to \code{NULL}, implying 0.
-#'
-safeLogrankTest.IndependenceProblem <- function(object, ties.method=c("mid-ranks", "Hothorn-Lausen", "average-scores"),
-                                                type=c("logrank", "Gehan-Breslow", "Tarone-Ware", "Prentice",
-                                                       "Prentice-Marek", "Andersen-Borgan-Gill-Keiding",
-                                                       "Fleming-Harrington", "Gaugler-Kim-Liao", "Self"),
-                                                rho=NULL, gamma=NULL, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
-  logrankObj <- coin:::logrank_test.IndependenceProblem("object"=object, "ties.method"=ties.method, "type"=type,
-                                                        "rho"=rho, "gamma"=gamma, ...)
-
-  safeLogrankTestCore("logrankObj"=logrankObj, "designObj"=designObj, "pilot"=pilot, "alpha"=alpha)
-}
-
-
-#' Core function of safeLogrankTest
-#'
-#' @rdname safeLogrankTest
+#' @inherit safeLogrankTest
 #' @param logrankObj a logrank object obtained from \code{\link[coin]{logrank_test}}.
 #' @param ... further arguments to be passed to or from methods.
 #'
