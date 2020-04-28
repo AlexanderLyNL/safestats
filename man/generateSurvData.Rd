@@ -7,11 +7,14 @@
 generateSurvData(
   nP,
   nT,
-  alpha,
+  alpha = 1,
   lambdaP,
   lambdaT,
   seed = NULL,
+  nDigits = 0,
+  startTime = 1,
   endTime = 180,
+  orderTime = TRUE,
   competeRatio = 0
 )
 }
@@ -30,7 +33,14 @@ the hazard increases, if alpha < 1, the hazard decreases.}
 
 \item{seed}{A seed number.}
 
+\item{nDigits}{numeric, the number of digits to round of the random time to}
+
+\item{startTime}{numeric, adds this to the random times. Default 1, so the startTime is not 0, which
+is the start time of \code{\link[stats]{rweibull}}.}
+
 \item{endTime}{The endtime of the experiment.}
+
+\item{orderTime}{logical, if \code{TRUE} then put the data set in increasing order}
 
 \item{competeRatio}{The ratio of the data that is due to competing risk.}
 }

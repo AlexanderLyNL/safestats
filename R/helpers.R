@@ -370,7 +370,11 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
 #' @param lambdaP The (relative) hazard of the placebo group.
 #' @param lambdaT The (relative) hazard of the treatment group.
 #' @param seed A seed number.
+#' @param nDigits numeric, the number of digits to round of the random time to
+#' @param startTime numeric, adds this to the random times. Default 1, so the startTime is not 0, which
+#' is the start time of \code{\link[stats]{rweibull}}.
 #' @param endTime The endtime of the experiment.
+#' @param orderTime logical, if \code{TRUE} then put the data set in increasing order
 #' @param competeRatio The ratio of the data that is due to competing risk.
 #'
 #' @return A data set with time, status and group.
@@ -378,16 +382,18 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
 #'
 #' @examples
 #' generateSurvData(800, 800, alpha=1, lambdaP=0.008, lambdaT=0.008/2)
-generateSurvData <- function(nP, nT, alpha, lambdaP, lambdaT, seed=NULL, endTime=180, competeRatio=0) {
-  stopifnot(competeRatio >=0, competeRatio < 1)
+generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigits=0,
+                             startTime=1, endTime=180, orderTime=TRUE, competeRatio=0) {
+  stopifnot(competeRatio >=0, competeRatio < 1, is.numeric(startTime), is.numeric(endTime))
   set.seed(seed)
   data <- list()
 
   if (competeRatio==0) {
-    data[["time"]] <- c(round(stats::rweibull("n" = nP, "shape" = alpha,
-                                              "scale" = lambdaP^(-1/alpha)), digits = 0),
-                        round(stats::rweibull("n" = nT, "shape" = alpha,
-                                              "scale" = lambdaT^(-1/alpha)), digits = 0))
+    data[["time"]] <- round(c(stats::rweibull("n" = nP, "shape" = alpha,
+                                              "scale" = lambdaP^(-1/alpha)),
+                              stats::rweibull("n" = nT, "shape" = alpha,
+                                              "scale" = lambdaT^(-1/alpha))) + startTime,
+                            "digits" = nDigits)
     data[["status"]] <- 2  # 2 is death
     data[["group"]] <- c(rep("P", times = nP), rep("T", times = nT))
     data <- as.data.frame(data)
@@ -397,10 +403,12 @@ generateSurvData <- function(nP, nT, alpha, lambdaP, lambdaT, seed=NULL, endTime
     moreNP <- ceiling((1+competeRatio)*nP)
     moreNT <- ceiling((1+competeRatio)*nT)
 
-    data[["time"]] <- c(round(stats::rweibull("n" = moreNP, "shape" = alpha,
-                                              "scale" = lambdaP^(-1/alpha)), digits = 0),
-                        round(stats::rweibull("n" = moreNT, "shape" = alpha,
-                                              "scale" = lambdaT^(-1/alpha)), digits = 0))
+    data[["time"]] <- round(c(stats::rweibull("n" = moreNP, "shape" = alpha,
+                                              "scale" = lambdaP^(-1/alpha)),
+                              stats::rweibull("n" = moreNT, "shape" = alpha,
+                                              "scale" = lambdaT^(-1/alpha))) + startTime,
+                            "digits" = nDigits)
+
     data[["status"]] <- 2  # 2 is death
     data[["group"]] <- c(rep("P", times = moreNP), rep("T", times = moreNT))
     data <- as.data.frame(data)
@@ -419,5 +427,9 @@ generateSurvData <- function(nP, nT, alpha, lambdaP, lambdaT, seed=NULL, endTime
     data[["status"]][indexOfCompete] <- 1
     data[["status"]] <- factor(data[["status"]], 0:2, c("censored", "competing", "death"))
   }
+
+  if (orderTime)
+    data <- data[order(data[["time"]]), ]
+
   return(data)
 }

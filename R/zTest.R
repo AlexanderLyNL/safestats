@@ -45,7 +45,7 @@ safeZTestStat <- function(z, parameter, n1, n2=NULL, alternative=c("two.sided", 
     result <- 2^(-15)
   }
 
-  return(result)
+  return(unname(result))
 }
 
 #' Computes the Inverse of the Two-Sided Safe Z-Test

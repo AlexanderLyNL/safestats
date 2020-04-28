@@ -227,9 +227,3 @@ designSafeLogrank <- function(nPlan=NULL, alpha=0.05, beta=0.2, thetaMin=NULL,
 
   return(result)
 }
-
-
-
-
-
-
