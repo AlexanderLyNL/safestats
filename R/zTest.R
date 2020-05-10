@@ -447,9 +447,8 @@ designPilotSafeZ <- function(nPlan, alpha=0.05, alternative=c("two.sided", "grea
 #' @param sigma numeric > 0 representing the assumed population standard deviation used for the test.
 #' @param kappa the true population standard deviation. Default kappa=sigma.
 #' @param tol a number that defines the stepsizes between the lowParam and highParam.
-#' @param lowN integer that defines the smallest n of our search space for n.
-#' @param highN integer that defines the largest n of our search space for n. This might be the largest n that we
-#' are able to fund.
+#' @param highN integer that stops the search process if the lower bound for the candidate nPlan exceeds this
+#' number. Default highN is set 8e9 to correspond to the current population of the earth.
 #' @param testType either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ".
 #' @param ratio numeric representing n2/n1. If is.null(n2) then ratio=1.
 #' @param ... further arguments to be passed to or from methods.
@@ -479,7 +478,7 @@ designPilotSafeZ <- function(nPlan, alpha=0.05, alternative=c("two.sided", "grea
 #' @examples
 #' designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
 designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alternative=c("two.sided", "greater", "less"),
-                        h0=0, sigma=1, kappa=sigma, tol=1e-5, lowN=NULL, highN=5000L,
+                        h0=0, sigma=1, kappa=sigma, tol=1e-5, highN=8e9,
                         testType=c("oneSampleZ", "pairedSampleZ", "twoSampleZ"), ratio=1, ...) {
 
   stopifnot(alpha > 0, alpha < 1)
@@ -491,8 +490,8 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alte
     stopifnot(beta > 0, beta < 1)
 
     if (!is.null(nPlan)) {
-      warning("Both nPlan and meanDiffMin combined with beta provided. Preference is given to designing with beta; ",
-              "nPlan is ignored")
+      warning("Both (1) meanDiffMin combined with beta, and (2) nPlan provided. ",
+              "Preference is given to designing with (1); The provided nPlan is ignored.")
       nPlan <- NULL
     }
   }
@@ -517,85 +516,132 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alte
   result <- list("nPlan"=NULL, "parameter"=NULL, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
                  "h0"=h0, "sigma"=sigma, "kappa"=kappa,
-                 "ratio"=ratio, "pilot"=FALSE, "lowN"=lowN, "highN"=highN, "call"=sys.call())
+                 "ratio"=ratio, "pilot"=FALSE, "lowN"=NULL, "highN"=NULL, "call"=sys.call())
   class(result) <- "safeDesign"
 
   meanDiffMin <- abs(meanDiffMin)
 
+  sampleSizeFactor <- if (testType=="twoSampleZ") ratio/(1+ratio)^2 else 1
+
   # Note(Alexander): Compute one-sided nExact. This provides us with a lower bound on
   # the two-sided test.
   #
-  if (is.null(lowN) || alternative %in% c("greater", "less"))
-    nExact <- tryOrFailWithNA(((sigma*sqrt(2*log(1/alpha))-kappa*qnorm(beta))/meanDiffMin)^2)
+  nTotalExact <- tryOrFailWithNA(((sigma*sqrt(2*log(1/alpha))-kappa*qnorm(beta))/meanDiffMin)^2)/sampleSizeFactor
 
-  if (is.na(nExact))
+  if (is.na(nTotalExact))
     stop("Something went wrong, couldn't design based on the given input.")
+
+  if (nTotalExact > highN)
+    stop("More samples needed than highN, which is ", highN)
 
   n1Plan <- NULL
   n2Plan <- NULL
 
+  if (testType=="twoSampleZ") {
+    nTotalToN1Ratio <- 1/(1+ratio)
+    n1ToNEffRatio <- ratio/(1+ratio)
+  } else {
+    nTotalToN1Ratio <- 1
+    n1ToNEffRatio <- 1
+  }
+
   if (alternative %in% c("greater", "less")) {
+    # Note(Alexander): Here I use nEff exact, not ceiling(nEff), which should be an integer if testType != "twoSampleZ"
+    # when testType == "twoSampleZ" I do take nEff <- (1/n1Plan + 1/n2Plan), where n1Plan and n2Plan are integers
+    # This means that discriminant D is very close to 0. I tried using the exact nEff, but this performed less well
+    # for the actual sample sizes.
+    #
+    #
+    nEff <- nTotalExact*nTotalToN1Ratio*n1ToNEffRatio
+
     if (testType == "twoSampleZ") {
-      n1Exact <- (ratio+1)/ratio*nExact
-      n1Plan <- ceiling(n1Exact)
-      n2Plan <- ceiling(ratio*n1Exact)
+      n1Plan <- ceiling(nTotalExact*nTotalToN1Ratio)
+      n2Plan <- ceiling(nTotalExact*nTotalToN1Ratio*ratio)
       nEff <- (1/n1Plan+1/n2Plan)^(-1)
     } else {
-      nEff <- ceiling(nExact)
-      n1Plan <- nEff
+      n1Plan <- ceiling(nEff)
 
       if (testType == "pairedSampleZ")
-        n2Plan <- nEff
+        n2Plan <- n1Plan
     }
 
     qBeta <- kappa/sigma*qnorm(beta) + sqrt(nEff)*meanDiffMin/sigma
-    discriminantD <- qBeta^2-2*log(1/alpha)
+    discriminantD <- max(qBeta^2-2*log(1/alpha), 0)
 
-    phiS <- sigma/sqrt(nEff)*(qBeta+sqrt(discriminantD))
+    phiS <- sigma/sqrt(nEff)*(qBeta + sqrt(discriminantD))
 
     if (alternative=="less")
       phiS <- -phiS
 
   } else {
     # Two.sided
+    nTotalExactUpper <- tryOrFailWithNA(
+      ((sigma*sqrt(2*log(2/alpha))-kappa*qnorm(beta))/meanDiffMin)^2/sampleSizeFactor
+    )
 
-    if (is.null(lowN)) {
-      lowN <- floor(nExact)
-      result[["lowN"]] <- lowN
-    }
+    # Note(Alexander): Translate to lower and upper bound in terms of n1
+    #
+    lowN <- floor(nTotalExact*nTotalToN1Ratio)
+    highN <- ceiling(nTotalExactUpper*nTotalToN1Ratio)
 
-    if (lowN > highN)
-      stop("Can't find the two-sided nPlan, because lowN is larger than highN. Please increase highN. lowN =", lowN)
+    # This shouldn't occur
+    if (is.na(highN))
+      highN <- 2*lowN
 
-    nDefinitions <- defineTTestN("lowN"=lowN, "highN"=highN, "ratio"=ratio, "testType"=testType)
-
-    n1 <- nDefinitions[["n1"]]
-    n2 <- nDefinitions[["n2"]]
-    candidateNEff <- nDefinitions[["candidateNEff"]]
+    result[["lowN"]] <- lowN
+    result[["highN"]] <- highN
 
     criterionFunctionExact <- criterionFunctionFactory("alpha"=alpha, "beta"=beta, "sigma"=sigma,
                                                        "kappa"=kappa, "meanDiffMin"=meanDiffMin,
                                                        "criterionType"="exact")
 
-    nIndex <- purrr::detect_index(candidateNEff, criterionFunctionExact, parameter=NULL)
+    candidateN1 <- highN
+    candidateNEff <- candidateN1*n1ToNEffRatio
 
-    if (nIndex==0) {
-      stop("Couldn't find a smallest n. Please increase highN, and to increase efficiency set lowN to",
-           " the current highN. Current highN = ", highN)
+    continueWhile <- TRUE
+
+    # Note(Alexander): Loop backwards to find a smaller n1Plan
+    #
+    while (continueWhile && candidateN1 > lowN) {
+      continueWhile <- criterionFunctionExact(n=candidateNEff, parameter = NULL)
+      # candidateNEff, criterionFunctionExact
+
+      if (isTRUE(continueWhile)) {
+        candidateN1 <- candidateN1 - 1
+        candidateNEff <- candidateN1*n1ToNEffRatio
+      } else {
+        candidateN1 <- candidateN1 + 1
+        break()
+      }
     }
 
-    nEff <- candidateNEff[nIndex]
+    nEff <- candidateN1*n1ToNEffRatio
+
+    if (testType=="twoSampleZ") {
+      n1Plan <- ceiling(nEff/n1ToNEffRatio)
+      n2Plan <- ceiling(n1Plan*ratio)
+      nEff <- (1/n1Plan+1/n2Plan)^(-1)
+      result[["nEffPlan"]] <- nEff
+    } else {
+      n1Plan <- ceiling(nEff)
+
+      if (testType=="pairedSampleT")
+        n2Plan <- n1Plan
+
+    }
 
     # Candidate parameters ---
     phiUmp <- sqrt(2/(sigma^2*nEff)*log(2/alpha))
 
     chiSqInverseBeta <- qchisq(beta, df=1, ncp=nEff*meanDiffMin^2/kappa^2)
-    discriminantD <- chiSqInverseBeta-sigma^2/kappa^2*2*log(2/alpha)
+    discriminantD <- max(chiSqInverseBeta-sigma^2/kappa^2*2*log(2/alpha), 0)
+
     phiSApprox <-kappa/sqrt(nEff)*(sqrt(chiSqInverseBeta)+sqrt(discriminantD))
 
     # Random lower bound for phi
+    # TODO(Alexander): Get a better bounds perhaps
+    #
     lowPhi <- min(phiUmp, phiSApprox, meanDiffMin/2)
-
     highPhi <- if (beta < 1/2) meanDiffMin else 2*meanDiffMin
 
     candidatePhis <- seq(lowPhi, highPhi, "by"=tol)
@@ -606,18 +652,6 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alte
 
     result[["lowParam"]] <- lowPhi
     result[["highParam"]] <- highPhi
-
-    if (testType=="twoSampleZ") {
-      n1Plan <- n1[nIndex]
-      n2Plan <- n2[nIndex]
-      result[["nEffPlan"]] <- nEff
-    } else {
-      n1Plan <- nEff
-
-      if (testType=="pairedSampleT")
-        n2Plan <- nEff
-
-    }
   } # end two.sided
 
   if (is.null(n2Plan)) {
@@ -660,7 +694,12 @@ criterionFunctionFactory <- function(alpha, beta, sigma, kappa, meanDiffMin,
 
                      zArg <- sigma^4/(kappa^2*n*parameter^2)*(acosh(exp(n*parameter^2/(2*sigma^2))/alpha))^2
 
-                     pchisq(zArg, df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta
+                     result <- pchisq(zArg, df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta
+
+                     if (is.null(parameter))
+                       result <- !result
+
+                     return(result)
                    }
   )
   return(result)

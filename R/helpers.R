@@ -433,3 +433,12 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 
   return(data)
 }
+
+computeNewNEff <- function(oldNEff, testType=c("oneSampleZ", "pairedSampleZ", "twoSampleZ"), ratio=1) {
+  if (testType=="twoSampleZ") {
+
+  } else {
+    newNEff <- oldNEff - 1
+  }
+  return(newNEff)
+}

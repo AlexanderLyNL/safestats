@@ -31,10 +31,8 @@ that we would like to detect.}
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{lowN}{integer that defines the smallest n of our search space for n.}
-
-\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
-are able to fund.}
+\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
+number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
 \item{testType}{either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ".}
 

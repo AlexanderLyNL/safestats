@@ -182,7 +182,11 @@ designSafeLogrank <- function(nPlan=NULL, alpha=0.05, beta=0.2, thetaMin=NULL,
   if (alternative != "two.sided")
     warning("Currently, only the two.sided method is implemented, and therefore used.")
 
-  names(nPlan) <- "nPlan"
+  if (!is.null(nPlan))
+    names(nPlan) <- "nPlan"
+  else
+    stop("Design methods based on beta and thetaMin, not yet implemented. ",
+         "Please provide nPlan.")
 
   names(h0) <- "theta"
 

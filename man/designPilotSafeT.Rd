@@ -14,7 +14,8 @@ designPilotSafeT(
   tol = 0.01,
   inverseMethod = TRUE,
   logging = FALSE,
-  paired = FALSE
+  paired = FALSE,
+  maxIter = 10
 )
 }
 \arguments{
@@ -36,9 +37,12 @@ designed test has to adhere to. Note that it also defines the rejection rule S10
 
 \item{inverseMethod}{logical, always \code{TRUE} for the moment.}
 
-\item{logging}{‘logical, if \code{TRUE}, then add invSToTThresh to output.}
+\item{logging}{logical, if \code{TRUE}, then add invSToTThresh to output.}
 
 \item{paired}{logical, if \code{TRUE} then paired t-test.}
+
+\item{maxIter}{numeric > 0, the maximum number of iterations of adjustment to the candidate set from
+lowParam to highParam, if the minimum is not found.}
 }
 \value{
 Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the

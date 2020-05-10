@@ -177,7 +177,7 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
 
   if (!is.null(nPlan)) {
     return(designPilotSafeT("nPlan"=nPlan, "alpha"=alpha, "h0"=h0, "alternative"=alternative,
-                            "lowParam"=lowParam, "highParam"=highParam, "tol"=tol, "logging"=logging,
+                            "lowParam"=lowParam, "tol"=tol, "logging"=logging,
                             "paired"=paired))
   }
 
@@ -897,7 +897,9 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #' @param nPlan the planned sample size(s).
 #' @param inverseMethod logical, always \code{TRUE} for the moment.
 #' @param paired logical, if \code{TRUE} then paired t-test.
-#' @param logging ‘logical, if \code{TRUE}, then add invSToTThresh to output.
+#' @param logging logical, if \code{TRUE}, then add invSToTThresh to output.
+#' @param maxIter numeric > 0, the maximum number of iterations of adjustment to the candidate set from
+#' lowParam to highParam, if the minimum is not found.
 #' @inheritParams replicateTTests
 #' @inherit designSafeT
 #'
@@ -907,7 +909,7 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #' designPilotSafeT(nPlan=30)
 designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.sided", "greater", "less"),
                              lowParam=0.01, highParam=1.2, tol=0.01, inverseMethod=TRUE,
-                             logging=FALSE, paired=FALSE) {
+                             logging=FALSE, paired=FALSE, maxIter=10) {
   # TODO(Alexander): Check relation with forward method, that is, the least conservative test and maximally powered
   # Perhaps trade-off? "inverseMethod" refers to solving minimum of deltaS \mapsto S_{deltaS}^{-1}(1/alpha)
   #
@@ -932,12 +934,13 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
 
   if (length(nPlan)==1) {
     if (isTRUE(paired)) {
-      n2 <- n1
       warning("Paired designed specified, but n2 not provided. n2 is set to n1")
+      n2 <- n1
       nPlan <- c(n1, n2)
       names(nPlan) <- c("n1Plan", "n2Plan")
       testType <- "pairedSampleT"
     } else {
+      names(nPlan) <- "n1Plan"
       testType <- "oneSampleT"
     }
   } else if (length(nPlan)==2) {
@@ -945,8 +948,8 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
     ratio <- n2/n1
 
     if (paired) {
-      if (n1!=n2) {
-        stop("Paired design specified, but n1 not equal n2")
+      if (n1 != n2) {
+        stop("Paired design specified, but nPlan[1] not equal nPlan[2]")
       }
       testType <- "pairedSampleT"
     } else {
@@ -974,8 +977,6 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
   #
   # class(result) <- "safeTDesign"
 
-  candidateDeltas <- seq(lowParam, highParam, by=tol)
-
   if (inverseMethod) {
     invSafeTTestStatAlpha <- function(x) {
       stats::uniroot("f"=safeTTestStatAlpha, "lower"=0, "upper"=3e10, "tol"=1e-9, "parameter"=x,
@@ -986,8 +987,30 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
     #   that deltaS too small, the function values are then both negative or both positive.
     #
     invSafeTTestStatAlphaRoot <- function(x){tryOrFailWithNA(invSafeTTestStatAlpha(x)$root)}
-    invSToTThresh <- purrr::map_dbl(candidateDeltas, invSafeTTestStatAlphaRoot)
+
+    candidateDeltas <- seq(lowParam, highParam, by=tol)
+
+    invSToTThresh <- rep(NA, length(candidateDeltas))
+
+    iter <- 1
+
+    while (all(is.na(invSToTThresh)) && iter <= maxIter) {
+      invSToTThresh <- purrr::map_dbl(candidateDeltas, invSafeTTestStatAlphaRoot)
+
+      if (all(is.na(invSToTThresh))) {
+        candidateDeltas <- seq(highParam, "length.out"=2*length(candidateDeltas), "by"=tol)
+        lowParam <- highParam
+        highParam <- candidateDeltas[length(candidateDeltas)]
+        iter <- iter + 1
+      }
+    }
+
     mPIndex <- which(invSToTThresh==min(invSToTThresh, na.rm=TRUE))
+
+    if (iter > 1) {
+      result[["lowParam"]] <- lowParam
+      result[["highParam"]] <- highParam
+    }
 
     if (mPIndex==length(candidateDeltas)) {
       # Note(Alexander): Check that mPIndex is not the last one.

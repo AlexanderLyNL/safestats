@@ -14,8 +14,7 @@ designSafeZ(
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
-  lowN = NULL,
-  highN = 5000L,
+  highN = 8e+09,
   testType = c("oneSampleZ", "pairedSampleZ", "twoSampleZ"),
   ratio = 1,
   ...
@@ -45,10 +44,8 @@ defining parameter phiS.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
-\item{lowN}{integer that defines the smallest n of our search space for n.}
-
-\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
-are able to fund.}
+\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
+number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
 \item{testType}{either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ".}
 
