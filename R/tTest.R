@@ -15,7 +15,7 @@
 #'   \item{beta}{the tolerable type II error provided by the user.}
 #'   \item{lowN}{the smallest n of the search space for n provided by the user.}
 #'   \item{highN}{the largest n of the search space for n provided by the user.}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+#'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
 #' }
 #' @export
@@ -23,7 +23,7 @@
 #' @examples
 #' designFreqT(0.5)
 designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
-                        lowN=3L, highN=100L, testType=c("oneSampleT", "pairedSampleT", "twoSampleT"),
+                        lowN=3L, highN=100L, testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, ...) {
 
   stopifnot(lowN >= 2, highN > lowN, alpha > 0, beta >0)
@@ -52,7 +52,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
   }
 
   for (n in seq.int(lowN, highN)) {
-    if (testType=="twoSampleT") {
+    if (testType=="twoSample") {
       someDf <- (1+ratio)*n-2
       someNcp <- sqrt(ratio/(1+ratio)*n)*deltaMin
     } else {
@@ -66,10 +66,10 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
     if (powerT >= (1-beta)) {
       n1Plan <- n
 
-      if (testType=="twoSampleT")
+      if (testType=="twoSample")
         n2Plan <- ceiling(ratio*n)
 
-      if (testType=="pairedSampleT")
+      if (testType=="paired")
         n2Plan <- n
 
       break()
@@ -115,7 +115,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' @param lowParam numeric that defines the smallest delta of our search space for the test-defining deltaS.
 #' @param highParam numeric that defines the largest delta of our search space for the test-defining deltaS.
 #' @param tol a number that defines the stepsizes between the lowParam and highParam.
-#' @param testType either one of "oneSampleT", "pairedSampleT", "twoSampleT".
+#' @param testType either one of "oneSample", "paired", "twoSample".
 #' @param ratio numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.
 #' @param logging logical, if \code{TRUE} return altSThreshes.
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
@@ -130,11 +130,11 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error provided by the user.}
 #'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
-#'   \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
+#'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+#'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
 #'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
 #'   whether it was a one-sample or a two-sample test.}
-#'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
+#'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it's defined
 #'   ratio equals n2/n1.}
 #'   \item{lowN}{the smallest n of the search space for n provided by the user.}
 #'   \item{highN}{the largest n of the search space for n provided by the user.}
@@ -151,7 +151,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' designObj
 designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
                         h0=0, nPlan=NULL, lowN=3L, highN=100L, lowParam=0.01, highParam=1.5*abs(deltaMin),
-                        tol=0.01, testType=c("oneSampleT", "pairedSampleT", "twoSampleT"),
+                        tol=0.01, testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, logging=FALSE, ...) {
   stopifnot(alpha > 0, alpha < 1)
 
@@ -171,7 +171,7 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
-  paired <- if (testType=="pairedSampleT") TRUE else FALSE
+  paired <- if (testType=="paired") TRUE else FALSE
 
   names(h0) <- "mu"
 
@@ -223,24 +223,24 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
       deltaMinThresh <- stats::qt("p"=beta, "df"=candidateNu[i], "ncp"=candidateTNcp[i])
 
     # TODO(Alexander): Under the assumption that this is unimodal, then stop once the value goes down
-    if (testType=="twoSampleT") {
+    if (testType=="twoSample") {
       altSThreshes <- purrr::map_dbl(".x"=candidateDeltas, ".f"=safeTTestStat, "t"=deltaMinThresh,
                                      "n1"=n1[i], "n2"=n2[i], "alternative"=alternative, "paired"=paired)
-    } else if (testType %in% c("oneSampleT", "pairedSampleT")) {
+    } else if (testType %in% c("oneSample", "paired")) {
       altSThreshes <- purrr::map_dbl(".x"=candidateDeltas, ".f"=safeTTestStat, "t"=deltaMinThresh,
                                      "n1"=candidateNEff[i], "n2"=n2[i], "alternative"=alternative, "paired"=paired)
     }
 
     if (max(altSThreshes) >= sCutOff) {
       nEff <- candidateNEff[i]
-      if (testType=="twoSampleT") {
+      if (testType=="twoSample") {
         n1Plan <- ceiling(n1[i])
         n2Plan <- ceiling(n2[i])
         result[["nEffPlan"]] <- nEff
-      } else if (testType %in% c("oneSampleT", "pairedSampleT")) {
+      } else if (testType %in% c("oneSample", "paired")) {
         n1Plan <- nEff
 
-        if (testType=="pairedSampleT")
+        if (testType=="paired")
           n2Plan <- nEff
 
       }
@@ -329,11 +329,11 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
   if (object[["pilot"]])
     stop("No simulation for unplanned pilot designs")
 
-  if (object[["testType"]] %in% c("oneSampleT", "pairedSampleT", "twoSampleT")) {
+  if (object[["testType"]] %in% c("oneSample", "paired", "twoSample")) {
     if (is.null(deltaTrue))
       deltaTrue <- object[["parameter"]]
 
-    paired <- if (object[["testType"]]=="pairedSampleT") TRUE else FALSE
+    paired <- if (object[["testType"]]=="paired") TRUE else FALSE
 
     result <- replicateTTests("nPlan"=object[["nPlan"]], "deltaTrue"=deltaTrue,
                               "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired,
@@ -389,7 +389,7 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
 #'   \item{nsim}{the number of replications of the experiment.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error provided by the user.}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+#'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
 #'   Acquired from \code{\link{designSafeT}}.}
 #'   \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}
@@ -474,7 +474,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
   if (length(nPlan)==2) {
     n2Plan <- nPlan[2]
 
-    testType <- if (paired) "pairedSampleT" else "twoSampleT"
+    testType <- if (paired) "paired" else "twoSample"
   } else {
     if (paired) {
       warning("Paired simulations wanted, but length(nPlan)=1. Duplicate n2Plan=n1Plan")
@@ -482,7 +482,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
       nPlan <- c(n1Plan, n2Plan)
     }
 
-    testType <- if (paired) "pairedSampleT" else "oneSampleT"
+    testType <- if (paired) "paired" else "oneSample"
   }
 
   result <- list("nPlan"=nPlan, "deltaTrue"=deltaTrue, "muGlobal"=muGlobal, "paired"=paired,
@@ -753,7 +753,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
 #' simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
 #' simObj
 print.safeTSim <- function(x, ...) {
-  analysisName <- getNameTestType(testType = x[["testType"]])
+  analysisName <- getNameTestType("testType" = x[["testType"]], "parameterName"=names(x[["parameter"]]))
 
   if(!is.null(x[["safeSim"]])) {
     cat("\n")
@@ -867,16 +867,15 @@ plot.safeTSim <- function(x, y=NULL, showOnlyNRejected=FALSE, nBin=25, ...) {
 #' @examples
 #' safestats:::defineTTestN()
 defineTTestN <- function(lowN=3, highN=100, ratio=1,
-                         testType=c("oneSampleT", "pairedSampleT", "twoSampleT",
-                                    "oneSampleZ", "pairedSampleZ", "twoSampleZ")) {
+                         testType=c("oneSample", "paired", "twoSample")) {
   testType <- match.arg(testType)
 
-  if (testType %in% c("twoSampleT", "twoSampleZ")) {
+  if (testType %in% c("twoSample")) {
     n1 <- lowN:highN
     n2 <- ceiling(ratio*n1)
     candidateNEff <- ratio/(1+ratio)*n1
     candidateNu <- (1+ratio)*n1-2
-  } else if (testType %in% c("oneSampleT", "pairedSampleT", "oneSampleZ", "pairedSampleZ")) {
+  } else if (testType %in% c("oneSample", "paired")) {
     n1 <- lowN:highN
     n2 <- NULL
     candidateNEff <- n1
@@ -938,10 +937,10 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
       n2 <- n1
       nPlan <- c(n1, n2)
       names(nPlan) <- c("n1Plan", "n2Plan")
-      testType <- "pairedSampleT"
+      testType <- "paired"
     } else {
       names(nPlan) <- "n1Plan"
-      testType <- "oneSampleT"
+      testType <- "oneSample"
     }
   } else if (length(nPlan)==2) {
     n2 <- nPlan[2]
@@ -951,9 +950,9 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
       if (n1 != n2) {
         stop("Paired design specified, but nPlan[1] not equal nPlan[2]")
       }
-      testType <- "pairedSampleT"
+      testType <- "paired"
     } else {
-      testType <- "twoSampleT"
+      testType <- "twoSample"
     }
     names(nPlan) <- c("n1Plan", "n2Plan")
   }
@@ -1091,7 +1090,7 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
 #' @examples
 #' plotSafeTDesignSampleSizeProfile(freqPlot=TRUE, backTest=TRUE)
 plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, lowParam=0.01, highParam=1, tol=0.1,
-                                             testType=c("oneSampleT", "pairedSampleT", "twoSampleT"), nsim=1000L,
+                                             testType=c("oneSample", "paired", "twoSample"), nsim=1000L,
                                              alternative=c("two.sided", "greater", "less"), ratio=1,
                                              deltaFactor=0.5, nFactor=2, simulateSafeOptioStop=FALSE,
                                              logging=FALSE, backTest=FALSE, seed=NULL, freqPlot=FALSE, pb=TRUE,
@@ -1109,7 +1108,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
   if (lastDeltaIndex < 1)
     stop("Either maxN or deltaDomain is too small. Please lower lowParam or make highParam larger")
 
-  paired <- if (testType=="pairedSampleT") TRUE else FALSE
+  paired <- if (testType=="paired") TRUE else FALSE
 
   allN1PlanFreq <- vector("integer", lastDeltaIndex)
 
@@ -1325,7 +1324,7 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 
 #' Generates Normally Distributed Data Depending on the Design
 #'
-#' The designs supported are "oneSampleT", "pairedSampleT", "twoSampleT".
+#' The designs supported are "oneSample", "paired", "twoSample".
 #'
 #' @inheritParams replicateTTests
 #'
@@ -1411,7 +1410,7 @@ generateTTestData <- function(nPlan, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaT
 #'   or a two-sample test.}
 #'   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
 #'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
-#'   \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+#'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
 #'   \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
 #'   \item{call}{the expression with which this function is called.}
@@ -1420,7 +1419,7 @@ generateTTestData <- function(nPlan, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaT
 #'
 #' @examples
 #' designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-#' testType="twoSampleT", ratio=1.2)
+#' testType="twoSample", ratio=1.2)
 #'
 #' set.seed(1)
 #' x <- rnorm(100)
@@ -1460,16 +1459,16 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   if (is.null(y)) {
     n <- n1
     names(n) <- "n1"
-    testType <- "oneSampleT"
+    testType <- "oneSample"
   } else {
     n2 <- length(y)
     n <- c(n1, n2)
     names(n) <- c("n1", "n2")
 
     if (paired)
-      testType <- "pairedSampleT"
+      testType <- "paired"
     else
-      testType <- "twoSampleT"
+      testType <- "twoSample"
   }
 
   result[["testType"]] <- testType
@@ -1522,7 +1521,7 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 #'
 #' @examples
 #' designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-#' testType="twoSampleT", ratio=1.2)
+#' testType="twoSample", ratio=1.2)
 #'
 #' set.seed(1)
 #' x <- rnorm(100)
@@ -1684,7 +1683,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
     analysisName <- paste("Safe", logrankObj@method)
     alternativeName <- "true theta is not equal to 1"
   } else {
-    analysisName <- getNameTestType("testType"=testType)
+    analysisName <- getNameTestType("testType"=testType, "parameterName"=names(designObj[["parameter"]]))
     alternativeName <- getNameAlternative("alternative"=x[["alternative"]], "testType"=testType)
   }
 
@@ -1813,6 +1812,8 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
 print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
   testType <- designObj[["testType"]]
+  parameterName <- names(designObj[["parameter"]])
+
   note <- NULL
 
   if (testType=="logrank") {
@@ -1821,7 +1822,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
     # names(designObj[["parameter"]]) <- "log(thetaS)"
     note <- "Based on a z approximation"
   } else {
-    analysisName <- paste(getNameTestType("testType"=testType), "Design")
+    analysisName <- paste(getNameTestType("testType"=testType, "parameterName"=parameterName), "Design")
     alternativeName <- getNameAlternative("alternative"=x[["alternative"]], "testType"=testType)
   }
 
@@ -1831,202 +1832,50 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
 
   designObj[["decision rule"]] <- 1/designObj[["alpha"]]
 
-  if (!is.null(x[["beta"]])) {
-    designObj[["beta"]] <- 1-designObj[["beta"]]
-    wantItems <- c("nPlan", "esMin", "alpha", "beta", "parameter", "decision rule", "alternative")
-    newNames <- c(paste(names(designObj[["nPlan"]]), collapse=", "),
-                  names(designObj[["esMin"]]),
-                  "alpha",
-                  "power: 1 - beta",
-                  paste("parameter:", names(designObj[["parameter"]])),
-                  "decision rule: s-value > 1/alpha",
-                  "alternative")
-  } else {
-    wantItems <- c("nPlan", "alpha", "parameter", "decision rule", "alternative")
-    newNames <- c(paste(names(designObj[["nPlan"]]), collapse=", "),
-                  "alpha",
-                  paste("parameter:", names(designObj[["parameter"]])),
-                  "decision rule: s-value > 1/alpha",
-                  "alternative")
+  displayList <- list()
+
+  for (item in c("nPlan", "nEvents", "esMin", "alpha", "beta", "parameter", "decision rule", "alternative")) {
+    itemValue <- designObj[[item]]
+
+    if (!is.null(itemValue)) {
+      if (item == "nPlan") {
+        displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
+      } else if (item=="beta") {
+        displayList[["power: 1 - beta"]] <- 1-itemValue
+      } else if (item=="parameter") {
+        displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValue
+      } else if (item=="decision rule") {
+        displayList[["decision rule: s-value > 1/alpha"]] <- itemValue
+      } else if (item=="esMin") {
+        displayList[[names(itemValue)]] <- itemValue
+      } else {
+        displayList[[item]] <- itemValue
+      }
+    }
   }
 
-  subObj <- designObj[wantItems]
-  names(subObj) <- newNames
+  # if (!is.null(x[["beta"]])) {
+  #   designObj[["beta"]] <- 1-designObj[["beta"]]
+  #   wantItems <- c("nPlan", "esMin", "alpha", "beta", "parameter", "decision rule", "alternative")
+  #   newNames <- c(paste(names(designObj[["nPlan"]]), collapse=", "),
+  #                 names(designObj[["esMin"]]),
+  #                 "alpha",
+  #                 "power: 1 - beta",
+  #                 paste("parameter:", names(designObj[["parameter"]])),
+  #                 "decision rule: s-value > 1/alpha",
+  #                 "alternative")
+  # } else {
+  #   wantItems <- c("nPlan", "alpha", "parameter", "decision rule", "alternative")
+  #   newNames <- c(paste(names(designObj[["nPlan"]]), collapse=", "),
+  #                 "alpha",
+  #                 paste("parameter:", names(designObj[["parameter"]])),
+  #                 "decision rule: s-value > 1/alpha",
+  #                 "alternative")
+  # }
 
-  cat(paste(format(names(subObj), width = 20L, justify = "right"),
-            format(subObj, digits = digits), sep = " = "), sep = "\n")
+  # subObj <- designObj[wantItems]
+  # names(subObj) <- newNames
 
-  # cat("\n", "Note: ", "alpha holds under both optional stopping and optional continuation.", "\n", sep = "")
-  # else
-  #   cat("\n")
-  #
-  # invisible(x)
+  cat(paste(format(names(displayList), width = 20L, justify = "right"),
+            format(displayList, digits = digits), sep = " = "), sep = "\n")
 }
-
-#' #' Prints a safeTDesign object
-#' #'
-#' #' @param x a safeTDesign object
-#' #' @param ... further arguments to be passed to or from methods.
-#' #'
-#' #' @return No returned value, called for side effects
-#' #'
-#' #' @export
-#' #'
-#' #' @examples
-#' #' safeDesignObj <- designSafeT(0.8)
-#' #' print(safeDesignObj)
-#' print.safeTDesign <- function(x, ...) {
-#'   analysisName <- getNameTestType(testType = x[["testType"]])
-#'
-#'   cat("\n")
-#'   cat(paste("       ", analysisName, "\n"))
-#'   cat("\n")
-#'
-#'   if (isFALSE(x[["pilot"]])) {
-#'     if (is.null(x[["n2Plan"]])) {
-#'       cat("Requires an experiment with a sample size of: ")
-#'       cat("\n")
-#'       cat(paste("    n1Plan =", x[["n1Plan"]]))
-#'       cat("\n")
-#'     } else {
-#'       cat("Requires an experiment with sample sizes: ")
-#'       cat("\n")
-#'       cat(paste("    n1Plan =", x[["n1Plan"]], "and n2Plan =", x[["n2Plan"]]))
-#'       cat("\n")
-#'     }
-#'     cat("to find an effect size of at least: ")
-#'     cat("\n")
-#'     cat("    deltaMin =", round5(x[["parameter"]]))
-#'     cat("\n")
-#'     cat("\n")
-#'
-#'     cat("with:")
-#'     cat("\n")
-#'     cat("    power = ", 1 - x[["beta"]], " (thus, beta = ", x[["beta"]], ")", sep="")
-#'     cat("\n")
-#'
-#'     cat("under the alternative:")
-#'     cat("\n")
-#'     cat("   ", getNameAlternative(x[["alternative"]], x[["testType"]]))
-#'     cat("\n")
-#'     cat("\n")
-#'
-#'     cat("Based on the decision rule S > 1/alpha:")
-#'     cat("\n")
-#'     cat("    S > ", round5(1/x[["alpha"]]), sep="")
-#'     cat("\n")
-#'
-#'     cat("which occurs with chance less than:")
-#'     cat("\n")
-#'     cat("    alpha =", x[["alpha"]])
-#'     cat("\n")
-#'
-#'     cat("under iid normally distributed data and the null hypothesis:")
-#'     cat("\n")
-#'     cat("    mu =", x[["h0"]])
-#'   } else {
-#'     cat("The experiment is not planned.")
-#'     cat("\n")
-#'     cat("This design object only valid for experiments with:")
-#'     cat("\n")
-#'
-#'     if (is.null(x[["n2Plan"]])) {
-#'       cat("    n1 =", x[["n1Plan"]])
-#'       cat("\n")
-#'     } else {
-#'       cat("    n1 =", x[["n1Plan"]], "and n2 =", x[["n2Plan"]])
-#'       cat("\n")
-#'     }
-#'   }
-#' }
-#'
-#' #' Prints a safeTResult object
-#' #'
-#' #' @param x a \code{safeTResult} object
-#' #' @param ... further arguments to be passed to or from methods.
-#' #'
-#' #' @return No returned value, called for side effects
-#' #'
-#' #' @export
-#' #'
-#' #' @examples
-#' #' safeDesignObj <- designSafeT(0.7)
-#' #' safeTTest(rnorm(10), designObj=safeDesignObj)
-#' print.safeTResult <- function(x, ...) {
-#'   designObj <- x[["designObj"]]
-#'   testType <- designObj[["testType"]]
-#'
-#'   analysisName <- getNameTestType("testType"=testType)
-#'   alternativeName <- getNameAlternative("alternative"=x[["alternative"]], "testType"=testType)
-#'
-#'   cat("\n")
-#'   cat(paste("       ", analysisName, "\n"))
-#'   cat("\n")
-#'
-#'   cat("Data:", x[["dataName"]])
-#'   cat(".  ")
-#'   cat("Estimates:", names(x[["estimate"]]), round5(x[["estimate"]]))
-#'   cat("\n")
-#'   # print(round5(x[["estimate"]]))
-#'
-#'   cat("\n")
-#'   cat("Test summary: ")
-#'   cat("t = ", round5(x[["statistic"]]), ", df = ", round5(x[["parameter"]]), ".", sep="")
-#'   cat("\n")
-#'
-#'   if (designObj[["pilot"]]) {
-#'     cat("The pilot test is based on an exploratory alpha =", designObj[["alpha"]])
-#'     cat("\n")
-#'     cat("and resulted in:  s-value =", round5(x[["sValue"]]))
-#'     cat("\n")
-#'     cat("Alternative hypothesis:")
-#'   } else {
-#'     cat("The test was designed with alpha =", designObj[["alpha"]])
-#'     cat("\n")
-#'     cat("s-value =", round5(x[["sValue"]]), "> 1/alpha =", round5(1/designObj[["alpha"]]), ":",
-#'         x[["sValue"]] > 1/designObj[["alpha"]])
-#'     cat("\n")
-#'     # Iets over n1Plan, n2Plan, etc
-#'
-#'     cat("\n")
-#'     if (is.null(designObj[["n2Plan"]])) {
-#'       cat(paste("Experiments powered for n1Plan =", designObj[["n1Plan"]], "samples."))
-#'     } else {
-#'       cat(paste("Experiments powered for n1Plan =", designObj[["n1Plan"]], "and n2Plan =",
-#'                 designObj[["n2Plan"]], "samples."))
-#'     }
-#'     cat("\n")
-#'
-#'     n1Diff <- designObj[["n1Plan"]] - x[["n1"]]
-#'
-#'     if (!is.null(designObj[["n2Plan"]])) {
-#'       n2Diff <- designObj[["n2Plan"]] - x[["n2"]]
-#'     } else {
-#'       # Note Dummy
-#'       n2Diff <- 0
-#'     }
-#'
-#'     if (n1Diff > 0 || n2Diff > 0) {
-#'       cat("    Note: ")
-#'       if (n1Diff > 0) {
-#'         cat("n1Plan - n1 = ", n1Diff, ", ", sep="")
-#'       }
-#'       if (n2Diff > 0) {
-#'         cat("n2Plan - n2 =", n2Diff)
-#'       }
-#'       cat("\n")
-#'     }
-#'
-#'     cat("To guarantee a power = ", round5(1 - designObj[["beta"]]),
-#'         " (beta =", round5(designObj[["beta"]]), ")", sep="")
-#'     cat("\n")
-#'     cat("under the alternative hypothesis:")
-#'   }
-#'   cat("\n")
-#'   cat(alternativeName)
-#'   cat(",  ")
-#'
-#'   if (isFALSE(designObj[["pilot"]])) {
-#'     cat("and deltaMin =", designObj[["parameter"]])
-#'   }
-#' }

@@ -47,11 +47,11 @@
 #' designObj <- designSafeLogrank(nPlan=89)
 #' ## Data based on exact logrank test using mid-ranks (p = 0.0505)
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
-#'                 distribution = "exact", designObj = designObj)
+#'                 designObj = designObj)
 #' #'
-#' ## Data based on exact logrank test using average-scores (p = 0.0468)
+#' ## Data based on exact logrank test using average-scores
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
-#'                 distribution = "exact", ties.method = "average-scores",
+#'                 ties.method = "average-scores",
 #'                 designObj = designObj)
 #' }
 safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
@@ -172,62 +172,46 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #'
 #' @examples
 #' designSafeLogrank(nPlan=89)
-designSafeLogrank <- function(nPlan=NULL, alpha=0.05, beta=0.2, thetaMin=NULL,
+designSafeLogrank <- function(hazardRatioMin=NULL, alpha=0.05, beta=0.2, nEvents=NULL,
                               alternative=c("two.sided", "greater", "less"), h0=1,
                               ratio=1, zApprox=TRUE, tol=1e-5, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
   alternative <- match.arg(alternative)
 
-  if (alternative != "two.sided")
-    warning("Currently, only the two.sided method is implemented, and therefore used.")
-
-  if (!is.null(nPlan))
-    names(nPlan) <- "nPlan"
-  else
-    stop("Design methods based on beta and thetaMin, not yet implemented. ",
-         "Please provide nPlan.")
-
-  names(h0) <- "theta"
-
-  result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=thetaMin, "alpha"=alpha, "beta"=NULL,
-                 "alternative"=alternative, "testType"="logrank", "ratio"=ratio, "h0"=h0,
-                 "pilot"=FALSE, "call"=sys.call())
-  class(result) <- "safeDesign"
-
-  # if (!is.null(beta))
-  #   warning("Currently, only the method based on nPlan is implemented, and therefore used. beta ignored")
-
-  if (is.null(thetaMin)) {
-    # warning("Currently, only the method based on nPlan is implemented, and therefore used. thetaMin ignored")
-
-    if (zApprox) {
-      safeZObj <- try(designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative))
+  if (zApprox) {
+    if (!is.null(hazardRatioMin)) {
+      logHazardRatio <-if (alternative=="two.sided") abs(log(hazardRatioMin)) else log(hazardRatioMin)
+      meanDiffMin <- sqrt(ratio)/(1+ratio)*logHazardRatio
     } else {
-      warning("Currently, only the z-approximation method is implemented, and therefore used.")
-
-      # TODO(Alexander): Replace by hypergeometric method
-      #
-      safeZObj <- try(designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative))
+      logHazardRatio <- NULL
+      meanDiffMin <- NULL
     }
 
-    if (isTryError(safeZObj))
-      stop("Unable to design the given alpha and nPlan")
+    safeZObj <- designSafeZ("meanDiffMin"= meanDiffMin, "alpha"=alpha, "beta"=beta,
+                            "nPlan"=nEvents, "alternative"=alternative,
+                            "h0"=log(h0), "sigma"=1, "testType"="oneSample")
+    nEvents <- safeZObj[["nPlan"]]
+    safeZObj[["nPlan"]] <- NULL
+    safeZObj[["nEvents"]] <- nEvents
+    names(safeZObj[["nEvents"]]) <- "nEvents"
+    names(safeZObj[["parameter"]]) <- "log(thetaS)"
 
-  } else {
+    safeZObj[["esMin"]] <- logHazardRatio
 
-    # if (is.null(nPlan))
-    #   stop("Can't design without targetted nPlan number of events.")
+    if (!is.null(safeZObj[["esMin"]])) {
+      names(safeZObj[["esMin"]]) <- switch(alternative,
+                                           "two.sided"="log hazard difference at least abs(log(theta))",
+                                           "greater"="log hazard ratio at least",
+                                           "less"="log hazard ratio less than")
+    }
 
-    warning("Currently, only the z-approximation method is implemented, and therefore used.")
-
-    # TODO(Alexander): Replace by most likely a z approximation power analysis based on beta and thetaMin
-    #
-    safeZObj <- try(designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative))
+    safeZObj[["testType"]] <- "logrank"
+    safeZObj[["paired"]] <- NULL
+    names(safeZObj[["h0"]]) <- "log hazard ratio"
+    safeZObj[["call"]] <- sys.call()
   }
-
-  result[["parameter"]] <- safeZObj[["parameter"]]
-  names(result[["parameter"]]) <- "log(thetaS)"
+  result <- safeZObj
 
   return(result)
 }

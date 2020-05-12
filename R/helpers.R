@@ -56,16 +56,20 @@ isTryError <- function(...) {
 #' @export
 #'
 #' @examples
-#' getNameTestType("oneSampleT")
-getNameTestType <- function(testType) {
+#' getNameTestType("oneSample", "t")
+getNameTestType <- function(testType, parameterName) {
   nameChar <- switch(testType,
-                     "oneSampleT"="Safe One Sample T-Test",
-                     "pairedSampleT"="Safe Paired Sample T-Test",
-                     "twoSampleT"="Safe Two Sample T-Test",
-                     "oneSampleZ"="Safe One Sample Z-Test",
-                     "pairedSampleZ"="Safe Paired Sample Z-Test",
-                     "twoSampleZ"="Safe Two Sample Z-Test")
-  return(nameChar)
+                     "oneSample"="Safe One Sample",
+                     "paired"="Safe Paired Sample",
+                     "twoSample"="Safe Two Sample",
+                     "logrank"="Safe")
+
+  testName <- switch(parameterName,
+                     "phiS"="Z-Test",
+                     "deltaS"="T-Test",
+                     "thetaS"="Logrank Test")
+
+  return(paste(nameChar, testName))
 }
 
 #' Gets the Label of the Alternative Hypothesis
@@ -82,9 +86,9 @@ getNameTestType <- function(testType) {
 getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), testType) {
   alternative <- match.arg(alternative)
 
-  if (testType %in% c("oneSampleT", "oneSampleZ")) {
+  if (testType == "oneSample") {
     trueMeanStatement <- "true mean"
-  } else if (testType %in% c("pairedSampleT", "twoSampleT", "pairedSampleZ", "twoSampleZ")) {
+  } else if (testType %in% c("paired", "twoSample")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
   } else if (testType == "safe2x2_result") {
 	    trueMeanStatement <- "true difference between proportions in group a and b is"
