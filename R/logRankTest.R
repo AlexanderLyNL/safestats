@@ -149,7 +149,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #' @inheritParams designSafeZ
 #' @param nPlan numeric > 0, targetted number of events.
 #' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null, i.e., h0=1.
-#' @param thetaMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
+#' @param hrMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 #' detect.
 #' @param zApprox logical, default TRUE to use the asymptotic normality results.
 #'
@@ -158,7 +158,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #' \describe{
 #'   \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin.}
 #'   \item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
-#'   \item{thetaMin}{the minimally clinically relevant hazard ratio specified by the user.}
+#'   \item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error provided by the user.}
 #'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
@@ -172,7 +172,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #'
 #' @examples
 #' designSafeLogrank(nPlan=89)
-designSafeLogrank <- function(hazardRatioMin=NULL, alpha=0.05, beta=0.2, nEvents=NULL,
+designSafeLogrank <- function(hrMin=NULL, alpha=0.05, beta=NULL, nEvents=NULL,
                               alternative=c("two.sided", "greater", "less"), h0=1,
                               ratio=1, zApprox=TRUE, tol=1e-5, ...) {
   stopifnot(0 < alpha, alpha < 1)
@@ -180,8 +180,8 @@ designSafeLogrank <- function(hazardRatioMin=NULL, alpha=0.05, beta=0.2, nEvents
   alternative <- match.arg(alternative)
 
   if (zApprox) {
-    if (!is.null(hazardRatioMin)) {
-      logHazardRatio <-if (alternative=="two.sided") abs(log(hazardRatioMin)) else log(hazardRatioMin)
+    if (!is.null(hrMin)) {
+      logHazardRatio <-if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
       meanDiffMin <- sqrt(ratio)/(1+ratio)*logHazardRatio
     } else {
       logHazardRatio <- NULL

@@ -1808,13 +1808,13 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
 #' @examples
 #' designSafeZ(meanDiffMin=0.5)
 #' designSafeT(deltaMin=0.5)
-#' designSafeLogrank(nPlan=89)
+#' designSafeLogrank(nEvents=89)
 print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
   testType <- designObj[["testType"]]
   parameterName <- names(designObj[["parameter"]])
 
-  note <- NULL
+  note <- designObj[["note"]]
 
   if (testType=="logrank") {
     analysisName <- "Safe Logrank Test Design"
@@ -1834,7 +1834,8 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
 
   displayList <- list()
 
-  for (item in c("nPlan", "nEvents", "esMin", "alpha", "beta", "parameter", "decision rule", "alternative")) {
+  for (item in c("nPlan", "nEvents", "esMin", "alpha", "beta", "parameter",
+                 "decision rule", "alternative")) {
     itemValue <- designObj[[item]]
 
     if (!is.null(itemValue)) {
@@ -1854,28 +1855,14 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
     }
   }
 
-  # if (!is.null(x[["beta"]])) {
-  #   designObj[["beta"]] <- 1-designObj[["beta"]]
-  #   wantItems <- c("nPlan", "esMin", "alpha", "beta", "parameter", "decision rule", "alternative")
-  #   newNames <- c(paste(names(designObj[["nPlan"]]), collapse=", "),
-  #                 names(designObj[["esMin"]]),
-  #                 "alpha",
-  #                 "power: 1 - beta",
-  #                 paste("parameter:", names(designObj[["parameter"]])),
-  #                 "decision rule: s-value > 1/alpha",
-  #                 "alternative")
-  # } else {
-  #   wantItems <- c("nPlan", "alpha", "parameter", "decision rule", "alternative")
-  #   newNames <- c(paste(names(designObj[["nPlan"]]), collapse=", "),
-  #                 "alpha",
-  #                 paste("parameter:", names(designObj[["parameter"]])),
-  #                 "decision rule: s-value > 1/alpha",
-  #                 "alternative")
-  # }
-
-  # subObj <- designObj[wantItems]
-  # names(subObj) <- newNames
-
   cat(paste(format(names(displayList), width = 20L, justify = "right"),
             format(displayList, digits = digits), sep = " = "), sep = "\n")
+
+  if (!is.null(note))
+    cat("\n", "NOTE: ", note, "\n\n", sep = "")
+  else
+    cat("\n")
 }
+
+stats:::print.power.htest
+

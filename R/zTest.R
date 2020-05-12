@@ -477,7 +477,7 @@ designPilotSafeZ <- function(nPlan, alpha=0.05, alternative=c("two.sided", "grea
 #'
 #' @examples
 #' designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
-designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alternative=c("two.sided", "greater", "less"),
+designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=NULL, nPlan=NULL, alternative=c("two.sided", "greater", "less"),
                         h0=0, sigma=1, kappa=sigma, tol=1e-5, highN=8e9,
                         testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, ...) {
@@ -513,21 +513,22 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=0.2, nPlan=NULL, alte
          "(5) NULL meanDiffMen, NULL meanDiffMen, non-null nPlan.")
   }
 
-  if (computeType=="2") {
-    # TODO(Alexander): Adjust designPilotSafeZ to also consider meanDiff, when !is.null(meanDiff), then compute beta
-    stop("Not yet implemented")
-  }
-
-  if (computeType=="3") {
-    # TODO(Alexander): Adjust designPilotSafeZ to also consider beta, when !beta, then compute esMin
-    stop("Not yet implemented")
-  }
-
   result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
                  "h0"=h0, "sigma"=sigma, "kappa"=kappa,
                  "ratio"=ratio, "pilot"=FALSE, "lowN"=NULL, "highN"=NULL, "call"=sys.call())
   class(result) <- "safeDesign"
+
+  if (computeType=="3")
+    stop("Not yet implemented")
+
+  # if (computeType==3) {
+  #   if (alternative == "two.sided") {
+  #     meanDiffMin <- 1
+  #   } else {
+  #     meanDiffMin <- 1
+  #   }
+  # }
 
   meanDiffMin <- abs(meanDiffMin)
 
