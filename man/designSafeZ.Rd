@@ -2,21 +2,21 @@
 % Please edit documentation in R/zTest.R
 \name{designSafeZ}
 \alias{designSafeZ}
-\title{Designs a Safe Z Experiment to Test Means with Population Standard Error Assumed to be Known}
+\title{Designs a Safe Z Experiment}
 \usage{
 designSafeZ(
   meanDiffMin = NULL,
   alpha = 0.05,
-  beta = 0.2,
+  beta = NULL,
   nPlan = NULL,
   alternative = c("two.sided", "greater", "less"),
-  h0 = 0,
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
   highN = 8e+09,
-  testType = c("oneSampleZ", "pairedSampleZ", "twoSampleZ"),
+  testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
+  parameter = NULL,
   ...
 )
 }
@@ -28,15 +28,14 @@ that we would like to detect.}
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "deltaS". Note that 1-beta defines the power.}
+and "phiS". Note that 1-beta defines the power.}
 
 \item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the safe test
-defining parameter phiS.}
+defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
+and beta should be set to NULL.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
-
-\item{h0}{a number indicating the hypothesised true value of the mean under the null.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
@@ -47,9 +46,11 @@ defining parameter phiS.}
 \item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
 number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
-\item{testType}{either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ".}
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
+
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -57,19 +58,18 @@ number. Default highN is set 8e9 to correspond to the current population of the 
 Returns a safeDesign object that includes:
 
 \describe{
-  \item{nPlan}{the sample size(s) to plan for. Computed based on beta and esMin, or provided by the user if known.}
+  \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
+  if known.}
   \item{parameter}{the safe test defining parameter. Here phiS.}
   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error specified by the user.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
-  \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user.}
-  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
-  \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
+  \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
-  \item{ratio}{default is 1, only used when testType=="twoSampleZ" and defines n2=ratio*n1.}
+  \item{ratio}{default is 1, only used when testType=="twoSample" and defines n2=ratio*n1.}
   \item{tol}{the step size between parameter values in the candidate space.}
   \item{pilot}{logical, specifying whether it's a pilot design.}
   \item{call}{the expression with which this function is called.}
@@ -77,11 +77,15 @@ Returns a safeDesign object that includes:
 }
 \description{
 A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
-phiS. If nPlan is provided, then only the safe test defining parameter phiS needs to determined. That resulting phiS
-leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
+phiS. If nPlan is provided, then only the safe test defining parameter phiS needs to be determined. That resulting
+phiS leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
 (i) a tolerable type II error beta, and (b) a clinically relevant minimal population mean difference meanDiffMin.
 The procedure finds the smallest nPlan for which meanDiffMin is found with power of at least 1 - beta.
 }
 \examples{
 designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
+
+#nPlan known:
+designObj <- designSafeZ(nPlan = 100, alpha=0.05)
+
 }

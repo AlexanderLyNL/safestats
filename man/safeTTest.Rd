@@ -81,7 +81,7 @@ following components:
   or a two-sample test.}
   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
   \item{call}{the expression with which this function is called.}
@@ -92,7 +92,7 @@ A safe t-test adapted from  \code{\link[stats]{t.test}} to perform one and two s
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-testType="twoSampleT", ratio=1.2)
+testType="twoSample", ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)
@@ -103,7 +103,7 @@ safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
 
 
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-testType="twoSampleT", ratio=1.2)
+testType="twoSample", ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)

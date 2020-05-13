@@ -49,7 +49,6 @@ S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Detail
 provided in \code{\link[coin]{logrank_test}}.
 }
 \examples{
-\dontrun{
 # Examples taken from coin::logrank_test
 ## Example data (Callaert, 2003, Tab. 1)
 callaert <- data.frame(
@@ -57,14 +56,15 @@ time = c(1, 1, 5, 6, 6, 6, 6, 2, 2, 2, 3, 4, 4, 5, 5),
 group = factor(rep(0:1, c(7, 8)))
 )
 
-designObj <- designSafeLogrank(nPlan=89)
+designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
+
 ## Data based on exact logrank test using mid-ranks (p = 0.0505)
 safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
-                distribution = "exact", designObj = designObj)
-#'
-## Data based on exact logrank test using average-scores (p = 0.0468)
-safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
-                distribution = "exact", ties.method = "average-scores",
                 designObj = designObj)
-}
+
+designObj <- designSafeLogrank(hrMin=1/2)
+## Data based on exact logrank test using average-scores
+safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
+                ties.method = "average-scores",
+                designObj = designObj)
 }

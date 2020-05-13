@@ -11,7 +11,7 @@ designFreqZ(
   alternative = c("two.sided", "greater", "less"),
   lowN = 3L,
   highN = 100L,
-  testType = c("oneSampleZ", "pairedSampleZ", "twoSampleZ"),
+  testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   sigma = 1,
   kappa = sigma,
@@ -23,7 +23,7 @@ designFreqZ(
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "deltaS". Note that 1-beta defines the power.}
+and "phiS". Note that 1-beta defines the power.}
 
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
@@ -31,10 +31,12 @@ that we would like to detect.}
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
+\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+
 \item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
 number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
-\item{testType}{either one of "oneSampleZ", "pairedSampleZ", "twoSampleZ".}
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
 
@@ -52,5 +54,8 @@ Computes the number of samples necessary to reach a tolerable type I and type II
 frequentist z-test.
 }
 \examples{
-designFreqT(0.5)
+freqDesign <- designFreqZ(meanDiffMin = 0.5, highN = 100)
+freqDesign$nPlan
+freqDesign2 <- designFreqZ(meanDiffMin = 0.2, lowN = 32, highN = 200)
+freqDesign2$nPlan
 }

@@ -24,5 +24,5 @@ Printing objects of class "safeTest" modelled after \code{\link[stats]{print.pow
 \examples{
 designSafeZ(meanDiffMin=0.5)
 designSafeT(deltaMin=0.5)
-designSafeLogrank(nPlan=89)
+designSafeLogrank(nEvents=89)
 }

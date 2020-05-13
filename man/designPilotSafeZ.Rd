@@ -8,7 +8,6 @@ designPilotSafeZ(
   nPlan,
   alpha = 0.05,
   alternative = c("two.sided", "greater", "less"),
-  h0 = 0,
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
@@ -16,15 +15,15 @@ designPilotSafeZ(
 )
 }
 \arguments{
-\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+\item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the safe test
+defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
+and beta should be set to NULL.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
-
-\item{h0}{a number indicating the hypothesised true value of the mean under the null.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
@@ -43,13 +42,11 @@ Returns a safeDesign object
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{\code{NULL}, no tolerable type II error specified.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
-  \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user.}
-  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
-  \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
+  \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
-  \item{ratio}{default is 1, only used when testType=="twoSampleZ" and defines n2=ratio*n1.}
+  \item{ratio}{default is 1, only used when testType=="twoSample" and defines n2=ratio*n1.}
   \item{tol}{the step size between parameter values in the candidate space.}
   \item{pilot}{logical, specifying whether it's a pilot design.}
   \item{call}{the expression with which this function is called.}
@@ -60,5 +57,5 @@ Designs a safe experiment for a prespecified tolerable type I error based on pla
 which are fixed ahead of time. Outputs a list that includes phiS, i.e., the safe test defining parameter.
 }
 \examples{
-designPilotSafeZ(0.05, nPlan=30)
+designPilotSafeZ(nPlan=30, alpha = 0.05)
 }

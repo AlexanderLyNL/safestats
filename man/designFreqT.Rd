@@ -11,7 +11,7 @@ designFreqT(
   alternative = c("two.sided", "greater", "less"),
   lowN = 3L,
   highN = 100L,
-  testType = c("oneSampleT", "pairedSampleT", "twoSampleT"),
+  testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   ...
 )
@@ -34,7 +34,7 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
 are able to fund.}
 
-\item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT".}
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.}
 
@@ -50,7 +50,7 @@ following components:
   \item{beta}{the tolerable type II error provided by the user.}
   \item{lowN}{the smallest n of the search space for n provided by the user.}
   \item{highN}{the largest n of the search space for n provided by the user.}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
 }
 }

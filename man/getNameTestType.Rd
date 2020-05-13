@@ -4,10 +4,12 @@
 \alias{getNameTestType}
 \title{Gets the Label of the Test}
 \usage{
-getNameTestType(testType)
+getNameTestType(testType, parameterName)
 }
 \arguments{
-\item{testType}{A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".}
+\item{testType}{A character string. For the t-tests: "oneSample", "paired", "twoSample".}
+
+\item{parameterName}{The name of the parameter to identify test performed}
 }
 \value{
 Returns a character string with the name of the analysis.
@@ -16,5 +18,5 @@ Returns a character string with the name of the analysis.
 Helper function that outputs the name of the analysis.
 }
 \examples{
-getNameTestType("oneSampleT")
+safestats:::getNameTestType("oneSample", "t")
 }

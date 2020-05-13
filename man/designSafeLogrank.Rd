@@ -5,12 +5,11 @@
 \title{Designs a Safe Logrank Test}
 \usage{
 designSafeLogrank(
-  nPlan = NULL,
+  hrMin = NULL,
+  beta = NULL,
+  nEvents = NULL,
   alpha = 0.05,
-  beta = 0.2,
-  thetaMin = NULL,
   alternative = c("two.sided", "greater", "less"),
-  h0 = 1,
   ratio = 1,
   zApprox = TRUE,
   tol = 1e-05,
@@ -18,21 +17,19 @@ designSafeLogrank(
 )
 }
 \arguments{
-\item{nPlan}{numeric > 0, targetted number of events.}
+\item{hrMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
+detect.}
+
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+and "phiS". Note that 1-beta defines the power.}
+
+\item{nEvents}{numeric > 0, targetted number of events.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "deltaS". Note that 1-beta defines the power.}
-
-\item{thetaMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
-detect.}
-
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
-
-\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null, i.e., h0=1.}
 
 \item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
 
@@ -46,9 +43,10 @@ detect.}
 Returns a safeDesign object that includes:
 
 \describe{
-  \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin.}
+  \item{nEvents}{the anticipated number of events, either (1) specified by the user, or
+  (2) computed based on beta and thetaMin.}
   \item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
-  \item{thetaMin}{the minimally clinically relevant hazard ratio specified by the user.}
+  \item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
@@ -59,10 +57,14 @@ Returns a safeDesign object that includes:
 }
 }
 \description{
-Designs a safe logrank test experiment for a prespecified tolerable type I error based on planned sample size(s),
-which are fixed ahead of time. Outputs a list that includes thetaS, i.e., the safe test defining parameter.
-Computations exploits the asymptotic normality results of the sampling distribution.
+A designed experiment requires (1) an anticipated number of events nEvents, or even better nPlan, the number of
+recruited participants of the study, and (2) the parameter of the safe test, i.e., log(thetaS). If nEvents is
+provided, then only the safe test defining parameter log(thetaS) needs to determined. That resulting log(thetaS)
+leads to an (approximately) most powerful safe test. Typically, nEvents is unknown and the user has to specify
+(i) a tolerable type II error beta, and (b) a clinically relevant minimal hazard ratio hrMin. The procedure finds
+the smallest nEvents for which hrMin is found with power of at least 1 - beta. The computations exploit the
+asymptotic normal chracterisation of the sampling distribution of the logrank test derived by Schoenfeld (1981).
 }
 \examples{
-designSafeLogrank(nPlan=89)
+designSafeLogrank(nEvents=89)
 }

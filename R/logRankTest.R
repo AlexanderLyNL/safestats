@@ -36,7 +36,6 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
 #' # Examples taken from coin::logrank_test
 #' ## Example data (Callaert, 2003, Tab. 1)
 #' callaert <- data.frame(
@@ -44,16 +43,17 @@
 #' group = factor(rep(0:1, c(7, 8)))
 #' )
 #'
-#' designObj <- designSafeLogrank(nPlan=89)
+#' designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
+#'
 #' ## Data based on exact logrank test using mid-ranks (p = 0.0505)
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 designObj = designObj)
-#' #'
+#'
+#' designObj <- designSafeLogrank(hrMin=1/2)
 #' ## Data based on exact logrank test using average-scores
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 ties.method = "average-scores",
 #'                 designObj = designObj)
-#' }
 safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
   if (isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
@@ -83,7 +83,6 @@ safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...
 #' @param logrankObj a logrank object obtained from \code{\link[coin]{logrank_test}}.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @export
 #'
 safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
   if (!inherits(logrankObj, "ScalarIndependenceTest"))
@@ -126,7 +125,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
     if (is.null(alpha))
       alpha <- 0.05
 
-    designObj <- designSafeLogrank("nPlan"=nEvents, "alpha"=alpha)
+    designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha)
     designObj[["pilot"]] <- TRUE
   }
 
@@ -142,13 +141,16 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 
 #' Designs a Safe Logrank Test
 #'
-#' Designs a safe logrank test experiment for a prespecified tolerable type I error based on planned sample size(s),
-#' which are fixed ahead of time. Outputs a list that includes thetaS, i.e., the safe test defining parameter.
-#' Computations exploits the asymptotic normality results of the sampling distribution.
+#' A designed experiment requires (1) an anticipated number of events nEvents, or even better nPlan, the number of
+#' recruited participants of the study, and (2) the parameter of the safe test, i.e., log(thetaS). If nEvents is
+#' provided, then only the safe test defining parameter log(thetaS) needs to determined. That resulting log(thetaS)
+#' leads to an (approximately) most powerful safe test. Typically, nEvents is unknown and the user has to specify
+#' (i) a tolerable type II error beta, and (b) a clinically relevant minimal hazard ratio hrMin. The procedure finds
+#' the smallest nEvents for which hrMin is found with power of at least 1 - beta. The computations exploit the
+#' asymptotic normal chracterisation of the sampling distribution of the logrank test derived by Schoenfeld (1981).
 #'
 #' @inheritParams designSafeZ
-#' @param nPlan numeric > 0, targetted number of events.
-#' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null, i.e., h0=1.
+#' @param nEvents numeric > 0, targetted number of events.
 #' @param hrMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 #' detect.
 #' @param zApprox logical, default TRUE to use the asymptotic normality results.
@@ -156,7 +158,8 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #' @return Returns a safeDesign object that includes:
 #'
 #' \describe{
-#'   \item{nPlan}{the planned sample size either (1) specified by the user, or (2) computed based on beta and thetaMin.}
+#'   \item{nEvents}{the anticipated number of events, either (1) specified by the user, or
+#'   (2) computed based on beta and thetaMin.}
 #'   \item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
 #'   \item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
@@ -171,9 +174,9 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #' @export
 #'
 #' @examples
-#' designSafeLogrank(nPlan=89)
-designSafeLogrank <- function(hrMin=NULL, alpha=0.05, beta=NULL, nEvents=NULL,
-                              alternative=c("two.sided", "greater", "less"), h0=1,
+#' designSafeLogrank(nEvents=89)
+designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, alpha=0.05,
+                              alternative=c("two.sided", "greater", "less"),
                               ratio=1, zApprox=TRUE, tol=1e-5, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
@@ -188,13 +191,16 @@ designSafeLogrank <- function(hrMin=NULL, alpha=0.05, beta=NULL, nEvents=NULL,
       meanDiffMin <- NULL
     }
 
-    safeZObj <- designSafeZ("meanDiffMin"= meanDiffMin, "alpha"=alpha, "beta"=beta,
+    safeZObj <- designSafeZ("meanDiffMin"= meanDiffMin, "beta"=beta, "alpha"=alpha,
                             "nPlan"=nEvents, "alternative"=alternative,
-                            "h0"=log(h0), "sigma"=1, "testType"="oneSample")
+                            "sigma"=1, "testType"="oneSample")
     nEvents <- safeZObj[["nPlan"]]
-    safeZObj[["nPlan"]] <- NULL
     safeZObj[["nEvents"]] <- nEvents
-    names(safeZObj[["nEvents"]]) <- "nEvents"
+    safeZObj[["nPlan"]] <- NULL
+
+    if (!is.null(nEvents))
+      names(safeZObj[["nEvents"]]) <- "nEvents"
+
     names(safeZObj[["parameter"]]) <- "log(thetaS)"
 
     safeZObj[["esMin"]] <- logHazardRatio
@@ -208,7 +214,6 @@ designSafeLogrank <- function(hrMin=NULL, alpha=0.05, beta=NULL, nEvents=NULL,
 
     safeZObj[["testType"]] <- "logrank"
     safeZObj[["paired"]] <- NULL
-    names(safeZObj[["h0"]]) <- "log hazard ratio"
     safeZObj[["call"]] <- sys.call()
   }
   result <- safeZObj

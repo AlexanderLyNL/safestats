@@ -91,7 +91,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
   return(result)
 }
 
-#' Designs a Safe T Experiment to Test Means
+#' Designs a Safe Experiment to Test Means with a T Test
 #'
 #' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
 #' deltaS. If nPlan is provided, then only the safe test defining parameter deltaS needs to determined. That resulting
@@ -283,7 +283,7 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
 }
 
 
-#' Simulate Early Stopping Experiments
+#' Simulate Early Stopping Experiments for the T Test
 #'
 #' Applied to a safeDesign object this function empirically shows the performance of a safe experiments under
 #' optional stopping.

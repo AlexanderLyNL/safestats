@@ -55,11 +55,11 @@ following components:
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
-  \item{paired}{logical, \code{TRUE} if "pairedSampleZ", \code{FALSE} otherwise.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+  \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
   whether it was a one-sample or a two-sample test.}
-  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSampleT", then it's defined
+  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it's defined
   ratio equals n2/n1.}
   \item{lowN}{the smallest n of the search space for n provided by the user.}
   \item{highN}{the largest n of the search space for n provided by the user.}

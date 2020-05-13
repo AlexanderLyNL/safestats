@@ -11,7 +11,7 @@ plotSafeTDesignSampleSizeProfile(
   lowParam = 0.01,
   highParam = 1,
   tol = 0.1,
-  testType = c("oneSampleT", "pairedSampleT", "twoSampleT"),
+  testType = c("oneSample", "paired", "twoSample"),
   nsim = 1000L,
   alternative = c("two.sided", "greater", "less"),
   ratio = 1,
@@ -41,7 +41,7 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
-\item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT".}
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{nsim}{the number of replications, that is, experiments with max samples nPlan.}
 

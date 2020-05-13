@@ -8,11 +8,10 @@
 #' @param value Return value if there is an error, default is \code{NA_real_}.
 #'
 #' @return Returns the evaluation of the expression, or \code{value} if it doesn't work out.
-#' @export
 #'
 #' @examples
-#' tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
-#' tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
+#' safestats:::tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
+#' safestats:::tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
 tryOrFailWithNA <- function(expr, value=NA_real_) {
   tryCatch(
     error=function(cnd) value,
@@ -50,13 +49,13 @@ isTryError <- function(...) {
 #'
 #' Helper function that outputs the name of the analysis.
 #'
-#' @param testType A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".
+#' @param testType A character string. For the t-tests: "oneSample", "paired", "twoSample".
+#' @param parameterName The name of the parameter to identify test performed
 #'
 #' @return Returns a character string with the name of the analysis.
-#' @export
 #'
 #' @examples
-#' getNameTestType("oneSample", "t")
+#' safestats:::getNameTestType("oneSample", "t")
 getNameTestType <- function(testType, parameterName) {
   nameChar <- switch(testType,
                      "oneSample"="Safe One Sample",
@@ -82,7 +81,7 @@ getNameTestType <- function(testType, parameterName) {
 #' @return Returns a character string with the name of the analysis.
 #'
 #' @examples
-#' safestats:::getNameAlternative("two.sided", testType="oneSampleT")
+#' safestats:::getNameAlternative("two.sided", testType="oneSample")
 getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), testType) {
   alternative <- match.arg(alternative)
 

@@ -80,18 +80,18 @@ following components:
   or a two-sample test.}
   \item{sigma}{the assumed population standard deviation provided by the user.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
-  \item{testType}{any of "oneSampleZ", "pairedSampleZ", "twoSampleZ" effectively provided by the user.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}}.}
   \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-A safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}}.
+Safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}}.
 }
 \examples{
 designObj <- designSafeZ(meanDiffMin=0.6, alpha=0.008, beta=0.2,
-alternative="greater", testType="twoSampleZ", ratio=1.2)
+alternative="greater", testType="twoSample", ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)

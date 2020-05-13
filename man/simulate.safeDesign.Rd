@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{simulate.safeDesign}
 \alias{simulate.safeDesign}
-\title{Simulate Early Stopping Experiments}
+\title{Simulate Early Stopping Experiments for the T Test}
 \usage{
 \method{simulate}{safeDesign}(
   object,
@@ -68,7 +68,7 @@ least the following components:
   \item{nsim}{the number of replications of the experiment.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
   Acquired from \code{\link{designSafeT}}.}
   \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}

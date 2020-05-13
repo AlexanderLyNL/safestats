@@ -24,8 +24,8 @@ A number that represents a z-value. The function's domain is the positive real l
 is the real line, i.e., the outcome space of the z-statistic.
 }
 \description{
-The two-sided safe z-test is based on two point priors on the mean differences. It puts half its mass on
-phiS and the other half on - phiS. To determine the value of phiS, the test is inverted.
+This helper function is used in \code{\link{designSafeZ}} to find parameter. The function is the (two-sided)
+inverse of safeZTestStat.
 }
 \examples{
 safeZ10Inverse(0.4, n=13)

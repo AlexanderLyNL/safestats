@@ -18,5 +18,5 @@ Returns a character string with the name of the analysis.
 Helper function that outputs the alternative hypothesis of the analysis.
 }
 \examples{
-safestats:::getNameAlternative("two.sided", testType="oneSampleT")
+safestats:::getNameAlternative("two.sided", testType="oneSample")
 }

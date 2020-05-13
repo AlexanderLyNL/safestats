@@ -8,8 +8,7 @@ defineTTestN(
   lowN = 3,
   highN = 100,
   ratio = 1,
-  testType = c("oneSampleT", "pairedSampleT", "twoSampleT", "oneSampleZ",
-    "pairedSampleZ", "twoSampleZ")
+  testType = c("oneSample", "paired", "twoSample")
 )
 }
 \arguments{
@@ -20,7 +19,7 @@ are able to fund.}
 
 \item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.}
 
-\item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT".}
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
 }
 \value{
 Returns the sample sizes and degrees of freedom.

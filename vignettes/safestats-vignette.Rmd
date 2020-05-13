@@ -92,7 +92,7 @@ beta <- 0.2
 deltaMin <- 9/(sqrt(2)*15)
 
 designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-                         alternative="greater", testType="pairedSampleT")
+                         alternative="greater", testType="paired")
 designObj
 ```
  
@@ -106,7 +106,7 @@ It is not always clear what the minimal clinically relevant effect size is. In t
 
 result <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta, 
                                            maxN=100, 
-                                           testType="pairedSampleT")
+                                           testType="paired")
 ```
 
 The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80%, if the true effect size is at least 0.37. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for additional grant money to test an additional 44 patients, or decide that it's futile to set up this experiment, and spend our time and efforts on a different endeavour. 
@@ -268,7 +268,7 @@ For this purpose we run the code
 # deltaMin <- 9/(sqrt(2)*15)      # = 0.42
 
 freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-                             alternative="greater", testType="pairedSampleT")
+                             alternative="greater", testType="paired")
 
 simResultDeltaTrueIsZero <- simulate(object=designObj, nsim=1000L, seed=1,
                                      deltaTrue=0, freqOptioStop=TRUE,

@@ -42,7 +42,7 @@ Returns a list of two data matrices contains at least the following components:
 }
 }
 \description{
-The designs supported are "oneSampleT", "pairedSampleT", "twoSampleT".
+The designs supported are "oneSample", "paired", "twoSample".
 }
 \examples{
 generateTTestData(20, 15)
