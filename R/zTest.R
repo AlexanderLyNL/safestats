@@ -168,14 +168,14 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 
       estimate <- mean(x-y)
       names(estimate) <- "mean of the differences"
-      zStat <- tryOrFailWithNA(sqrt(n1)*estimate/sigma)
+      zStat <- tryOrFailWithNA(sqrt(n1)*(estimate-h0)/sigma)
     } else {
       testType <- "twoSample"
 
       nEff <- (1/n1+1/n2)^(-1)
       estimate <- c(mean(x), mean(y))
       names(estimate) <- c("mean of x", "mean of y")
-      zStat <- tryOrFailWithNA(sqrt(nEff)*(estimate[1]-estimate[2])/sigma)
+      zStat <- tryOrFailWithNA(sqrt(nEff)*(estimate[1]-estimate[2]-h0)/sigma)
     }
   }
 

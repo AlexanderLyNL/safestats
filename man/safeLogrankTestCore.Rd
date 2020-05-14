@@ -63,12 +63,12 @@ group = factor(rep(0:1, c(7, 8)))
 
 designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
 
-## Data based on exact logrank test using mid-ranks (p = 0.0505)
+## Data based on logrank test using mid-ranks (p = 0.0505)
 safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
                 designObj = designObj)
 
 designObj <- designSafeLogrank(hrMin=1/2)
-## Data based on exact logrank test using average-scores
+## Data based on logrank test using average-scores
 safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
                 ties.method = "average-scores",
                 designObj = designObj)

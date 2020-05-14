@@ -66,7 +66,7 @@ getNameTestType <- function(testType, parameterName) {
   testName <- switch(parameterName,
                      "phiS"="Z-Test",
                      "deltaS"="T-Test",
-                     "thetaS"="Logrank Test")
+                     "log(thetaS)"="Logrank Test")
 
   return(paste(nameChar, testName))
 }

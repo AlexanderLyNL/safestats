@@ -67,4 +67,6 @@ asymptotic normal chracterisation of the sampling distribution of the logrank te
 }
 \examples{
 designSafeLogrank(nEvents=89)
+designSafeLogrank(hrMin=0.4, beta=0.05)
+designSafeLogrank(hrMin=0.4)
 }

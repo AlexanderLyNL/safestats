@@ -45,12 +45,12 @@
 #'
 #' designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
 #'
-#' ## Data based on exact logrank test using mid-ranks (p = 0.0505)
+#' ## Data based on logrank test using mid-ranks (p = 0.0505)
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 designObj = designObj)
 #'
 #' designObj <- designSafeLogrank(hrMin=1/2)
-#' ## Data based on exact logrank test using average-scores
+#' ## Data based on logrank test using average-scores
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 ties.method = "average-scores",
 #'                 designObj = designObj)
@@ -175,6 +175,8 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #'
 #' @examples
 #' designSafeLogrank(nEvents=89)
+#' designSafeLogrank(hrMin=0.4, beta=0.05)
+#' designSafeLogrank(hrMin=0.4)
 designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, alpha=0.05,
                               alternative=c("two.sided", "greater", "less"),
                               ratio=1, zApprox=TRUE, tol=1e-5, ...) {

@@ -1815,16 +1815,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
   parameterName <- names(designObj[["parameter"]])
 
   note <- designObj[["note"]]
-
-  if (testType=="logrank") {
-    analysisName <- "Safe Logrank Test Design"
-    alternativeName <- "true theta is not equal to 1"
-    # names(designObj[["parameter"]]) <- "log(thetaS)"
-    note <- "Based on a z approximation"
-  } else {
-    analysisName <- paste(getNameTestType("testType"=testType, "parameterName"=parameterName), "Design")
-    alternativeName <- getNameAlternative("alternative"=x[["alternative"]], "testType"=testType)
-  }
+  analysisName <- paste(getNameTestType("testType"=testType, "parameterName"=parameterName), "Design")
 
   cat("\n")
   cat(strwrap(analysisName, prefix = prefix), sep = "\n")
@@ -1863,6 +1854,3 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
   else
     cat("\n")
 }
-
-stats:::print.power.htest
-
