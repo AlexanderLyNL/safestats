@@ -622,11 +622,6 @@ computeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1,
     if (grow) {
       phiS <- abs(meanDiffMin)
 
-      qB <- qnorm(beta)
-
-      meanDiffMinFactor <- exp(2*(log(kappa)-log(meanDiffMin)))
-      nEff <- 2*qB^2 - 2*qB*sqrt(qB^2+2*kappa^2/sigma^2*log(1/alpha))+2*kappa^2/sigma^2*log(1/alpha)
-
       if (alternative == "two.sided") {
         criterionFunction <- function(n) {
           lowerTail <- sigma^4/(n*kappa^2*meanDiffMin^2)*acosh(exp((n*meanDiffMin^2)/(2*sigma^2))/alpha)^2
@@ -636,6 +631,13 @@ computeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1,
         highN <- 2*sigma^2/meanDiffMin^2*log(1e100)
         tempResult <- stats::uniroot(criterionFunction, interval=c(1, highN))
         nEff <- tempResult[["root"]]
+      } else {
+        qB <- qnorm(beta)
+
+
+
+        nEff <- exp(2*(log(kappa)-log(meanDiffMin))) *
+          (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))+2*kappa^2/sigma^2*log(1/alpha))
       }
 
       if (testType == "twoSample") {
@@ -821,6 +823,7 @@ computeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1,
 
   return(result)
 }
+
 
 #' Help function to compute the effecitve sample size based on a length 2 vector of samples
 #'
