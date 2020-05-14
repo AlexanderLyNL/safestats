@@ -44,7 +44,8 @@ safe.z.test(
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{h0}{a number indicating the hypothesised true value of the mean under the null.}
+\item{h0}{a number indicating the hypothesised true value of the (differences of the) mean(s) under the null.
+Default 0}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 

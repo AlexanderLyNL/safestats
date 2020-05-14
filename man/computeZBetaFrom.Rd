@@ -35,7 +35,7 @@ designed test has to adhere to. Note that it also defines the rejection rule S10
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}}
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 }
 \value{
 numeric that represents the type II error

@@ -43,63 +43,7 @@ isTryError <- function(...) {
   return(result)
 }
 
-# Labelling helpers ----------
 
-#' Gets the Label of the Test
-#'
-#' Helper function that outputs the name of the analysis.
-#'
-#' @param testType A character string. For the t-tests: "oneSample", "paired", "twoSample".
-#' @param parameterName The name of the parameter to identify test performed
-#'
-#' @return Returns a character string with the name of the analysis.
-#'
-#' @examples
-#' safestats:::getNameTestType("oneSample", "t")
-getNameTestType <- function(testType, parameterName) {
-  nameChar <- switch(testType,
-                     "oneSample"="Safe One Sample",
-                     "paired"="Safe Paired Sample",
-                     "twoSample"="Safe Two Sample",
-                     "logrank"="Safe")
-
-  testName <- switch(parameterName,
-                     "phiS"="Z-Test",
-                     "deltaS"="T-Test",
-                     "log(thetaS)"="Logrank Test")
-
-  return(paste(nameChar, testName))
-}
-
-#' Gets the Label of the Alternative Hypothesis
-#'
-#' Helper function that outputs the alternative hypothesis of the analysis.
-#'
-#' @param alternative A character string. "two.sided", "greater", "less".
-#' @param testType A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".
-#'
-#' @return Returns a character string with the name of the analysis.
-#'
-#' @examples
-#' safestats:::getNameAlternative("two.sided", testType="oneSample")
-getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), testType) {
-  alternative <- match.arg(alternative)
-
-  if (testType == "oneSample") {
-    trueMeanStatement <- "true mean"
-  } else if (testType %in% c("paired", "twoSample")) {
-    trueMeanStatement <- "true difference in means ('x' minus 'y') is"
-  } else if (testType == "safe2x2_result") {
-	    trueMeanStatement <- "true difference between proportions in group a and b is"
-  }
-
-  nameChar <- paste(trueMeanStatement, switch(alternative,
-                                              "two.sided"= "not equal to 0",
-                                              "greater"= "greater than 0",
-                                              "less"= "less than 0")
-  )
-  return(nameChar)
-}
 
 #' Rounds a Numeric to At Most 5 Significant Figures
 #'
@@ -133,6 +77,7 @@ setSafeStatsPlotOptionsAndReturnOldOnes <- function(...) {
                 font.lab=2, cex.axis=1.3, bty="n", las=1, ...)
   return(oldPar)
 }
+
 
 # Vignette helpers ---------
 
@@ -435,13 +380,4 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
     data <- data[order(data[["time"]]), ]
 
   return(data)
-}
-
-computeNewNEff <- function(oldNEff, testType=c("oneSampleZ", "pairedSampleZ", "twoSampleZ"), ratio=1) {
-  if (testType=="twoSampleZ") {
-
-  } else {
-    newNEff <- oldNEff - 1
-  }
-  return(newNEff)
 }

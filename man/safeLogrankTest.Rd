@@ -4,7 +4,14 @@
 \alias{safeLogrankTest}
 \title{Safe Logrank Test}
 \usage{
-safeLogrankTest(object, designObj = NULL, pilot = FALSE, alpha = NULL, ...)
+safeLogrankTest(
+  object,
+  designObj = NULL,
+  pilot = FALSE,
+  alpha = NULL,
+  h0 = 1,
+  ...
+)
 }
 \arguments{
 \item{object}{either a formula with as outcome variable an object resulting from \code{\link[survival]{Surv}}, or
@@ -17,6 +24,8 @@ samples is exactly as planned.}
 
 \item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
+
+\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
 
 \item{...}{further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
 and distribution.}

@@ -13,6 +13,7 @@
 #' samples is exactly as planned.
 #' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 #' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
+#' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1
 #' @param ... further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
 #' and distribution.
 #'
@@ -54,7 +55,7 @@
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 ties.method = "average-scores",
 #'                 designObj = designObj)
-safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
+safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, h0=1, ...) {
   if (isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
          "A design object results can be acquired from designSafeLogrank().")
@@ -71,7 +72,7 @@ safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...
     coin::logrank_test(object, ...)
   )
 
-  safeLogrankTestCore("logrankObj"=logrankObj, "designObj"=designObj, "pilot"=pilot, "alpha"=alpha)
+  safeLogrankTestCore("logrankObj"=logrankObj, "designObj"=designObj, "pilot"=pilot, "alpha"=alpha, "h0"=h0)
 }
 
 #' Core Function of safeLogrankTest
@@ -84,7 +85,7 @@ safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, ...
 #' @param ... further arguments to be passed to or from methods.
 #'
 #'
-safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=NULL, ...) {
+safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=NULL, h0=1, ...) {
   if (!inherits(logrankObj, "ScalarIndependenceTest"))
     stop("The provided logrankObj is not of the right type derived from coin::logrank_test()")
 
@@ -94,8 +95,8 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 
   alternative <- logrankObj@statistic@alternative
 
-  if (alternative != "two.sided")
-    stop("One-sided tests not yet implemented")
+  # if (alternative != "two.sided")
+  #   stop("One-sided tests not yet implemented")
 
   if (length(groupLevels) > 2)
     stop("K-sample log rank test not yet implemented")
@@ -113,10 +114,13 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
   # result <- list("statistic"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
   #                "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "mu0"=mu0, "sigma"=sigma)
 
-  h0 <- 1
   names(h0) <- "theta"
+  meanStat <- zStat/sqrt(nEvents)
 
-  result <- list("statistic"=zStat, "n"=nEvents, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
+  if (h0 != 1)
+    zStat <- (zStat - sqrt(nEvents)*log(h0))
+
+  result <- list("statistic"=zStat, "n"=nEvents, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "h0"=h0, "alternative"=alternative, "testType"="logrank", "dataName"=dataName)
   class(result) <- "safeTest"
 
@@ -131,6 +135,12 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 
   sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEvents,
                           "n2"=NULL, "alternative"="two.sided", "paired"=FALSE, "sigma"=1)
+
+  tempConfSeq <- computeZConfidenceSequence("nEff"=nEvents, "meanStat"=meanStat,
+                                            "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
+                                            "alpha"=designObj[["alpha"]], "alternative"=alternative)
+
+  result[["confSeq"]] <- exp(tempConfSeq)
 
   result[["sValue"]] <- sValue
   result[["designObj"]] <- designObj

@@ -17,6 +17,7 @@ designSafeZ(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
+  grow = TRUE,
   ...
 )
 }
@@ -50,7 +51,9 @@ number. Default highN is set 8e9 to correspond to the current population of the 
 
 \item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}}
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+
+\item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

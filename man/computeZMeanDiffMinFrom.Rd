@@ -37,7 +37,7 @@ and "phiS". Note that 1-beta defines the power.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}}
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
 \item{maxIter}{maximum number of iterations in the optimisation process for two-sided designs}
 }

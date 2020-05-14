@@ -9,6 +9,7 @@ safeLogrankTestCore(
   designObj = NULL,
   pilot = FALSE,
   alpha = NULL,
+  h0 = 1,
   ...
 )
 }
@@ -22,6 +23,8 @@ samples is exactly as planned.}
 
 \item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
+
+\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

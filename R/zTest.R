@@ -81,7 +81,8 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 #' "greater" or "less".
 #' @param designObj an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.
-#' @param h0 a number indicating the hypothesised true value of the mean under the null.
+#' @param h0 a number indicating the hypothesised true value of the (differences of the) mean(s) under the null.
+#' Default 0
 #' @param sigma numeric > 0 representing the assumed population standard deviation used for the test.
 #' @param paired a logical indicating whether you want the paired z-test.
 #' @param confLevel confidence level of the interval. If alpha is given, then set to 1-alpha. Not yet implemented.
@@ -134,7 +135,7 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 
   names(h0) <- "mu"
 
-  result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
+  result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "h0"=h0, "sigma"=sigma,
                  "call"=sys.call())
 
@@ -147,17 +148,17 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 
   if (is.null(y)) {
     testType <- "oneSample"
-    n1 <- length(x)
+    nEff <- n1 <- length(x)
     n2 <- NULL
 
     if (paired)
       stop("Data error: Paired analysis requested without specifying the second variable")
 
-    estimate <- mean(x)
+    meanStat <- estimate <- mean(x)
     names(estimate) <- "mean of x"
-    zStat <- tryOrFailWithNA(sqrt(n1)*(estimate - h0)/sigma)
+    # zStat <- tryOrFailWithNA(sqrt(nEff)*(estimateforCS - h0)/sigma)
   } else {
-    n1 <- length(x)
+    nEff <- n1 <- length(x)
     n2 <- length(y)
 
     if (paired) {
@@ -166,19 +167,21 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 
       testType <- "paired"
 
-      estimate <- mean(x-y)
+      meanStat <- estimate <- mean(x-y)
       names(estimate) <- "mean of the differences"
-      zStat <- tryOrFailWithNA(sqrt(n1)*(estimate-h0)/sigma)
+      # zStat <- tryOrFailWithNA(sqrt(n1)*(estimateforCS-h0)/sigma)
     } else {
       testType <- "twoSample"
 
       nEff <- (1/n1+1/n2)^(-1)
       estimate <- c(mean(x), mean(y))
       names(estimate) <- c("mean of x", "mean of y")
-      zStat <- tryOrFailWithNA(sqrt(nEff)*(estimate[1]-estimate[2]-h0)/sigma)
+      meanStat <- estimate[1]-estimate[2]
+      # zStat <- tryOrFailWithNA(sqrt(nEff)*(estimateforCS-h0)/sigma)
     }
   }
 
+  zStat <- tryOrFailWithNA(sqrt(nEff)*(meanStat - h0)/sigma)
   result[["testType"]] <- testType
 
   if (is.na(zStat))
@@ -208,14 +211,19 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   else
     dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
 
-  # TODO(Alexander): Add sCIs
-
   names(zStat) <- "z"
 
   result[["statistic"]] <- zStat
   result[["estimate"]] <- estimate
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
+
+  phiS <- abs(designObj[["parameter"]])
+
+  result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+                                                    "phiS"=phiS, "sigma"=sigma,
+                                                    "alpha"=designObj[["alpha"]],
+                                                    "alternative"=alternative)
 
   if (is.null(n2)) {
     result[["n"]] <- n1
@@ -596,6 +604,8 @@ designSafeZ <- function(meanDiffMin=NULL, alpha=0.05, beta=NULL, nPlan=NULL,
 #' difference, alpha and beta
 #'
 #' @inheritParams  designSafeZ
+#' @param designScenario a character string specifying the scenario for which needs designing either
+#' "1a" or "1b"
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
 #'
@@ -978,42 +988,34 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigm
   return(result)
 }
 
+#' Helper function: Computes the safe confidence sequence for a z-test
+#'
+#' @inheritParams safeZTest
+#' @param nEff numeric > 0, the effective sample size
+#' @param meanStat numeric, the mean statistic, this could be the differences of means as well
+#' @param phiS numeric > 0, the safe test defining parameter
+#'
+#' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
+#'
+#' @examples
+#' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
+computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, alpha=0.05,
+                                       alternative="two.sided") {
+  if (alternative=="two.sided") {
+    shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
+    lowerCS <- meanStat - shift
+    upperCS <- meanStat + shift
+  } else {
+    shift <- sigma^2/nEff*log(alpha)*1/phiS - phiS/2
 
+    if (alternative=="greater") {
+      lowerCS <- meanStat + shift
+      upperCS <- Inf
+    } else {
+      lowerCS <- -Inf
+      upperCS <- meanStat - shift
+    }
+  }
+  return(unname(c(lowerCS, upperCS)))
+}
 
-#' #' Builds a Criterion Function Used to Search for the Parameters of a Safe Z-Test
-#' #'
-#' #' Helper function used in the optimisation process.
-#' #'
-#' #' @inheritParams designSafeZ
-#' #' @param criterionType character string any of "lower", "upper", and "exact".
-#' #'
-#' #' @return returns a function to be optimised.
-#' #'
-#' #' @examples
-#' #' safestats:::criterionFunctionFactory(0.05, 0.2, 1, 1, meanDiffMin=0.5, "exact")
-#' criterionFunctionFactory <- function(alpha, beta, sigma, kappa, meanDiffMin,
-#'                                      criterionType=c("lower", "upper", "exact")) {
-#'
-#'   result <- switch(criterionType,
-#'                    "upper" = function(n) {
-#'                      pchisq(kappa^2/sigma^2*2*log(2/alpha), df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta
-#'                    },
-#'                    "lower"= function(n) {
-#'                      pchisq(kappa^2/sigma^2*2*log(1/alpha), df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta
-#'                    },
-#'                    "exact"=function(n, parameter=NULL) {
-#'                      if (is.null(parameter))
-#'                        parameter <- sqrt(2*sigma^2/n*log(2/alpha))
-#'
-#'                      zArg <- sigma^4/(kappa^2*n*parameter^2)*(acosh(exp(n*parameter^2/(2*sigma^2))/alpha))^2
-#'
-#'                      result <- pchisq(zArg, df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta
-#'
-#'                      if (is.null(parameter))
-#'                        result <- !result
-#'
-#'                      return(result)
-#'                    }
-#'   )
-#'   return(result)
-#' }
