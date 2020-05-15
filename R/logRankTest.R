@@ -6,14 +6,15 @@
 #' S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Details of the arguments are
 #' provided in \code{\link[coin]{logrank_test}}.
 #'
+#' @inheritParams designSafeLogrank
 #' @param object either a formula with as outcome variable an object resulting from \code{\link[survival]{Surv}}, or
 #' and object of class "IndependenceProblem" as described in \code{\link[coin]{logrank_test}}.
 #' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
+#' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned.
 #' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 #' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
-#' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1
 #' @param ... further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
 #' and distribution.
 #'
@@ -55,13 +56,17 @@
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 ties.method = "average-scores",
 #'                 designObj = designObj)
-safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, h0=1, ...) {
+safeLogrankTest <- function(object, designObj=NULL, alternative=c("two.sided", "greater", "less"), h0=1,
+                            pilot=FALSE, alpha=NULL, ...) {
+  alternative <- match.arg(alternative)
+
   if (isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
          "A design object results can be acquired from designSafeLogrank().")
 
   if (isFALSE(pilot) && designObj[["testType"]] != "logrank")
-    stop("The design is constructed for logrank tests, please use designSafeLogrank() for this.")
+    stop("The provided design is not constructed for logrank tests,",
+         "please use designSafeLogrank() to obtain a safe design object.")
 
   if (!is.null(designObj) && !is.null(alpha)) {
     warning("Both designObj and alpha given. The alpha in designObj is used, and the given alpha is ignored")
@@ -69,10 +74,11 @@ safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, h0=
   }
 
   logrankObj <- try(
-    coin::logrank_test(object, ...)
+    coin::logrank_test(object, alternative="two.sided", ...)
   )
 
-  safeLogrankTestCore("logrankObj"=logrankObj, "designObj"=designObj, "pilot"=pilot, "alpha"=alpha, "h0"=h0)
+  safeLogrankTestCore("logrankObj"=logrankObj, "designObj"=designObj, "pilot"=pilot, "alpha"=alpha, "h0"=h0,
+                      "alternative"=alternative)
 }
 
 #' Core Function of safeLogrankTest
@@ -85,7 +91,9 @@ safeLogrankTest <- function(object, designObj=NULL, pilot=FALSE, alpha=NULL, h0=
 #' @param ... further arguments to be passed to or from methods.
 #'
 #'
-safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=NULL, h0=1, ...) {
+safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
+                                pilot=FALSE, alpha=NULL, ...) {
+
   if (!inherits(logrankObj, "ScalarIndependenceTest"))
     stop("The provided logrankObj is not of the right type derived from coin::logrank_test()")
 
@@ -93,35 +101,19 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 
   groupLevels <- levels(logrankObj@statistic@x[[groupLabel]])
 
-  alternative <- logrankObj@statistic@alternative
-
-  # if (alternative != "two.sided")
-  #   stop("One-sided tests not yet implemented")
-
   if (length(groupLevels) > 2)
     stop("K-sample log rank test not yet implemented")
 
   zStat <- unname(logrankObj@statistic@standardizedlinearstatistic)
-  names(zStat) <- "z"
-
   nEvents <- sum(logrankObj@statistic@ytrans < 0)
-  names(nEvents) <- "nEvents"
 
   dataName <- paste0(names(logrankObj@statistic@y), " by ",
                      names(logrankObj@statistic@x), " (",
                      paste(groupLevels, collapse=", "), ")")
 
-  # result <- list("statistic"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
-  #                "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "mu0"=mu0, "sigma"=sigma)
-
-  names(h0) <- "theta"
-  meanStat <- zStat/sqrt(nEvents)
-
-  if (h0 != 1)
-    zStat <- (zStat - sqrt(nEvents)*log(h0))
-
   result <- list("statistic"=zStat, "n"=nEvents, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "h0"=h0, "alternative"=alternative, "testType"="logrank", "dataName"=dataName)
+
   class(result) <- "safeTest"
 
   if (isTRUE(pilot)) {
@@ -133,10 +125,18 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
     designObj[["pilot"]] <- TRUE
   }
 
-  sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEvents,
-                          "n2"=NULL, "alternative"="two.sided", "paired"=FALSE, "sigma"=1)
+  ratio <- designObj[["ratio"]]
 
-  tempConfSeq <- computeZConfidenceSequence("nEff"=nEvents, "meanStat"=meanStat,
+  nEff <- ratio/(1+ratio)^2*nEvents
+  meanStat <- zStat/sqrt(nEff)
+
+  if (h0 != 1)
+    zStat <- (zStat - sqrt(nEff)*log(h0))
+
+  sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
+                          "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
+
+  tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                             "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
                                             "alpha"=designObj[["alpha"]], "alternative"=alternative)
 
@@ -145,6 +145,10 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
   result[["sValue"]] <- sValue
   result[["designObj"]] <- designObj
   result[["logrankObj"]] <- logrankObj
+
+  names(result[["statistic"]]) <- "z"
+  names(result[["n"]]) <- "nEvents"
+  names(result[["h0"]]) <- "theta"
 
   return(result)
 }
@@ -164,6 +168,14 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #' @param hrMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 #' detect.
 #' @param zApprox logical, default TRUE to use the asymptotic normality results.
+#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If the design is
+#' based on nPlan, then ratio equals \code{nPlan[2]/nPlan[1]}.
+#' @param alternative The null hypothesis of equality of the survival distribution of y in the groups defined by x is
+#' tested. When alternative is "two.sided" the null hypothesis being tested is theta = h0, where
+#' theta = lambda2/lambda1 is the hazard ratio. In case alternative = "less", the null hypothesis being tested is
+#' theta >= h0, i.e., for h0=1, the survival is lower in population 1 than in population 2. When
+#' alternative = "greater", the null hypothesis being tested is theta <= h0, i.e., for h0=1, the survival in population
+#' 1 is higher than in population 2.
 #'
 #' @return Returns a safeDesign object that includes:
 #'
@@ -176,9 +188,10 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #'   \item{beta}{the tolerable type II error provided by the user.}
 #'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
 #'   \item{testType}{"logrank".}
-#'   \item{ratio}{default is 1.}
+#'   \item{ratio}{default is 1. It defines the ratio between the planned randomisation of
+#'   condition 2 over condition 1.}
 #'   \item{pilot}{\code{FALSE} to indicate that the design is not a pilot study.}
-#'   \item{call}{the expression with which this function is called}
+#'   \item{call}{the expression with which this function is called.}
 #' }
 #'
 #' @export
@@ -187,37 +200,39 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, pilot=FALSE, alpha=N
 #' designSafeLogrank(nEvents=89)
 #' designSafeLogrank(hrMin=0.4, beta=0.05)
 #' designSafeLogrank(hrMin=0.4)
-designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, alpha=0.05,
+designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
                               alternative=c("two.sided", "greater", "less"),
-                              ratio=1, zApprox=TRUE, tol=1e-5, ...) {
+                              alpha=0.05, ratio=1, zApprox=TRUE, tol=1e-5, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
   alternative <- match.arg(alternative)
 
   if (zApprox) {
     if (!is.null(hrMin)) {
-      logHazardRatio <-if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
-      meanDiffMin <- sqrt(ratio)/(1+ratio)*logHazardRatio
+      logHazardRatio <- if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
+      meanDiffMin <- abs(logHazardRatio)*sqrt(ratio)/(1+ratio)
     } else {
       logHazardRatio <- NULL
       meanDiffMin <- NULL
     }
 
-    safeZObj <- designSafeZ("meanDiffMin"= meanDiffMin, "beta"=beta, "alpha"=alpha,
+    # Note(Alexander): I scaled meanDiffMin so I can get nPlan correct. I'll scale back below
+    #
+    safeZObj <- designSafeZ("meanDiffMin"=meanDiffMin , "beta"=beta, "alpha"=alpha,
                             "nPlan"=nEvents, "alternative"=alternative,
                             "sigma"=1, "testType"="oneSample")
     nEvents <- safeZObj[["nPlan"]]
-    safeZObj[["nEvents"]] <- nEvents
     safeZObj[["nPlan"]] <- NULL
+    safeZObj[["nEvents"]] <- nEvents
 
     if (!is.null(nEvents))
       names(safeZObj[["nEvents"]]) <- "nEvents"
 
+    safeZObj[["parameter"]] <- safeZObj[["parameter"]]*(1+ratio)/sqrt(ratio)
     names(safeZObj[["parameter"]]) <- "log(thetaS)"
 
-    safeZObj[["esMin"]] <- logHazardRatio
-
     if (!is.null(safeZObj[["esMin"]])) {
+      safeZObj[["esMin"]] <- safeZObj[["esMin"]]*(1+ratio)/sqrt(ratio)
       names(safeZObj[["esMin"]]) <- switch(alternative,
                                            "two.sided"="log hazard difference at least abs(log(theta))",
                                            "greater"="log hazard ratio at least",

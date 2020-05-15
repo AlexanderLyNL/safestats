@@ -48,7 +48,8 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{deltaFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
 deltaTrue = 0.8) of lowParam.}

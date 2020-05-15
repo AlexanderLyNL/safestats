@@ -6,8 +6,8 @@
 \usage{
 designPilotSafeZ(
   nPlan,
-  alpha = 0.05,
   alternative = c("two.sided", "greater", "less"),
+  alpha = 0.05,
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
@@ -19,11 +19,11 @@ designPilotSafeZ(
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
-
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
+
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
@@ -46,7 +46,8 @@ Returns a safeDesign object
   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
-  \item{ratio}{default is 1, only used when testType=="twoSample" and defines n2=ratio*n1.}
+  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+  ratio between the planned randomisation of condition 2 over condition 1.}
   \item{tol}{the step size between parameter values in the candidate space.}
   \item{pilot}{logical, specifying whether it's a pilot design.}
   \item{call}{the expression with which this function is called.}

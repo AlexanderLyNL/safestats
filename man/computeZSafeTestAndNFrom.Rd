@@ -45,7 +45,8 @@ and "phiS". Note that 1-beta defines the power.}
 \item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
 number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
-\item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 

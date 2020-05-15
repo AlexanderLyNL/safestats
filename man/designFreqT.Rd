@@ -36,7 +36,8 @@ are able to fund.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }

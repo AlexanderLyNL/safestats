@@ -5,44 +5,45 @@
 \title{Design a Frequentist Z-Test}
 \usage{
 designFreqZ(
-  alpha = 0.05,
-  beta = 0.2,
   meanDiffMin,
   alternative = c("two.sided", "greater", "less"),
-  lowN = 3L,
-  highN = 100L,
+  alpha = 0.05,
+  beta = 0.2,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   sigma = 1,
   kappa = sigma,
+  lowN = 3L,
+  highN = 100L,
   ...
 )
 }
 \arguments{
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
-
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+and "phiS". Note that 1-beta defines the power.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
+
+\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+
+\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
+number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

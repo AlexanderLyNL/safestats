@@ -17,7 +17,8 @@ defineTTestN(
 \item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
 are able to fund.}
 
-\item{ratio}{numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 }

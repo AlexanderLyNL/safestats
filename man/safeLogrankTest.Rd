@@ -7,9 +7,10 @@
 safeLogrankTest(
   object,
   designObj = NULL,
+  alternative = c("two.sided", "greater", "less"),
+  h0 = 1,
   pilot = FALSE,
   alpha = NULL,
-  h0 = 1,
   ...
 )
 }
@@ -19,13 +20,20 @@ and object of class "IndependenceProblem" as described in \code{\link[coin]{logr
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
+\item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
+tested. When alternative is "two.sided" the null hypothesis being tested is theta = h0, where
+theta = lambda2/lambda1 is the hazard ratio. In case alternative = "less", the null hypothesis being tested is
+theta >= h0, i.e., for h0=1, the survival is lower in population 1 than in population 2. When
+alternative = "greater", the null hypothesis being tested is theta <= h0, i.e., for h0=1, the survival in population
+1 is higher than in population 2.}
+
+\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
+
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 samples is exactly as planned.}
 
 \item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
 shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
-
-\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
 
 \item{...}{further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
 and distribution.}

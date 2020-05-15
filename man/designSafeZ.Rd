@@ -6,10 +6,10 @@
 \usage{
 designSafeZ(
   meanDiffMin = NULL,
-  alpha = 0.05,
   beta = NULL,
   nPlan = NULL,
   alternative = c("two.sided", "greater", "less"),
+  alpha = 0.05,
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
@@ -25,9 +25,6 @@ designSafeZ(
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
-
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 and "phiS". Note that 1-beta defines the power.}
 
@@ -37,6 +34,9 @@ and beta should be set to NULL.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
+
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
@@ -49,7 +49,8 @@ number. Default highN is set 8e9 to correspond to the current population of the 
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
@@ -72,7 +73,8 @@ Returns a safeDesign object that includes:
   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
-  \item{ratio}{default is 1, only used when testType=="twoSample" and defines n2=ratio*n1.}
+  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+  ratio between the planned randomisation of condition 2 over condition 1.}
   \item{tol}{the step size between parameter values in the candidate space.}
   \item{pilot}{logical, specifying whether it's a pilot design.}
   \item{call}{the expression with which this function is called.}

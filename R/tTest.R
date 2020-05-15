@@ -116,7 +116,8 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' @param highParam numeric that defines the largest delta of our search space for the test-defining deltaS.
 #' @param tol a number that defines the stepsizes between the lowParam and highParam.
 #' @param testType either one of "oneSample", "paired", "twoSample".
-#' @param ratio numeric representing n2/n1. If n2 equals \code{NULL} then ratio=1.
+#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+#' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
 #' @param logging logical, if \code{TRUE} return altSThreshes.
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
 #'
@@ -134,8 +135,8 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
 #'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
 #'   whether it was a one-sample or a two-sample test.}
-#'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it's defined
-#'   ratio equals n2/n1.}
+#'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+#'   ratio between the planned randomisation of condition 2 over condition 1.}
 #'   \item{lowN}{the smallest n of the search space for n provided by the user.}
 #'   \item{highN}{the largest n of the search space for n provided by the user.}
 #'   \item{lowParam}{the smallest delta of the search space for delta provided by the user.}

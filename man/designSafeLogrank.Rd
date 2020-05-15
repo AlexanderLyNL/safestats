@@ -8,8 +8,8 @@ designSafeLogrank(
   hrMin = NULL,
   beta = NULL,
   nEvents = NULL,
-  alpha = 0.05,
   alternative = c("two.sided", "greater", "less"),
+  alpha = 0.05,
   ratio = 1,
   zApprox = TRUE,
   tol = 1e-05,
@@ -25,13 +25,18 @@ and "phiS". Note that 1-beta defines the power.}
 
 \item{nEvents}{numeric > 0, targetted number of events.}
 
+\item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
+tested. When alternative is "two.sided" the null hypothesis being tested is theta = h0, where
+theta = lambda2/lambda1 is the hazard ratio. In case alternative = "less", the null hypothesis being tested is
+theta >= h0, i.e., for h0=1, the survival is lower in population 1 than in population 2. When
+alternative = "greater", the null hypothesis being tested is theta <= h0, i.e., for h0=1, the survival in population
+1 is higher than in population 2.}
+
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less".}
-
-\item{ratio}{numeric representing n2/n1. If is.null(n2) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If the design is
+based on nPlan, then ratio equals \code{nPlan[2]/nPlan[1]}.}
 
 \item{zApprox}{logical, default TRUE to use the asymptotic normality results.}
 
@@ -51,9 +56,10 @@ Returns a safeDesign object that includes:
   \item{beta}{the tolerable type II error provided by the user.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
   \item{testType}{"logrank".}
-  \item{ratio}{default is 1.}
+  \item{ratio}{default is 1. It defines the ratio between the planned randomisation of
+  condition 2 over condition 1.}
   \item{pilot}{\code{FALSE} to indicate that the design is not a pilot study.}
-  \item{call}{the expression with which this function is called}
+  \item{call}{the expression with which this function is called.}
 }
 }
 \description{
