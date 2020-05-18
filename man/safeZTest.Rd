@@ -8,14 +8,13 @@
 safeZTest(
   x,
   y = NULL,
-  designObj = NULL,
-  alternative = c("two.sided", "less", "greater"),
   h0 = 0,
-  sigma = 1,
   paired = FALSE,
-  confLevel = 1 - alpha,
+  designObj = NULL,
   pilot = FALSE,
-  alpha = 0.05,
+  alpha = NULL,
+  sigma = NULL,
+  alternative = NULL,
   tol = 1e-05,
   ...
 )
@@ -23,14 +22,14 @@ safeZTest(
 safe.z.test(
   x,
   y = NULL,
-  designObj = NULL,
-  alternative = c("two.sided", "less", "greater"),
   h0 = 0,
-  sigma = 1,
   paired = FALSE,
-  confLevel = 1 - alpha,
+  designObj = NULL,
   pilot = FALSE,
   alpha = 0.05,
+  sigma = 1,
+  alternative = c("two.sided", "greater", "less"),
+  tol = 1e-05,
   ...
 )
 }
@@ -39,28 +38,27 @@ safe.z.test(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{designObj}{an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.}
-
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less".}
-
 \item{h0}{a number indicating the hypothesised true value of the (differences of the) mean(s) under the null.
 Default 0}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
-
 \item{paired}{a logical indicating whether you want the paired z-test.}
 
-\item{confLevel}{confidence level of the interval. If alpha is given, then set to 1-alpha. Not yet implemented.}
+\item{designObj}{an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the observed
-number of samples is exactly as planned.}
+number of samples is exactly as planned, and a pilot design object is constructed.}
 
-\item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
+the design object is used instead in constructing the decision rule S > 1/alpha.}
 
-\item{tol}{numeric > 0, the mesh between consecutive parameter values in the candidate space. Only used when pilot
-is set to \code{TRUE}.}
+\item{sigma}{numeric > 0 only used if pilot equals \code{TRUE}, which is then used to construct the design objects.
+If pilot equals \code{FALSE} the sigma specified by the design object is used instead.}
+
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+alternative specified by the design object is used instead.}
+
+\item{tol}{numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
+defining parameter to construct a pilot design object.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -79,8 +77,6 @@ following components:
   sample test or a two-sample test.}
   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
   or a two-sample test.}
-  \item{sigma}{the assumed population standard deviation provided by the user.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}}.}
@@ -97,7 +93,7 @@ alternative="greater", testType="twoSample", ratio=1.2)
 set.seed(1)
 x <- rnorm(100)
 y <- rnorm(100)
-safeZTest(x, y, alternative="greater", designObj=designObj)      #
+safeZTest(x, y, designObj=designObj)      #
 
-safeZTest(1:10, y = c(7:20), pilot=TRUE)      # s = 7.7543e+20 > 1/alpha
+safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 7.7543e+20 > 1/alpha
 }

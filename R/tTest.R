@@ -1441,7 +1441,6 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
 #'
 #' @param var.equal a logical variable indicating whether to treat the two variances as being equal. For the moment,
 #' this is always \code{TRUE}.
-#' @param conf.level confidence level of the interval. Not yet implemented.
 #'
 #' @export
 #'

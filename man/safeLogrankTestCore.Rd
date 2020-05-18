@@ -19,20 +19,16 @@ safeLogrankTestCore(
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
-\item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
-tested. When alternative is "two.sided" the null hypothesis being tested is theta = h0, where
-theta = lambda2/lambda1 is the hazard ratio. In case alternative = "less", the null hypothesis being tested is
-theta >= h0, i.e., for h0=1, the survival is lower in population 1 than in population 2. When
-alternative = "greater", the null hypothesis being tested is theta <= h0, i.e., for h0=1, the survival in population
-1 is higher than in population 2.}
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+alternative specified by the design object is used instead.}
 
 \item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 samples is exactly as planned.}
 
-\item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
+the design object is used instead in constructing the decision rule S > 1/alpha.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -42,12 +38,11 @@ following components:
 
 \describe{
   \item{statistic}{the value of the z-statistic.}
-  \item{n}{The realised sample size(s).}
-  \item{sValue}{the s-value for the safe test.}
-  \item{confInt}{To be implemented: a safe confidence interval for the hazard ratio.}
-  \item{estimate}{To be implemented: an estimate of the hazard ratio.}
+  \item{nEvents}{The number of observed events.}
+  \item{sValue}{the s-value of the safe test.}
+  \item{confSeq}{An anytime-valid confidence sequence.}
+  \item{estimate}{To be implemented: An estimate of the hazard ratio.}
   \item{h0}{the specified hypothesised value of hazard ratio.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user. Currently, only "two.sided".}
   \item{testType}{"logrank".}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}

@@ -26,11 +26,11 @@ and "phiS". Note that 1-beta defines the power.}
 \item{nEvents}{numeric > 0, targetted number of events.}
 
 \item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
-tested. When alternative is "two.sided" the null hypothesis being tested is theta = h0, where
-theta = lambda2/lambda1 is the hazard ratio. In case alternative = "less", the null hypothesis being tested is
-theta >= h0, i.e., for h0=1, the survival is lower in population 1 than in population 2. When
-alternative = "greater", the null hypothesis being tested is theta <= h0, i.e., for h0=1, the survival in population
-1 is higher than in population 2.}
+tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the
+hazard ratio, and compared to theta != h0. If alternative = "less", the null hypothesis is compared to
+theta <= h0. For h0=1 the alternative specifies that survival in population 1 is higher than in population 2.
+When alternative = "greater", the null hypothesis is compared to the alternative theta >= h0. For h0=1 the
+alternative specifies that survival in population 2 is higher than in population 1.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}

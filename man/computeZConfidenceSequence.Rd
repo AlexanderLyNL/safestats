@@ -20,13 +20,14 @@ computeZConfidenceSequence(
 
 \item{phiS}{numeric > 0, the safe test defining parameter}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 only used if pilot equals \code{TRUE}, which is then used to construct the design objects.
+If pilot equals \code{FALSE} the sigma specified by the design object is used instead.}
 
-\item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
+the design object is used instead in constructing the decision rule S > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less".}
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+alternative specified by the design object is used instead.}
 }
 \value{
 numeric vector that contains the upper and lower bound of the safe confidence sequence

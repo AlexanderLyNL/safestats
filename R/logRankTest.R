@@ -6,7 +6,6 @@
 #' S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Details of the arguments are
 #' provided in \code{\link[coin]{logrank_test}}.
 #'
-#' @inheritParams designSafeLogrank
 #' @param object either a formula with as outcome variable an object resulting from \code{\link[survival]{Surv}}, or
 #' and object of class "IndependenceProblem" as described in \code{\link[coin]{logrank_test}}.
 #' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
