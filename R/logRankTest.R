@@ -13,8 +13,10 @@
 #' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned.
-#' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-#' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
+#' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
+#' the design object is used instead in constructing the decision rule S > 1/alpha.
+#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+#' alternative specified by the design object is used instead.
 #' @param ... further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
 #' and distribution.
 #'
@@ -23,12 +25,11 @@
 #'
 #' \describe{
 #'   \item{statistic}{the value of the z-statistic.}
-#'   \item{n}{The realised sample size(s).}
-#'   \item{sValue}{the s-value for the safe test.}
-#'   \item{confInt}{To be implemented: a safe confidence interval for the hazard ratio.}
-#'   \item{estimate}{To be implemented: an estimate of the hazard ratio.}
+#'   \item{nEvents}{The number of observed events.}
+#'   \item{sValue}{the s-value of the safe test.}
+#'   \item{confSeq}{An anytime-valid confidence sequence.}
+#'   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
 #'   \item{h0}{the specified hypothesised value of hazard ratio.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user. Currently, only "two.sided".}
 #'   \item{testType}{"logrank".}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
 #'   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}
@@ -56,21 +57,25 @@
 #' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
 #'                 ties.method = "average-scores",
 #'                 designObj = designObj)
-safeLogrankTest <- function(object, designObj=NULL, alternative=c("two.sided", "greater", "less"), h0=1,
-                            pilot=FALSE, alpha=NULL, ...) {
-  alternative <- match.arg(alternative)
+safeLogrankTest <- function(object, designObj=NULL, h0=1,
+                            pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
 
   if (isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
-         "A design object results can be acquired from designSafeLogrank().")
+         "A design object can be obtained by running designSafeLogrank().")
 
-  if (isFALSE(pilot) && designObj[["testType"]] != "logrank")
-    stop("The provided design is not constructed for logrank tests,",
-         "please use designSafeLogrank() to obtain a safe design object.")
+  if (!is.null(designObj)) {
+    if (!is.null(alpha))
+      warning("Both a design object and an alpha given. The alpha specified by the design object ",
+              "is used for the test, and the provided alpha is ignored.")
 
-  if (!is.null(designObj) && !is.null(alpha)) {
-    warning("Both designObj and alpha given. The alpha in designObj is used, and the given alpha is ignored")
-    alpha <- NULL
+    if (!is.null(alternative))
+      warning("Both a design object and an alternative given. The alternative specified by ",
+              "the design object is used for the test, and the provided alternative is ignored.")
+
+    if (names(designObj[["parameter"]]) != "log(thetaS)")
+      warning("The provided design is not constructed for the logrank test,",
+              "please use designSafeLogrank() instead. The test results might be invalid.")
   }
 
   logrankObj <- try(
@@ -111,34 +116,42 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
                      names(logrankObj@statistic@x), " (",
                      paste(groupLevels, collapse=", "), ")")
 
-  result <- list("statistic"=zStat, "n"=nEvents, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
-                 "h0"=h0, "alternative"=alternative, "testType"="logrank", "dataName"=dataName)
-
-  class(result) <- "safeTest"
-
   if (isTRUE(pilot)) {
-
     if (is.null(alpha))
       alpha <- 0.05
 
-    designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha)
+    if (is.null(alternative))
+      alternative <- "two.sided"
+    else {
+      if (!(alternative %in% c("two.sided", "greater", "less")))
+        stop('Provided alternative must be one of "two.sided", "greater", or "less".')
+    }
+
+    designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
+                                   "alternative"=alternative)
     designObj[["pilot"]] <- TRUE
   }
 
+  alpha <- designObj[["alpha"]]
+  alternative <- designObj[["alternative"]]
   ratio <- designObj[["ratio"]]
 
   nEff <- ratio/(1+ratio)^2*nEvents
   meanStat <- zStat/sqrt(nEff)
 
-  if (h0 != 1)
-    zStat <- (zStat - sqrt(nEff)*log(h0))
+  # TODO(Alexander): In principle I could replace "estimate"=exp(meanStat)
+  result <- list("statistic"=zStat, "n"=nEvents, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
+                 "h0"=h0, "testType"="logrank", "dataName"=dataName)
+  class(result) <- "safeTest"
+
+  zStat <- (zStat - sqrt(nEff)*log(h0))
 
   sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
                           "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
 
   tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                             "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-                                            "alpha"=designObj[["alpha"]], "alternative"=alternative)
+                                            "alpha"=alpha, "alternative"=alternative)
 
   result[["confSeq"]] <- exp(tempConfSeq)
 
@@ -171,11 +184,11 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If the design is
 #' based on nPlan, then ratio equals \code{nPlan[2]/nPlan[1]}.
 #' @param alternative The null hypothesis of equality of the survival distribution of y in the groups defined by x is
-#' tested. When alternative is "two.sided" the null hypothesis being tested is theta = h0, where
-#' theta = lambda2/lambda1 is the hazard ratio. In case alternative = "less", the null hypothesis being tested is
-#' theta >= h0, i.e., for h0=1, the survival is lower in population 1 than in population 2. When
-#' alternative = "greater", the null hypothesis being tested is theta <= h0, i.e., for h0=1, the survival in population
-#' 1 is higher than in population 2.
+#' tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the
+#' hazard ratio, and compared to theta != h0. If alternative = "less", the null hypothesis is compared to
+#' theta <= h0. For h0=1 the alternative specifies that survival in population 1 is higher than in population 2.
+#' When alternative = "greater", the null hypothesis is compared to the alternative theta >= h0. For h0=1 the
+#' alternative specifies that survival in population 2 is higher than in population 1.
 #'
 #' @return Returns a safeDesign object that includes:
 #'

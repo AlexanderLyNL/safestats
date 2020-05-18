@@ -381,3 +381,36 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 
   return(data)
 }
+
+
+
+
+
+
+
+#' Helper function to check whether arguments are specified in a function at a higher level and already
+#' provided in the design object.
+#'
+#' @param designObj an object of class "safeDesign".
+#' @param ... arguments that need checking.
+#'
+#' @return Returns nothing only used for its side-effects to produces warnings if needed.
+#'
+#' @examples
+#' designObj <- designSafeZ(0.4)
+#'
+#' safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
+#' safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
+checkDoubleArgumentsDesignObject <- function(designObj, ...) {
+
+  argsToCheck <- list(...)
+
+  for (neem in names(argsToCheck)) {
+    argument <- argsToCheck[[neem]]
+
+    if (!is.null(argument))
+      warning("Both a design object and '", neem, "' provided. The '", neem, "' specified by the design",
+              "object is used for the test, and the provided '", neem, "' is ignored.")
+
+  }
+}

@@ -78,20 +78,20 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #' @aliases safe.z.test
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less".
-#' @param designObj an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.
 #' @param h0 a number indicating the hypothesised true value of the (differences of the) mean(s) under the null.
 #' Default 0
-#' @param sigma numeric > 0 representing the assumed population standard deviation used for the test.
 #' @param paired a logical indicating whether you want the paired z-test.
-#' @param confLevel confidence level of the interval. If alpha is given, then set to 1-alpha. Not yet implemented.
+#' @param designObj an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the observed
-#' number of samples is exactly as planned.
-#' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-#' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
-#' @param tol numeric > 0, the mesh between consecutive parameter values in the candidate space. Only used when pilot
-#' is set to \code{TRUE}.
+#' number of samples is exactly as planned, and a pilot design object is constructed.
+#' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
+#' the design object is used instead in constructing the decision rule S > 1/alpha.
+#' @param sigma numeric > 0 only used if pilot equals \code{TRUE}, which is then used to construct the design objects.
+#' If pilot equals \code{FALSE} the sigma specified by the design object is used instead.
+#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+#' alternative specified by the design object is used instead.
+#' @param tol numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
+#' defining parameter to construct a pilot design object.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -108,8 +108,6 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'   sample test or a two-sample test.}
 #'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
 #'   or a two-sample test.}
-#'   \item{sigma}{the assumed population standard deviation provided by the user.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
 #'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}}.}
@@ -124,24 +122,28 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #' set.seed(1)
 #' x <- rnorm(100)
 #' y <- rnorm(100)
-#' safeZTest(x, y, alternative="greater", designObj=designObj)      #
+#' safeZTest(x, y, designObj=designObj)      #
 #'
-#' safeZTest(1:10, y = c(7:20), pilot=TRUE)      # s = 7.7543e+20 > 1/alpha
-safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                      h0=0, sigma=1, paired=FALSE, confLevel=1-alpha, pilot=FALSE,
-                      alpha=0.05, tol=1e-05, ...) {
-
-  alternative <- match.arg(alternative)
+#' safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 7.7543e+20 > 1/alpha
+safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
+                      pilot=FALSE, alpha=NULL, sigma=NULL,
+                      alternative=NULL, tol=1e-05, ...) {
 
   result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
-                 "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "h0"=h0, "sigma"=sigma,
-                 "call"=sys.call())
-
+                 "testType"=NULL, "dataName"=NULL, "h0"=h0, "sigma"=NULL, "call"=sys.call())
   class(result) <- "safeTest"
 
-  if (is.null(designObj) && !pilot) {
-    stop("No design given and not indicated that this is a pilot study. Run design first and provide ",
-         "this to safeZTest/safe.z.test, or run safeZTest with pilot=TRUE")
+  if (is.null(designObj) && !pilot)
+    stop("Please provide a safe z-test design object, or run the function with pilot=TRUE. ",
+         "A design object can be obtained by running designSafeZ().")
+
+  if (!is.null(designObj)) {
+    checkDoubleArgumentsDesignObject(designObj, alternative=alternative, alpha=alpha, sigma=sigma)
+
+    if (names(designObj[["parameter"]]) != "phiS")
+      warning("The provided design is not constructed for the z-test,",
+              "please use designSafeZ() instead. The test results might be invalid.")
+
   }
 
   if (is.null(y)) {
@@ -154,20 +156,19 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 
     meanStat <- estimate <- mean(x)
     names(estimate) <- "mean of x"
-    # zStat <- tryOrFailWithNA(sqrt(nEff)*(estimateforCS - h0)/sigma)
   } else {
     nEff <- n1 <- length(x)
     n2 <- length(y)
 
     if (paired) {
       if (n1 != n2)
-        stop("Data error: Error in complete.cases(x, y) : not all arguments have the same length")
+        stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
+             "but the two samples are not of the same size.")
 
       testType <- "paired"
 
       meanStat <- estimate <- mean(x-y)
       names(estimate) <- "mean of the differences"
-      # zStat <- tryOrFailWithNA(sqrt(n1)*(estimateforCS-h0)/sigma)
     } else {
       testType <- "twoSample"
 
@@ -175,31 +176,41 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
       estimate <- c(mean(x), mean(y))
       names(estimate) <- c("mean of x", "mean of y")
       meanStat <- estimate[1]-estimate[2]
-      # zStat <- tryOrFailWithNA(sqrt(nEff)*(estimateforCS-h0)/sigma)
     }
   }
 
-  zStat <- tryOrFailWithNA(sqrt(nEff)*(meanStat - h0)/sigma)
-  result[["testType"]] <- testType
-
-  if (is.na(zStat))
-    stop("Could not compute the z-statistic")
-
   if (pilot) {
-    nPlan <- if (is.null(n2)) n1 else c(n1, n2)
+    if (is.null(alternative))
+      alternative <- "two.sided"
+    else {
+      if (!(alternative %in% c("two.sided", "greater", "less")))
+        stop('Provided alternative must be one of "two.sided", "greater", or "less".')
+    }
 
+    if (is.null(alpha))
+      alpha <- 0.05
+
+    if (is.null(sigma))
+      sigma <- 1
+
+    nPlan <- if (is.null(n2)) n1 else c(n1, n2)
     designObj <- designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative,
                                   "sigma"=sigma, "paired"=paired, "tol"=tol)
     designObj[["pilot"]] <- TRUE
   }
 
+  alpha <- designObj[["alpha"]]
+  sigma <- designObj[["sigma"]]
+  alternative <- designObj[["alternative"]]
+
+  zStat <- tryOrFailWithNA(sqrt(nEff)*(meanStat - h0)/sigma)
+
+  if (is.na(zStat))
+    stop("Could not compute the z-statistic")
+
   if (designObj[["testType"]] != testType)
     warning('The test type of designObj is "', designObj[["testType"]],
             '", whereas the data correspond to a testType "', testType, '"')
-
-  if (alternative != designObj[["alternative"]])
-    warning('The test is designed for a test with direction "', designObj[["alternative"]],
-            '", whereas the requested analysis has direction "', alternative, '"')
 
   sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
                           "alternative"=alternative, "paired"=paired)
@@ -209,16 +220,15 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   else
     dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
 
+  result[["testType"]] <- testType
   result[["statistic"]] <- zStat
   result[["estimate"]] <- estimate
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
 
-  phiS <- abs(designObj[["parameter"]])
-
   result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                                    "phiS"=phiS, "sigma"=sigma,
-                                                    "alpha"=designObj[["alpha"]],
+                                                    "phiS"=abs(designObj[["parameter"]]),
+                                                    "sigma"=sigma, "alpha"=alpha,
                                                     "alternative"=alternative)
 
   if (is.null(n2)) {
@@ -228,6 +238,7 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
     result[["n"]] <- c(n1, n2)
     names(result[["n"]]) <- c("n1", "n2")
   }
+
   result[["sValue"]] <- sValue
 
   names(result[["h0"]]) <- "mu"
@@ -241,10 +252,12 @@ safeZTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 #' @rdname safeZTest
 #'
 #' @export
-safe.z.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                        h0=0, sigma=1, paired=FALSE, confLevel=1-alpha, pilot=FALSE, alpha=0.05, ...) {
-  result <- safeZTest("x"=x, "y"=y, "designObj"=designObj, "alternative"=alternative,
-                      "h0"=h0, "paired"=paired, "sigma"=sigma, "confLevel"=confLevel, "pilot"=pilot, "alpha"=alpha, ...)
+safe.z.test <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
+                        pilot=FALSE, alpha=0.05, sigma=1,
+                        alternative=c("two.sided", "greater", "less"),
+                        tol=1e-05, ...) {
+  result <- safeZTest("x"=x, "y"=y, "designObj"=designObj, "alternative"=alternative, "h0"=h0,
+                      "paired"=paired, "sigma"=sigma, "pilot"=pilot, "alpha"=alpha, ...)
 
   if (is.null(y))
     dataName <- as.character(sys.call())[2]
@@ -508,7 +521,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   tempResult <- list()
 
-  # TODO(Alexander): If parameter is null add
   if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan)) {
     # Scenario "1a"
     designScenario <- "1a"
@@ -645,8 +657,6 @@ computeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1,
         nEff <- tempResult[["root"]]
       } else {
         qB <- qnorm(beta)
-
-
 
         nEff <- exp(2*(log(kappa)-log(meanDiffMin))) *
           (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))+2*kappa^2/sigma^2*log(1/alpha))

@@ -1297,18 +1297,17 @@ generateTTestData <- function(nPlan, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaT
 #'
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less".
 #' @param designObj an object obtained from \code{\link{designSafeT}}, or \code{NULL}, when pilot equals \code{TRUE}..
 #' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0
 #' @param paired a logical indicating whether you want a paired t-test.
 #' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For the moment,
 #' this is always \code{TRUE}.
-#' @param confLevel confidence level of the interval. Not yet implemented.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned.
-#' @param alpha numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-#' shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.
+#' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
+#' the design object is used instead in constructing the decision rule S > 1/alpha.
+#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+#' alternative specified by the design object is used instead.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -1318,14 +1317,13 @@ generateTTestData <- function(nPlan, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaT
 #'   \item{statistic}{the value of the t-statistic.}
 #'   \item{n}{The realised sample size(s).}
 #'   \item{sValue}{the realised s-value from the safe test.}
-#'   \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
+#'   \item{confSeq}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
 #'   hypothesis.}
 #'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
 #'   sample test or a two-sample test.}
 #'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
 #'   or a two-sample test.}
 #'   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
 #'   \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
@@ -1340,21 +1338,15 @@ generateTTestData <- function(nPlan, nsim=1000L, deltaTrue=0, muGlobal=0, sigmaT
 #' set.seed(1)
 #' x <- rnorm(100)
 #' y <- rnorm(100)
-#' safeTTest(x, y, alternative="greater", designObj=designObj)      #0.2959334
+#' safeTTest(x, y, designObj=designObj)      #0.2959334
 #'
 #' safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
-#'
-#'
-safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                      h0=0, paired=FALSE, varEqual=TRUE, confLevel=1-alpha, pilot=FALSE,
-                      alpha=0.05, ...) {
+safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
+                      h0=0, pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
   # TODO(Alexander): Generalise h0 = 0 to other h0
-  alternative <- match.arg(alternative)
 
-  names(h0) <- "mu"
-
-  result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confInt"=NULL, "estimate"=NULL,
-                 "alternative"=alternative, "testType"=NULL, "dataName"=NULL, "h0"=h0, "stderr"=NULL,
+  result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
+                 "alternative"=NULL, "testType"=NULL, "dataName"=NULL, "h0"=h0, "stderr"=NULL,
                  "call"=sys.call())
   class(result) <- "safeTest"
 
@@ -1363,12 +1355,13 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
          "this to safeTTest/safe.t.test, or run safeTTest with pilot=TRUE")
   }
 
-  freqObject <- try(stats::t.test("x"=x, "y"=y, "alternative"=alternative, "mu"=h0,
-                                  "paired"=paired, "var.equal"=varEqual))
-  t <- freqObject[["statistic"]]
+  if (!is.null(designObj)) {
+    checkDoubleArgumentsDesignObject(designObj, "alternative"=alternative, "alpha"=alpha)
 
-  if (isTryError(freqObject))
-    stop("Data error: could not compute the t-statistic with t.test: ", freqObject[1])
+    if (names(designObj[["parameter"]]) != "deltaS")
+      warning("The provided design is not constructed for the z-test,",
+              "please use designSafeT() instead. The test results might be invalid.")
+  }
 
   n1 <- length(x)
 
@@ -1387,24 +1380,39 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
       testType <- "twoSample"
   }
 
-  result[["testType"]] <- testType
-  result[["n"]] <- n
 
-  if (pilot)
+  if (pilot) {
+    if (is.null(alternative))
+      alternative <- "two.sided"
+    else {
+      if (!(alternative %in% c("two.sided", "greater", "less")))
+        stop('Provided alternative must be one of "two.sided", "greater", or "less".')
+    }
+
+    if (is.null(alpha))
+      alpha <- 0.05
+
     designObj <- designPilotSafeT("nPlan"=n, "alpha"=alpha, "alternative"=alternative, "paired"=paired)
+  }
 
   if (designObj[["testType"]] != testType)
     warning('The test type of designObj is "', designObj[["testType"]],
             '", whereas the data correspond to a testType "', testType, '"')
 
-  if (alternative != designObj[["alternative"]])
-    warning('The test is designed for a test with direction "', designObj[["alternative"]],
-            '", whereas the requested analysis has direction "', alternative, '"')
-  #
+  alternative <- designObj[["alternative"]]
+  alpha <- designObj[["alpha"]]
+
+  freqObject <- try(stats::t.test("x"=x, "y"=y, "alternative"=alternative, "mu"=h0,
+                                  "paired"=paired, "var.equal"=varEqual))
+  t <- freqObject[["statistic"]]
+
+  if (isTryError(freqObject))
+    stop("Data error: could not compute the t-statistic with t.test: ", freqObject[1])
+
   # TODO(Alexander): Save result, perhaps save freqObject
   #
-  sValue <- safeTTestStat("t"=t, "parameter"=designObj[["parameter"]], "n1"=n[1], "n2"=n[2], "alternative"=alternative,
-                          "paired"=paired)
+  sValue <- safeTTestStat("t"=t, "parameter"=designObj[["parameter"]], "n1"=n[1], "n2"=n[2],
+                          "alternative"=alternative, "paired"=paired)
 
   if (is.null(y))
     dataName <- as.character(sys.call())[2]
@@ -1418,12 +1426,14 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
   result[["freqObject"]] <- freqObject
-  # result[["n1"]] <- n1
-  # result[["n2"]] <- n2
+  result[["testType"]] <- testType
+  result[["n"]] <- n
   result[["sValue"]] <- sValue
+  result[["h0"]] <- "mu"
 
   return(result)
 }
+
 
 #' Alias for safeTTest
 #'
@@ -1445,12 +1455,10 @@ safeTTest <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "les
 #' safe.t.test(x, y, alternative="greater", designObj=designObj)      #0.2959334
 #'
 #' safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
-safe.t.test <- function(x, y=NULL, designObj=NULL, alternative=c("two.sided", "less", "greater"),
-                        h0=0, paired=FALSE, var.equal=TRUE, conf.level=0.95, pilot=FALSE,
-                        alpha=0.05, ...) {
-  result <- safeTTest("x"=x, "y"=y, "alternative"=alternative, "designObj"=designObj, "h0"=h0, "paired"=paired,
-                      "varEqual"=var.equal, "confLevel"=conf.level, "pilot"=pilot, "alpha"=alpha, ...)
-
+safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE, h0=0,
+                        pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
+  result <- safeTTest("x"=x, "y"=y, "designObj"=designObj, "h0"=h0, "paired"=paired, "varEqual"=var.equal,
+                      "pilot"=pilot, "alpha"=alpha, "alternative"=alternative, ...)
   if (is.null(y))
     dataName <- as.character(sys.call())[2]
   else

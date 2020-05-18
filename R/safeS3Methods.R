@@ -78,7 +78,8 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
   testType <- designObj[["testType"]]
 
   analysisName <- getNameTestType("testType"=testType, "parameterName"=names(designObj[["parameter"]]))
-  alternativeName <- getNameAlternative("alternative"=x[["alternative"]], "testType"=testType, "h0"=x[["h0"]])
+  alternativeName <- getNameAlternative("alternative"=designObj[["alternative"]],
+                                        "testType"=testType, "h0"=x[["h0"]])
 
   cat("\n")
   cat(strwrap(analysisName, prefix = prefix), sep = "\n")
