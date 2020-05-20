@@ -243,8 +243,9 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
     safeZObj[["parameter"]] <- safeZObj[["parameter"]]*(1+ratio)/sqrt(ratio)
     names(safeZObj[["parameter"]]) <- "log(thetaS)"
 
+    safeZObj[["esMin"]] <- logHazardRatio
+
     if (!is.null(safeZObj[["esMin"]])) {
-      safeZObj[["esMin"]] <- safeZObj[["esMin"]]*(1+ratio)/sqrt(ratio)
       names(safeZObj[["esMin"]]) <- switch(alternative,
                                            "two.sided"="log hazard difference at least abs(log(theta))",
                                            "greater"="log hazard ratio at least",
