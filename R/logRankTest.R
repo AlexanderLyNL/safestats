@@ -139,7 +139,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
   meanStat <- zStat/sqrt(nEff)
 
   # TODO(Alexander): In principle I could replace "estimate"=exp(meanStat)
-  result <- list("statistic"=zStat, "n"=nEvents, "estimate"=meanStat, "sValue"=NULL, "confSeq"=NULL,
+  result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "sValue"=NULL, "confSeq"=NULL,
                  "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
   class(result) <- "safeTest"
 
