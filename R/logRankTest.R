@@ -150,11 +150,11 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
   sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
                           "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
 
-  tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                            "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-                                            "alpha"=alpha, "alternative"=alternative)
-
-  result[["confSeq"]] <- exp(tempConfSeq)
+  # tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+  #                                           "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
+  #                                           "alpha"=alpha, "alternative"=alternative)
+  #
+  # result[["confSeq"]] <- exp(tempConfSeq)
 
   result[["sValue"]] <- sValue
   result[["designObj"]] <- designObj

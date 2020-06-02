@@ -226,10 +226,10 @@ safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
 
-  result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                                    "phiS"=abs(designObj[["parameter"]]),
-                                                    "sigma"=sigma, "alpha"=alpha,
-                                                    "alternative"=alternative)
+  # result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+  #                                                   "phiS"=abs(designObj[["parameter"]]),
+  #                                                   "sigma"=sigma, "alpha"=alpha,
+  #                                                   "alternative"=alternative)
 
   if (is.null(n2)) {
     result[["n"]] <- n1
