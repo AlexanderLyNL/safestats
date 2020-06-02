@@ -182,16 +182,18 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
                             "paired"=paired))
   }
 
-  names(deltaMin) <- switch(alternative,
-                            "two.sided"="standardised effect sizes at least abs(delta)",
-                            "less"="standardised effect sizes smaller than delta",
-                            "greater"="standardised effect sizes larger than delta")
-
   result <- list("nPlan"=NULL, "parameter"=NULL, "esMin"=deltaMin, "alpha"=alpha, "beta"=beta,
                  "alternative"=alternative, "testType"=testType, "paired"=paired, "h0"=h0,
                  "ratio"=ratio, "lowN"=lowN, "highN"=highN, "lowParam"=lowParam,
-                 "highParam"=highParam, "tol"=tol, "pilot"=FALSE, "call"=sys.call())
+                 "highParam"=highParam, "tol"=tol, "pilot"=FALSE, "call"=sys.call(),
+                 "timeStamp"=Sys.time())
   class(result) <- "safeDesign"
+
+  names(result[["esMin"]]) <- "standardised effect size"
+  # names(deltaMin) <- switch(alternative,
+  #                           "two.sided"="standardised effect sizes at least abs(delta)",
+  #                           "less"="standardised effect sizes smaller than delta",
+  #                           "greater"="standardised effect sizes larger than delta")
 
   n1Plan <- NULL
   n2Plan <- NULL
@@ -879,7 +881,7 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.side
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
                  "h0"=h0, "sigma"=sigma, "kappa"=kappa, "testType"=testType,
                  "ratio"=ratio, "lowParam"=NULL, "highParam"=NULL,
-                 "pilot"=FALSE, "call"=sys.call())
+                 "pilot"=FALSE, "call"=sys.call(), "timeStamp"=Sys.time())
   class(result) <- "safeDesign"
 
   #

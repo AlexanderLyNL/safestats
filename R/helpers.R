@@ -408,8 +408,8 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
   for (neem in names(argsToCheck)) {
     argument <- argsToCheck[[neem]]
 
-    if (!is.null(argument))
-      warning("Both a design object and '", neem, "' provided. The '", neem, "' specified by the design",
+    if (!is.null(argument) && argument != designObj[[neem]])
+      warning("Both a design object and '", neem, "' provided. The '", neem, "' specified by the design ",
               "object is used for the test, and the provided '", neem, "' is ignored.")
 
   }

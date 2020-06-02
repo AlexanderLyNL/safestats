@@ -184,7 +184,8 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
       esMin <- designObj[["esMin"]]
 
       if (!is.null(esMin)) {
-        out <- paste(names(esMin), "=", format(esMin, digits = max(1L, digits - 2L)))
+        out <- paste0("minimal relevant ", names(esMin), " = ", format(esMin, digits = max(1L, digits - 2L)),
+                      " (", designObj[["alternative"]], ")")
 
         cat("for", out, "\n")
       }
@@ -232,8 +233,8 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
 
   displayList <- list()
 
-  for (item in c("nPlan", "nEvents", "esMin", "alpha", "beta", "parameter",
-                 "decision rule", "alternative")) {
+  for (item in c("nPlan", "nEvents", "esMin", "alternative", "beta", "parameter",
+                 "alpha", "decision rule")) {
     itemValue <- designObj[[item]]
 
     if (!is.null(itemValue)) {
@@ -246,7 +247,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
       } else if (item=="decision rule") {
         displayList[["decision rule: s-value > 1/alpha"]] <- itemValue
       } else if (item=="esMin") {
-        displayList[[names(itemValue)]] <- itemValue
+        displayList[[paste("minimal", names(itemValue))]] <- itemValue
       } else {
         displayList[[item]] <- itemValue
       }
@@ -255,6 +256,13 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
 
   cat(paste(format(names(displayList), width = 20L, justify = "right"),
             format(displayList, digits = digits), sep = " = "), sep = "\n")
+
+  someTime <- designObj[["timeStamp"]]
+
+  if (!is.null(someTime)) {
+    cat("\n")
+    cat(paste("Timestamp:", format(someTime, usetz = TRUE)))
+  }
 
   if (!is.null(note))
     cat("\n", "NOTE: ", note, "\n\n", sep = "")

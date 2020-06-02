@@ -138,7 +138,7 @@ safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
          "A design object can be obtained by running designSafeZ().")
 
   if (!is.null(designObj)) {
-    checkDoubleArgumentsDesignObject(designObj, alternative=alternative, alpha=alpha, sigma=sigma)
+    checkDoubleArgumentsDesignObject(designObj, "alternative"=alternative, "alpha"=alpha, "sigma"=sigma)
 
     if (names(designObj[["parameter"]]) != "phiS")
       warning("The provided design is not constructed for the z-test,",
@@ -417,7 +417,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
   result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=NULL, "alpha"=alpha, "beta"=NULL,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
                  "sigma"=sigma, "kappa"=kappa, "ratio"=ratio, "tol"=tol, "pilot"=FALSE,
-                 "call"=sys.call())
+                 "call"=sys.call(), "timeStamp"=Sys.time())
 
   class(result) <- "safeDesign"
 
@@ -582,11 +582,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
          "(5) NULL meanDiffMen, NULL meanDiffMen, non-null nPlan.")
   }
 
-  names(meanDiffMin) <- switch(alternative,
-                               "two.sided"="mean differences at least abs(phi)",
-                               "less"="mean differences smaller than phi",
-                               "greater"="mean differences larger than phi")
-
   if (is.na(meanDiffMin))
     meanDiffMin <- NULL
 
@@ -599,8 +594,14 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   result <- list("nPlan"=nPlan, "parameter"=phiS, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
                  "sigma"=sigma, "kappa"=kappa,
-                 "ratio"=ratio, "pilot"=FALSE, "lowN"=NULL, "highN"=NULL, "call"=sys.call())
+                 "ratio"=ratio, "pilot"=FALSE, "lowN"=NULL, "highN"=NULL, "call"=sys.call(),
+                 "timeStamp"=Sys.time())
   class(result) <- "safeDesign"
+
+  names(result[["esMin"]]) <- "mean difference"
+    # switch(alternative, "two.sided"="mean differences at least abs(phi)",
+    #        "less"="mean differences smaller than phi",
+    #        "greater"="mean differences larger than phi")
 
   for (neem in c("lowN", "highN", "lowParam", "highParam", "nEffPlan")) {
     value <- tempResult[[neem]]

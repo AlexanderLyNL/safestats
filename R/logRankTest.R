@@ -119,9 +119,9 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
     if (is.null(alpha))
       alpha <- 0.05
 
-    if (is.null(alternative))
+    if (is.null(alternative)) {
       alternative <- "two.sided"
-    else {
+    } else {
       if (!(alternative %in% c("two.sided", "greater", "less")))
         stop('Provided alternative must be one of "two.sided", "greater", or "less".')
     }
@@ -139,9 +139,11 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
   meanStat <- zStat/sqrt(nEff)
 
   # TODO(Alexander): In principle I could replace "estimate"=exp(meanStat)
-  result <- list("statistic"=zStat, "n"=nEvents, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
-                 "h0"=h0, "testType"="logrank", "dataName"=dataName)
+  result <- list("statistic"=zStat, "n"=nEvents, "estimate"=meanStat, "sValue"=NULL, "confSeq"=NULL,
+                 "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
   class(result) <- "safeTest"
+
+  names(result[["estimate"]]) <-"hazard ratio"
 
   zStat <- (zStat - sqrt(nEff)*log(h0))
 
@@ -243,14 +245,17 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
     safeZObj[["parameter"]] <- safeZObj[["parameter"]]*(1+ratio)/sqrt(ratio)
     names(safeZObj[["parameter"]]) <- "log(thetaS)"
 
-    safeZObj[["esMin"]] <- logHazardRatio
+    safeZObj[["esMin"]] <- hrMin
 
-    if (!is.null(safeZObj[["esMin"]])) {
-      names(safeZObj[["esMin"]]) <- switch(alternative,
-                                           "two.sided"="log hazard difference at least abs(log(theta))",
-                                           "greater"="log hazard ratio at least",
-                                           "less"="log hazard ratio less than")
-    }
+    if (!is.null(safeZObj[["esMin"]]))
+      names(safeZObj[["esMin"]]) <- "hazard ratio"
+
+    # if (!is.null(safeZObj[["esMin"]])) {
+    #   names(safeZObj[["esMin"]]) <- switch(alternative,
+    #                                        "two.sided"="log hazard difference at least abs(log(theta))",
+    #                                        "greater"="log hazard ratio at least",
+    #                                        "less"="log hazard ratio less than")
+    # }
 
     safeZObj[["testType"]] <- "logrank"
     safeZObj[["paired"]] <- NULL
