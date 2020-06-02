@@ -180,15 +180,14 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
       cat("to guarantee a power = ", powerString,
           " (beta = ", betaString, ")", sep="")
       cat("\n")
+    }
 
-      esMin <- designObj[["esMin"]]
+    esMin <- designObj[["esMin"]]
 
-      if (!is.null(esMin)) {
-        out <- paste0("minimal relevant ", names(esMin), " = ", format(esMin, digits = max(1L, digits - 2L)),
+    if (!is.null(esMin)) {
+      out <- paste0("minimal relevant ", names(esMin), " = ", format(esMin, digits = max(1L, digits - 2L)),
                       " (", designObj[["alternative"]], ")")
-
-        cat("for", out, "\n")
-      }
+      cat("for", out, "\n")
     }
 
     # TODO(Alexander): Add this note?
