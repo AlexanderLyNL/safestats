@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{getArgs}
 \alias{getArgs}
-\title{Get all arguments as entered by the user}
+\title{Helper function: Get all arguments as entered by the user}
 \usage{
 getArgs()
 }
@@ -10,7 +10,7 @@ getArgs()
 a list of variable names of class "call" that can be changed into names
 }
 \description{
-Get all arguments as entered by the user
+Helper function: Get all arguments as entered by the user
 }
 \examples{
 foo <- function(x, y) {

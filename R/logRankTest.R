@@ -132,14 +132,8 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
     if (is.null(group))
       stop("Could not extract the provided group variable.")
 
-    yLabel <- argumentNames[["survTime"]]
-    groupLabel <- argumentNames[["group"]]
-
-    if (class(yLabel)=="call")
-      yLabel <- as.character(as.expression(yLabel))
-
-    if (class(groupLabel)=="call")
-      groupLabel <- as.character(as.expression(groupLabel))
+    yLabel <- extractNameFromArgs(argumentNames, "survTime")
+    groupLabel <- extractNameFromArgs(argumentNames, "group")
   }
 
   if (is.null(survTime))

@@ -61,7 +61,7 @@ round5 <- function(num) {
 }
 
 
-#' Get all arguments as entered by the user
+#' Helper function: Get all arguments as entered by the user
 #'
 #' @return a list of variable names of class "call" that can be changed into names
 #'
@@ -74,6 +74,31 @@ round5 <- function(num) {
 getArgs <- function() {
   as.list(match.call(definition = sys.function(-1),
                      call = sys.call(-1)))[-1]
+}
+
+
+#' Helper function: Get all names as entered by the user
+#'
+#' @param list list from which the element needs retrieving
+#' @param name character string, name of the item that need retrieving
+#'
+#' @return returns a character string
+#'
+#' @examples
+#'
+#' foo <- function(x, y) {
+#'   safestats:::getArgs()
+#' }
+#'
+#' bar <- foo(x="3", y=rnorm(10))
+#' safestats:::extractNameFromArgs(bar, "y")
+extractNameFromArgs <- function(list, name) {
+  result <- list[[name]]
+
+  if (class(result)=="call")
+    result <- as.character(as.expression(result))
+
+  return(result)
 }
 
 # Plot helper -----

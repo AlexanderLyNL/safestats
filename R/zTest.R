@@ -215,10 +215,16 @@ safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
   sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
                           "alternative"=alternative, "paired"=paired)
 
-  if (is.null(y))
-    dataName <- as.character(sys.call())[2]
-  else
-    dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
+  argumentNames <- getArgs()
+  xLabel <- extractNameFromArgs(argumentNames, "x")
+
+  if (is.null(y)) {
+    dataName <- xLabel
+  } else {
+    yLabel <- extractNameFromArgs(argumentNames, "y")
+    dataName <- paste(xLabel, "and", yLabel)
+  }
+
 
   result[["testType"]] <- testType
   result[["statistic"]] <- zStat
@@ -256,13 +262,19 @@ safe.z.test <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
                         pilot=FALSE, alpha=0.05, sigma=1,
                         alternative=c("two.sided", "greater", "less"),
                         tol=1e-05, ...) {
+  alternative <- match.arg(alternative)
   result <- safeZTest("x"=x, "y"=y, "designObj"=designObj, "alternative"=alternative, "h0"=h0,
                       "paired"=paired, "sigma"=sigma, "pilot"=pilot, "alpha"=alpha, ...)
+  argumentNames <- getArgs()
 
-  if (is.null(y))
-    dataName <- as.character(sys.call())[2]
-  else
-    dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
+  xLabel <- extractNameFromArgs(argumentNames, "x")
+
+  if (is.null(y)) {
+    dataName <- xLabel
+  } else {
+    yLabel <- extractNameFromArgs(argumentNames, "y")
+    dataName <- paste(xLabel, "and", yLabel)
+  }
 
   result[["dataName"]] <- dataName
   return(result)
