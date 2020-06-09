@@ -5,11 +5,12 @@
 \title{Safe Logrank Test}
 \usage{
 safeLogrankTest(
-  survTime,
-  group,
+  formula,
   designObj = NULL,
   h0 = 1,
-  data,
+  data = NULL,
+  survTime = NULL,
+  group = NULL,
   pilot = FALSE,
   alpha = NULL,
   alternative = NULL,
@@ -17,16 +18,21 @@ safeLogrankTest(
 )
 }
 \arguments{
-\item{survTime}{a survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
-a name of a column in the data set of class "Surv".}
-
-\item{group}{factor, a grouping variable. Currently, only two levels allowed.}
+\item{formula}{a formula expression as for other survival models, of the form Surv(time, status) ~ groupingVariable,
+see \code{\link[survival]{Surv}} for more details.}
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
 \item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
 
 \item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
+
+\item{survTime}{an optional survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
+a name of a column in the data set of class "Surv". Does not need specifying if a formula is provided, therefore
+set to \code{NULL} by default.}
+
+\item{group}{an optional factor, a grouping variable. Currently, only two levels allowed. Does not need specifying
+if a formula is provided, therefore set to \code{NULL} by default.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 samples is exactly as planned.}
@@ -63,6 +69,16 @@ builds on the Mantel-Cox version of the logrank test computed with \code{\link[s
 and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
 }
 \examples{
+# Example taken from survival::survdiff
+designObj <- designSafeLogrank(hrMin=1/2)
+
+ovData <- survival::ovarian
+ovData$survTime <- survival::Surv(ovData$futime, ovData$fustat)
+
+safeLogrankTest(formula=survTime~ rx, data=ovData, designObj=designObj)
+
+safeLogrankTest(survTime=survTime, group=rx, data=ovData, designObj=designObj)
+
 # Examples taken from coin::logrank_test
 ## Example data (Callaert, 2003, Tab. 1)
 #'
@@ -73,13 +89,9 @@ callaert <- data.frame(
 
 designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
 
-safeLogrankTest(survival::Surv(callaert$time), callaert$group,
+safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
                 designObj = designObj)
 
-# Example taken from survival::survdiff
-ovData <- survival::ovarian
-ovData$survTime <- survival::Surv(ovData$futime, ovData$fustat)
-
-designObj <- designSafeLogrank(hrMin=1/2)
-safeLogrankTest(survTime, rx, data=ovData, designObj)
+safeLogrankTest(survTime=survival::Surv(callaert$time),
+                group=callaert$group, designObj = designObj)
 }

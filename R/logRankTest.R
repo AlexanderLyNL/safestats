@@ -4,12 +4,16 @@
 #' builds on the Mantel-Cox version of the logrank test computed with \code{\link[survival]{survdiff}}
 #' and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
 #'
-#' @param survTime a survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
-#' a name of a column in the data set of class "Surv".
-#' @param group factor, a grouping variable. Currently, only two levels allowed.
+#' @param formula a formula expression as for other survival models, of the form Surv(time, status) ~ groupingVariable,
+#' see \code{\link[survival]{Surv}} for more details.
 #' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
 #' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1
 #' @param data an optional data frame in which to interpret the variables occurring in survTime and group
+#' @param survTime an optional survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
+#' a name of a column in the data set of class "Surv". Does not need specifying if a formula is provided, therefore
+#' set to \code{NULL} by default.
+#' @param group an optional factor, a grouping variable. Currently, only two levels allowed. Does not need specifying
+#' if a formula is provided, therefore set to \code{NULL} by default.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned.
 #' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
@@ -37,6 +41,16 @@
 #' @export
 #'
 #' @examples
+#' # Example taken from survival::survdiff
+#' designObj <- designSafeLogrank(hrMin=1/2)
+#'
+#' ovData <- survival::ovarian
+#' ovData$survTime <- survival::Surv(ovData$futime, ovData$fustat)
+#'
+#' safeLogrankTest(formula=survTime~ rx, data=ovData, designObj=designObj)
+#'
+#' safeLogrankTest(survTime=survTime, group=rx, data=ovData, designObj=designObj)
+#'
 #' # Examples taken from coin::logrank_test
 #' ## Example data (Callaert, 2003, Tab. 1)
 #' #'
@@ -47,17 +61,16 @@
 #'
 #' designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
 #'
-#' safeLogrankTest(survival::Surv(callaert$time), callaert$group,
+#' safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
 #'                 designObj = designObj)
 #'
-#' # Example taken from survival::survdiff
-#' ovData <- survival::ovarian
-#' ovData$survTime <- survival::Surv(ovData$futime, ovData$fustat)
-#'
-#' designObj <- designSafeLogrank(hrMin=1/2)
-#' safeLogrankTest(survTime, rx, data=ovData, designObj)
-safeLogrankTest <- function(survTime, group, designObj=NULL, h0=1,  data,
-                            pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
+#' safeLogrankTest(survTime=survival::Surv(callaert$time),
+#'                 group=callaert$group, designObj = designObj)
+safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=NULL,
+                            group=NULL, pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
+
+  # if (missing(formula) && is.null(survTime) && is.null(group))
+  #   stop("Please specify a formula. Or provide survTime and group.")
 
   if (isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
@@ -79,10 +92,61 @@ safeLogrankTest <- function(survTime, group, designObj=NULL, h0=1,  data,
 
   argumentNames <- getArgs()
 
-  if (!missing(data)) {
-    survTime <- data[[argumentNames[["survTime"]]]]
-    group <- data[[argumentNames[["group"]]]]
+  if (!missing(formula)) {
+    formulaTerms <- terms(formula)
+
+    if (length(attributes(formulaTerms)[["term.labels"]]) > 1)
+      stop("Safe log rank test with covariates not yet supported")
+
+    theData <- try(model.frame(formula, data=data, ...))
+
+    if (isTryError(theData))
+      stop("Formula could not be converted into a model.frame.")
+
+    if (!is.null(survTime))
+      warning("Both a formula and survTime specified. survTime is overwritten")
+
+    if (!is.null(group))
+      warning("Both a formula and group specified. group is overwritten")
+
+    survTime <- theData[, 1]
+    group <- theData[, 2]
+
+    if (is.null(survTime))
+      stop("Could not extract the survival times from the formula")
+
+    if (is.null(group))
+      stop("Could not extract the grouping variable from the formula")
+
+    yLabel <- names(theData)[1]
+    groupLabel <- names(theData)[2]
+  } else {
+    if (!missing(data)) {
+      survTime <- data[[argumentNames[["survTime"]]]]
+      group <- data[[argumentNames[["group"]]]]
+    }
+
+    if (is.null(survTime))
+      stop("Could not extract the provided survTime variable.")
+
+    if (is.null(group))
+      stop("Could not extract the provided group variable.")
+
+    yLabel <- argumentNames[["survTime"]]
+    groupLabel <- argumentNames[["group"]]
+
+    if (class(yLabel)=="call")
+      yLabel <- as.character(as.expression(yLabel))
+
+    if (class(groupLabel)=="call")
+      groupLabel <- as.character(as.expression(groupLabel))
   }
+
+  if (is.null(survTime))
+    stop("Can't extract survTime from the given input (formula or survTime)")
+
+  if (is.null(group))
+    stop("Can't extract group from the given input (formula or survTime)")
 
   if (!is.factor(group))
     group <- as.factor(group)
@@ -91,8 +155,6 @@ safeLogrankTest <- function(survTime, group, designObj=NULL, h0=1,  data,
     stop("Provided variable 'survTime' is not of class 'Surv'.",
          "Please preprocess this variable with the Surv function from the survival package.")
 
-  yName <- as.character(as.expression(argumentNames[["survTime"]]))
-  groupLabel <- as.character(as.expression(argumentNames[["group"]]))
   groupLevels <- levels(group)
 
   if (length(groupLevels) > 2)
@@ -102,7 +164,7 @@ safeLogrankTest <- function(survTime, group, designObj=NULL, h0=1,  data,
 
   dataName <- if (is.null(dataSetName)) "" else paste0(dataSetName, ": ")
 
-  dataName <- paste0(dataName, yName, " by ", groupLabel, ": (",
+  dataName <- paste0(dataName, yLabel, " by ", groupLabel, " (",
                      paste(groupLevels, collapse=", "), ")")
 
   survDiffObj <- survival::survdiff(survTime ~ group)
