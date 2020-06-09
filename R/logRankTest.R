@@ -1,23 +1,22 @@
 #' Safe Logrank Test
 #'
-#' Tests the equality of the survival distributions in two independent groups.
+#' A safe test to test whether there is a difference between two survival curves. This function
+#' builds on the Mantel-Cox version of the logrank test computed with \code{\link[survival]{survdiff}}
+#' and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
 #'
-#' The functions safeLogrankTest are modelled after \code{\link[coin]{logrank_test}} and consists of two
-#' S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Details of the arguments are
-#' provided in \code{\link[coin]{logrank_test}}.
-#'
-#' @param object either a formula with as outcome variable an object resulting from \code{\link[survival]{Surv}}, or
-#' and object of class "IndependenceProblem" as described in \code{\link[coin]{logrank_test}}.
+#' @param survTime a survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
+#' a name of a column in the data set of class "Surv".
+#' @param group factor, a grouping variable. Currently, only two levels allowed.
 #' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
 #' @param h0 a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1
+#' @param data an optional data frame in which to interpret the variables occurring in survTime and group
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned.
 #' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
 #' the design object is used instead in constructing the decision rule S > 1/alpha.
 #' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
 #' alternative specified by the design object is used instead.
-#' @param ... further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
-#' and distribution.
+#' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
 #' following components:
@@ -40,23 +39,24 @@
 #' @examples
 #' # Examples taken from coin::logrank_test
 #' ## Example data (Callaert, 2003, Tab. 1)
+#' #'
 #' callaert <- data.frame(
-#' time = c(1, 1, 5, 6, 6, 6, 6, 2, 2, 2, 3, 4, 4, 5, 5),
-#' group = factor(rep(0:1, c(7, 8)))
+#'   time = c(1, 1, 5, 6, 6, 6, 6, 2, 2, 2, 3, 4, 4, 5, 5),
+#'   group = factor(rep(0:1, c(7, 8)))
 #' )
 #'
 #' designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
 #'
-#' ## Data based on logrank test using mid-ranks (p = 0.0505)
-#' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
+#' safeLogrankTest(survival::Surv(callaert$time), callaert$group,
 #'                 designObj = designObj)
 #'
+#' # Example taken from survival::survdiff
+#' ovData <- survival::ovarian
+#' ovData$survTime <- survival::Surv(ovData$futime, ovData$fustat)
+#'
 #' designObj <- designSafeLogrank(hrMin=1/2)
-#' ## Data based on logrank test using average-scores
-#' safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
-#'                 ties.method = "average-scores",
-#'                 designObj = designObj)
-safeLogrankTest <- function(object, designObj=NULL, h0=1,
+#' safeLogrankTest(survTime, rx, data=ovData, designObj)
+safeLogrankTest <- function(survTime, group, designObj=NULL, h0=1,  data,
                             pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
 
   if (isFALSE(pilot) && is.null(designObj))
@@ -77,43 +77,36 @@ safeLogrankTest <- function(object, designObj=NULL, h0=1,
               "please use designSafeLogrank() instead. The test results might be invalid.")
   }
 
-  logrankObj <- try(
-    coin::logrank_test(object, alternative="two.sided", ...)
-  )
+  argumentNames <- getArgs()
 
-  safeLogrankTestCore("logrankObj"=logrankObj, "designObj"=designObj, "pilot"=pilot, "alpha"=alpha, "h0"=h0,
-                      "alternative"=alternative)
-}
+  if (!missing(data)) {
+    survTime <- data[[argumentNames[["survTime"]]]]
+    group <- data[[argumentNames[["group"]]]]
+  }
 
-#' Core Function of safeLogrankTest
-#'
-#' Takes as input an object obtained from \code{\link[coin]{logrank_test}} and a design obtained from
-#' \code{\link{designSafeLogrank}} to output an object of class "safeTest".
-#'
-#' @inherit safeLogrankTest
-#' @param logrankObj a logrank object obtained from \code{\link[coin]{logrank_test}}.
-#' @param ... further arguments to be passed to or from methods.
-#'
-#'
-safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
-                                pilot=FALSE, alpha=NULL, ...) {
+  if (!is.factor(group))
+    group <- as.factor(group)
 
-  if (!inherits(logrankObj, "ScalarIndependenceTest"))
-    stop("The provided logrankObj is not of the right type derived from coin::logrank_test()")
+  if (!inherits(survTime, "Surv"))
+    stop("Provided variable 'survTime' is not of class 'Surv'.",
+         "Please preprocess this variable with the Surv function from the survival package.")
 
-  groupLabel <- names(logrankObj@statistic@x)
-
-  groupLevels <- levels(logrankObj@statistic@x[[groupLabel]])
+  yName <- as.character(as.expression(argumentNames[["survTime"]]))
+  groupLabel <- as.character(as.expression(argumentNames[["group"]]))
+  groupLevels <- levels(group)
 
   if (length(groupLevels) > 2)
     stop("K-sample log rank test not yet implemented")
 
-  zStat <- unname(logrankObj@statistic@standardizedlinearstatistic)
-  nEvents <- sum(logrankObj@statistic@ytrans < 0)
+  dataSetName <- argumentNames[["data"]]
 
-  dataName <- paste0(names(logrankObj@statistic@y), " by ",
-                     names(logrankObj@statistic@x), " (",
+  dataName <- if (is.null(dataSetName)) "" else paste0(dataSetName, ": ")
+
+  dataName <- paste0(dataName, yName, " by ", groupLabel, ": (",
                      paste(groupLevels, collapse=", "), ")")
+
+  survDiffObj <- survival::survdiff(survTime ~ group)
+  nEvents <- sum(survDiffObj[["obs"]])
 
   if (isTRUE(pilot)) {
     if (is.null(alpha))
@@ -136,9 +129,14 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
   ratio <- designObj[["ratio"]]
 
   nEff <- ratio/(1+ratio)^2*nEvents
+
+  coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
+  signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
+
+  zStat <- signZ*sqrt(survDiffObj[["chisq"]])
+
   meanStat <- zStat/sqrt(nEff)
 
-  # TODO(Alexander): In principle I could replace "estimate"=exp(meanStat)
   result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "sValue"=NULL, "confSeq"=NULL,
                  "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
   class(result) <- "safeTest"
@@ -158,7 +156,7 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
 
   result[["sValue"]] <- sValue
   result[["designObj"]] <- designObj
-  result[["logrankObj"]] <- logrankObj
+  result[["survDiffObj"]] <- survDiffObj
 
   names(result[["statistic"]]) <- "z"
   names(result[["n"]]) <- "nEvents"
@@ -166,6 +164,8 @@ safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
 
   return(result)
 }
+
+
 
 #' Designs a Safe Logrank Test
 #'
@@ -265,3 +265,85 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
 
   return(result)
 }
+
+#' #' Core Function of safeLogrankTest
+#' #'
+#' #' Takes as input an object obtained from \code{\link[coin]{logrank_test}} and a design obtained from
+#' #' \code{\link{designSafeLogrank}} to output an object of class "safeTest".
+#' #'
+#' #' @inherit safeLogrankTest
+#' #' @param logrankObj a logrank object obtained from \code{\link[coin]{logrank_test}}.
+#' #' @param ... further arguments to be passed to or from methods.
+#' #'
+#' #'
+#' safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
+#'                                 pilot=FALSE, alpha=NULL, ...) {
+#'
+#'   if (!inherits(logrankObj, "ScalarIndependenceTest"))
+#'     stop("The provided logrankObj is not of the right type derived from coin::logrank_test()")
+#'
+#'   groupLabel <- names(logrankObj@statistic@x)
+#'
+#'   groupLevels <- levels(logrankObj@statistic@x[[groupLabel]])
+#'
+#'   if (length(groupLevels) > 2)
+#'     stop("K-sample log rank test not yet implemented")
+#'
+#'   zStat <- unname(logrankObj@statistic@standardizedlinearstatistic)
+#'   nEvents <- sum(logrankObj@statistic@ytrans < 0)
+#'
+#'   dataName <- paste0(names(logrankObj@statistic@y), " by ",
+#'                      names(logrankObj@statistic@x), " (",
+#'                      paste(groupLevels, collapse=", "), ")")
+#'
+#'   if (isTRUE(pilot)) {
+#'     if (is.null(alpha))
+#'       alpha <- 0.05
+#'
+#'     if (is.null(alternative)) {
+#'       alternative <- "two.sided"
+#'     } else {
+#'       if (!(alternative %in% c("two.sided", "greater", "less")))
+#'         stop('Provided alternative must be one of "two.sided", "greater", or "less".')
+#'     }
+#'
+#'     designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
+#'                                    "alternative"=alternative)
+#'     designObj[["pilot"]] <- TRUE
+#'   }
+#'
+#'   alpha <- designObj[["alpha"]]
+#'   alternative <- designObj[["alternative"]]
+#'   ratio <- designObj[["ratio"]]
+#'
+#'   nEff <- ratio/(1+ratio)^2*nEvents
+#'   meanStat <- zStat/sqrt(nEff)
+#'
+#'   # TODO(Alexander): In principle I could replace "estimate"=exp(meanStat)
+#'   result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "sValue"=NULL, "confSeq"=NULL,
+#'                  "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
+#'   class(result) <- "safeTest"
+#'
+#'   names(result[["estimate"]]) <-"hazard ratio"
+#'
+#'   zStat <- (zStat - sqrt(nEff)*log(h0))
+#'
+#'   sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
+#'                           "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
+#'
+#'   # tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+#'   #                                           "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
+#'   #                                           "alpha"=alpha, "alternative"=alternative)
+#'   #
+#'   # result[["confSeq"]] <- exp(tempConfSeq)
+#'
+#'   result[["sValue"]] <- sValue
+#'   result[["designObj"]] <- designObj
+#'   result[["logrankObj"]] <- logrankObj
+#'
+#'   names(result[["statistic"]]) <- "z"
+#'   names(result[["n"]]) <- "nEvents"
+#'   names(result[["h0"]]) <- "theta"
+#'
+#'   return(result)
+#' }

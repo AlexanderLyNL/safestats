@@ -60,6 +60,22 @@ round5 <- function(num) {
   round(num, 5)
 }
 
+
+#' Get all arguments as entered by the user
+#'
+#' @return a list of variable names of class "call" that can be changed into names
+#'
+#' @examples
+#' foo <- function(x, y) {
+#'   safestats:::getArgs()
+#' }
+#'
+#'foo(x="3", y=df)
+getArgs <- function() {
+  as.list(match.call(definition = sys.function(-1),
+                     call = sys.call(-1)))[-1]
+}
+
 # Plot helper -----
 #' Sets 'safestats' Plot Options and Returns the Current Plot Options.
 #'

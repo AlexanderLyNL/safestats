@@ -5,9 +5,11 @@
 \title{Safe Logrank Test}
 \usage{
 safeLogrankTest(
-  object,
+  survTime,
+  group,
   designObj = NULL,
   h0 = 1,
+  data,
   pilot = FALSE,
   alpha = NULL,
   alternative = NULL,
@@ -15,12 +17,16 @@ safeLogrankTest(
 )
 }
 \arguments{
-\item{object}{either a formula with as outcome variable an object resulting from \code{\link[survival]{Surv}}, or
-and object of class "IndependenceProblem" as described in \code{\link[coin]{logrank_test}}.}
+\item{survTime}{a survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
+a name of a column in the data set of class "Surv".}
+
+\item{group}{factor, a grouping variable. Currently, only two levels allowed.}
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
 \item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
+
+\item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 samples is exactly as planned.}
@@ -31,8 +37,7 @@ the design object is used instead in constructing the decision rule S > 1/alpha.
 \item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
 alternative specified by the design object is used instead.}
 
-\item{...}{further arguments to be passed to \code{\link[coin]{logrank_test}}, such as the "ties.method", "type"
-and distribution.}
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -53,30 +58,28 @@ following components:
 }
 }
 \description{
-Tests the equality of the survival distributions in two independent groups.
-}
-\details{
-The functions safeLogrankTest are modelled after \code{\link[coin]{logrank_test}} and consists of two
-S3 methods, which both make use of the \code{\link{safeLogrankTestCore}}. Details of the arguments are
-provided in \code{\link[coin]{logrank_test}}.
+A safe test to test whether there is a difference between two survival curves. This function
+builds on the Mantel-Cox version of the logrank test computed with \code{\link[survival]{survdiff}}
+and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
 }
 \examples{
 # Examples taken from coin::logrank_test
 ## Example data (Callaert, 2003, Tab. 1)
+#'
 callaert <- data.frame(
-time = c(1, 1, 5, 6, 6, 6, 6, 2, 2, 2, 3, 4, 4, 5, 5),
-group = factor(rep(0:1, c(7, 8)))
+  time = c(1, 1, 5, 6, 6, 6, 6, 2, 2, 2, 3, 4, 4, 5, 5),
+  group = factor(rep(0:1, c(7, 8)))
 )
 
 designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
 
-## Data based on logrank test using mid-ranks (p = 0.0505)
-safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
+safeLogrankTest(survival::Surv(callaert$time), callaert$group,
                 designObj = designObj)
 
+# Example taken from survival::survdiff
+ovData <- survival::ovarian
+ovData$survTime <- survival::Surv(ovData$futime, ovData$fustat)
+
 designObj <- designSafeLogrank(hrMin=1/2)
-## Data based on logrank test using average-scores
-safeLogrankTest(survival::Surv(time) ~ group, data = callaert,
-                ties.method = "average-scores",
-                designObj = designObj)
+safeLogrankTest(survTime, rx, data=ovData, designObj)
 }
