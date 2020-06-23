@@ -2,32 +2,32 @@
 % Please edit documentation in R/tTest.R
 \name{defineTTestN}
 \alias{defineTTestN}
-\title{Helper function that outputs the sample sizes, effect sample sizes and the degrees of freedom depending on
-the type of t-test.}
+\title{Computes a Sequence of (Effective) Sample Sizes}
 \usage{
 defineTTestN(
   lowN = 3,
   highN = 100,
-  sampleSizeRatio = 1,
-  testType = c("oneSampleT", "pairedSampleT", "twoSampleT")
+  ratio = 1,
+  testType = c("oneSample", "paired", "twoSample")
 )
 }
 \arguments{
-\item{lowN}{integer that defines the smallest n of our search space for n}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
 \item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
 are able to fund.}
 
-\item{sampleSizeRatio}{numeric representing n2/n1. If n2 equals \code{NULL} then sampleSizeRatio=1}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{testType}{either one of "oneSampleT", "pairedSampleT", "twoSampleT"}
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
 }
 \value{
-Returns the sample sizes and degrees of freedom
+Returns the sample sizes and degrees of freedom.
 }
 \description{
-Helper function that outputs the sample sizes, effect sample sizes and the degrees of freedom depending on
-the type of t-test.
+Helper function that outputs the sample sizes, effective sample sizes and the degrees of
+freedom depending on the type of t-test. Also used for z-tests.
 }
 \examples{
 safestats:::defineTTestN()

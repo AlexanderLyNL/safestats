@@ -1,7 +1,7 @@
 Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
-Version: 0.8.1
+Version: 0.8.3
 Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = "aut"),
@@ -23,7 +23,9 @@ Depends:
 Imports: 
   stats (>= 3.6),
   hypergeo (>= 1.2-13),
-  purrr (>= 0.3.3)
+  purrr (>= 0.3.3),
+  coin (>= 1.3-1),
+  survival (>= 3.1-11)
 Suggests: testthat, knitr, rmarkdown, graphics
 VignetteBuilder: knitr
 NeedsCompilation: no

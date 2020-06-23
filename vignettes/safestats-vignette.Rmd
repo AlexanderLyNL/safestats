@@ -60,7 +60,7 @@ install.packages("safestats")
 The development version can be found on [GitHub](https://github.com/alexanderlynl/safestats), which can be installed with the `devtools` package from [CRAN](https://cran.r-project.org/package=devtools) by entering in `R`:
 
 ```{r devtools, eval=FALSE}
-devtools::install_github("AlexanderLyNL/safestats", build_vignettes = TRUE)
+devtools::install_github("AlexanderLyNL/safestats", ref = "logrank", build_vignettes = TRUE)
 ```
 
 The command 
@@ -92,7 +92,7 @@ beta <- 0.2
 deltaMin <- 9/(sqrt(2)*15)
 
 designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-                         alternative="greater", testType="pairedSampleT")
+                         alternative="greater", testType="paired")
 designObj
 ```
  
@@ -106,7 +106,7 @@ It is not always clear what the minimal clinically relevant effect size is. In t
 
 result <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta, 
                                            maxN=100, 
-                                           testType="pairedSampleT")
+                                           testType="paired")
 ```
 
 The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80%, if the true effect size is at least 0.37. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for additional grant money to test an additional 44 patients, or decide that it's futile to set up this experiment, and spend our time and efforts on a different endeavour. 
@@ -119,8 +119,8 @@ To see that safe tests only lead to a false null rejection very infrequently, we
 
 ```{r}
 set.seed(1)
-preData <- rnorm(n=designObj$n1Plan, mean=120, sd=15)
-postData <- rnorm(n=designObj$n2Plan, mean=120, sd=15)
+preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+postData <- rnorm(n=designObj$nPlan[2], mean=120, sd=15)
 # Thus, the true delta is 0:
 # deltaTrue <- (120-120)/(sqrt(2)*15)     
 ```
@@ -146,8 +146,8 @@ The following code replicates this setting a 1,000 times and shows that indeed, 
 
 set.seed(1)
 sValues <- replicate(n=1000, expr={
-  preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
-  postData <- rnorm(n=designObj[["n2Plan"]], mean=120, sd=15)
+  preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+  postData <- rnorm(n=designObj$nPlan[2], mean=120, sd=15)
   safeTTest(x=preData, y=postData, alternative = "greater",
             designObj=designObj,paired=TRUE)$sValue}
 )
@@ -161,8 +161,8 @@ If the true effect size equals the minimal clinical effect size and the experime
 
 ```{r}
 set.seed(1)
-preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
-postData <- rnorm(n=designObj[["n2Plan"]], mean=111, sd=15)
+preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+postData <- rnorm(n=designObj$nPlan[2], mean=111, sd=15)
 
 safeTTest(x=preData, y=postData, alternative = "greater",
           designObj=designObj, paired=TRUE)
@@ -178,8 +178,8 @@ power <- 1-beta
 
 set.seed(1)
 sValues <- replicate(n=1000, expr={
-  preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
-  postData <- rnorm(n=designObj[["n2Plan"]], mean=111, sd=15)
+  preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+  postData <- rnorm(n=designObj$nPlan[2], mean=111, sd=15)
   safeTTest(x=preData, y=postData, alternative = "greater", designObj=designObj,
             paired=TRUE)$sValue})
 mean(sValues > 1/alpha)
@@ -268,12 +268,11 @@ For this purpose we run the code
 # deltaMin <- 9/(sqrt(2)*15)      # = 0.42
 
 freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-                             alternative="greater", testType="pairedSampleT")
+                             alternative="greater", testType="paired")
 
 simResultDeltaTrueIsZero <- simulate(object=designObj, nsim=1000L, seed=1,
                                      deltaTrue=0, freqOptioStop=TRUE,
-                                     n1PlanFreq=freqDesignObj$n1PlanFreq,
-                                     n2PlanFreq=freqDesignObj$n2PlanFreq,
+                                     nPlanFreq=freqDesignObj$nPlan,
                                      muGlobal=120, sigmaTrue=15)
 simResultDeltaTrueIsZero
 ```
@@ -296,8 +295,7 @@ Firstly, we show that optional continuation also causes $p$-values to overreject
 The following code simulates 1,000 (first batch) experiments under the null, each with the same (frequentist) sample sizes as planned for resulting in 1,000 $p$-values: 
 
 ```{r}
-dataBatch1 <- generateTTestData(n1Plan=freqDesignObj$n1PlanFreq,
-                               n2Plan=freqDesignObj$n2PlanFreq, 
+dataBatch1 <- generateTTestData(nPlan=freqDesignObj$nPlan,
                                deltaTrue=0, nsim=1000, paired=TRUE, seed=1,
                                muGlobal=120, sigmaTrue=15)
 
@@ -323,8 +321,8 @@ selectivelyContinueDeltaTrueIsZeroWithP <-
                                       alternative="greater", 
                                       oldData=dataBatch1,
                                       deltaTrue=0,
-                                      n1Extra=freqDesignObj$n1PlanFreq,
-                                      n2Extra=freqDesignObj$n2PlanFreq,
+                                      n1Extra=freqDesignObj$nPlan[1],
+                                      n2Extra=freqDesignObj$nPlan[2],
                                       alpha=alpha,
                                       seed=2, paired=TRUE,
                                       muGlobal=120, sigmaTrue=15)
@@ -515,8 +513,8 @@ The code below multiplies these original s-values with s-values based on replica
 # in the replication attempt
 someConstant <- 1.2
 
-repData <- generateTTestData(n1Plan=ceiling(someConstant*designObj$n1Plan),
-                             n2Plan=ceiling(someConstant*designObj$n2Plan), 
+repData <- generateTTestData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
+                                     ceiling(someConstant*designObj$nPlan[2])),
                              deltaTrue=0, nsim=1000, 
                              muGlobal=90, sigmaTrue=6,
                              paired=TRUE, seed=2)
@@ -550,8 +548,8 @@ The code below multiplies these original s-values with s-values based on replica
 # in the replication attempt
 someConstant <- 1.2
 
-repData <- generateTTestData(n1Plan=ceiling(someConstant*designObj$n1Plan),
-                             n2Plan=ceiling(someConstant*designObj$n2Plan), 
+repData <- generateTTestData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
+                                     ceiling(someConstant*designObj$nPlan[2])), 
                              deltaTrue=deltaMin, nsim=1000, 
                              muGlobal=110, sigmaTrue=50,
                              paired=TRUE, seed=2)

@@ -2,11 +2,10 @@
 % Please edit documentation in R/tTest.R
 \name{generateTTestData}
 \alias{generateTTestData}
-\title{Generates normal data depending on the design: "oneSampleT", "pairedSampleT", "twoSampleT"}
+\title{Generates Normally Distributed Data Depending on the Design}
 \usage{
 generateTTestData(
-  n1Plan,
-  n2Plan = NULL,
+  nPlan,
   nsim = 1000L,
   deltaTrue = 0,
   muGlobal = 0,
@@ -16,30 +15,34 @@ generateTTestData(
 )
 }
 \arguments{
-\item{n1Plan}{integer, that defines the maximum number of samples to plan for (according to the safe test,
-use designSafeT to find this)}
+\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
-\item{n2Plan}{optional integer, that defines the maximum number of samples of the second group to plan for}
+\item{nsim}{the number of replications, that is, experiments with max samples nPlan.}
 
-\item{nsim}{the number of replications, that is, experiments with max samples n1Plan and n2Plan}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
-\item{deltaTrue}{numeric, the value of the true effect size (test-relevant parameter)}
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
+matter for the test. This parameter is treated as a nuisance.}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't matter for the
-test. This parameter treated is treated as a nuisance.}
+\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
+for the test.This parameter treated is treated as a nuisance.}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
-This parameter treated is treated as a nuisance.}
+\item{paired}{logical, if \code{TRUE} then paired t-test.}
 
-\item{paired}{logical, true if the simulated data are paired.}
-
-\item{seed}{To set the seed for the simulated data}
+\item{seed}{To set the seed for the simulated data.}
 }
 \value{
-a list of two data matrices
+
+
+Returns a list of two data matrices contains at least the following components:
+
+\describe{
+  \item{dataGroup1}{a matrix of data dimension nsim by \code{nPlan[1]}.}
+  \item{dataGroup2}{a matrix of data dimension nsim by \code{nPlan[2]}.}
+}
 }
 \description{
-Generates normal data depending on the design: "oneSampleT", "pairedSampleT", "twoSampleT"
+The designs supported are "oneSample", "paired", "twoSample".
 }
 \examples{
 generateTTestData(20, 15)

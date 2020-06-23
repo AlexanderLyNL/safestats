@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{setSafeStatsPlotOptionsAndReturnOldOnes}
 \alias{setSafeStatsPlotOptionsAndReturnOldOnes}
-\title{Sets 'safestats' plot options and returns the current plot options.}
+\title{Sets 'safestats' Plot Options and Returns the Current Plot Options.}
 \usage{
 setSafeStatsPlotOptionsAndReturnOldOnes(...)
 }
@@ -13,7 +13,7 @@ setSafeStatsPlotOptionsAndReturnOldOnes(...)
 Returns a list with the user specified plot options.
 }
 \description{
-Sets 'safestats' plot options and returns the current plot options.
+Sets 'safestats' Plot Options and Returns the Current Plot Options.
 }
 \examples{
 oldPar <- safestats:::setSafeStatsPlotOptionsAndReturnOldOnes()

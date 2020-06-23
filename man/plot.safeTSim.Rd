@@ -2,26 +2,26 @@
 % Please edit documentation in R/tTest.R
 \name{plot.safeTSim}
 \alias{plot.safeTSim}
-\title{Plots a safeTSim object}
+\title{Plots a safeTSim Object}
 \usage{
 \method{plot}{safeTSim}(x, y = NULL, showOnlyNRejected = FALSE, nBin = 25, ...)
 }
 \arguments{
-\item{x}{A "safeTDesign" object}
+\item{x}{a "safeDesign" object acquired from \code{\link{designSafeT}}.}
 
-\item{y}{\code{NULL}}
+\item{y}{\code{NULL}.}
 
-\item{showOnlyNRejected}{logical, when TRUE discards the cases that are}
+\item{showOnlyNRejected}{logical, when \code{TRUE} discards the cases that did not reject.}
 
-\item{nBin}{numeric > 0, the minimum number of bins in the histogram}
+\item{nBin}{numeric > 0, the minimum number of bins in the histogram.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-a histogram object, and called for its side-effect to plot the histogram
+a histogram object, and called for its side-effect to plot the histogram.
 }
 \description{
-Plots a safeTSim object
+Plots a safeTSim Object
 }
 \examples{
 # Design safe test
