@@ -65,6 +65,8 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 #' @param x a safeTest object.
 #' @param digits number of significant digits to be used.
 #' @param prefix string, passed to strwrap for displaying the method components.
+#' @param printConfSeq logical, if \code{TRUE} prints also confidence sequence.
+#' Default \code{FALSE}
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return No returned value, called for side effects.
@@ -73,7 +75,8 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 #' @examples
 #' safeTTest(rnorm(19), pilot=TRUE)
 #' safeZTest(rnorm(19), pilot=TRUE)
-print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
+print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
+                            printConfSeq=FALSE, ...) {
   designObj <- x[["designObj"]]
   testType <- designObj[["testType"]]
 
@@ -120,10 +123,12 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
   cat("\n")
   cat("alternative hypothesis:", alternativeName, "\n")
 
-  if (!is.null(x[["confSeq"]])) {
-    cat(format(100*(1-designObj[["alpha"]])), " percent confidence sequence:\n",
-        " ", paste(format(x[["confSeq"]][1:2], digits = digits),
-                   collapse = " "), "\n", sep = "")
+  if (printConfSeq) {
+    if (!is.null(x[["confSeq"]])) {
+      cat(format(100*(1-designObj[["alpha"]])), " percent confidence sequence:\n",
+          " ", paste(format(x[["confSeq"]][1:2], digits = digits),
+                     collapse = " "), "\n", sep = "")
+    }
   }
 
   # if (!is.null(x$conf.int)) {
