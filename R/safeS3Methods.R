@@ -108,18 +108,18 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
 
   statValue <- x[["statistic"]]
   parameter <- designObj[["parameter"]]
-  sValue <- x[["sValue"]]
+  eValue <- x[["eValue"]]
 
   alphaString <- format(designObj[["alpha"]], digits = max(1L, digits - 2L))
-  sValueString <- format(sValue, digits = max(1L, digits - 2L))
-  sThresholdString <- format(1/designObj[["alpha"]], digits = max(1L, digits - 2L))
+  eValueString <- format(eValue, digits = max(1L, digits - 2L))
+  eThresholdString <- format(1/designObj[["alpha"]], digits = max(1L, digits - 2L))
 
   out <- character()
   out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
   out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
   cat(paste0("test: ", paste(out, collapse = ", "), sep="\n"))
-  cat("s-value =", sValueString, "> 1/alpha =", sThresholdString, ":",
-      sValue > 1/designObj[["alpha"]])
+  cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
+      eValue > 1/designObj[["alpha"]])
   cat("\n")
   cat("alternative hypothesis:", alternativeName, "\n")
 
@@ -144,13 +144,13 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   if (designObj[["pilot"]]) {
     cat("the pilot test is based on an exploratory alpha =", alphaString)
     cat("\n")
-    # cat("and resulted in:  s-value =", sValueString)
+    # cat("and resulted in:  e-value =", eValueString)
     # cat("\n")
   } else {
     cat("the test was designed with alpha =", alphaString)
     cat("\n")
-    # cat("s-value =", sValueString, "> 1/alpha =", sThresholdString, ":",
-    #     sValue > 1/designObj[["alpha"]])
+    # cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
+    #     eValue > 1/designObj[["alpha"]])
     # cat("\n")
     # # Iets over n1Plan, n2Plan, etc
     #
@@ -249,7 +249,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
       } else if (item=="parameter") {
         displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValue
       } else if (item=="decision rule") {
-        displayList[["decision rule: s-value > 1/alpha"]] <- itemValue
+        displayList[["decision rule: e-value > 1/alpha"]] <- itemValue
       } else if (item=="esMin") {
         displayList[[paste("minimal", names(itemValue))]] <- itemValue
       } else {
