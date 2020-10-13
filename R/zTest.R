@@ -1,6 +1,6 @@
-#' Computes S-Values Based on the Z-Statistic
+#' Computes E-Values Based on the Z-Statistic
 #'
-#' Computes s-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
+#' Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
 #'
 #' @param z numeric that represents the observed z-statistic.
 #' @param parameter numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
@@ -17,7 +17,7 @@
 #' @param sigma numeric, the assumed known standard deviation, default 1.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an s-value.
+#' @return Returns an e-value.
 #'
 #' @export
 #'
@@ -41,7 +41,7 @@ safeZTestStat <- function(z, parameter, n1, n2=NULL, alternative=c("two.sided", 
     result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
 
   if (result < 0) {
-    warning("Overflow: s-value smaller than 0")
+    warning("Overflow: e-value smaller than 0")
     result <- 2^(-15)
   }
 
@@ -101,7 +101,7 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #' \describe{
 #'   \item{statistic}{the value of the test statistic. Here the z-statistic.}
 #'   \item{n}{The realised sample size(s).}
-#'   \item{sValue}{the s-value of the safe test.}
+#'   \item{eValue}{the e-value of the safe test.}
 #'   \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
 #'   hypothesis.}
 #'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
@@ -129,7 +129,7 @@ safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
                       pilot=FALSE, alpha=NULL, sigma=NULL,
                       alternative=NULL, tol=1e-05, ...) {
 
-  result <- list("statistic"=NULL, "n"=NULL, "sValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
+  result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "testType"=NULL, "dataName"=NULL, "h0"=h0, "sigma"=NULL, "call"=sys.call())
   class(result) <- "safeTest"
 
@@ -212,7 +212,7 @@ safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
     warning('The test type of designObj is "', designObj[["testType"]],
             '", whereas the data correspond to a testType "', testType, '"')
 
-  sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
+  eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
                           "alternative"=alternative, "paired"=paired)
 
   argumentNames <- getArgs()
@@ -232,10 +232,10 @@ safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
 
-  # result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-  #                                                   "phiS"=abs(designObj[["parameter"]]),
-  #                                                   "sigma"=sigma, "alpha"=alpha,
-  #                                                   "alternative"=alternative)
+  result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+                                                    "phiS"=abs(designObj[["parameter"]]),
+                                                    "sigma"=sigma, "alpha"=alpha,
+                                                    "alternative"="two.sided")
 
   if (is.null(n2)) {
     result[["n"]] <- n1
@@ -245,7 +245,7 @@ safeZTest <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
     names(result[["n"]]) <- c("n1", "n2")
   }
 
-  result[["sValue"]] <- sValue
+  result[["eValue"]] <- eValue
 
   names(result[["h0"]]) <- "mu"
   names(result[["statistic"]]) <- "z"
@@ -1021,6 +1021,7 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigm
 #' @param phiS numeric > 0, the safe test defining parameter
 #'
 #' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
+#' @export
 #'
 #' @examples
 #' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)

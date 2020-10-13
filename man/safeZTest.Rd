@@ -70,7 +70,7 @@ following components:
 \describe{
   \item{statistic}{the value of the test statistic. Here the z-statistic.}
   \item{n}{The realised sample size(s).}
-  \item{sValue}{the s-value of the safe test.}
+  \item{eValue}{the e-value of the safe test.}
   \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
   hypothesis.}
   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-

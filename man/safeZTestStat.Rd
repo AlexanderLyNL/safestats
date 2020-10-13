@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{safeZTestStat}
 \alias{safeZTestStat}
-\title{Computes S-Values Based on the Z-Statistic}
+\title{Computes E-Values Based on the Z-Statistic}
 \usage{
 safeZTestStat(
   z,
@@ -39,10 +39,10 @@ parameter value.}
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-Returns an s-value.
+Returns an e-value.
 }
 \description{
-Computes s-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
+Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
 }
 \examples{
 safeZTestStat(z=1, n1=100, parameter=0.4)

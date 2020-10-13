@@ -6,7 +6,7 @@
 \usage{
 selectivelyContinueTTestCombineData(
   oldValues,
-  valuesType = c("sValues", "pValues"),
+  valuesType = c("eValues", "pValues"),
   designObj = NULL,
   alternative = c("two.sided", "greater", "less"),
   oldData,
@@ -24,7 +24,7 @@ selectivelyContinueTTestCombineData(
 \arguments{
 \item{oldValues}{vector of s-values or p-values.}
 
-\item{valuesType}{character string either "sValues" or "pValues".}
+\item{valuesType}{character string either "eValues" or "pValues".}
 
 \item{designObj}{a safeDesign object obtained from \code{\link{designSafeT}}, or \code{NULL}
 if valuesType equal "pValues".}
@@ -40,10 +40,10 @@ if valuesType equal "pValues".}
 designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{n1Extra}{integer, that defines the additional number of samples of the first group. If
-\code{NULL} and valuesType equals "sValues", then n1Extra equals \code{designObj$nPlan[1]}.}
+\code{NULL} and valuesType equals "eValues", then n1Extra equals \code{designObj$nPlan[1]}.}
 
 \item{n2Extra}{optional integer, that defines the additional number of samples of the second group.
-If \code{NULL}, and valuesType equals "sValues", then n2Extra equals \code{designObj$nPlan[2]}.}
+If \code{NULL}, and valuesType equals "eValues", then n2Extra equals \code{designObj$nPlan[2]}.}
 
 \item{seed}{To set the seed for the simulated data.}
 
@@ -69,28 +69,28 @@ alpha <- 0.05
 mIter <- 1000L
 
 designObj <- designSafeT(deltaMin=1, alpha=alpha)
-oldData <- generateTTestData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
+oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
 
-sValues <- vector("numeric", length=mIter)
+eValues <- vector("numeric", length=mIter)
 
-for (i in seq_along(sValues)) {
-  sValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$sValue
+for (i in seq_along(eValues)) {
+  eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
 }
 # First run: 7 false null rejections
-sum(sValues > 1/alpha)
+sum(eValues > 1/alpha)
 
 continuedSafe <- selectivelyContinueTTestCombineData(
-  oldValues=sValues, designObj=designObj, oldData=oldData,
+  oldValues=eValues, designObj=designObj, oldData=oldData,
   deltaTrue=0, seed=2)
 
 # Second run: 8 false null rejections
 sum(continuedSafe$newValues > 1/alpha)
 
 for (i in 1:3) {
-  sValues <- continuedSafe$newValues
+  eValues <- continuedSafe$newValues
   oldData <- continuedSafe$combinedData
   continuedSafe <- selectivelyContinueTTestCombineData(
-   oldValues=sValues, designObj=designObj, oldData=oldData,
+   oldValues=eValues, designObj=designObj, oldData=oldData,
    deltaTrue=0, seed=i+2)
   print(paste("Iteration", i+2))
   print("Number of false null rejections")
