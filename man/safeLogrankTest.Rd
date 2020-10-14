@@ -14,6 +14,7 @@ safeLogrankTest(
   pilot = FALSE,
   alpha = NULL,
   alternative = NULL,
+  exact = FALSE,
   ...
 )
 }
@@ -40,8 +41,11 @@ samples is exactly as planned.}
 \item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
 the design object is used instead in constructing the decision rule S > 1/alpha.}
 
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+\item{alternative}{a character string only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
 alternative specified by the design object is used instead.}
+
+\item{exact}{a logical indicating whether the exact safe logrank test needs to be performed based on
+the hypergeometric likelihood}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -52,7 +56,7 @@ following components:
 \describe{
   \item{statistic}{the value of the z-statistic.}
   \item{nEvents}{The number of observed events.}
-  \item{sValue}{the s-value of the safe test.}
+  \item{eValue}{the s-value of the safe test.}
   \item{confSeq}{An anytime-valid confidence sequence.}
   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
   \item{h0}{the specified hypothesised value of hazard ratio.}

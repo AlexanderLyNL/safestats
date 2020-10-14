@@ -186,14 +186,14 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #'
 #' @inheritParams replicateTTests
 #' @param oldValues vector of s-values or p-values.
-#' @param valuesType character string either "sValues" or "pValues".
+#' @param valuesType character string either "eValues" or "pValues".
 #' @param designObj a safeDesign object obtained from \code{\link{designSafeT}}, or \code{NULL}
 #' if valuesType equal "pValues".
 #' @param oldData a list of matrices with names "dataGroup1" and "dataGroup2".
 #' @param n1Extra integer, that defines the additional number of samples of the first group. If
-#' \code{NULL} and valuesType equals "sValues", then n1Extra equals \code{designObj$nPlan[1]}.
+#' \code{NULL} and valuesType equals "eValues", then n1Extra equals \code{designObj$nPlan[1]}.
 #' @param n2Extra optional integer, that defines the additional number of samples of the second group.
-#' If \code{NULL}, and valuesType equals "sValues", then n2Extra equals \code{designObj$nPlan[2]}.
+#' If \code{NULL}, and valuesType equals "eValues", then n2Extra equals \code{designObj$nPlan[2]}.
 #' @param moreMainText character, additional remarks in the title of the histogram.
 #'
 #' @return a list that includes the continued s or p-values based on the combined data, and a list of the
@@ -205,34 +205,34 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' mIter <- 1000L
 #'
 #' designObj <- designSafeT(deltaMin=1, alpha=alpha)
-#' oldData <- generateTTestData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
+#' oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
 #'
-#' sValues <- vector("numeric", length=mIter)
+#' eValues <- vector("numeric", length=mIter)
 #'
-#' for (i in seq_along(sValues)) {
-#'   sValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$sValue
+#' for (i in seq_along(eValues)) {
+#'   eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
 #' }
 #' # First run: 7 false null rejections
-#' sum(sValues > 1/alpha)
+#' sum(eValues > 1/alpha)
 #'
 #' continuedSafe <- selectivelyContinueTTestCombineData(
-#'   oldValues=sValues, designObj=designObj, oldData=oldData,
+#'   oldValues=eValues, designObj=designObj, oldData=oldData,
 #'   deltaTrue=0, seed=2)
 #'
 #' # Second run: 8 false null rejections
 #' sum(continuedSafe$newValues > 1/alpha)
 #'
 #' for (i in 1:3) {
-#'   sValues <- continuedSafe$newValues
+#'   eValues <- continuedSafe$newValues
 #'   oldData <- continuedSafe$combinedData
 #'   continuedSafe <- selectivelyContinueTTestCombineData(
-#'    oldValues=sValues, designObj=designObj, oldData=oldData,
+#'    oldValues=eValues, designObj=designObj, oldData=oldData,
 #'    deltaTrue=0, seed=i+2)
 #'   print(paste("Iteration", i+2))
 #'   print("Number of false null rejections")
 #'   print(sum(continuedSafe$newValues > 1/alpha))
 #' }
-selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues", "pValues"), designObj=NULL,
+selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues", "pValues"), designObj=NULL,
                                                 alternative=c("two.sided", "greater", "less"),
                                                 oldData, deltaTrue, alpha=NULL,
                                                 n1Extra=NULL, n2Extra=NULL, seed=NULL, paired=FALSE,
@@ -248,7 +248,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
     if (is.null(n1Extra) && is.null(n2Extra)) {
       stop("Can't sample extra data without being specified the number of extra samples")
     }
-  } else if (valuesType=="sValues") {
+  } else if (valuesType=="eValues") {
     if (is.null(designObj)) {
       stop("Can't continue safe test analysis without a design object")
     }
@@ -267,7 +267,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
   result <- list("oldValues"=oldValues, "newValues"=NULL, "valuesType"=valuesType, "combinedData"=NULL, "deltaTrue"=deltaTrue,
                  "cal"=sys.call())
 
-  if (valuesType=="sValues") {
+  if (valuesType=="eValues") {
     notRejectedIndex <- which(oldValues <= 1/alpha)
   } else if (valuesType=="pValues") {
     notRejectedIndex <- which(oldValues >= alpha)
@@ -284,7 +284,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
   else
     tempNPlan <- c(n1Extra, n2Extra)
 
-  newData <- generateTTestData("nPlan"=tempNPlan,
+  newData <- generateNormalData("nPlan"=tempNPlan,
                                "deltaTrue"=deltaTrue, "nsim"=length(notRejectedIndex),
                                "paired"=paired, "seed"=seed,
                                "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue)
@@ -294,11 +294,11 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
 
   newValues <- vector("numeric", length(notRejectedIndex))
 
-  if (valuesType=="sValues") {
+  if (valuesType=="eValues") {
     for (i in seq_along(newValues)) {
       newValues[i] <- try(safeTTest("x"=dataGroup1[i, ], "y"=dataGroup2[i, ],
                                 "designObj"=designObj, "alternative"=alternative,
-                                "paired"=paired)$sValue)
+                                "paired"=paired)$eValue)
     }
 
     minX <- log(min(oldValues, newValues))
@@ -307,7 +307,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
     yOld <- log(oldValues[notRejectedIndex])
     yNew <- log(newValues)
 
-    xLabText <- "log(sValues)"
+    xLabText <- "log(eValues)"
     mainText <- paste("Histogram of s-values", moreMainText)
 
     threshValue <- log(1/alpha)

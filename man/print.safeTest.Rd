@@ -4,7 +4,13 @@
 \alias{print.safeTest}
 \title{Print Method for Safe Tests}
 \usage{
-\method{print}{safeTest}(x, digits = getOption("digits"), prefix = "\\t", ...)
+\method{print}{safeTest}(
+  x,
+  digits = getOption("digits"),
+  prefix = "\\t",
+  printConfSeq = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{a safeTest object.}
@@ -12,6 +18,9 @@
 \item{digits}{number of significant digits to be used.}
 
 \item{prefix}{string, passed to strwrap for displaying the method components.}
+
+\item{printConfSeq}{logical, if \code{TRUE} prints also confidence sequence.
+Default \code{FALSE}}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

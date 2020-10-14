@@ -18,8 +18,10 @@
 #' samples is exactly as planned.
 #' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
 #' the design object is used instead in constructing the decision rule S > 1/alpha.
-#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+#' @param alternative a character string only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
 #' alternative specified by the design object is used instead.
+#' @param exact a logical indicating whether the exact safe logrank test needs to be performed based on
+#' the hypergeometric likelihood
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -28,7 +30,7 @@
 #' \describe{
 #'   \item{statistic}{the value of the z-statistic.}
 #'   \item{nEvents}{The number of observed events.}
-#'   \item{sValue}{the s-value of the safe test.}
+#'   \item{eValue}{the s-value of the safe test.}
 #'   \item{confSeq}{An anytime-valid confidence sequence.}
 #'   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
 #'   \item{h0}{the specified hypothesised value of hazard ratio.}
@@ -67,7 +69,7 @@
 #' safeLogrankTest(survTime=survival::Surv(callaert$time),
 #'                 group=callaert$group, designObj = designObj)
 safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=NULL,
-                            group=NULL, pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
+                            group=NULL, pilot=FALSE, alpha=NULL, alternative=NULL, exact=FALSE, ...) {
 
   # if (missing(formula) && is.null(survTime) && is.null(group))
   #   stop("Please specify a formula. Or provide survTime and group.")
@@ -184,44 +186,118 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
   alternative <- designObj[["alternative"]]
   ratio <- designObj[["ratio"]]
 
-  nEff <- ratio/(1+ratio)^2*nEvents
+  if (exact) {
+    theta0 <- h0
 
-  coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
-  signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
+    if (!is.null(designObj[["esMin"]]))
+      theta1 <- unname(designObj[["esMin"]])
+    else
+      theta1 <- unname(exp(designObj[["parameter"]])) # THIS IS NOT CORRECT Here need to account for ratio
 
-  zStat <- signZ*sqrt(survDiffObj[["chisq"]])
+    survTimeMatrixTemp <- as.matrix(survTime)
+    eventIndex <- which(survTimeMatrixTemp[, 2]==1)
 
-  meanStat <- zStat/sqrt(nEff)
+    survTimeMatrix <- survTimeMatrixTemp[eventIndex, ]
+    survTimeDf <- as.data.frame(survTimeMatrix)
+    survTimeDf[["group"]] <- group[eventIndex]
 
-  result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "sValue"=NULL, "confSeq"=NULL,
-                 "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
-  class(result) <- "safeTest"
+    nEvents <- dim(survTimeMatrix)[1]
+    timeOfEvents <- unique(survTimeDf[["time"]])
 
-  names(result[["estimate"]]) <-"hazard ratio"
+    groupLabel0 <- levels(group)[1]
+    groupLabel1 <- levels(group)[2]
 
-  zStat <- (zStat - sqrt(nEff)*log(h0))
+    #
+    if (nEvents != 0) {
+      nTotal <- n0 <- n1 <- logEValue <- vector("numeric", length(timeOfEvents))
+      nTotal[1] <- length(survTime)
+      n0[1] <- sum(group==groupLabel0)
+      n1[1] <- sum(group==groupLabel1)
+    } else {
+      logEValue <- 0
+      nTotal <- length(survTime)
+      n0 <- sum(group==groupLabel0)
+      n1 <- sum(group==groupLabel1)
+    }
 
-  sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
-                          "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
+    # Should go over event times insteas
+    for (i in seq_along(timeOfEvents)) {
+      currentTime <- timeOfEvents[i]
+      currentDf <- survTimeDf[survTimeDf[["time"]]==currentTime, ]
 
-  # tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-  #                                           "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-  #                                           "alpha"=alpha, "alternative"=alternative)
-  #
-  # result[["confSeq"]] <- exp(tempConfSeq)
+      casesInGroup0 <- sum(currentDf[["group"]]==groupLabel0)
+      casesInGroup1 <- sum(currentDf[["group"]]==groupLabel1)
 
-  result[["sValue"]] <- sValue
-  result[["designObj"]] <- designObj
-  result[["survDiffObj"]] <- survDiffObj
+      logP0 <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
+                                           n=casesInGroup0+casesInGroup1, odds=theta0))
 
-  names(result[["statistic"]]) <- "z"
+      if (designObj[["alternative"]]=="two.sided") {
+        logP1 <- log(1/2*BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
+                                                 n=casesInGroup0+casesInGroup1, odds=theta1) +
+                       1/2*BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
+                                                   n=casesInGroup0+casesInGroup1, odds=1/theta1))
+      } else if (designObj[["alternative"]]=="less") {
+        logP1 <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
+                                             n=casesInGroup0+casesInGroup1, odds=theta1))
+      } else if (designObj[["alternative"]]=="greater") {
+        logP1 <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
+                                             n=casesInGroup0+casesInGroup1, odds=1/theta1))
+      }
+
+      logEValue[i] <- logP1-logP0
+
+      n0[i+1] <- n0[i]-casesInGroup0
+      n1[i+1] <- n1[i]-casesInGroup1
+    }
+
+    eValue <- exp(sum(logEValue))
+    names(eValue) <- "e-value"
+
+    result <- list("statistic"=eValue, "n"=nEvents, "estimate"=NULL, "eValue"=eValue,
+                   "confSeq"=NULL, "estimate"=NULL, "h0"=h0, "testType"="logrank",
+                   "dataName"=dataName, "exact"=TRUE)
+    class(result) <- "safeTest"
+    result[["designObj"]] <- designObj
+  } else {
+    nEff <- ratio/(1+ratio)^2*nEvents
+
+    coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
+    signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
+
+    zStat <- signZ*sqrt(survDiffObj[["chisq"]])
+
+    meanStat <- zStat/sqrt(nEff)
+
+    result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "eValue"=NULL, "confSeq"=NULL,
+                   "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
+    class(result) <- "safeTest"
+
+    names(result[["estimate"]]) <-"hazard ratio"
+
+    zStat <- (zStat - sqrt(nEff)*log(h0))
+
+    eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
+                            "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
+
+    tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+                                              "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
+                                              "alpha"=alpha, "alternative"="two.sided")
+
+    result[["confSeq"]] <- exp(tempConfSeq)
+
+    result[["eValue"]] <- eValue
+    result[["designObj"]] <- designObj
+    result[["survDiffObj"]] <- survDiffObj
+
+    names(result[["statistic"]]) <- "z"
+  }
+
+
   names(result[["n"]]) <- "nEvents"
   names(result[["h0"]]) <- "theta"
 
   return(result)
 }
-
-
 
 #' Designs a Safe Logrank Test
 #'
@@ -321,85 +397,3 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
 
   return(result)
 }
-
-#' #' Core Function of safeLogrankTest
-#' #'
-#' #' Takes as input an object obtained from \code{\link[coin]{logrank_test}} and a design obtained from
-#' #' \code{\link{designSafeLogrank}} to output an object of class "safeTest".
-#' #'
-#' #' @inherit safeLogrankTest
-#' #' @param logrankObj a logrank object obtained from \code{\link[coin]{logrank_test}}.
-#' #' @param ... further arguments to be passed to or from methods.
-#' #'
-#' #'
-#' safeLogrankTestCore <- function(logrankObj, designObj=NULL, alternative, h0=1,
-#'                                 pilot=FALSE, alpha=NULL, ...) {
-#'
-#'   if (!inherits(logrankObj, "ScalarIndependenceTest"))
-#'     stop("The provided logrankObj is not of the right type derived from coin::logrank_test()")
-#'
-#'   groupLabel <- names(logrankObj@statistic@x)
-#'
-#'   groupLevels <- levels(logrankObj@statistic@x[[groupLabel]])
-#'
-#'   if (length(groupLevels) > 2)
-#'     stop("K-sample log rank test not yet implemented")
-#'
-#'   zStat <- unname(logrankObj@statistic@standardizedlinearstatistic)
-#'   nEvents <- sum(logrankObj@statistic@ytrans < 0)
-#'
-#'   dataName <- paste0(names(logrankObj@statistic@y), " by ",
-#'                      names(logrankObj@statistic@x), " (",
-#'                      paste(groupLevels, collapse=", "), ")")
-#'
-#'   if (isTRUE(pilot)) {
-#'     if (is.null(alpha))
-#'       alpha <- 0.05
-#'
-#'     if (is.null(alternative)) {
-#'       alternative <- "two.sided"
-#'     } else {
-#'       if (!(alternative %in% c("two.sided", "greater", "less")))
-#'         stop('Provided alternative must be one of "two.sided", "greater", or "less".')
-#'     }
-#'
-#'     designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
-#'                                    "alternative"=alternative)
-#'     designObj[["pilot"]] <- TRUE
-#'   }
-#'
-#'   alpha <- designObj[["alpha"]]
-#'   alternative <- designObj[["alternative"]]
-#'   ratio <- designObj[["ratio"]]
-#'
-#'   nEff <- ratio/(1+ratio)^2*nEvents
-#'   meanStat <- zStat/sqrt(nEff)
-#'
-#'   # TODO(Alexander): In principle I could replace "estimate"=exp(meanStat)
-#'   result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "sValue"=NULL, "confSeq"=NULL,
-#'                  "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
-#'   class(result) <- "safeTest"
-#'
-#'   names(result[["estimate"]]) <-"hazard ratio"
-#'
-#'   zStat <- (zStat - sqrt(nEff)*log(h0))
-#'
-#'   sValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
-#'                           "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
-#'
-#'   # tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-#'   #                                           "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-#'   #                                           "alpha"=alpha, "alternative"=alternative)
-#'   #
-#'   # result[["confSeq"]] <- exp(tempConfSeq)
-#'
-#'   result[["sValue"]] <- sValue
-#'   result[["designObj"]] <- designObj
-#'   result[["logrankObj"]] <- logrankObj
-#'
-#'   names(result[["statistic"]]) <- "z"
-#'   names(result[["n"]]) <- "nEvents"
-#'   names(result[["h0"]]) <- "theta"
-#'
-#'   return(result)
-#' }

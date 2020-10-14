@@ -66,7 +66,7 @@ following components:
 \describe{
   \item{statistic}{the value of the t-statistic.}
   \item{n}{The realised sample size(s).}
-  \item{sValue}{the realised s-value from the safe test.}
+  \item{eValue}{the realised e-value from the safe test.}
   \item{confSeq}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
   hypothesis.}
   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-

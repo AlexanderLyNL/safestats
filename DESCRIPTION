@@ -25,7 +25,8 @@ Imports:
   hypergeo (>= 1.2-13),
   purrr (>= 0.3.3),
   coin (>= 1.3-1),
-  survival (>= 3.1-11)
+  survival (>= 3.1-11),
+  BiasedUrn (>= 1.07)
 Suggests: testthat, knitr, rmarkdown, graphics
 VignetteBuilder: knitr
 NeedsCompilation: no
