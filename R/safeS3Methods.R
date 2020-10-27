@@ -144,31 +144,10 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   if (designObj[["pilot"]]) {
     cat("the pilot test is based on an exploratory alpha =", alphaString)
     cat("\n")
-    # cat("and resulted in:  e-value =", eValueString)
-    # cat("\n")
   } else {
     cat("the test was designed with alpha =", alphaString)
     cat("\n")
-    # cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
-    #     eValue > 1/designObj[["alpha"]])
-    # cat("\n")
-    # # Iets over n1Plan, n2Plan, etc
-    #
-    #
-    # cat("alternative hypothesis:", alternativeName, "\n")
-    #
-    # paramMin <- designObj[["paramMin"]]
-    #
-    # if (!is.null(paramMin)) {
-    #   out <- paste(names(paramMin), "=", format(paramMin, digits = max(1L, digits - 2L)))
-    #
-    #   cat("and", out, "\n")
-    # }
-    #
-    #
-    #
-    #
-    # cat("\n")
+
     nPlan <- designObj[["nPlan"]]
 
     if (!is.null(nPlan)) {

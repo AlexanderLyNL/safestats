@@ -192,7 +192,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
     if (!is.null(designObj[["esMin"]]))
       theta1 <- unname(designObj[["esMin"]])
     else
-      theta1 <- unname(exp(designObj[["parameter"]])) # THIS IS NOT CORRECT Here need to account for ratio
+      theta1 <- unname(exp(designObj[["parameter"]])) # Think of other point nulls, this only works for null being one
 
     survTimeMatrixTemp <- as.matrix(survTime)
     eventIndex <- which(survTimeMatrixTemp[, 2]==1)
@@ -209,7 +209,14 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
 
     #
     if (nEvents != 0) {
-      nTotal <- n0 <- n1 <- logEValue <- vector("numeric", length(timeOfEvents))
+      nTotal <- n0 <- n1 <- vector("numeric", length(timeOfEvents))
+
+      if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="less")
+        logEValueLess <- vector("numeric", length(timeOfEvents))
+
+      if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="greater")
+        logEValueGreater <- vector("numeric", length(timeOfEvents))
+
       nTotal[1] <- length(survTime)
       n0[1] <- sum(group==groupLabel0)
       n1[1] <- sum(group==groupLabel1)
@@ -231,27 +238,32 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
       logP0 <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
                                            n=casesInGroup0+casesInGroup1, odds=theta0))
 
-      if (designObj[["alternative"]]=="two.sided") {
-        logP1 <- log(1/2*BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
-                                                 n=casesInGroup0+casesInGroup1, odds=theta1) +
-                       1/2*BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
-                                                   n=casesInGroup0+casesInGroup1, odds=1/theta1))
-      } else if (designObj[["alternative"]]=="less") {
-        logP1 <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
+      if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="less") {
+        logPLess <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
                                              n=casesInGroup0+casesInGroup1, odds=theta1))
-      } else if (designObj[["alternative"]]=="greater") {
-        logP1 <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
+        logEValueLess[i] <- logPLess-logP0
+      } else if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="greater") {
+        logPGreater <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
                                              n=casesInGroup0+casesInGroup1, odds=1/theta1))
+        logEValueGreater[i] <- logPGreater-logP0
       }
-
-      logEValue[i] <- logP1-logP0
 
       n0[i+1] <- n0[i]-casesInGroup0
       n1[i+1] <- n1[i]-casesInGroup1
     }
 
-    eValue <- exp(sum(logEValue))
-    names(eValue) <- "e-value"
+    if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="less")
+      eValueLess <- exp(sum(logEValueLess))
+
+    if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="greater")
+      eValueGreater <- exp(sum(logEValueGreater))
+
+    eValue <- switch(designObj[["alternative"]],
+                     "greater"=eValueGreater,
+                     "less"=eValueLess,
+                     "two.sided"=1/2*eValueGreater+1/2*eValueLess)
+
+    names(eValue) <- "e"
 
     result <- list("statistic"=eValue, "n"=nEvents, "estimate"=NULL, "eValue"=eValue,
                    "confSeq"=NULL, "estimate"=NULL, "h0"=h0, "testType"="logrank",
