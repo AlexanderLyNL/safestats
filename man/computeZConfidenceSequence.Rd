@@ -10,7 +10,9 @@ computeZConfidenceSequence(
   phiS,
   sigma = 1,
   alpha = 0.05,
-  alternative = "two.sided"
+  alternative = "two.sided",
+  a = NULL,
+  g = NULL
 )
 }
 \arguments{
@@ -28,6 +30,12 @@ the design object is used instead in constructing the decision rule S > 1/alpha.
 
 \item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
 alternative specified by the design object is used instead.}
+
+\item{a}{numeric, the centre of the normal prior on population mean (of the normal data). Default
+is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis}
+
+\item{g}{numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
+(of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2}
 }
 \value{
 numeric vector that contains the upper and lower bound of the safe confidence sequence
