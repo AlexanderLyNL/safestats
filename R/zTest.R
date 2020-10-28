@@ -1019,6 +1019,10 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigm
 #' @param nEff numeric > 0, the effective sample size
 #' @param meanStat numeric, the mean statistic, this could be the differences of means as well
 #' @param phiS numeric > 0, the safe test defining parameter
+#' @param a numeric, the centre of the normal prior on population mean (of the normal data). Default
+#' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis
+#' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
+#' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2
 #'
 #' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
 #' @export
@@ -1026,27 +1030,41 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigm
 #' @examples
 #' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
 computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, alpha=0.05,
-                                       alternative="two.sided") {
+                                       alternative="two.sided", a=NULL, g=NULL) {
   # TODO(Alexander): Only for GROW,
-  meanDiffMin <- phiS
-  g <- meanDiffMin^2/sigma^2
 
-  if (alternative=="two.sided") {
-    shift <- sigma*sqrt((1+nEff*g)/(nEff^2*g)*(log(nEff*g)-2*log(alpha)))
+  if (!is.null(a) && !is.null(g)) {
+    if (alternative != "two.sided")
+      stop("Not implemented")
+
+    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(alpha))+(meanStat-a)^2/(1+nEff*g))
     lowerCS <- meanStat - shift
     upperCS <- meanStat + shift
   } else {
-    shift <- sigma * sqrt((1+nEff*g)/(nEff^2*g)*(log(nEff*g)-2*log(2*alpha)))
+    if (is.null(g)) {
+      meanDiffMin <- phiS
+      g <- meanDiffMin^2/sigma^2
+    }
 
-    if (alternative=="greater") {
-      lowerCS <- meanStat + shift
-      upperCS <- Inf
+    if (alternative=="two.sided") {
+      shift <- sigma*sqrt((1+nEff*g)/(nEff^2*g)*(log(nEff*g)-2*log(alpha)))
+      lowerCS <- meanStat - shift
+      upperCS <- meanStat + shift
     } else {
-      lowerCS <- -Inf
-      upperCS <- meanStat - shift
+      shift <- sigma * sqrt((1+nEff*g)/(nEff^2*g)*(log(nEff*g)-2*log(2*alpha)))
+
+      if (alternative=="greater") {
+        lowerCS <- meanStat + shift
+        upperCS <- Inf
+      } else {
+        lowerCS <- -Inf
+        upperCS <- meanStat - shift
+      }
     }
   }
 
+  ### OLD confidence sequence based on point priors.
+  #
   # if (alternative=="two.sided") {
   #   shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
   #   lowerCS <- meanStat - shift
