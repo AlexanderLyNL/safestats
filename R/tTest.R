@@ -102,7 +102,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' @param deltaMin numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 #' we would the experiment to be able to detect.
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.
+#' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 #' the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
@@ -1494,7 +1494,7 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE,
 #' @param tDensity Uses the the representation of the safe t-test as the likelihood ratio of t densities.
 #' @inherit safeTTest
 #'
-#' @return Returns a numeric that represent the s10, that is, the e-value in favour of the alternative over the null
+#' @return Returns a numeric that represent the e10, that is, the e-value in favour of the alternative over the null
 #'
 #' @export
 #'
@@ -1584,7 +1584,7 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
 #' @inheritParams safeTTest
 #' @inherit safeTTestStat
 #'
-#' @return Returns a numeric that represent the s10 - 1/alpha, that is, the e-value in favour of the
+#' @return Returns a numeric that represent the e10 - 1/alpha, that is, the e-value in favour of the
 #' alternative over the null - 1/alpha.
 #'
 safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="two.sided", tDensity=FALSE) {
