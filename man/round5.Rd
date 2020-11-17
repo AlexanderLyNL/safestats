@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{round5}
 \alias{round5}
-\title{Rounds a numeric to 5}
+\title{Rounds a Numeric to At Most 5 Significant Figures}
 \usage{
 round5(num)
 }
@@ -10,13 +10,11 @@ round5(num)
 \item{num}{numeric}
 }
 \value{
-number rounded up to 5 decimal places
+number rounded up to 5 decimal places.
 }
 \description{
-Rounds a numeric to 5
+Helper function to round a numeric to 5 significant figures.
 }
 \examples{
-\dontrun{
-round5(pi)
-}
+safestats:::round5(pi)
 }

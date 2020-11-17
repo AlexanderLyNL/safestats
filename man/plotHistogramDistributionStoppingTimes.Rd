@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{plotHistogramDistributionStoppingTimes}
 \alias{plotHistogramDistributionStoppingTimes}
-\title{Plots the histogram of stopping times}
+\title{Plots the Histogram of Stopping Times}
 \usage{
 plotHistogramDistributionStoppingTimes(
   safeSim,
@@ -14,23 +14,26 @@ plotHistogramDistributionStoppingTimes(
 )
 }
 \arguments{
-\item{safeSim}{A safeSim object, returned from "replicateTTests" and "simulateSpreadSampleSizeTwoProportions"}
+\item{safeSim}{A safeSim object, returned from \code{\link{replicateTTests}} and
+\code{\link{simulateSpreadSampleSizeTwoProportions}}.}
 
-\item{nPlan}{numeric > 0, the planned sample size (for the first sample)}
+\item{nPlan}{numeric > 0, the planned sample size(s).}
 
-\item{deltaTrue}{numeric, that represents the true underlying effect size delta}
+\item{deltaTrue}{numeric, that represents the true underlying standardised effect size delta.}
 
-\item{showOnlyNRejected}{logical, when TRUE discards the cases that are}
+\item{showOnlyNRejected}{logical, when \code{TRUE} discards the cases that did not reject.}
 
-\item{nBin}{numeric > 0, the minimum number of bins in the histogram}
+\item{nBin}{numeric > 0, the minimum number of bins in the histogram.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
+\value{
+a histogram object, and called for its side-effect to plot the histogram.
+}
 \description{
-Plots the histogram of stopping times
+Helper function to display the histogram of stopping times.
 }
 \examples{
-\dontrun{
 # Design safe test
 alpha <- 0.05
 beta <- 0.20
@@ -40,11 +43,10 @@ designObj <- designSafeT(1, alpha=alpha, beta=beta)
 freqObj <- designFreqT(1, alpha=alpha, beta=beta)
 
 # Simulate under the alternative with deltaTrue=deltaMin
-simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
-n1PlanFreq=freqObj$n1PlanFreq)
+simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1, parameter=designObj$parameter,
+nPlanFreq=freqObj$nPlan)
 
 plotHistogramDistributionStoppingTimes(
-  simResults$safeSim, nPlan = simResults$n1Plan,
+  simResults$safeSim, nPlan = simResults$nPlan,
   deltaTrue = simResults$deltaTrue)
-}
 }

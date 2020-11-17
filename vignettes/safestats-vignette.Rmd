@@ -17,12 +17,12 @@ knitr::opts_chunk$set(
 )
 ```
 
-_Safe tests_ is a collective name for a new form of hypothesis tests that yield _s-values_ (instead of _p-values_). The original paper on s-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide s-values for the t-test, Fisher's exact test, and the chi-squared test (the safe test of 2 proportions). These safe tests were designed to be _GROW_; they <!--yield s-values that, for each specific hypothesis testing setting,-->
+_Safe tests_ is a collective name for a new form of hypothesis tests that yield _e-values_ (instead of _p-values_). The original paper on e-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide e-values for the t-test, Fisher's exact test, and the chi-squared test (the safe test of 2 proportions). These safe tests were designed to be _GROW_; they <!--yield e-values that, for each specific hypothesis testing setting,-->
 perform the best under the worst case in the alternative hypothesis (see the [original paper](https://arxiv.org/abs/1906.07801)).
 
 >Technically, S-values are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The S-value can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $S$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $S$-value, the larger the incentive to reject the null. 
 
-A big advantage of the s-values over their $p$-value equivalents is that safe tests conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping), whenever the evidence is compelling. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, which means that the researcher can extend the experiment irrespectively of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
+A big advantage of the e-values over their $p$-value equivalents is that safe tests conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping), whenever the evidence is compelling. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, which means that the researcher can extend the experiment irrespectively of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
 
 Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the promised type I error guarantee. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. We illustrate these properties below. 
 
@@ -60,7 +60,7 @@ install.packages("safestats")
 The development version can be found on [GitHub](https://github.com/alexanderlynl/safestats), which can be installed with the `devtools` package from [CRAN](https://cran.r-project.org/package=devtools) by entering in `R`:
 
 ```{r devtools, eval=FALSE}
-devtools::install_github("AlexanderLyNL/safestats", build_vignettes = TRUE)
+devtools::install_github("AlexanderLyNL/safestats", ref = "logrank", build_vignettes = TRUE)
 ```
 
 The command 
@@ -92,7 +92,7 @@ beta <- 0.2
 deltaMin <- 9/(sqrt(2)*15)
 
 designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-                         alternative="greater", testType="pairedSampleT")
+                         alternative="greater", testType="paired")
 designObj
 ```
  
@@ -106,26 +106,26 @@ It is not always clear what the minimal clinically relevant effect size is. In t
 
 result <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta, 
                                            maxN=100, 
-                                           testType="pairedSampleT")
+                                           testType="paired")
 ```
 
 The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80%, if the true effect size is at least 0.37. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for additional grant money to test an additional 44 patients, or decide that it's futile to set up this experiment, and spend our time and efforts on a different endeavour. 
 
 ## 2. Inference with Safe Tests: Full experiment
-Firstly, we show that inference based on safe tests conserve the tolerable $\alpha$-level, if the null hypothesis of no effect is rejected whenever the s-value, the outcome of a safe test, is larger than $1/\alpha$. For instance, for $\alpha = 0.05$ the safe test rejects the null whenever the s-value is than 20. The level $\alpha$ type I error rate is also guaranteed under (early) optional stopping. Secondly, we show that there is a high chance of stopping early whenever the true effect size is at least as large as the minimal clinically relevant effect size. 
+Firstly, we show that inference based on safe tests conserve the tolerable $\alpha$-level, if the null hypothesis of no effect is rejected whenever the e-value, the outcome of a safe test, is larger than $1/\alpha$. For instance, for $\alpha = 0.05$ the safe test rejects the null whenever the e-value is than 20. The level $\alpha$ type I error rate is also guaranteed under (early) optional stopping. Secondly, we show that there is a high chance of stopping early whenever the true effect size is at least as large as the minimal clinically relevant effect size. 
 
 ### Safe tests conserve the type I error rate: Full experiment
 To see that safe tests only lead to a false null rejection very infrequently, we consider an experiment with the same number of samples as it was planned for, but with no effect, that is, 
 
 ```{r}
 set.seed(1)
-preData <- rnorm(n=designObj$n1Plan, mean=120, sd=15)
-postData <- rnorm(n=designObj$n2Plan, mean=120, sd=15)
+preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+postData <- rnorm(n=designObj$nPlan[2], mean=120, sd=15)
 # Thus, the true delta is 0:
 # deltaTrue <- (120-120)/(sqrt(2)*15)     
 ```
 
-The safe test applied to data under the null results in an s-value that is larger than $1/\alpha = 20$ with at most $\alpha =$ 5% chance. In particular,
+The safe test applied to data under the null results in an e-value that is larger than $1/\alpha = 20$ with at most $\alpha =$ 5% chance. In particular,
 
 ```{r}
 safeTTest(x=preData, y=postData, alternative = "greater",
@@ -139,21 +139,21 @@ safe.t.test(x=preData, y=postData, alternative = "greater",
             designObj=designObj, paired=TRUE)
 ```
 
-The following code replicates this setting a 1,000 times and shows that indeed, only a very few times will the s-values cross the boundary of $1/\alpha$ under the null:
+The following code replicates this setting a 1,000 times and shows that indeed, only a very few times will the e-values cross the boundary of $1/\alpha$ under the null:
 
 ```{r}
 # alpha <- 0.05
 
 set.seed(1)
-sValues <- replicate(n=1000, expr={
-  preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
-  postData <- rnorm(n=designObj[["n2Plan"]], mean=120, sd=15)
+eValues <- replicate(n=1000, expr={
+  preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+  postData <- rnorm(n=designObj$nPlan[2], mean=120, sd=15)
   safeTTest(x=preData, y=postData, alternative = "greater",
-            designObj=designObj,paired=TRUE)$sValue}
+            designObj=designObj,paired=TRUE)$eValue}
 )
 
-mean(sValues > 20)
-mean(sValues > 20) < alpha
+mean(eValues > 20)
+mean(eValues > 20) < alpha
 ```
 
 ### The designed safe tests is as powerful as planned: Full experiment
@@ -161,8 +161,8 @@ If the true effect size equals the minimal clinical effect size and the experime
 
 ```{r}
 set.seed(1)
-preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
-postData <- rnorm(n=designObj[["n2Plan"]], mean=111, sd=15)
+preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+postData <- rnorm(n=designObj$nPlan[2], mean=111, sd=15)
 
 safeTTest(x=preData, y=postData, alternative = "greater",
           designObj=designObj, paired=TRUE)
@@ -177,13 +177,13 @@ and by the following code for multiple experiments
 power <- 1-beta
 
 set.seed(1)
-sValues <- replicate(n=1000, expr={
-  preData <- rnorm(n=designObj[["n1Plan"]], mean=120, sd=15)
-  postData <- rnorm(n=designObj[["n2Plan"]], mean=111, sd=15)
+eValues <- replicate(n=1000, expr={
+  preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
+  postData <- rnorm(n=designObj$nPlan[2], mean=111, sd=15)
   safeTTest(x=preData, y=postData, alternative = "greater", designObj=designObj,
-            paired=TRUE)$sValue})
-mean(sValues > 1/alpha)
-mean(sValues > 1/alpha) >= power
+            paired=TRUE)$eValue})
+mean(eValues > 1/alpha)
+mean(eValues > 1/alpha) >= power
 ```
 
 Due to sampling error, the average number of times that $S > 1 / \alpha$ might not always be larger than the specified power, but it should always be close to it. The sampling error decreases as the number of replications increases and converges to 80%. 
@@ -192,7 +192,7 @@ Due to sampling error, the average number of times that $S > 1 / \alpha$ might n
 <!--### Data under the alternative: <a name = "optStopT">Stopping the experiment early</a>-->
 What makes the safe tests in this package particularly interesting is that they allow for early stopping without the test exceeding the tolerable type I error rate of $\alpha$. This means that the evidence can be monitored as the data comes in, and when there is a sufficient amount of evidence against the null, thus, $S > 1/\alpha$, the experiment can be stopped early, which therefore increases efficiency.
 
-> Note that <a name = "martingale">not all s-values necessarily allow for optional stopping</a>: this only holds for some special s-values, that are also _test martingales_. More information can be found, for example, in the first author's [master thesis](https://www.universiteitleiden.nl/binaries/content/assets/science/mi/scripties/statscience/2019-2020/thesis_rjturner_for_publication.pdf), Chapter 5.
+> Note that <a name = "martingale">not all e-values necessarily allow for optional stopping</a>: this only holds for some special e-values, that are also _test martingales_. More information can be found, for example, in the first author's [master thesis](https://www.universiteitleiden.nl/binaries/content/assets/science/mi/scripties/statscience/2019-2020/thesis_rjturner_for_publication.pdf), Chapter 5.
 
 For this purpose, we use the design that was derived above, that is, 
 
@@ -202,7 +202,7 @@ designObj
 
 ### Safe tests detect the effect early if it is present: deltaTrue equal to deltaMin
 <!--#### Optional stopping: True effect size equals minimal clinically relevant effect size-->
-The following code replicates 1,000 experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of $\delta_{\min}=9/(15 \sqrt{2}) = 0.42$. The safe test is applied to each data set sequentially and if the s-value is larger than $1 / \alpha$, the experiment is stopped. If the s-value does not exceed $1 / \alpha$, the experiment is run until all samples are collected as planned.
+The following code replicates 1,000 experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of $\delta_{\min}=9/(15 \sqrt{2}) = 0.42$. The safe test is applied to each data set sequentially and if the e-value is larger than $1 / \alpha$, the experiment is stopped. If the e-value does not exceed $1 / \alpha$, the experiment is run until all samples are collected as planned.
 
 ```{r}
 # Recall:
@@ -268,12 +268,11 @@ For this purpose we run the code
 # deltaMin <- 9/(sqrt(2)*15)      # = 0.42
 
 freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-                             alternative="greater", testType="pairedSampleT")
+                             alternative="greater", testType="paired")
 
 simResultDeltaTrueIsZero <- simulate(object=designObj, nsim=1000L, seed=1,
                                      deltaTrue=0, freqOptioStop=TRUE,
-                                     n1PlanFreq=freqDesignObj$n1PlanFreq,
-                                     n2PlanFreq=freqDesignObj$n2PlanFreq,
+                                     nPlanFreq=freqDesignObj$nPlan,
                                      muGlobal=120, sigmaTrue=15)
 simResultDeltaTrueIsZero
 ```
@@ -296,8 +295,7 @@ Firstly, we show that optional continuation also causes $p$-values to overreject
 The following code simulates 1,000 (first batch) experiments under the null, each with the same (frequentist) sample sizes as planned for resulting in 1,000 $p$-values: 
 
 ```{r}
-dataBatch1 <- generateTTestData(n1Plan=freqDesignObj$n1PlanFreq,
-                               n2Plan=freqDesignObj$n2PlanFreq, 
+dataBatch1 <- generateNormalData(nPlan=freqDesignObj$nPlan,
                                deltaTrue=0, nsim=1000, paired=TRUE, seed=1,
                                muGlobal=120, sigmaTrue=15)
 
@@ -323,8 +321,8 @@ selectivelyContinueDeltaTrueIsZeroWithP <-
                                       alternative="greater", 
                                       oldData=dataBatch1,
                                       deltaTrue=0,
-                                      n1Extra=freqDesignObj$n1PlanFreq,
-                                      n2Extra=freqDesignObj$n2PlanFreq,
+                                      n1Extra=freqDesignObj$nPlan[1],
+                                      n2Extra=freqDesignObj$nPlan[2],
                                       alpha=alpha,
                                       seed=2, paired=TRUE,
                                       muGlobal=120, sigmaTrue=15)
@@ -378,9 +376,9 @@ This demonstrates how classical $p$-value test turn the experimental design into
 
 Safe tests also conserve the type I error rate under optional continuation. Optional continuation implies gathering more samples than was planned for because, for instance, (1) more funding came available and the experimenter wants to learn more, (2) the evidence looked promising, (3) a reviewer or editor urged the experimenter to collect more data, or (4) other researchers attempt to replicate the first finding. 
 
-A natural way to deal with the first three cases is by computing an s-value over the combined data set. This is permitted if the data come from the same population. 
+A natural way to deal with the first three cases is by computing an e-value over the combined data set. This is permitted if the data come from the same population. 
 
-Replication attempts, however, are typically based on samples from a different population. One way to deal with this is by multiplying the s-value computed from the original study with the s-value computed from the replication attempt. 
+Replication attempts, however, are typically based on samples from a different population. One way to deal with this is by multiplying the e-value computed from the original study with the e-value computed from the replication attempt. 
 
 We show that both procedures are safe, that is, they do not lead to the tolerable type I error rate be exceeded, whereas classical $p$-values once again overreject. 
 -->
@@ -388,32 +386,32 @@ We show that both procedures are safe, that is, they do not lead to the tolerabl
 ### Two ways to optionally continue studies with safe tests
 Safe tests, as we will show below, do conserve the type I error rate under optional continuation. Optional continuation implies gathering more samples than was planned for because, for instance, (1) more funding came available and the experimenter wants to learn more, (2) the evidence looked promising, (3) a reviewer or editor urged the experimenter to collect more data, or (4) other researchers attempt to replicate the first finding. 
 
-A natural way to deal with the first three cases is by computing an s-value over the combined data set. This is permitted if the data come from the same population, and if the s-value used is a [_test martingale_](#martingale), which the s-values in this package are.
+A natural way to deal with the first three cases is by computing an e-value over the combined data set. This is permitted if the data come from the same population, and if the e-value used is a [_test martingale_](#martingale), which the e-values in this package are.
 
-Replication attempts, however, are typically based on samples from a different population. One way to deal with this is by multiplying the s-value computed from the original study with the s-value computed from the replication attempt. In this situation, the s-value formula for the replication study could also be _redesigned_ through the \code{design} function, for example when more information on nuisance parameters or effect size has become available for designing a more powerful test.
+Replication attempts, however, are typically based on samples from a different population. One way to deal with this is by multiplying the e-value computed from the original study with the e-value computed from the replication attempt. In this situation, the e-value formula for the replication study could also be _redesigned_ through the \code{design} function, for example when more information on nuisance parameters or effect size has become available for designing a more powerful test.
 
 We show that both procedures are safe, that is, they do not lead to the tolerable type I error rate be exceeded, whereas classical $p$-values once again overreject. 
 
 ### a. Optional continuation by _extending_ the experiment does not result in safe tests exceeding the tolerable $\alpha$-level
-In this subsection, we show that only continuing studies for which $S \leq 1/ \alpha$ does *not* lead to an overrejection of the null. This is because the sampling distribution of s-values under the null slowly drifts towards smaller values as the number of samples increases. 
+In this subsection, we show that only continuing studies for which $S \leq 1/ \alpha$ does *not* lead to an overrejection of the null. This is because the sampling distribution of e-values under the null slowly drifts towards smaller values as the number of samples increases. 
 
-Again, we consider the situation in which we only continue studies for which the original s-values did not lead to a null rejection. For the first batch of s-values, we use the simulation study ran in the previous section, and we recall that under optional stopping we get 
+Again, we consider the situation in which we only continue studies for which the original e-values did not lead to a null rejection. For the first batch of e-values, we use the simulation study ran in the previous section, and we recall that under optional stopping we get 
 
 ```{r}
 dataBatch1 <- list(dataGroup1=simResultDeltaTrueIsZero$safeSim$dataGroup1,
                    dataGroup2=simResultDeltaTrueIsZero$safeSim$dataGroup2)
 
-sValuesBatch1 <- simResultDeltaTrueIsZero$safeSim$sValues
-sum(sValuesBatch1 > 1/alpha)
+eValuesBatch1 <- simResultDeltaTrueIsZero$safeSim$eValues
+sum(eValuesBatch1 > 1/alpha)
 ```
 
 thus, 24 false null rejections out of 1,000 experiments. 
 
-The follow-up batches of data will be of the same size as the original, thus, n1Plan=63 and n2Plan=63, and will also be generated under the null. The slow drift to lower s-values is visualised by two histograms. The blue histogram represents the sampling distribution of s-values of the original simulation study that did not resulted in a null rejection. The red histogram represents the sampling distribution of s-values computed over the two batches of data combined. To ease visualisation, we plot the histogram of the log s-values; a negative log s-value implies that the s-value is smaller than one, whereas a positive log s-value corresponds to s-values larger than one. For this we run the following code:
+The follow-up batches of data will be of the same size as the original, thus, n1Plan=63 and n2Plan=63, and will also be generated under the null. The slow drift to lower e-values is visualised by two histograms. The blue histogram represents the sampling distribution of e-values of the original simulation study that did not resulted in a null rejection. The red histogram represents the sampling distribution of e-values computed over the two batches of data combined. To ease visualisation, we plot the histogram of the log e-values; a negative log e-value implies that the e-value is smaller than one, whereas a positive log e-value corresponds to e-values larger than one. For this we run the following code:
 
 ```{r}
 selectivelyContinueDeltaTrueIsZero <- 
-  selectivelyContinueTTestCombineData(oldValues=sValuesBatch1,
+  selectivelyContinueTTestCombineData(oldValues=eValuesBatch1,
                                       designObj=designObj,
                                       alternative="greater", 
                                       oldData=dataBatch1,
@@ -423,12 +421,12 @@ selectivelyContinueDeltaTrueIsZero <-
                                       moreMainText="Batch 1-2")
 ```
 
-Note that compared to blue histogram, the red histogram is shifted to the left, thus, the sampling distribution of s-values computed over the two batches combined concentrates on smaller values. In particular, most of the mass remains under the threshold value of $1/\alpha$, which is represented by the vertical grey line $\log(1/\alpha) \approx 3.00$. This shift to the left is caused by the increase in sample sizes from n1=n2=63 to n1=n2=126. The commands 
+Note that compared to blue histogram, the red histogram is shifted to the left, thus, the sampling distribution of e-values computed over the two batches combined concentrates on smaller values. In particular, most of the mass remains under the threshold value of $1/\alpha$, which is represented by the vertical grey line $\log(1/\alpha) \approx 3.00$. This shift to the left is caused by the increase in sample sizes from n1=n2=63 to n1=n2=126. The commands 
 
 ```{r}
-sValuesBatch1To2 <- selectivelyContinueDeltaTrueIsZero$newValues
-sum(sValuesBatch1To2 > 1/alpha)
-length(sValuesBatch1To2)
+eValuesBatch1To2 <- selectivelyContinueDeltaTrueIsZero$newValues
+sum(eValuesBatch1To2 > 1/alpha)
+length(eValuesBatch1To2)
 ```
 
 show that 7 out of the 976 of the selectively continued experiments (0.7%) now result in a null rejection due to optional continuation. Hence, after the second batch of data the total number of total number of false null rejections is 31 out of a total of a 1,000 original experiment, thus, 3.1%. <!-- is still below the tolerable $\alpha$-level of 5%. -->
@@ -455,12 +453,12 @@ for (j in 1:3) {
 }
 ```
 
-The simulations show that the realised number of false null rejections decreases as the number of replication attempts increases (24, 7, 1, 0, 0, ...). Consequently, the collective rate of false null rejections remains well below the tolerable $\alpha$-level. The histograms slowly drifting to the left show that the chance of seeing an s-value larger than $1/\alpha$ decreases under the null as the number of samples increases. 
+The simulations show that the realised number of false null rejections decreases as the number of replication attempts increases (24, 7, 1, 0, 0, ...). Consequently, the collective rate of false null rejections remains well below the tolerable $\alpha$-level. The histograms slowly drifting to the left show that the chance of seeing an e-value larger than $1/\alpha$ decreases under the null as the number of samples increases. 
 
 #### When the effect is present optional continuation results in safe tests correctly rejecting the null
-The slow drift of the sampling distribution of s-values to smaller values is replaced by a fast drift to large values whenever there is an effect. We again consider the situation in which we continue studies for which the first batch of s-values did not lead to a null rejection. The follow-up batch of data will again be of the same sizes, thus, n1Plan=63 and n2Plan=63, and generated under the assumption that deltaTrue equal deltaMin, as in the first batch. 
+The slow drift of the sampling distribution of e-values to smaller values is replaced by a fast drift to large values whenever there is an effect. We again consider the situation in which we continue studies for which the first batch of e-values did not lead to a null rejection. The follow-up batch of data will again be of the same sizes, thus, n1Plan=63 and n2Plan=63, and generated under the assumption that deltaTrue equal deltaMin, as in the first batch. 
 
-As a first batch of s-values, we use the simulation study ran in the previous section when deltaTrue equals deltaMin, and we recall that under optional stopping we get 
+As a first batch of e-values, we use the simulation study ran in the previous section when deltaTrue equals deltaMin, and we recall that under optional stopping we get 
 
 ```{r}
 dataBatch1 <- list(
@@ -468,8 +466,8 @@ dataBatch1 <- list(
   dataGroup2=simResultDeltaTrueIsDeltaMin$safeSim$dataGroup2
 )
 
-sValuesBatch1 <- simResultDeltaTrueIsDeltaMin$safeSim$sValues
-sum(sValuesBatch1 > 1/alpha)
+eValuesBatch1 <- simResultDeltaTrueIsDeltaMin$safeSim$eValues
+sum(eValuesBatch1 > 1/alpha)
 ```
 
 855 correct null rejections, since this simulation is based on data generated under alternative with deltaTrue=deltaMin > 0. 
@@ -478,7 +476,7 @@ The following code selectively continues the 145 experiments which did not lead 
 
 ```{r}
 selectivelyContinueDeltaTrueIsDeltaMin <- 
-  selectivelyContinueTTestCombineData(oldValues=sValuesBatch1,
+  selectivelyContinueTTestCombineData(oldValues=eValuesBatch1,
                                       designObj=designObj,
                                       alternative="greater", 
                                       oldData=dataBatch1,
@@ -487,85 +485,85 @@ selectivelyContinueDeltaTrueIsDeltaMin <-
                                       sigmaTrue=15)
 ```
 
-The plot shows that after the second batch of data that the sampling distribution of s-values now concentrates on larger values, as is apparent from the blue histogram shifting to the red histogram on the right. Note that most of the red histogram's mass is on the right-hand side of the grey vertical line that represents the $\alpha$ threshold (e.g., $\log(1/\alpha) \approx 3$. The continuation of the 145 experiments with $S < 1/\alpha=20$ led to 
+The plot shows that after the second batch of data that the sampling distribution of e-values now concentrates on larger values, as is apparent from the blue histogram shifting to the red histogram on the right. Note that most of the red histogram's mass is on the right-hand side of the grey vertical line that represents the $\alpha$ threshold (e.g., $\log(1/\alpha) \approx 3$. The continuation of the 145 experiments with $S < 1/\alpha=20$ led to 
 
 ```{r}
-sValuesBatch1To2 <- selectivelyContinueDeltaTrueIsDeltaMin$newValues
-sum(sValuesBatch1To2 > 1/alpha)
+eValuesBatch1To2 <- selectivelyContinueDeltaTrueIsDeltaMin$newValues
+sum(eValuesBatch1To2 > 1/alpha)
 ```
 
 an additional 135 null rejections (93.1% of 145 experiments). This brings up the total number of null rejections to 990 out of 1,000 experiments. In this case, a null rejection is correct, since the data were generated with a true effect that was equal to deltaMin. 
 
 ### b. Optional continuation through replication studies
-It is not always appropriate to combine data sets, in particular for replication attempts where the original experiment is performed in a different population. In that case, one can still easily do safe inference by multiplying the s-values computed over each data set separately. This procedure also conserves the $\alpha$-level, as we show below. 
+It is not always appropriate to combine data sets, in particular for replication attempts where the original experiment is performed in a different population. In that case, one can still easily do safe inference by multiplying the e-values computed over each data set separately. This procedure also conserves the $\alpha$-level, as we show below. 
 
 In all scenarios the simulation results of the optional stopping studies are used as original experiments. The data from these simulated experiments were all generated with a global population mean (e.g., baseline blood pressure) that was set to $\mu_{g}=120$, a population standard deviation of $\sigma=15$, and a deltaTrue, which depending on the absence or presence of the effect was zero, or equal to deltaMin, respectively. 
 
-#### Multiplying s-values under the null
-As original experiments we take the s-values from the optional stopping simulation study
+#### Multiplying e-values under the null
+As original experiments we take the e-values from the optional stopping simulation study
 
 ```{r}
-sValuesOri <- simResultDeltaTrueIsZero$safeSim$sValues
+eValuesOri <- simResultDeltaTrueIsZero$safeSim$eValues
 ```
 
-The code below multiplies these original s-values with s-values based on replication data, which as in the original studies are generated under the null. Suppose that for the replication attempt we now administer the same drug to a clinical group that has a lower overall baseline blood pressure of $\mu_{g}=90$ mmHg and standard deviation of $\sigma=6$. 
+The code below multiplies these original e-values with e-values based on replication data, which as in the original studies are generated under the null. Suppose that for the replication attempt we now administer the same drug to a clinical group that has a lower overall baseline blood pressure of $\mu_{g}=90$ mmHg and standard deviation of $\sigma=6$. 
 
 ```{r}
 # Needs to be larger than 1/designObj$n1Plan to have at least two samples 
 # in the replication attempt
 someConstant <- 1.2
 
-repData <- generateTTestData(n1Plan=ceiling(someConstant*designObj$n1Plan),
-                             n2Plan=ceiling(someConstant*designObj$n2Plan), 
+repData <- generateNormalData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
+                                     ceiling(someConstant*designObj$nPlan[2])),
                              deltaTrue=0, nsim=1000, 
                              muGlobal=90, sigmaTrue=6,
                              paired=TRUE, seed=2)
 
-sValuesRep <- vector("numeric", length=1000)
+eValuesRep <- vector("numeric", length=1000)
 
-for (i in seq_along(sValuesRep)) {
-  sValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
+for (i in seq_along(eValuesRep)) {
+  eValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
                           y=repData$dataGroup2[i, ], 
                           designObj=designObj,
-                          alternative="greater", paired=TRUE)$sValue
+                          alternative="greater", paired=TRUE)$eValue
 }
-sValuesMultiply <- sValuesOri*sValuesRep
-mean(sValuesMultiply > 1/alpha)
+eValuesMultiply <- eValuesOri*eValuesRep
+mean(eValuesMultiply > 1/alpha)
 ```
 
 This shows that the type I error (0.3% < $\alpha=5$%) is controlled for, even if the replication attempt is done on a different population. In fact, the $\alpha$-level is controlled for regardless of the values of the nuisance parameters (e.g., $\mu_{g}$ and $\sigma$), or the sample sizes of the replication attempt as long as they are larger than 2 (i.e., "someConstant" larger than 0.0159). 
 <!--(i.e., "someConstant" as long as it is larger than the minimal sample size of 2) used in the replication attempt. -->
 
-#### Multiplying s-values under the alternative
-As original experiments we now take the s-values from the optional stopping simulation study with deltaTrue equal to deltaMin:
+#### Multiplying e-values under the alternative
+As original experiments we now take the e-values from the optional stopping simulation study with deltaTrue equal to deltaMin:
 
 ```{r}
-sValuesOri <- simResultDeltaTrueIsDeltaMin$safeSim$sValues
+eValuesOri <- simResultDeltaTrueIsDeltaMin$safeSim$eValues
 ```
 
-The code below multiplies these original s-values with s-values based on replication data, which as in the original studies are generated under deltaTrue equal to deltaMin, but with different nuisance parameters, e.g., $\mu_{g}=110$ and $\sigma=50$, thus, much more spread out than in the original studies. 
+The code below multiplies these original e-values with e-values based on replication data, which as in the original studies are generated under deltaTrue equal to deltaMin, but with different nuisance parameters, e.g., $\mu_{g}=110$ and $\sigma=50$, thus, much more spread out than in the original studies. 
 
 ```{r}
 # Needs to be larger than 1/designObj$n1Plan to have at least two samples 
 # in the replication attempt
 someConstant <- 1.2
 
-repData <- generateTTestData(n1Plan=ceiling(someConstant*designObj$n1Plan),
-                             n2Plan=ceiling(someConstant*designObj$n2Plan), 
+repData <- generateNormalData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
+                                     ceiling(someConstant*designObj$nPlan[2])), 
                              deltaTrue=deltaMin, nsim=1000, 
                              muGlobal=110, sigmaTrue=50,
                              paired=TRUE, seed=2)
 
-sValuesRep <- vector("numeric", length=1000)
+eValuesRep <- vector("numeric", length=1000)
 
-for (i in seq_along(sValuesRep)) {
-  sValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
+for (i in seq_along(eValuesRep)) {
+  eValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
                           y=repData$dataGroup2[i, ], 
                           designObj=designObj,
-                          alternative="greater", paired=TRUE)$sValue
+                          alternative="greater", paired=TRUE)$eValue
 }
-sValuesMulti <- sValuesOri*sValuesRep
-mean(sValuesMulti > 1/alpha)
+eValuesMulti <- eValuesOri*eValuesRep
+mean(eValuesMulti > 1/alpha)
 ```
 This led to 988 null rejections out of the 1,000 experiments, which is the correct result as the effect is across the original and replication studies. 
 
@@ -595,7 +593,7 @@ Robustness to optional continuation implies that intuitive actions such as
 
 In particular, when the null is true, then extending the experiment retains bounds the chance 
 
-the chance of observing a low s-value remains high, 
+the chance of observing a low e-value remains high, 
 -->
 <!--
 ## Subconclusion
@@ -607,7 +605,7 @@ Regardless of the presence or absence of an effect, optional stopping and option
 
 As such, when confronted with $p>\alpha$ it is unclear whether the null or alternative were true. 
 
-In contrast, when the null is true, then optional continuation actually decreases the chances of observing a large s-value, whereas if the alternative is true, then optional continuation increases the chances of observing a large s-value. This coincides with our general belief that more data provides us with more information, whereas with p-values it provides us with less information. 
+In contrast, when the null is true, then optional continuation actually decreases the chances of observing a large e-value, whereas if the alternative is true, then optional continuation increases the chances of observing a large e-value. This coincides with our general belief that more data provides us with more information, whereas with p-values it provides us with less information. 
 
 
 
@@ -622,7 +620,7 @@ that with safe tests lead to anytime valid inference, by which we mean that the 
 
 Following intuition more data provides more information, whereas with p-values we get incorrect results. 
 
-More data under the null makes chance of getting a large s-values small, whereas more data under the alternative increases the chance of observing a large s-value. 
+More data under the null makes chance of getting a large e-values small, whereas more data under the alternative increases the chance of observing a large e-value. 
 
 
 
@@ -640,7 +638,7 @@ We believe that optional stopping is the moral
 
 Optional continuation is of fundamental importance for science in general, as it allows us to engage to build on previous 
 
-The latter section combined with the previous one shows s-values are robust to changes in the sample sizes of the experiment. In particular, it means that when 
+The latter section combined with the previous one shows e-values are robust to changes in the sample sizes of the experiment. In particular, it means that when 
 
 
 This means that whenever we extend a non-rejected experiment we minimise the chance of 
@@ -657,13 +655,13 @@ monitored and
 
 <!--
 #### Subconclusion
-Hence, as s-values are robust to both optional stopping and optional continuation 
+Hence, as e-values are robust to both optional stopping and optional continuation 
 
 Optional continuation is fundamental as it allows us to build upon previous work and 
 
 As such, we conclude that safe tests are robust to pertubations of the experimental design. In particular, one remain convinced that 
 
-We hope to have shed some light on how s-values are robust to the design of the experiment. This 
+We hope to have shed some light on how e-values are robust to the design of the experiment. This 
 -->
 
 # Tests of two proportions
@@ -814,31 +812,31 @@ mean(fisher_result$rejected == 1)
 Thus, 20% which is four times as much as promised. 
 
 ## 3. <a name = "optCont2x2">Optional Continuation </a>for tests of two proportions
-In each of the simulations above, a fraction of the experiments did not lead to the rejection of the null hypothesis. Since safe tests allow for optional continuation, one could decide to plan a replication experiment after such a 'failed' first experiment, for example when the s-value looks promisingly high. The resulting s-values from these replication studies could then be multiplied to calculate a final s-value.
+In each of the simulations above, a fraction of the experiments did not lead to the rejection of the null hypothesis. Since safe tests allow for optional continuation, one could decide to plan a replication experiment after such a 'failed' first experiment, for example when the e-value looks promisingly high. The resulting e-values from these replication studies could then be multiplied to calculate a final e-value.
 
-We are now going to zoom in on two of the optional stopping simulations we carried out above, where the true difference between the groups equalled our design difference (0.3), and where the true difference equalled 0. In the experiment where the true difference was 0.3, we did not reject the null in 13.2% of the studies. If we now imagine the situation we would encounter in reality, where we would not know that we were really sampling from the alternative hypothesis, how high should s-values then be to support starting a replication study? To give us some handles, we could look at the spread of s-values from studies where the null was not rejected, from our experiments under the null and under the alternative:
+We are now going to zoom in on two of the optional stopping simulations we carried out above, where the true difference between the groups equalled our design difference (0.3), and where the true difference equalled 0. In the experiment where the true difference was 0.3, we did not reject the null in 13.2% of the studies. If we now imagine the situation we would encounter in reality, where we would not know that we were really sampling from the alternative hypothesis, how high should e-values then be to support starting a replication study? To give us some handles, we could look at the spread of e-values from studies where the null was not rejected, from our experiments under the null and under the alternative:
 
 ```{r}
 notRejectedIndex <- which(optionalStoppingTrueMeanIsDesign$rejected==FALSE)
-sValuesNotRejected <- optionalStoppingTrueMeanIsDesign$s_values[notRejectedIndex]
+eValuesNotRejected <- optionalStoppingTrueMeanIsDesign$s_values[notRejectedIndex]
 nullNotRejectedIndex <- which(optionalStoppingTrueMeanNull$rejected == FALSE)
-sValuesNotRejectedNull <- optionalStoppingTrueMeanNull$s_values[nullNotRejectedIndex]
+eValuesNotRejectedNull <- optionalStoppingTrueMeanNull$s_values[nullNotRejectedIndex]
 ```
 ```{r, echo = FALSE}
-trueHist <- graphics::hist(x = sValuesNotRejected, plot = FALSE)
-nullHist <- graphics::hist(x = sValuesNotRejectedNull, plot = FALSE)
+trueHist <- graphics::hist(x = eValuesNotRejected, plot = FALSE)
+nullHist <- graphics::hist(x = eValuesNotRejectedNull, plot = FALSE)
 yMax <- max(trueHist[["counts"]], nullHist[["counts"]])
 graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
               font.lab=2, cex.axis=1.3, bty="n", las=1)
-graphics::plot(nullHist, xlim = c(0, max(sValuesNotRejected, sValuesNotRejectedNull)), 
-               freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "s-values", 
-               main = "Histogram of s-values where null not rejected")
+graphics::plot(nullHist, xlim = c(0, max(eValuesNotRejected, eValuesNotRejectedNull)), 
+               freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "e-values", 
+               main = "Histogram of e-values where null not rejected")
 graphics::plot(trueHist, add = TRUE, freq = FALSE, col = "red", density = 20, 
                angle = -45)
 graphics::legend(x = "topright", legend = c("True delta: null", "True delta: design"), fill = c("blue", "red"))
 ```
 
-It can be observed that, when the true difference between the groups equals our design difference, the s-values are spread out between 0 and 13. On the other hand, with our experiment under the null, all s-values were smaller than 8.
+It can be observed that, when the true difference between the groups equals our design difference, the e-values are spread out between 0 and 13. On the other hand, with our experiment under the null, all e-values were smaller than 8.
 
 Based on this plot we could for example conclude that studies that yielded a final S-value between 10 and 20 look promising; under the null hypothesis, such high S-values were not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting S-values? How many of the initially futile experiments will now lead to rejection of the null hypothesis?
 
@@ -898,14 +896,14 @@ colnames(sampleExampleGreater) <- c(0,1)
 sampleExampleGreater
 ```
 
-This yields a high s-value:
+This yields a high e-value:
 
 ```{r }
 safeTwoProportionsTest(x=sampleExampleGreater, 
                        testDesign=safeDesignProportionsOneSided)
 ```
 
-But if we now observe the opposite, more 1s in group "b" than in "a", the s-value will be low;
+But if we now observe the opposite, more 1s in group "b" than in "a", the e-value will be low;
 
 ```{r }
 sampleExampleLesser <- 

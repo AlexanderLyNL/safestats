@@ -2,11 +2,10 @@
 % Please edit documentation in R/tTest.R
 \name{replicateTTests}
 \alias{replicateTTests}
-\title{Simulate multiple data sets to show the effects of optional testing for safe (and frequentist) tests.}
+\title{Simulate Early Stopping Experiments}
 \usage{
 replicateTTests(
-  n1Plan,
-  n2Plan = NULL,
+  nPlan,
   deltaTrue,
   muGlobal = 0,
   sigmaTrue = 1,
@@ -15,11 +14,11 @@ replicateTTests(
   lowN = 3,
   nsim = 1000L,
   alpha = 0.05,
+  beta = 0.2,
   safeOptioStop = TRUE,
-  deltaS = NULL,
+  parameter = NULL,
   freqOptioStop = FALSE,
-  n1PlanFreq = NULL,
-  n2PlanFreq = NULL,
+  nPlanFreq = NULL,
   logging = TRUE,
   seed = NULL,
   pb = TRUE,
@@ -27,52 +26,72 @@ replicateTTests(
 )
 }
 \arguments{
-\item{n1Plan}{integer, that defines the maximum number of samples to plan for (according to the safe test,
-use designSafeT to find this)}
+\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
-\item{n2Plan}{optional integer, that defines the maximum number of samples of the second group to plan for}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
-\item{deltaTrue}{numeric, the value of the true effect size (test-relevant parameter)}
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
+matter for the test. This parameter is treated as a nuisance.}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't matter for the
-test. This parameter treated is treated as a nuisance.}
+\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
+for the test.This parameter treated is treated as a nuisance.}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
-This parameter treated is treated as a nuisance.}
-
-\item{paired}{logical, true if the simulated data are paired.}
+\item{paired}{logical, if \code{TRUE} then paired t-test.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins}
+\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
 
-\item{nsim}{the number of replications, that is, experiments with max samples n1Plan and n2Plan}
+\item{nsim}{the number of replications, that is, experiments with max samples nPlan.}
 
-\item{alpha}{the tolerable type I error to be conserved. Also defines the decision rule s > 1/alpha, and for
-frequentist tests the decision rule is p < alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
-\item{safeOptioStop}{logical, TRUE implies that optional stopping simulation is performed for the safe test}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
+the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
-\item{deltaS}{numeric, the safe test defining deltaS (use designSafeT to find this)}
+\item{safeOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
+the safe test.}
 
-\item{freqOptioStop}{logical, TRUE implies that optional stopping simulation is performed for the frequentist test}
+\item{parameter}{numeric, the safe test defining parameter, i.e., deltaS (use designSafeT to find this).}
 
-\item{n1PlanFreq}{integer, that defines the maximum number of samples to plan for (according to the frequentist
-test,use designFreqT to find this)}
+\item{freqOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
+the frequentist test.}
 
-\item{n2PlanFreq}{optional integer, that defines the maximum number of samples of the second group to plan for}
+\item{nPlanFreq}{the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}}.}
 
-\item{logging}{logical, if TRUE, then return the simulated data}
+\item{logging}{logical, if \code{TRUE}, then return the simulated data.}
 
-\item{seed}{To set the seed for the simulated data}
+\item{seed}{To set the seed for the simulated data.}
 
-\item{pb}{logical, if TRUE, then show progress bar}
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-Returns a safeSim object.
+Returns an object of class "safeTSim". An object of class "safeTSim" is a list containing at
+least the following components:
+
+\describe{
+  \item{nPlan}{the planned sample size(s).}
+  \item{deltaTrue}{the value of the true standardised effect size (test-relevant parameter) provided by
+  the user.}
+  \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
+  the user.}
+  \item{paired}{if \code{TRUE} then paired t-test.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+  \item{nsim}{the number of replications of the experiment.}
+  \item{alpha}{the tolerable type I error provided by the user.}
+  \item{beta}{the tolerable type II error provided by the user.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+  \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
+  Acquired from \code{\link{designSafeT}}.}
+  \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}
+  \item{safeSim}{list with the simulation results of the safe test under optional stopping.}
+  \item{freqSim}{list with the simulation results of the frequentist test under optional stopping.}
+}
 }
 \description{
 Simulate multiple data sets to show the effects of optional testing for safe (and frequentist) tests.
@@ -88,8 +107,8 @@ designObj <- designSafeT(1, alpha=alpha, beta=beta)
 freqObj <- designFreqT(1, alpha=alpha, beta=beta)
 
 # Simulate under the alternative with deltaTrue=deltaMin
-simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
-n1PlanFreq=freqObj$n1PlanFreq, nsim=400)
+simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1, parameter=designObj$parameter,
+nPlanFreq=freqObj$nPlan, beta=beta, nsim=400)
 
 # Should be about 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -100,11 +119,11 @@ simResults$safeSim$powerOptioStop
 # Optional stopping allows us to do better than n1PlanFreq once in a while
 simResults$safeSim$probLeqN1PlanFreq
 graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-breaks=seq.int(designObj$n1Plan))
+breaks=seq.int(designObj$nPlan[1]))
 
 # Simulate under the alternative with deltaTrue > deltaMin
-simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1.5, deltaS=designObj$deltaS,
-n1PlanFreq=freqObj$n1PlanFreq, nsim=400)
+simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1.5, parameter=designObj$parameter,
+nPlanFreq=freqObj$nPlan, beta=beta, nsim=400)
 
 # Should be larger than 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -115,11 +134,11 @@ simResults$safeSim$powerOptioStop
 # Optional stopping allows us to do better than n1PlanFreq once in a while
 simResults$safeSim$probLeqN1PlanFreq
 graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-breaks=seq.int(designObj$n1Plan))
+breaks=seq.int(designObj$nPlan[1]))
 
 # Under the null deltaTrue=0
-simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=0, deltaS=designObj$deltaS,
-n1PlanFreq=freqObj$n1PlanFreq, freqOptioStop=TRUE, nsim=400)
+simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=0, parameter=designObj$parameter,
+nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nsim=400)
 
 # Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
 simResults$safeSim$powerAtN1Plan
