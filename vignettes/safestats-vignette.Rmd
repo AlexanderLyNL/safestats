@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 _Safe tests_ is a collective name for a new form of hypothesis tests that yield _e-values_ (instead of _p-values_). The original paper on e-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide e-values for the t-test, Fisher's exact test, and the chi-squared test (the safe test of 2 proportions). These safe tests were designed to be _GROW_; they <!--yield e-values that, for each specific hypothesis testing setting,-->
 perform the best under the worst case in the alternative hypothesis (see the [original paper](https://arxiv.org/abs/1906.07801)).
 
->Technically, S-values are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The S-value can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $S$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $S$-value, the larger the incentive to reject the null. 
+>Technically, $E$-values are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The $E$-value can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $E$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $e$-value, the larger the incentive to reject the null. 
 
 A big advantage of the e-values over their $p$-value equivalents is that safe tests conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping), whenever the evidence is compelling. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, which means that the researcher can extend the experiment irrespectively of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
 
@@ -435,11 +435,11 @@ One might wonder whether further extending the non-rejected experiment will caus
 
 ```{r}
 for (j in 1:3) {
-  oldSValues <- selectivelyContinueDeltaTrueIsZero$newValues
+  oldEValues <- selectivelyContinueDeltaTrueIsZero$newValues
   oldData <- selectivelyContinueDeltaTrueIsZero$combinedData
   
   selectivelyContinueDeltaTrueIsZero <- 
-  selectivelyContinueTTestCombineData(oldValues=oldSValues,
+  selectivelyContinueTTestCombineData(oldValues=oldEValues,
                                       designObj=designObj,
                                       alternative="greater", 
                                       oldData=oldData,
@@ -838,37 +838,37 @@ graphics::legend(x = "topright", legend = c("True delta: null", "True delta: des
 
 It can be observed that, when the true difference between the groups equals our design difference, the e-values are spread out between 0 and 13. On the other hand, with our experiment under the null, all e-values were smaller than 8.
 
-Based on this plot we could for example conclude that studies that yielded a final S-value between 10 and 20 look promising; under the null hypothesis, such high S-values were not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting S-values? How many of the initially futile experiments will now lead to rejection of the null hypothesis?
+Based on this plot we could for example conclude that studies that yielded a final e-value between 10 and 20 look promising; under the null hypothesis, such high e-values were not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting e-values? How many of the initially futile experiments will now lead to rejection of the null hypothesis?
 
 ```{r optionalContinuation2x2}
 continueIndex <- which(optionalStoppingTrueMeanIsDesign$s_values < 20 & 
                          optionalStoppingTrueMeanIsDesign$s_values > 10)
 
-interestingSValues <-
+interestingEValues <-
   optionalStoppingTrueMeanIsDesign$s_values[continueIndex]
 
-newSValues <- 
+newEValues <- 
   simulateOptionalContinuationTwoProportions(
-    interestingSValues, nFollowUp=40, 
+    interestingEValues, nFollowUp=40, 
     parametersDataGeneratingDistribution=c(0.3, 0.6))
 
-mean(newSValues>=20)
+mean(newEValues>=20)
 ```
 
-What happens when we apply this optional continuation when the data are truly generated under the null hypothesis? (note that we relax our bound of initial 'interesting' S-values here to 1, otherwise there would be no S-values to continue with)
+What happens when we apply this optional continuation when the data are truly generated under the null hypothesis? (note that we relax our bound of initial 'interesting' e-values here to 1, otherwise there would be no e-values to continue with)
 
 ```{r optionalContinuation2x2Null}
 continueIndex <- optionalStoppingTrueMeanNull$s_values < 20 & 
   optionalStoppingTrueMeanNull$s_values > 1
 
-interestingSValues <-optionalStoppingTrueMeanNull$s_values[continueIndex]
+interestingEValues <-optionalStoppingTrueMeanNull$s_values[continueIndex]
 
-newSValues <- 
+newEValues <- 
   simulateOptionalContinuationTwoProportions(
-    interestingSValues, nFollowUp=40, 
+    interestingEValues, nFollowUp=40, 
     parametersDataGeneratingDistribution=c(0.5, 0.5))
 
-mean(newSValues>=20)
+mean(newEValues>=20)
 ```
 We still keep our type-I error probability guarantee.
 
