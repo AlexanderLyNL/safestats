@@ -22,7 +22,7 @@ selectivelyContinueTTestCombineData(
 )
 }
 \arguments{
-\item{oldValues}{vector of e-values or p-values.}
+\item{oldValues}{vector of s-values or p-values.}
 
 \item{valuesType}{character string either "eValues" or "pValues".}
 
@@ -37,7 +37,7 @@ if valuesType equal "pValues".}
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{n1Extra}{integer, that defines the additional number of samples of the first group. If
 \code{NULL} and valuesType equals "eValues", then n1Extra equals \code{designObj$nPlan[1]}.}

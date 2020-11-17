@@ -185,7 +185,7 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' Helper function used in the vignette.
 #'
 #' @inheritParams replicateTTests
-#' @param oldValues vector of e-values or p-values.
+#' @param oldValues vector of s-values or p-values.
 #' @param valuesType character string either "eValues" or "pValues".
 #' @param designObj a safeDesign object obtained from \code{\link{designSafeT}}, or \code{NULL}
 #' if valuesType equal "pValues".
@@ -308,7 +308,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues
     yNew <- log(newValues)
 
     xLabText <- "log(eValues)"
-    mainText <- paste("Histogram of e-values", moreMainText)
+    mainText <- paste("Histogram of s-values", moreMainText)
 
     threshValue <- log(1/alpha)
   } else if (valuesType=="pValues") {

@@ -33,7 +33,7 @@ When alternative = "greater", the null hypothesis is compared to the alternative
 alternative specifies that survival in population 2 is higher than in population 1.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If the design is
 based on nPlan, then ratio equals \code{nPlan[2]/nPlan[1]}.}

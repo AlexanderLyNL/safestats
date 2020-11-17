@@ -466,7 +466,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' The procedure finds the smallest nPlan for which meanDiffMin is found with power of at least 1 - beta.
 #'
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
+#' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 #' and "phiS". Note that 1-beta defines the power.
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean

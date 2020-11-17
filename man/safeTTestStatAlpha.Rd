@@ -37,7 +37,7 @@ alternative specified by the design object is used instead.}
 \item{tDensity}{Uses the the representation of the safe t-test as the likelihood ratio of t densities.}
 }
 \value{
-Returns a numeric that represent the e10 - 1/alpha, that is, the e-value in favour of the
+Returns a numeric that represent the s10 - 1/alpha, that is, the e-value in favour of the
 alternative over the null - 1/alpha.
 }
 \description{
