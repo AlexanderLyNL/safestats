@@ -1,5 +1,5 @@
-create_empty_safe_2x2_design <- function() {
-  new_safe_2x2_design <- list(
+createEmptySafe2x2Design <- function() {
+  newSafe2x2Design <- list(
     'delta.star' = NA,
     'na' = NA,
     'nb' = NA,
@@ -10,8 +10,8 @@ create_empty_safe_2x2_design <- function() {
     'pilot' = NA
   )
 
-  class(new_safe_2x2_design) <- "safe2x2_result"
-  return(new_safe_2x2_design)
+  class(newSafe2x2Design) <- "safe2x2_result"
+  return(newSafe2x2Design)
 }
 
 add_attributes <- function(object, attributes_defined) {
@@ -21,7 +21,7 @@ add_attributes <- function(object, attributes_defined) {
 
 create_safe_2x2_design <- function(attributes_defined) {
   stopifnot(is.list(attributes_defined))
-  safe_2x2_design <- create_empty_safe_2x2_design()
+  safe_2x2_design <- createEmptySafe2x2Design()
   safe_2x2_design <- add_attributes(safe_2x2_design, attributes_defined)
   return(safe_2x2_design)
 }
@@ -35,14 +35,14 @@ GetExpectedCapitalGrowthSimpleSWithAdjustment <- function(transl, H1set.neutral,
   H1set.transl <-
     H1set.neutral + rbind(rep(transl, 2), rep(-transl, 2))
 
-  calculate_p_theta_1 <- function(h) {
+  calculateMarginalAlternative <- function(h) {
     result <- exp((n.grid[, 1]) * log(h[1]) + (na - n.grid[, 1]) * log(1 - h[1]) +
                     (n.grid[, 2]) * log(h[2]) + (nb - n.grid[, 2]) * log(1 - h[2])
     )
     return(result)
   }
 
-  pbar1 <- c(0.5, 0.5) %*% t(apply(H1set.transl, 1, calculate_p_theta_1))
+  pbar1 <- c(0.5, 0.5) %*% t(apply(H1set.transl, 1, calculateMarginalAlternative))
   return(sum(binom.coef * pbar1 * log(pbar1 / pbar0)))
 }
 
@@ -718,13 +718,13 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
     H1.deltamin <- create_data_generating_distributions(deltaDesign, alternative = "two.sided", length.out = 5)
 
     #condition for looping
-    not.satisfied <- TRUE
+    notSatisfied <- TRUE
 
     n <- 20
     seed.time <- Sys.time()
 
     #case na=nb now
-    while (not.satisfied) {
+    while (notSatisfied) {
       n <- n + 2
       na <- nb <- n / 2
 
@@ -755,7 +755,7 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
       }
 
       if (min(percent.reject.F) >= power) {
-        not.satisfied <- FALSE
+        notSatisfied <- FALSE
       }
 
       if (n > highN) {
@@ -894,10 +894,10 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
     )
 
     #condition for looping
-    not.satisfied <- TRUE
+    notSatisfied <- TRUE
 
     #case na=nb now
-    while (not.satisfied) {
+    while (notSatisfied) {
       n <- n + 2
       na <- nb <- n / 2
 
@@ -946,7 +946,7 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
       }
 
       if (min(percent.reject.S) >= power)
-        not.satisfied <- FALSE
+        notSatisfied <- FALSE
 
       if (n > highN)
         break
@@ -1014,13 +1014,13 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
         na1 <- sapply(1:na.max, function(n.cur) {sum(a.sample[1:n.cur])})
         nb1 <- sapply(1:nb.max, function(n.cur) {sum(b.sample[1:n.cur])})
 
-        calculate_p_theta_1 <-  function(h) {
+        calculateMarginalAlternative <-  function(h) {
           exp(na1 * log(h[1]) + (na - na1) * log(1 - h[1]) + nb1 * log(h[2]) +
                 (nb -nb1) * log(1 - h[2]))
         }
 
         #retrieve pbar1 at each time point (is a vector now!)
-        pbar1 <- rowSums(0.5 * apply(H1, 1, calculate_p_theta_1))
+        pbar1 <- rowSums(0.5 * apply(H1, 1, calculateMarginalAlternative))
 
         #n is a vector now! And so is pbar0!
         n <- na + nb
