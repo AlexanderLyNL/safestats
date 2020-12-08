@@ -5,10 +5,10 @@
 \title{Helper function to computes the logrank statistic for Surv objects of type
 "right" and "counting" with the hypergeometric variance.}
 \usage{
-computeLogrankZ(survTime, group, ...)
+computeLogrankZ(survObj, group, ...)
 }
 \arguments{
-\item{survTime}{a Surv object that is either of type}
+\item{survObj}{a Surv object that is either of type}
 
 \item{group}{a grouping factor with 2 levels}
 
@@ -31,11 +31,13 @@ survival package, which is restricted to Surv objects of type "right". Most like
 }
 \examples{
 data <- generateSurvData(nP = 5,
-nT = 5,
-lambdaP = 0.03943723,
-lambdaT = 0.5*0.03943723,
-endTime = 40,
-seed = 2006)  # set seed to make the result reproducible
+                         nT = 5,
+                         lambdaP = 0.03943723,
+                         lambdaT = 0.5*0.03943723,
+                         endTime = 40,
+                         seed = 2006)
+
+survObj <- survival::Surv(data$time, data$status)
 
 survObj <- survival::Surv(data$time, data$status)
 

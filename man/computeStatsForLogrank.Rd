@@ -5,7 +5,7 @@
 \title{Computes the sufficient statistics needed to compute logrankSingle}
 \usage{
 computeStatsForLogrank(
-  dataMatrix,
+  survDataFrame,
   y0Index,
   y1Index,
   timeNow,
@@ -15,7 +15,7 @@ computeStatsForLogrank(
 )
 }
 \arguments{
-\item{dataMatrix}{a Surv object converted to a matrix}
+\item{survDataFrame}{a Surv object converted to a matrix, then to a data.frame}
 
 \item{y0Index}{vector of integers corresponding to the control group}
 
@@ -42,27 +42,27 @@ Returns a list containing at least the following components:
 Computes the sufficient statistics needed to compute logrankSingle
 }
 \examples{
+
 data <- generateSurvData(nP = 5,
-nT = 5,
-lambdaP = 0.03943723,
-lambdaT = 0.5*0.03943723,
-endTime = 40,
-seed = 2006)  # set seed to make the result reproducible
+                         nT = 5,
+                         lambdaP = 0.03943723,
+                         lambdaT = 0.5*0.03943723,
+                         endTime = 40,
+                         seed = 2006)
 
 survObj <- survival::Surv(data$time, data$status)
 
-dataMatrix <- as.matrix(survObj)
+survDataFrame <- as.data.frame(as.matrix(survObj))
 y0Index <- which(data$group=="P")
 y1Index <- which(data$group=="T")
-
 
 timeNow <- 4
 timeBefore <- 0
 
-computeStatsForLogrank(dataMatrix, y0Index, y1Index, timeNow, timeBefore)
+computeStatsForLogrank(survDataFrame, y0Index, y1Index, timeNow, timeBefore)
 
 timeNow <- 13
 timeBefore <- 4
 
-computeStatsForLogrank(dataMatrix, y0Index, y1Index, timeNow, timeBefore)
+computeStatsForLogrank(survDataFrame, y0Index, y1Index, timeNow, timeBefore)
 }
