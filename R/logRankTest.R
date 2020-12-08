@@ -163,8 +163,16 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
   dataName <- paste0(dataName, yLabel, " by ", groupLabel, " (",
                      paste(groupLevels, collapse=", "), ")")
 
-  survDiffObj <- survival::survdiff(survTime ~ group)
-  nEvents <- sum(survDiffObj[["obs"]])
+  survType <- attr(survTime, "type")
+
+  if (survType=="right") {
+    survDiffObj <- survival::survdiff(survTime ~ group)
+    nEvents <- sum(survDiffObj[["obs"]])
+  } else if (survType=="counting") {
+    survDiffObj <- computeLogrankZ("survTime"=survTime, "group"=group)
+    nEvents <- survDiffObj[["nEvents"]]
+  }
+
 
   if (isTRUE(pilot)) {
     if (is.null(alpha))
@@ -273,10 +281,14 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
   } else {
     nEff <- ratio/(1+ratio)^2*nEvents
 
-    coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
-    signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
+    if (survType=="right") {
+      coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
+      signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
 
-    zStat <- signZ*sqrt(survDiffObj[["chisq"]])
+      zStat <- signZ*sqrt(survDiffObj[["chisq"]])
+    } else if (survType=="counting") {
+      zStat <- survDiffObj[["z"]]
+    }
 
     meanStat <- zStat/sqrt(nEff)
 
@@ -409,3 +421,223 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
 
   return(result)
 }
+
+
+
+
+
+#' Helper function to computes the logrank statistic for Surv objects of type
+#' "right" and "counting" with the hypergeometric variance.
+#'
+#' This function was created to complement \code{\link[survival]{survdiff}} from the
+#' survival package, which is restricted to Surv objects of type "right". Most likely
+#' \code{\link[survival]{survdiff}} is much faster
+#'
+#' @param survTime a Surv object that is either of type
+#' @param group a grouping factor with 2 levels
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return Returns a list containing at least the following components:
+#' \describe{
+#'   \item{nEvents}{the number of events.}
+#'   \item{z}{the observed logrank statistic.}
+#'   \item{oMinEVector}{vector of observed minus expected.}
+#'   \item{varVector}{vector of hypergeometric variances.}
+#'   \item{stopTimeVector}{vector at which the events occurred.}
+#' }
+#'
+#' @export
+#'
+#' @examples
+#' data <- generateSurvData(nP = 5,
+#' nT = 5,
+#' lambdaP = 0.03943723,
+#' lambdaT = 0.5*0.03943723,
+#' endTime = 40,
+#' seed = 2006)  # set seed to make the result reproducible
+#'
+#' survObj <- survival::Surv(data$time, data$status)
+#'
+#' result <- computeLogrankZ(survObj, data$group)
+#' result$z
+#' sqrt(survival::survdiff(survObj~data$group)$chisq)
+computeLogrankZ <- function(survTime, group, ...) {
+  result <- list(nEvents=NULL, z=NULL, oMinEVector=NULL, varVector=NULL, stopTimeVector=NULL)
+
+  survType <- attr(survTime, "type")
+
+  timeLabel <- switch(survType,
+                      "right"="time",
+                      "counting"="stop")
+
+  tempTime <- as.matrix(survTime)
+  dataMatrix <- cbind(tempTime, group)
+  dimnames(dataMatrix)[[2]] <- c(dimnames(tempTime)[[2]], "group")
+  stopTimeIndeces <- which(dataMatrix[, "status"]==1)
+
+  # Note(Alexander): Coin provides two numbers for each group one
+  nEvents <- length(stopTimeIndeces)
+
+  stopTimeVector <- unique(dataMatrix[stopTimeIndeces, timeLabel])
+  stopTimeVector <- stopTimeVector[order(stopTimeVector)]
+
+  lengthStopTime <- length(stopTimeVector)
+
+  # TODO(Alexander): Add stash check for old time and subset
+  #
+  if (lengthStopTime > 0) {
+    varVector <- oMinEVector <- rep(NA, length = lengthStopTime)
+    timeBeforeVector <- c(0, stopTimeVector[1:(lengthStopTime-1)])
+  } else {
+    # TODO(Alexander)
+    # warning("No observations")
+    result <- list(n=0, z=0, oMinEVector=NULL, varVector=NULL, stopTimeVector=NULL)
+    return(result)
+  }
+
+  if (survType=="counting") {
+    for (i in seq_along(stopTimeVector)) {
+      timeNow <- stopTimeVector[i]
+      timeBefore <- timeBeforeVector[i]
+
+      subDataMatrix <- dataMatrix[dataMatrix[, "start"] < timeNow, ]
+
+      y0Index <- which(subDataMatrix[, "group"]==1)
+      y1Index <- which(subDataMatrix[, "group"]==2)
+
+      tempStats <- computeStatsForLogrank("dataMatrix"=subDataMatrix, "y0Index"=y0Index,
+                                          "y1Index"=y1Index, "timeNow"=timeNow, "timeBefore"=timeBefore,
+                                          "survType"="counting")
+      tempResult <- do.call(logrankSingle, tempStats)
+
+      oMinEVector[i] <- tempResult[["oMinE"]]
+      varVector[i] <- tempResult[["v"]]
+    }
+  } else if (survType=="right") {
+    y0Index <- which(dataMatrix[, "group"]==1)
+    y1Index <- which(dataMatrix[, "group"]==2)
+
+    for (i in seq_along(stopTimeVector)) {
+      timeNow <- stopTimeVector[i]
+      timeBefore <- timeBeforeVector[i]
+
+      tempStats <- computeStatsForLogrank("dataMatrix"=dataMatrix, "y0Index"=y0Index,
+                                          "y1Index"=y1Index, "timeNow"=timeNow, "timeBefore"=timeBefore,
+                                          "survType"="right")
+      tempResult <- do.call(logrankSingle, tempStats)
+
+      oMinEVector[i] <- tempResult[["oMinE"]]
+      varVector[i] <- tempResult[["v"]]
+    }
+  } else {
+    stop("Currently, only Surv type of 'right', and 'counting' (left truncated and right censored) supported")
+  }
+
+  result <- list("nEvents"=nEvents, "z"=sum(oMinEVector)/sqrt(sum(varVector)),
+                 "oMinEVector"=oMinEVector, "varVector"=varVector,
+                 "stopTimeVector"=stopTimeVector)
+}
+
+#' Helper function computes single component of the logrank statistic
+#'
+#' @param d0 integer, number of observations in the control group
+#' @param d1 integer, number of observations in the treatment group
+#' @param y0 integer, total number of participants in the control group
+#' @param y1 integer, total number of participants in the treatment group
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return Returns a list containing at least the following components:
+#' \describe{
+#'   \item{oMinE}{observed minus expected.}
+#'   \item{v}{hypergeometric variance.}
+#' }
+#' @export
+#'
+#' @examples
+#' y0Vector <- c(6, 4, 4, 1, 0)
+#' y1Vector <- c(6, 6, 5, 2, 2)
+#' d0Vector <- c(1, 0, 2, 1, 0)
+#' d1Vector <- c(0, 1, 1, 0, 1)
+#'
+#' varVector <- oMinEVector <-y0Vector
+#'
+#' for (i in seq_along(y0Vector)) {
+#'   tempResult <- logrankSingle(d0=d0Vector[i], d1=d1Vector[i],
+#'                               y0=y0Vector[i], y1=y1Vector[i])
+#'   oMinEVector[i] <- tempResult[["oMinE"]]
+#'   varVector[i] <- tempResult[["v"]]
+#' }
+#'
+#' sum(oMinEVector)/sqrt(sum(varVector))
+#'
+logrankSingle <- function(d0, d1, y0, y1, ...) {
+  dTotal <- d0 + d1
+  yTotal <- y0 + y1
+
+  o1 <- d1
+  e1 <- dTotal*y1/yTotal
+  variance <- y0*y1*dTotal*(yTotal-dTotal)/(yTotal^2*(yTotal-1))
+
+  list(oMinE=o1-e1, v=variance)
+}
+
+
+#' Computes the sufficient statistics needed to compute logrankSingle
+#'
+#' @param dataMatrix a Surv object converted to a matrix
+#' @param y0Index vector of integers corresponding to the control group
+#' @param y1Index vector of integers corresponding to the treatment group
+#' @param timeNow numeric, current time
+#' @param timeBefore numeric, previous time
+#' @param survType character, either "right" or "counting" (left truncated, right censored)
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return Returns a list containing at least the following components:
+#' \describe{
+#'   \item{d0}{number of observations in the control group.}
+#'   \item{d1}{number of observations in the treatment group.}
+#'   \item{y0}{total number of participants in the control group.}
+#'   \item{y1}{total number of participants in the treatment group.}#'
+#' }
+#' @export
+#'
+#' @examples
+#' data <- generateSurvData(nP = 5,
+#' nT = 5,
+#' lambdaP = 0.03943723,
+#' lambdaT = 0.5*0.03943723,
+#' endTime = 40,
+#' seed = 2006)  # set seed to make the result reproducible
+#'
+#' survObj <- survival::Surv(data$time, data$status)
+#'
+#' dataMatrix <- as.matrix(survObj)
+#' y0Index <- which(data$group=="P")
+#' y1Index <- which(data$group=="T")
+#'
+#'
+#' timeNow <- 4
+#' timeBefore <- 0
+#'
+#' computeStatsForLogrank(dataMatrix, y0Index, y1Index, timeNow, timeBefore)
+#'
+#' timeNow <- 13
+#' timeBefore <- 4
+#'
+#' computeStatsForLogrank(dataMatrix, y0Index, y1Index, timeNow, timeBefore)
+computeStatsForLogrank <- function(dataMatrix, y0Index, y1Index, timeNow, timeBefore,
+                                   survType="right", ...) {
+  timeLabel <- switch(survType,
+                      "counting"="stop",
+                      "right"="time")
+
+  d0 <- sum(dataMatrix[y0Index, ][, timeLabel]==timeNow & dataMatrix[y0Index, ][, "status"]==1)
+  d1 <- sum(dataMatrix[y1Index, ][, timeLabel]==timeNow & dataMatrix[y1Index, ][, "status"]==1)
+
+  y0 <- sum(dataMatrix[y0Index, timeLabel] >= timeNow & dataMatrix[y0Index, timeLabel] >= timeBefore)
+  y1 <- sum(dataMatrix[y1Index, timeLabel] >= timeNow & dataMatrix[y1Index, timeLabel] >= timeBefore)
+
+  result <- list("d0"=d0, "d1"=d1, "y0"=y0, "y1"=y1)
+  return(result)
+}
+
