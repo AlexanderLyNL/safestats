@@ -169,7 +169,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
     survDiffObj <- survival::survdiff(survTime ~ group)
     nEvents <- sum(survDiffObj[["obs"]])
   } else if (survType=="counting") {
-    survDiffObj <- computeLogrankZ("survTime"=survTime, "group"=group)
+    survDiffObj <- computeLogrankZ("survObj"=survTime, "group"=group)
     nEvents <- survDiffObj[["nEvents"]]
   }
 
