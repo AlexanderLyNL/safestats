@@ -8,6 +8,7 @@ designSafeZ(
   meanDiffMin = NULL,
   beta = NULL,
   nPlan = NULL,
+  h0 = 0,
   alternative = c("two.sided", "greater", "less"),
   alpha = 0.05,
   sigma = 1,
@@ -31,6 +32,8 @@ and "phiS". Note that 1-beta defines the power.}
 \item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the safe test
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
+
+\item{h0}{numeric, represents the null hypothesis, default h0=0.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}

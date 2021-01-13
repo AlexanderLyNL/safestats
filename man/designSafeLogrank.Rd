@@ -8,6 +8,7 @@ designSafeLogrank(
   hrMin = NULL,
   beta = NULL,
   nEvents = NULL,
+  h0 = 1,
   alternative = c("two.sided", "greater", "less"),
   alpha = 0.05,
   ratio = 1,
@@ -24,6 +25,8 @@ detect.}
 and "phiS". Note that 1-beta defines the power.}
 
 \item{nEvents}{numeric > 0, targetted number of events.}
+
+\item{h0}{numeric > 0, represents the null hypothesis, default h0=1.}
 
 \item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
 tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the

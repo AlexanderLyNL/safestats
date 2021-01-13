@@ -2,12 +2,14 @@
 % Please edit documentation in R/logRankTest.R
 \name{safeLogrankTest}
 \alias{safeLogrankTest}
+\alias{safeLogrankTestSumStat}
 \title{Safe Logrank Test}
 \usage{
 safeLogrankTest(
   formula,
   designObj = NULL,
   h0 = 1,
+  alphaCS = 0.05,
   data = NULL,
   survTime = NULL,
   group = NULL,
@@ -17,6 +19,16 @@ safeLogrankTest(
   exact = FALSE,
   ...
 )
+
+safeLogrankTestSumStat(
+  z,
+  n,
+  ratio = 1,
+  h0 = 1,
+  designObj,
+  alphaCS = 0.05,
+  alternative = c("two.sided", "greater", "less")
+)
 }
 \arguments{
 \item{formula}{a formula expression as for other survival models, of the form Surv(time, status) ~ groupingVariable,
@@ -25,6 +37,8 @@ see \code{\link[survival]{Surv}} for more details.}
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
 \item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
+
+\item{alphaCS}{numeric is the alpha level of the confidence sequence. Default alphaCS=0.05}
 
 \item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
 
@@ -48,6 +62,10 @@ alternative specified by the design object is used instead.}
 the hypergeometric likelihood}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{z}{numeric representing the observed z statistic.}
+
+\item{n}{numeric representing the number of events}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -66,12 +84,19 @@ following components:
   \item{logrankObj}{an object obtained from \code{\link[coin]{logrank_test}}.}
   \item{call}{the expression with which this function is called.}
 }
+
+
 }
 \description{
 A safe test to test whether there is a difference between two survival curves. This function
 builds on the Mantel-Cox version of the logrank test computed with \code{\link[survival]{survdiff}}
 and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
 }
+\section{Functions}{
+\itemize{
+\item \code{safeLogrankTestSumStat}: Safe Logrank Test based on Summary Statistic Z
+}}
+
 \examples{
 # Example taken from survival::survdiff
 designObj <- designSafeLogrank(hrMin=1/2)
