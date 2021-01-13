@@ -8,10 +8,10 @@
 safeZTest(
   x,
   y = NULL,
-  h0 = 0,
   paired = FALSE,
   designObj = NULL,
   pilot = FALSE,
+  h0 = 0,
   alpha = NULL,
   sigma = NULL,
   alternative = NULL,
@@ -38,15 +38,16 @@ safe.z.test(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{h0}{a number indicating the hypothesised true value of the (differences of the) mean(s) under the null.
-Default 0}
-
 \item{paired}{a logical indicating whether you want the paired z-test.}
 
 \item{designObj}{an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the observed
 number of samples is exactly as planned, and a pilot design object is constructed.}
+
+\item{h0}{a numeric only used if pilot equals \code{TRUE} and represents the hypothesised true value
+of the (differences of the) mean(s) under the null. Default 0. If pilot equals \code{FALSE}, then the h0 of the
+design object is used instead.}
 
 \item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
 the design object is used instead in constructing the decision rule S > 1/alpha.}

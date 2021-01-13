@@ -20,6 +20,7 @@
 #' the design object is used instead in constructing the decision rule S > 1/alpha.
 #' @param alternative a character string only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
 #' alternative specified by the design object is used instead.
+#' @param alphaCS numeric is the alpha level of the confidence sequence. Default alphaCS=0.05
 #' @param exact a logical indicating whether the exact safe logrank test needs to be performed based on
 #' the hypergeometric likelihood
 #' @param ... further arguments to be passed to or from methods.
@@ -68,8 +69,9 @@
 #'
 #' safeLogrankTest(survTime=survival::Surv(callaert$time),
 #'                 group=callaert$group, designObj = designObj)
-safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=NULL,
-                            group=NULL, pilot=FALSE, alpha=NULL, alternative=NULL, exact=FALSE, ...) {
+safeLogrankTest <- function(formula, designObj=NULL, h0=1, alphaCS=0.05, data=NULL, survTime=NULL,
+                            group=NULL, pilot=FALSE, alpha=NULL, alternative=NULL,
+                            exact=FALSE, ...) {
 
   # if (missing(formula) && is.null(survTime) && is.null(group))
   #   stop("Please specify a formula. Or provide survTime and group.")
@@ -292,8 +294,8 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
 
     meanStat <- zStat/sqrt(nEff)
 
-    result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "eValue"=NULL, "confSeq"=NULL,
-                   "estimate"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
+    result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "eValue"=NULL,
+                   "confSeq"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
     class(result) <- "safeTest"
 
     names(result[["estimate"]]) <-"hazard ratio"
@@ -305,7 +307,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
 
     tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                               "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-                                              "alpha"=alpha, "alternative"="two.sided")
+                                              "alpha"=alphaCS, "alternative"="two.sided")
 
     result[["confSeq"]] <- exp(tempConfSeq)
 
@@ -323,6 +325,48 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
   return(result)
 }
 
+
+#' @describeIn safeLogrankTest Safe Logrank Test based on Summary Statistic Z
+#' @inheritParams safeLogrankTest
+#' @param z numeric representing the observed z statistic.
+#' @param n numeric representing the number of events
+#'
+#' @return
+#' @export
+safeLogrankTestSumStat <- function(z, n, ratio=1, h0=1, designObj, alphaCS=0.05,
+                                   alternative=c("two.sided", "greater", "less")) {
+  alternative <- match.arg(alternative)
+
+  if (!missing(n))
+    names(n) <- "nEvents"
+
+  result <- list("statistic"=z, "n"=n, "estimate"=NULL, "eValue"=NULL,
+                 "confSeq"=NULL, "h0"=h0, "testType"="logrank", "dataName"="Logrank z")
+
+  nEff <- ratio/(1+ratio)^2*n
+  meanStat <- z/sqrt(nEff)
+  zStat <- (z - sqrt(nEff)*log(h0))
+
+  eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
+                          "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
+
+  tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+                                            "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
+                                            "alpha"=alphaCS,
+                                            "alternative"="two.sided")
+
+  result[["confSeq"]] <- exp(tempConfSeq)
+
+  result[["eValue"]] <- eValue
+  result[["designObj"]] <- designObj
+  # result[["survDiffObj"]] <- survDiffObj
+
+  names(result[["statistic"]]) <- "z"
+  class(result) <- "safeTest"
+  return(result)
+}
+
+
 #' Designs a Safe Logrank Test
 #'
 #' A designed experiment requires (1) an anticipated number of events nEvents, or even better nPlan, the number of
@@ -335,6 +379,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
 #'
 #' @inheritParams designSafeZ
 #' @param nEvents numeric > 0, targetted number of events.
+#' @param h0 numeric > 0, represents the null hypothesis, default h0=1.
 #' @param hrMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 #' detect.
 #' @param zApprox logical, default TRUE to use the asymptotic normality results.
@@ -370,10 +415,12 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, data=NULL, survTime=N
 #' designSafeLogrank(nEvents=89)
 #' designSafeLogrank(hrMin=0.4, beta=0.05)
 #' designSafeLogrank(hrMin=0.4)
-designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
+designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                               alternative=c("two.sided", "greater", "less"),
                               alpha=0.05, ratio=1, zApprox=TRUE, tol=1e-5, ...) {
   stopifnot(0 < alpha, alpha < 1)
+
+  result <- list()
 
   alternative <- match.arg(alternative)
 
@@ -416,6 +463,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL,
     safeZObj[["testType"]] <- "logrank"
     safeZObj[["paired"]] <- NULL
     safeZObj[["call"]] <- sys.call()
+    safeZObj[["h0"]] <- h0
   }
   result <- safeZObj
 
