@@ -329,23 +329,23 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, alphaCS=0.05, data=NU
 #' @describeIn safeLogrankTest Safe Logrank Test based on Summary Statistic Z
 #' @inheritParams safeLogrankTest
 #' @param z numeric representing the observed z statistic.
-#' @param n numeric representing the number of events
+#' @param nEvents numeric > 0, observed number of events.
 #'
 #' @return
 #' @export
-safeLogrankTestSumStat <- function(z, n, ratio=1, h0=1, designObj, alphaCS=0.05,
+safeLogrankTestSumStat <- function(z, nEvents, designObj, alphaCS=0.05,
                                    alternative=c("two.sided", "greater", "less")) {
   alternative <- match.arg(alternative)
 
-  if (!missing(n))
-    names(n) <- "nEvents"
+  if (!missing(nEvents))
+    names(nEvents) <- "nEvents"
 
-  result <- list("statistic"=z, "n"=n, "estimate"=NULL, "eValue"=NULL,
-                 "confSeq"=NULL, "h0"=h0, "testType"="logrank", "dataName"="Logrank z")
+  result <- list("statistic"=z, "n"=nEvents, "estimate"=NULL, "eValue"=NULL,
+                 "confSeq"=NULL, "h0"=designObj[["h0"]], "testType"="logrank", "dataName"="Logrank z")
 
-  nEff <- ratio/(1+ratio)^2*n
+  nEff <- designObj[["ratio"]]/(1+designObj[["ratio"]])^2*nEvents
   meanStat <- z/sqrt(nEff)
-  zStat <- (z - sqrt(nEff)*log(h0))
+  zStat <- (z - sqrt(nEff)*log(designObj[["h0"]]))
 
   eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
                           "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)

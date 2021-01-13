@@ -22,9 +22,8 @@ safeLogrankTest(
 
 safeLogrankTestSumStat(
   z,
-  n,
+  nEvents,
   ratio = 1,
-  h0 = 1,
   designObj,
   alphaCS = 0.05,
   alternative = c("two.sided", "greater", "less")
@@ -65,7 +64,7 @@ the hypergeometric likelihood}
 
 \item{z}{numeric representing the observed z statistic.}
 
-\item{n}{numeric representing the number of events}
+\item{nEvents}{numeric > 0, observed number of events.}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
