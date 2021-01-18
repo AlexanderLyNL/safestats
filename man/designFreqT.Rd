@@ -9,6 +9,7 @@ designFreqT(
   alpha = 0.05,
   beta = 0.2,
   alternative = c("two.sided", "greater", "less"),
+  h0 = 0,
   lowN = 3L,
   highN = 100L,
   testType = c("oneSample", "paired", "twoSample"),
@@ -28,6 +29,8 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
+
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
 \item{lowN}{integer that defines the smallest n of our search space for n.}
 

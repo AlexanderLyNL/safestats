@@ -23,7 +23,7 @@
 #' @examples
 #' designFreqT(0.5)
 designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
-                        lowN=3L, highN=100L, testType=c("oneSample", "paired", "twoSample"),
+                        h0=0, lowN=3L, highN=100L, testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, ...) {
 
   stopifnot(lowN >= 2, highN > lowN, alpha > 0, beta >0)
@@ -32,7 +32,8 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
   alternative <- match.arg(alternative)
 
   result <- list(nPlan=NULL, "esMin"=deltaMin, "alpha"=alpha, "beta"=beta,
-                 "lowN"=lowN, "highN"=highN, "testType"=testType, "alternative"=alternative)
+                 "lowN"=lowN, "highN"=highN, "testType"=testType, "alternative"=alternative,
+                 "ratio"=ratio, "h0"=h0)
   class(result) <- "freqTDesign"
 
   if (deltaMin < 0 && alternative=="greater")
@@ -107,8 +108,9 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 #' "greater" or "less".
-#' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.
 #' @param nPlan vector of max length 2 representing the planned sample sizes.
+#' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
 #' @param lowN integer that defines the smallest n of our search space for n.
 #' @param highN integer that defines the largest n of our search space for n. This might be the largest n that we
 #' are able to fund.
@@ -151,8 +153,9 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' designObj <- designSafeT(deltaMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
 #' designObj
 designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
-                        h0=0, nPlan=NULL, lowN=3L, highN=100L, lowParam=0.01, highParam=1.5*abs(deltaMin),
-                        tol=0.01, testType=c("oneSample", "paired", "twoSample"),
+                        nPlan=NULL, h0=0, ciValue=0.95, lowN=3L, highN=100L, lowParam=0.01,
+                        highParam=1.5*abs(deltaMin), tol=0.01,
+                        testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, logging=FALSE, ...) {
   stopifnot(alpha > 0, alpha < 1)
 
@@ -183,8 +186,8 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
   }
 
   result <- list("nPlan"=NULL, "parameter"=NULL, "esMin"=deltaMin, "alpha"=alpha, "beta"=beta,
-                 "alternative"=alternative, "testType"=testType, "paired"=paired, "h0"=h0,
-                 "ratio"=ratio, "lowN"=lowN, "highN"=highN, "lowParam"=lowParam,
+                 "alternative"=alternative, "ciValue"=ciValue, "testType"=testType, "paired"=paired,
+                 "h0"=h0, "ratio"=ratio, "lowN"=lowN, "highN"=highN, "lowParam"=lowParam,
                  "highParam"=highParam, "tol"=tol, "pilot"=FALSE, "call"=sys.call(),
                  "timeStamp"=Sys.time())
   class(result) <- "safeDesign"
@@ -824,8 +827,8 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #'
 #' @examples
 #' designPilotSafeT(nPlan=30)
-designPilotSafeT <- function(nPlan=50, alpha=0.05, h0=0, alternative=c("two.sided", "greater", "less"),
-                             lowParam=0.01, highParam=1.2, tol=0.01, inverseMethod=TRUE,
+designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("two.sided", "greater", "less"),
+                             h0=0, lowParam=0.01, highParam=1.2, tol=0.01, inverseMethod=TRUE,
                              logging=FALSE, paired=FALSE, maxIter=10) {
   # TODO(Alexander): Check relation with forward method, that is, the least conservative test and maximally powered
   # Perhaps trade-off? "inverseMethod" refers to solving minimum of deltaS \mapsto S_{deltaS}^{-1}(1/alpha)
@@ -1439,7 +1442,7 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
   result[["testType"]] <- testType
   result[["n"]] <- n
   result[["eValue"]] <- eValue
-  result[["h0"]] <- "mu"
+  # result[["h0"]] <- "mu"
 
   return(result)
 }

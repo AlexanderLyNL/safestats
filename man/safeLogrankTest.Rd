@@ -9,7 +9,7 @@ safeLogrankTest(
   formula,
   designObj = NULL,
   h0 = 1,
-  alphaCS = 0.05,
+  ciValue = 0.95,
   data = NULL,
   survTime = NULL,
   group = NULL,
@@ -23,10 +23,11 @@ safeLogrankTest(
 safeLogrankTestSumStat(
   z,
   nEvents,
-  ratio = 1,
   designObj,
-  alphaCS = 0.05,
-  alternative = c("two.sided", "greater", "less")
+  ciValue = 0.95,
+  alternative = c("two.sided", "greater", "less"),
+  dataNull = 1,
+  sigma = 1
 )
 }
 \arguments{
@@ -37,7 +38,7 @@ see \code{\link[survival]{Surv}} for more details.}
 
 \item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
 
-\item{alphaCS}{numeric is the alpha level of the confidence sequence. Default alphaCS=0.05}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 
 \item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
 
@@ -65,6 +66,11 @@ the hypergeometric likelihood}
 \item{z}{numeric representing the observed z statistic.}
 
 \item{nEvents}{numeric > 0, observed number of events.}
+
+\item{dataNull}{numeric > 0, the null hypothesis corresponding to the z statistics.
+By default dataNull = 1 representing}
+
+\item{sigma}{numeric > 0, scaling in the data}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -94,6 +100,9 @@ and adds a sign to the statistic based on the output of \code{\link[coin]{logran
 \section{Functions}{
 \itemize{
 \item \code{safeLogrankTestSumStat}: Safe Logrank Test based on Summary Statistic Z
+All provided data (i.e., z-scores) are assumed to be centred on a hazard ratio = 1, thus, log(hr) = 0 ,
+and the proper (e.g., hypergeometric) scaling is applied to the data, so sigma = 1. The null hypothesis
+in the design object pertains to the population and is allowed to differ from log(theta) = 0.
 }}
 
 \examples{
