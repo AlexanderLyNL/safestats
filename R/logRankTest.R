@@ -20,7 +20,7 @@
 #' the design object is used instead in constructing the decision rule S > 1/alpha.
 #' @param alternative a character string only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
 #' alternative specified by the design object is used instead.
-#' @param alphaCS numeric is the alpha level of the confidence sequence. Default alphaCS=0.05
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
 #' @param exact a logical indicating whether the exact safe logrank test needs to be performed based on
 #' the hypergeometric likelihood
 #' @param ... further arguments to be passed to or from methods.
@@ -69,7 +69,7 @@
 #'
 #' safeLogrankTest(survTime=survival::Surv(callaert$time),
 #'                 group=callaert$group, designObj = designObj)
-safeLogrankTest <- function(formula, designObj=NULL, h0=1, alphaCS=0.05, data=NULL, survTime=NULL,
+safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NULL, survTime=NULL,
                             group=NULL, pilot=FALSE, alpha=NULL, alternative=NULL,
                             exact=FALSE, ...) {
 
@@ -276,7 +276,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, alphaCS=0.05, data=NU
     names(eValue) <- "e"
 
     result <- list("statistic"=eValue, "n"=nEvents, "estimate"=NULL, "eValue"=eValue,
-                   "confSeq"=NULL, "estimate"=NULL, "h0"=h0, "testType"="logrank",
+                   "confSeq"=NULL, "estimate"=NULL, "testType"="logrank",
                    "dataName"=dataName, "exact"=TRUE)
     class(result) <- "safeTest"
     result[["designObj"]] <- designObj
@@ -295,19 +295,23 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, alphaCS=0.05, data=NU
     meanStat <- zStat/sqrt(nEff)
 
     result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "eValue"=NULL,
-                   "confSeq"=NULL, "h0"=h0, "testType"="logrank", "dataName"=dataName)
+                   "confSeq"=NULL, "testType"="logrank", "dataName"=dataName)
     class(result) <- "safeTest"
 
     names(result[["estimate"]]) <-"hazard ratio"
 
-    zStat <- (zStat - sqrt(nEff)*log(h0))
+    # Note(Alexander): This is the same as
+    #     zStat <- sqrt(nEff)*(meanStat - meanSlog(h0))
+    #
+    # but to avoid rounding erros zStat is used instead
+    zStat <- zStat - sqrt(nEff)*(log(h0))
 
     eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
                             "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
 
     tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                               "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-                                              "alpha"=alphaCS, "alternative"="two.sided")
+                                              "ciValue"=ciValue, "alternative"="two.sided")
 
     result[["confSeq"]] <- exp(tempConfSeq)
 
@@ -320,39 +324,55 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, alphaCS=0.05, data=NU
 
 
   names(result[["n"]]) <- "nEvents"
-  names(result[["h0"]]) <- "theta"
 
   return(result)
 }
 
 
 #' @describeIn safeLogrankTest Safe Logrank Test based on Summary Statistic Z
-#' @inheritParams safeLogrankTest
+#' All provided data (i.e., z-scores) are assumed to be centred on a hazard ratio = 1, thus, log(hr) = 0 ,
+#' and the proper (e.g., hypergeometric) scaling is applied to the data, so sigma = 1. The null hypothesis
+#' in the design object pertains to the population and is allowed to differ from log(theta) = 0.
+#'
 #' @param z numeric representing the observed z statistic.
 #' @param nEvents numeric > 0, observed number of events.
+#' @param dataNull numeric > 0, the null hypothesis corresponding to the z statistics.
+#' By default dataNull = 1 representing
+#' @param sigma numeric > 0, scaling in the data
 #'
 #' @return
 #' @export
-safeLogrankTestSumStat <- function(z, nEvents, designObj, alphaCS=0.05,
-                                   alternative=c("two.sided", "greater", "less")) {
+safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
+                                alternative=c("two.sided", "greater", "less"),
+                                dataNull=1, sigma=1) {
   alternative <- match.arg(alternative)
 
-  if (!missing(nEvents))
-    names(nEvents) <- "nEvents"
+  if (length(z) != length(nEvents))
+    stop("The provided number of z-scores and number of events not equal.")
+
+  names(nEvents) <- "nEvents"
 
   result <- list("statistic"=z, "n"=nEvents, "estimate"=NULL, "eValue"=NULL,
-                 "confSeq"=NULL, "h0"=designObj[["h0"]], "testType"="logrank", "dataName"="Logrank z")
+                 "confSeq"=NULL, "testType"="logrank", "dataName"="Logrank z")
 
   nEff <- designObj[["ratio"]]/(1+designObj[["ratio"]])^2*nEvents
-  meanStat <- z/sqrt(nEff)
-  zStat <- (z - sqrt(nEff)*log(designObj[["h0"]]))
+
+  # Note(Alexander): Assumed the data are centred at log(hr)=0 and standardised,
+  # thus, sigma = 1 data scale
+  if (length(z)==1) {
+    meanStat <- sigma*z/sqrt(nEff)+log(dataNull)
+    zStat <- z - sqrt(nEff)/sigma*log(designObj[["h0"]])
+  } else {
+    meanStat <- sum(sigma*z/sqrt(nEff)+log(dataNull))/sum(nEff)
+    zStat <- sqrt(nEff)/sigma*(meanStat - log(designObj[["h0"]]))
+  }
 
   eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
                           "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
 
   tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                             "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-                                            "alpha"=alphaCS,
+                                            "ciValue"=ciValue,
                                             "alternative"="two.sided")
 
   result[["confSeq"]] <- exp(tempConfSeq)
@@ -465,7 +485,9 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     safeZObj[["call"]] <- sys.call()
     safeZObj[["h0"]] <- h0
   }
+
   result <- safeZObj
+  names(result[["h0"]]) <- "theta"
 
   return(result)
 }

@@ -13,6 +13,7 @@ safeZTest(
   pilot = FALSE,
   h0 = 0,
   alpha = NULL,
+  ciValue = NULL,
   sigma = NULL,
   alternative = NULL,
   tol = 1e-05,
@@ -51,6 +52,9 @@ design object is used instead.}
 
 \item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
 the design object is used instead in constructing the decision rule S > 1/alpha.}
+
+\item{ciValue}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the ciValue of
+the design object is used to derive the level of the confidence sequence.}
 
 \item{sigma}{numeric > 0 only used if pilot equals \code{TRUE}, which is then used to construct the design objects.
 If pilot equals \code{FALSE} the sigma specified by the design object is used instead.}
