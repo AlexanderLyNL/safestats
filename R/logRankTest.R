@@ -441,7 +441,6 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 
   result[["eValue"]] <- eValue
   result[["designObj"]] <- designObj
-  # result[["survDiffObj"]] <- survDiffObj
 
   names(result[["statistic"]]) <- "z"
   class(result) <- "safeTest"
@@ -807,7 +806,11 @@ computeLogrankZ <- function(survObj, group, ...) {
     stop("Currently, only Surv type of 'right', and 'counting' (left truncated and right censored) supported")
   }
 
-  result <- list("nEvents"=nEvents, "z"=sum(oMinEVector)/sqrt(sum(varVector)),
+  sumOMinE <- sum(oMinEVector)
+  sumVarOMinE <- sum(varVector)
+
+  result <- list("nEvents"=nEvents, "z"=sumOMinE/sqrt(sumVarOMinE),
                  "oMinEVector"=oMinEVector, "varVector"=varVector,
+                 "sumOMinE"=sumOMinE, "sumVarOMinE"=sumVarOMinE,
                  "stopTimeVector"=stopTimeVector)
 }
