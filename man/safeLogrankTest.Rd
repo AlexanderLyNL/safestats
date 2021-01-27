@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{safeLogrankTest}
 \alias{safeLogrankTest}
-\alias{safeLogrankTestSumStat}
+\alias{safeLogrankTestStat}
 \title{Safe Logrank Test}
 \usage{
 safeLogrankTest(
@@ -20,7 +20,7 @@ safeLogrankTest(
   ...
 )
 
-safeLogrankTestSumStat(
+safeLogrankTestStat(
   z,
   nEvents,
   designObj,
@@ -99,7 +99,7 @@ and adds a sign to the statistic based on the output of \code{\link[coin]{logran
 }
 \section{Functions}{
 \itemize{
-\item \code{safeLogrankTestSumStat}: Safe Logrank Test based on Summary Statistic Z
+\item \code{safeLogrankTestStat}: Safe Logrank Test based on Summary Statistic Z
 All provided data (i.e., z-scores) are assumed to be centred on a hazard ratio = 1, thus, log(hr) = 0 ,
 and the proper (e.g., hypergeometric) scaling is applied to the data, so sigma = 1. The null hypothesis
 in the design object pertains to the population and is allowed to differ from log(theta) = 0.
@@ -131,4 +131,66 @@ safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
 
 safeLogrankTest(survTime=survival::Surv(callaert$time),
                 group=callaert$group, designObj = designObj)
+
+# Example with left trunctation due to Judith ter Schure
+
+enrollment <- 10     # 5 treatment, 5 placebo
+lambdaC <- 0.03943723
+hr1 <- 0.5           # hazard ratio between treatment en placebo group
+fup <- 40            # folow up of 40 days
+data <- generateSurvData(nP = 5,
+                         nT = 5,
+                         lambdaP = lambdaC,
+                         lambdaT = hr1*lambdaC,
+                         endTime = fup,
+                         seed = 2006)
+
+# Add different time of randomisation
+dateRandStart <- as.Date("2020-05-04")
+dateRandEnd <- as.Date("2020-05-15")
+
+set.seed(2005)
+data$"dateRand" <- sample(seq.Date(from = dateRandStart, to = dateRandEnd, by = "day"),
+                          size = enrollment, replace = TRUE)
+data$"dateEvent/LastFup" <- as.Date(data$dateRand + data$time)
+data$"dateLastFup" <- as.Date("2020-06-15")
+data$"participantID" <- 1:nrow(data)
+data$"participantID"[order(data$"dateRand")] <- 1:nrow(data)
+data <- data[order(data$"dateRand"), ]
+data$time <- data$"dateEvent/LastFup" - dateRandStart
+
+# Add additional complication with multiple events at the same time
+data$"dateEvent/LastFup"[data$participantID == 3] <-
+  data$"dateEvent/LastFup"[data$participantID == 5]
+data$time[data$participantID == 3] <-
+  data$"dateEvent/LastFup"[data$participantID == 3] - dateRandStart
+data$dateRand[data$participantID == 3] <-
+  data$"dateEvent/LastFup"[data$participantID == 3] -
+  data$time[data$participantID == 3]
+
+# Interim analyses events 1 to 4
+
+handResult <- c(-0.8164966, -1.4882057, -0.772088, -0.7502141)
+#'
+for (i in 1:4) {
+  calDate <- sort(data$"dateEvent/LastFup")[i]
+
+  dataSoFar <- data[data$dateRand < calDate, ]
+  dataSoFar$dateLastFup <- calDate
+  dataSoFar$time <- pmin(dataSoFar$time, calDate - dateRandStart)
+  dataSoFar$status[dataSoFar$"dateEvent/LastFup" > calDate] <- 1
+  survObj <- survival::Surv(time = dataSoFar$dateRand - dateRandStart,
+                            time2 = dataSoFar$time,
+                            event = dataSoFar$status,
+                            type = "counting")
+
+  interimResult <- safeLogrankTest(survObj ~ dataSoFar$group, designObj = designObj)
+  interimResult
+
+# Compare logrank score to calculations by hand
+  localTest <- round(interimResult$statistic - handResult[i], 7) == 0
+
+  if (!localTest)
+    stop("Computation of the left-truncated logrank z-score is wrong")
+}
 }
