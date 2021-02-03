@@ -230,11 +230,11 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
   survType <- attr(survTime, "type")
 
   if (survType=="right") {
-    survDiffObj <- survival::survdiff(survTime ~ group)
-    nEvents <- sum(survDiffObj[["obs"]])
+    sumStats <- survival::survdiff(survTime ~ group)
+    nEvents <- sum(sumStats[["obs"]])
   } else if (survType=="counting") {
-    survDiffObj <- computeLogrankZ("survObj"=survTime, "group"=group)
-    nEvents <- survDiffObj[["nEvents"]]
+    sumStats <- computeLogrankZ("survObj"=survTime, "group"=group)
+    nEvents <- sumStats[["nEvents"]]
   }
 
 
@@ -349,9 +349,9 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
       coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
       signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
 
-      zStat <- signZ*sqrt(survDiffObj[["chisq"]])
+      zStat <- signZ*sqrt(sumStats[["chisq"]])
     } else if (survType=="counting") {
-      zStat <- survDiffObj[["z"]]
+      zStat <- sumStats[["z"]]
     }
 
     meanStat <- zStat/sqrt(nEff)
@@ -379,7 +379,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
 
     result[["eValue"]] <- eValue
     result[["designObj"]] <- designObj
-    result[["survDiffObj"]] <- survDiffObj
+    result[["sumStats"]] <- sumStats
 
     names(result[["statistic"]]) <- "z"
   }
