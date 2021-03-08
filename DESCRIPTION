@@ -6,7 +6,14 @@ Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = "aut"),
   person("Alexander", "Ly", email = "a.ly@jasp-stats.org", 
-  role = c("cre", "aut")))
+  role = c("cre", "aut")),
+  person("Muriel", "Perez", email = "Muriel.Perez@cwi.nl", 
+  role = c("ctb")),
+  person("Judith", "ter Schure", email = "Judith.ter.Schure@cwi.nl", 
+  role = c("ctb")),
+  person("Peter", "Grunwald", email = "Peter.Grunwald@cwi.nl", 
+  role = c("ctb"))
+  )
 Maintainer: Alexander Ly <a.ly@jasp-stats.org>
 Description: Functions to design and apply tests that are anytime valid. The 
   functions can be used to design hypothesis tests in the prospective/randomised 

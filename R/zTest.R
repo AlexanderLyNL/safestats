@@ -1058,11 +1058,11 @@ computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.
     }
 
     if (alternative=="two.sided") {
-      shift <- sigma*sqrt((1+nEff*g)/(nEff^2*g)*(log(nEff*g)-2*log(1-ciValue)))
+      shift <- sigma*sqrt((1+nEff*g)/(nEff^2*g)*(log(1+nEff*g)-2*log(1-ciValue)))
       lowerCS <- meanStat - shift
       upperCS <- meanStat + shift
     } else {
-      shift <- sigma * sqrt((1+nEff*g)/(nEff^2*g)*(log(nEff*g)-2*log(2*(1-ciValue))))
+      shift <- sigma*sqrt((1+nEff*g)/(nEff^2*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
 
       if (alternative=="greater") {
         lowerCS <- meanStat + shift
