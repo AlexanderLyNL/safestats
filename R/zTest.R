@@ -1042,9 +1042,8 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigm
 #' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
 computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.95,
                                        alternative="two.sided", a=NULL, g=NULL) {
-  # TODO(Alexander): Only for GROW,
-
   if (!is.null(a) && !is.null(g)) {
+    # Note(Alexander): Here normal distribution not centred at null
     if (alternative != "two.sided")
       stop("Not implemented")
 
@@ -1052,17 +1051,19 @@ computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.
     lowerCS <- meanStat - shift
     upperCS <- meanStat + shift
   } else {
+    # Note(Alexander): Here normal distribution centred at the null
+    # Here use GROW
     if (is.null(g)) {
       meanDiffMin <- phiS
       g <- meanDiffMin^2/sigma^2
     }
 
     if (alternative=="two.sided") {
-      shift <- sigma*sqrt((1+nEff*g)/(nEff^2*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
       lowerCS <- meanStat - shift
       upperCS <- meanStat + shift
     } else {
-      shift <- sigma*sqrt((1+nEff*g)/(nEff^2*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
 
       if (alternative=="greater") {
         lowerCS <- meanStat + shift
