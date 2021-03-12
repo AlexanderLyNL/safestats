@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{computeStatsForLogrank}
 \alias{computeStatsForLogrank}
-\title{Computes the sufficient statistics needed to compute logrankSingle}
+\title{Computes the sufficient statistics needed to compute logrankSingleZ}
 \usage{
 computeStatsForLogrank(
   survDataFrame,
@@ -39,7 +39,7 @@ Returns a list containing at least the following components:
 }
 }
 \description{
-Computes the sufficient statistics needed to compute logrankSingle
+Computes the sufficient statistics needed to compute logrankSingleZ
 }
 \examples{
 
