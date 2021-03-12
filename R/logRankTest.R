@@ -135,9 +135,8 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
                             group=NULL, pilot=FALSE, alpha=NULL, alternative=NULL,
                             exact=FALSE, ...) {
 
-  # if (missing(formula) && is.null(survTime) && is.null(group))
-  #   stop("Please specify a formula. Or provide survTime and group.")
-
+  # Check inputs  ----
+  #
   if (isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
          "A design object can be obtained by running designSafeLogrank().")
@@ -202,6 +201,33 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
     groupLabel <- extractNameFromArgs(argumentNames, "group")
   }
 
+  # Check designObj ----
+  #
+  if (isTRUE(pilot)) {
+    if (is.null(alpha))
+      alpha <- 0.05
+
+    if (is.null(alternative)) {
+      alternative <- "two.sided"
+    } else {
+      if (!(alternative %in% c("two.sided", "greater", "less")))
+        stop('Provided alternative must be one of "two.sided", "greater", or "less".')
+    }
+
+    designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
+                                   "alternative"=alternative, "h0"=h0)
+    designObj[["pilot"]] <- TRUE
+  }
+
+  alpha <- designObj[["alpha"]]
+  alternative <- designObj[["alternative"]]
+  ratio <- designObj[["ratio"]]
+  h0 <- designObj[["h0"]]
+  theta1 <- exp(designObj[["parameter"]])
+
+
+  # Check data survTime----
+  #
   if (is.null(survTime))
     stop("Can't extract survTime from the given input (formula or survTime)")
 
@@ -229,106 +255,40 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
 
   survType <- attr(survTime, "type")
 
-  if (survType=="right") {
-    sumStats <- survival::survdiff(survTime ~ group)
-    nEvents <- sum(sumStats[["obs"]])
-  } else if (survType=="counting") {
-    sumStats <- computeLogrankZ("survObj"=survTime, "group"=group)
-    nEvents <- sumStats[["nEvents"]]
-  }
+  # Compute stats ------
+  #
+  computeZ <- if (exact) FALSE else TRUE
 
+  # Note1a Removed survdiff and coin ----
+  #
+  # if (exact) {
+  #   sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
+  #                               "computeZ"=FALSE, "computeExact" =TRUE,
+  #                               "theta0"=h0, "theta1"=theta1)
+  # } else {
+  #   if (survType=="right") {
+  #     sumStats <- survival::survdiff(survTime ~ group)
+  #     nEvents <- sum(sumStats[["obs"]])
+  #   } else if (survType=="counting") {
+  #     sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
+  #                                 "computeZ"=TRUE)
+  #     nEvents <- sumStats[["nEvents"]]
+  #   }
+  # }
 
-  if (isTRUE(pilot)) {
-    if (is.null(alpha))
-      alpha <- 0.05
+  sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
+                              "computeZ"=computeZ, "computeExact" =exact,
+                              "theta0"=h0, "theta1"=theta1)
+  nEvents <- sumStats[["nEvents"]]
 
-    if (is.null(alternative)) {
-      alternative <- "two.sided"
-    } else {
-      if (!(alternative %in% c("two.sided", "greater", "less")))
-        stop('Provided alternative must be one of "two.sided", "greater", or "less".')
-    }
-
-    designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
-                                   "alternative"=alternative)
-    designObj[["pilot"]] <- TRUE
-  }
-
-  alpha <- designObj[["alpha"]]
-  alternative <- designObj[["alternative"]]
-  ratio <- designObj[["ratio"]]
-
+  # Compute e-value ------
+  #
   if (exact) {
-    theta0 <- h0
-
-    if (!is.null(designObj[["esMin"]]))
-      theta1 <- unname(designObj[["esMin"]])
-    else
-      theta1 <- unname(exp(designObj[["parameter"]])) # Think of other point nulls, this only works for null being one
-
-    survTimeMatrixTemp <- as.matrix(survTime)
-    eventIndex <- which(survTimeMatrixTemp[, 2]==1)
-
-    survTimeMatrix <- survTimeMatrixTemp[eventIndex, ]
-    survTimeDf <- as.data.frame(survTimeMatrix)
-    survTimeDf[["group"]] <- group[eventIndex]
-
-    nEvents <- dim(survTimeMatrix)[1]
-    timeOfEvents <- unique(survTimeDf[["time"]])
-
-    groupLabel0 <- levels(group)[1]
-    groupLabel1 <- levels(group)[2]
-
-    #
-    if (nEvents != 0) {
-      nTotal <- n0 <- n1 <- vector("numeric", length(timeOfEvents))
-
-      if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="less")
-        logEValueLess <- vector("numeric", length(timeOfEvents))
-
-      if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="greater")
-        logEValueGreater <- vector("numeric", length(timeOfEvents))
-
-      nTotal[1] <- length(survTime)
-      n0[1] <- sum(group==groupLabel0)
-      n1[1] <- sum(group==groupLabel1)
-    } else {
-      logEValue <- 0
-      nTotal <- length(survTime)
-      n0 <- sum(group==groupLabel0)
-      n1 <- sum(group==groupLabel1)
-    }
-
-    # Should go over event times insteas
-    for (i in seq_along(timeOfEvents)) {
-      currentTime <- timeOfEvents[i]
-      currentDf <- survTimeDf[survTimeDf[["time"]]==currentTime, ]
-
-      casesInGroup0 <- sum(currentDf[["group"]]==groupLabel0)
-      casesInGroup1 <- sum(currentDf[["group"]]==groupLabel1)
-
-      logP0 <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
-                                           n=casesInGroup0+casesInGroup1, odds=theta0))
-
-      if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="less") {
-        logPLess <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
-                                             n=casesInGroup0+casesInGroup1, odds=theta1))
-        logEValueLess[i] <- logPLess-logP0
-      } else if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="greater") {
-        logPGreater <- log(BiasedUrn::dFNCHypergeo(x=casesInGroup1, m1=n1[i], m2=n0[i],
-                                             n=casesInGroup0+casesInGroup1, odds=1/theta1))
-        logEValueGreater[i] <- logPGreater-logP0
-      }
-
-      n0[i+1] <- n0[i]-casesInGroup0
-      n1[i+1] <- n1[i]-casesInGroup1
-    }
-
     if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="less")
-      eValueLess <- exp(sum(logEValueLess))
+      eValueLess <- exp(sum(sumStats[["logEValueLess"]]))
 
     if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="greater")
-      eValueGreater <- exp(sum(logEValueGreater))
+      eValueGreater <- exp(sum(sumStats[["logEValueGreater"]]))
 
     eValue <- switch(designObj[["alternative"]],
                      "greater"=eValueGreater,
@@ -345,15 +305,17 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
   } else {
     nEff <- ratio/(1+ratio)^2*nEvents
 
-    if (survType=="right") {
-      coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
-      signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
+    # Note1b Removed survdiff and coin ----
+    # if (survType=="right") {
+    #   coinObj <- coin::logrank_test(survTime ~ group, alternative="two.sided")
+    #   signZ <- sign(unname(coinObj@statistic@standardizedlinearstatistic))
+    #
+    #   zStat <- signZ*sqrt(sumStats[["chisq"]])
+    # } else if (survType=="counting") {
+    #   zStat <- sumStats[["z"]]
+    # }
 
-      zStat <- signZ*sqrt(sumStats[["chisq"]])
-    } else if (survType=="counting") {
-      zStat <- sumStats[["z"]]
-    }
-
+    zStat <- sumStats[["z"]]
     meanStat <- zStat/sqrt(nEff)
 
     result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "eValue"=NULL,
@@ -378,14 +340,15 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
     result[["confSeq"]] <- exp(tempConfSeq)
 
     result[["eValue"]] <- eValue
-    result[["designObj"]] <- designObj
-    result[["sumStats"]] <- sumStats
 
     names(result[["statistic"]]) <- "z"
   }
 
-
+  # Return results ----
+  #
   names(result[["n"]]) <- "nEvents"
+  result[["designObj"]] <- designObj
+  result[["sumStats"]] <- sumStats
 
   return(result)
 }
@@ -577,7 +540,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 #' varVector <- oMinEVector <-y0Vector
 #'
 #' for (i in seq_along(y0Vector)) {
-#'   tempResult <- logrankSingle(d0=d0Vector[i], d1=d1Vector[i],
+#'   tempResult <- logrankSingleZ(d0=d0Vector[i], d1=d1Vector[i],
 #'                               y0=y0Vector[i], y1=y1Vector[i])
 #'   oMinEVector[i] <- tempResult[["oMinE"]]
 #'   varVector[i] <- tempResult[["v"]]
@@ -585,7 +548,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 #'
 #' sum(oMinEVector)/sqrt(sum(varVector))
 #'
-logrankSingle <- function(d0, d1, y0, y1, ...) {
+logrankSingleZ <- function(d0, d1, y0, y1, ...) {
   dTotal <- d0 + d1
   yTotal <- y0 + y1
 
@@ -604,8 +567,62 @@ logrankSingle <- function(d0, d1, y0, y1, ...) {
   return(result)
 }
 
+#' Helper function computes single component of the exact logrank e-value
+#'
+#' @param d0 integer, number of observations in the control group.
+#' @param d1 integer, number of observations in the treatment group.
+#' @param y0 integer, total number of participants in the control group.
+#' @param y1 integer, total number of participants in the treatment group.
+#' @param y1 integer, total number of participants in the treatment group.
+#' @param theta1 numeric > 0 represents the (GROW) alternative hypothesis obtained
+#' from \code{designSafeLogrank}.
+#' @param theta0 numeric > 0 represents the null hypothesis. Default theta0=1.
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return Returns a list containing at least the following components:
+#' \describe{
+#'   \item{logP0}{Log likelihood of Fisher's hypergeometric at the null}
+#'   \item{logEValueLess}{Log likelihood of Fisher's hypergeometric at the alternative}
+#'   \item{logEValueGreater}{Log likelihood of Fisher's hypergeometric at 1/alternative}
+#' }
+#' @export
+#'
+#' @examples
+#' #'
+#' y0Vector <- c(5, 4, 3, 3, 2, 1)
+#' y1Vector <- c(5, 5, 4, 2, 2, 0)
+#' d0Vector <- c(1, 1, 0, 1, 0, 1)
+#' d1Vector <- c(0, 0, 1, 0, 1, 0)
+#'
+#' logEValueGreater <- logEValueLess <- vector("numeric", length(y0Vector))
+#'
+#' for (i in seq_along(y0Vector)) {
+#'   tempResult <- logrankSingleEExact(d0=d0Vector[i], d1=d1Vector[i],
+#'                                     y0=y0Vector[i], y1=y1Vector[i],
+#'                                     theta1=0.7, theta0=1)
+#'   logEValueLess[i] <- tempResult[["logEValueLess"]]
+#'   logEValueGreater[i] <- tempResult[["logEValueGreater"]]
+#' }
+#'
+#' eValueLess <- exp(sum(logEValueLess))
+#' eValueLess #1.116161
+#' eValueGreater <- exp(sum(logEValueGreater))
+#' eValueGreater # 0.7665818
+#' eValue <- 1/2*eValueLess + 1/2*eValueGreater
+#' eValue # 0.9413714
+#'
+logrankSingleEExact <- function(d0, d1, y0, y1, theta1, theta0=1, ...) {
+  logP0 <- log(BiasedUrn::dFNCHypergeo(x=d1, m1=y1, m2=y0, n=d0+d1, odds=theta0))
+  logPLess <- log(BiasedUrn::dFNCHypergeo(x=d1, m1=y1, m2=y0, n=d0+d1, odds=theta1))
+  logEValueLess <- logPLess-logP0
+  logPGreater <- log(BiasedUrn::dFNCHypergeo(x=d1, m1=y1, m2=y0, n=d0+d1, odds=1/theta1))
+  logEValueGreater <- logPGreater-logP0
 
-#' Computes the sufficient statistics needed to compute logrankSingle
+  result <- list("logP0"=logP0, "logEValueLess"=logEValueLess, "logEValueGreater"=logEValueGreater)
+  return(result)
+}
+
+#' Computes the sufficient statistics needed to compute logrankSingleZ
 #'
 #' @param survDataFrame a Surv object converted to a matrix, then to a data.frame
 #' @param y0Index vector of integers corresponding to the control group
@@ -680,6 +697,14 @@ computeStatsForLogrank <- function(survDataFrame, y0Index, y1Index, timeNow, tim
 #'
 #' @param survObj a Surv object that is either of type
 #' @param group a grouping factor with 2 levels
+#' @param computeZ logical. If \code{TRUE} computes the logrank z-statistic.
+#' Default is \code{TRUE}.
+#' @param computeExactE logical. If \code{TRUE} computes one-sided exact logrank e-value.
+#' Default is \code{FALSE}.
+#' @param theta0 numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
+#' Default is 1.
+#' @param theta1 numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
+#' Default is NULL.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a list containing at least the following components:
@@ -708,11 +733,18 @@ computeStatsForLogrank <- function(survDataFrame, y0Index, y1Index, timeNow, tim
 #' result <- computeLogrankZ(survObj, data$group)
 #' result$z
 #' sqrt(survival::survdiff(survObj~data$group)$chisq)
-computeLogrankZ <- function(survObj, group, ...) {
-  result <- list(nEvents=NULL, z=NULL, oMinEVector=NULL,
-                 varVector=NULL, stopTimeVector=NULL)
+computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
+                            theta0=1, theta1=NULL, ...) {
+  result <- list()
 
-  # Note(Alexander): Get group label information
+  # Check exact requirements -----
+  #
+  if (computeExactE)
+    if (is.null(theta1))
+      stop("Can't compute exact E-value without a designed alternative.",
+           "Please check designSafeLogrank.")
+
+  # Get group label info -----
   #
   groupElements <- unique(group)
 
@@ -733,16 +765,11 @@ computeLogrankZ <- function(survObj, group, ...) {
                       "right"="time",
                       "counting"="stop")
 
-  # survObj <- survival::aeqSurv(survObj)
-
   survDataFrame <- as.data.frame(as.matrix(survObj))
   survDataFrame[["group"]] <- group
 
-  # TODO(Alexander): This is probably tricky when status is also right
-  #
   stopTimeIndeces <- which(survDataFrame[["status"]]==1)
 
-  # Note(Alexander): Coin provides two numbers for each group one
   nEvents <- length(stopTimeIndeces)
 
   stopTimeVector <- unique(survDataFrame[[timeLabel]][stopTimeIndeces])
@@ -750,18 +777,29 @@ computeLogrankZ <- function(survObj, group, ...) {
 
   lengthStopTime <- length(stopTimeVector)
 
-  # TODO(Alexander): Add stash check for old time and subset
+  # Init: Resultvectors ----
   #
+  varVector <- oMinEVector <- logEValueGreater <- logEValueLess <- logP0 <- NULL
+
   if (lengthStopTime > 0) {
-    varVector <- oMinEVector <- rep(NA, length = lengthStopTime)
+    y0Vector <- y1Vector <- d0Vector <- d1Vector <- rep(NA, length = lengthStopTime)
+
+    if (computeZ)
+      varVector <- oMinEVector <- rep(NA, length = lengthStopTime)
+
+    if (computeExactE)
+      logEValueGreater <- logEValueLess <- logP0 <- rep(NA, length = lengthStopTime)
+
     timeBeforeVector <- c(0, stopTimeVector[1:(lengthStopTime-1)])
   } else {
-    # TODO(Alexander)
-    # warning("No observations")
-    result <- list(n=0, z=0, oMinEVector=NULL, varVector=NULL, stopTimeVector=NULL)
+    warning("No events")
+    result <- list(n=0, z=0, oMinEVector=NULL, varVector=NULL, stopTimeVector=NULL,
+                   y0Vector=NULL, y1Vector=NULL, d0Vector=NULL, d1Vector=NULL)
     return(result)
   }
 
+  # Loop data -----
+  #
   if (survType=="counting") {
     for (i in seq_along(stopTimeVector)) {
       timeNow <- stopTimeVector[i]
@@ -778,10 +816,26 @@ computeLogrankZ <- function(survObj, group, ...) {
                                           "timeNow"=timeNow,
                                           "timeBefore"=timeBefore,
                                           "survType"="counting")
-      tempResult <- do.call(logrankSingle, tempStats)
 
-      oMinEVector[i] <- tempResult[["oMinE"]]
-      varVector[i] <- tempResult[["v"]]
+      y0Vector[i] <- tempStats[["y0"]]
+      y1Vector[i] <- tempStats[["y1"]]
+      d0Vector[i] <- tempStats[["d0"]]
+      d1Vector[i] <- tempStats[["d1"]]
+
+      if (computeZ) {
+        tempResult <- do.call(logrankSingleZ, tempStats)
+        oMinEVector[i] <- tempResult[["oMinE"]]
+        varVector[i] <- tempResult[["v"]]
+      }
+
+      if (computeExactE) {
+        tempResult <- logrankSingleEExact(d0=tempStats[["d0"]], d1=tempStats[["d1"]],
+                                          y0=tempStats[["y0"]], y1=tempStats[["y1"]],
+                                          theta0=theta0, theta1=theta1)
+        logP0[i] <- tempResult[["logP0"]]
+        logEValueLess[i] <- tempResult[["logEValueLess"]]
+        logEValueGreater[i] <- tempResult[["logEValueGreater"]]
+      }
     }
   } else if (survType=="right") {
     y0Index <- which(survDataFrame[["group"]]==groupLabel0)
@@ -797,20 +851,48 @@ computeLogrankZ <- function(survObj, group, ...) {
                                           "timeNow"=timeNow,
                                           "timeBefore"=timeBefore,
                                           "survType"="right")
-      tempResult <- do.call(logrankSingle, tempStats)
+      y0Vector[i] <- tempStats[["y0"]]
+      y1Vector[i] <- tempStats[["y1"]]
+      d0Vector[i] <- tempStats[["d0"]]
+      d1Vector[i] <- tempStats[["d1"]]
 
-      oMinEVector[i] <- tempResult[["oMinE"]]
-      varVector[i] <- tempResult[["v"]]
+      if (computeZ) {
+        tempResult <- do.call(logrankSingleZ, tempStats)
+        oMinEVector[i] <- tempResult[["oMinE"]]
+        varVector[i] <- tempResult[["v"]]
+      }
+
+      if (computeExactE) {
+        tempResult <- logrankSingleEExact(d0=tempStats[["d0"]], d1=tempStats[["d1"]],
+                                          y0=tempStats[["y0"]], y1=tempStats[["y1"]],
+                                          theta0=theta0, theta1=theta1)
+        logP0[i] <- tempResult[["logP0"]]
+        logEValueLess[i] <- tempResult[["logEValueLess"]]
+        logEValueGreater[i] <- tempResult[["logEValueGreater"]]
+      }
     }
   } else {
     stop("Currently, only Surv type of 'right', and 'counting' (left truncated and right censored) supported")
   }
 
-  sumOMinE <- sum(oMinEVector)
-  sumVarOMinE <- sum(varVector)
-
-  result <- list("nEvents"=nEvents, "z"=sumOMinE/sqrt(sumVarOMinE),
+  # Return results -----
+  #
+  result <- list("nEvents"=nEvents, "stopTimeVector"=stopTimeVector,
+                 "y0Vector"=y0Vector, "y1Vector"=y1Vector,
+                 "d0Vector"=d0Vector, "d1Vector"=d1Vector,
+                 "z"=NULL, "sumOMinE"=NULL, "sumVarOMinE"=NULL,
                  "oMinEVector"=oMinEVector, "varVector"=varVector,
-                 "sumOMinE"=sumOMinE, "sumVarOMinE"=sumVarOMinE,
-                 "stopTimeVector"=stopTimeVector)
+                 "logP0"=logP0, "logEValueLess"=logEValueLess,
+                 "logEValueGreater"=logEValueGreater)
+
+  if (computeZ) {
+    sumOMinE <- sum(oMinEVector)
+    sumVarOMinE <- sum(varVector)
+
+    result[["sumOMinE"]] <- sumOMinE
+    result[["sumVarOMinE"]] <- sumVarOMinE
+    result[["z"]] <- sumOMinE/sqrt(sumVarOMinE)
+  }
+
+  return(result)
 }

@@ -5,12 +5,32 @@
 \title{Helper function to computes the logrank statistic for Surv objects of type
 "right" and "counting" with the hypergeometric variance.}
 \usage{
-computeLogrankZ(survObj, group, ...)
+computeLogrankZ(
+  survObj,
+  group,
+  computeZ = TRUE,
+  computeExactE = FALSE,
+  theta0 = 1,
+  theta1 = NULL,
+  ...
+)
 }
 \arguments{
 \item{survObj}{a Surv object that is either of type}
 
 \item{group}{a grouping factor with 2 levels}
+
+\item{computeZ}{logical. If \code{TRUE} computes the logrank z-statistic.
+Default is \code{TRUE}.}
+
+\item{computeExactE}{logical. If \code{TRUE} computes one-sided exact logrank e-value.
+Default is \code{FALSE}.}
+
+\item{theta0}{numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
+Default is 1.}
+
+\item{theta1}{numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
+Default is NULL.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
