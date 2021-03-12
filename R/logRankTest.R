@@ -263,7 +263,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
   #
   # if (exact) {
   #   sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
-  #                               "computeZ"=FALSE, "computeExact" =TRUE,
+  #                               "computeZ"=FALSE, "computeExactE" =TRUE,
   #                               "theta0"=h0, "theta1"=theta1)
   # } else {
   #   if (survType=="right") {
@@ -277,7 +277,7 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
   # }
 
   sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
-                              "computeZ"=computeZ, "computeExact" =exact,
+                              "computeZ"=computeZ, "computeExactE" =exact,
                               "theta0"=h0, "theta1"=theta1)
   nEvents <- sumStats[["nEvents"]]
 
@@ -344,8 +344,6 @@ safeLogrankTest <- function(formula, designObj=NULL, h0=1, ciValue=0.95, data=NU
     names(result[["statistic"]]) <- "z"
   }
 
-  # Return results ----
-  #
   names(result[["n"]]) <- "nEvents"
   result[["designObj"]] <- designObj
   result[["sumStats"]] <- sumStats
