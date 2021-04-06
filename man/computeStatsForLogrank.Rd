@@ -32,8 +32,8 @@ computeStatsForLogrank(
 \value{
 Returns a list containing at least the following components:
 \describe{
-  \item{d0}{number of observations in the control group.}
-  \item{d1}{number of observations in the treatment group.}
+  \item{obs0}{number of observations in the control group.}
+  \item{obs1}{number of observations in the treatment group.}
   \item{y0}{total number of participants in the control group.}
   \item{y1}{total number of participants in the treatment group.}#'
 }

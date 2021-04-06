@@ -4,12 +4,12 @@
 \alias{logrankSingleEExact}
 \title{Helper function computes single component of the exact logrank e-value}
 \usage{
-logrankSingleEExact(d0, d1, y0, y1, theta1, theta0 = 1, ...)
+logrankSingleEExact(obs0, obs1, y0, y1, theta1, theta0 = 1, ...)
 }
 \arguments{
-\item{d0}{integer, number of observations in the control group.}
+\item{obs0}{integer, number of observations in the control group.}
 
-\item{d1}{integer, number of observations in the treatment group.}
+\item{obs1}{integer, number of observations in the treatment group.}
 
 \item{y0}{integer, total number of participants in the control group.}
 
@@ -37,13 +37,13 @@ Helper function computes single component of the exact logrank e-value
 #'
 y0Vector <- c(5, 4, 3, 3, 2, 1)
 y1Vector <- c(5, 5, 4, 2, 2, 0)
-d0Vector <- c(1, 1, 0, 1, 0, 1)
-d1Vector <- c(0, 0, 1, 0, 1, 0)
+obs0Vector <- c(1, 1, 0, 1, 0, 1)
+obs1Vector <- c(0, 0, 1, 0, 1, 0)
 
 logEValueGreater <- logEValueLess <- vector("numeric", length(y0Vector))
 
 for (i in seq_along(y0Vector)) {
-  tempResult <- logrankSingleEExact(d0=d0Vector[i], d1=d1Vector[i],
+  tempResult <- logrankSingleEExact(obs0=obs0Vector[i], obs1=obs1Vector[i],
                                     y0=y0Vector[i], y1=y1Vector[i],
                                     theta1=0.7, theta0=1)
   logEValueLess[i] <- tempResult[["logEValueLess"]]
