@@ -80,19 +80,11 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #' @param y an optional (non-empty) numeric vector of data values.
 #' @param paired a logical indicating whether you want the paired z-test.
 #' @param designObj an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.
-#' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the observed
-#' number of samples is exactly as planned, and a pilot design object is constructed.
-#' @param h0 a numeric only used if pilot equals \code{TRUE} and represents the hypothesised true value
-#' of the (differences of the) mean(s) under the null. Default 0. If pilot equals \code{FALSE}, then the h0 of the
-#' design object is used instead.
-#' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-#' the design object is used instead in constructing the decision rule S > 1/alpha.
+#' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
+#' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+#' To change these default values, please use \code{\link{designSafeZ}}.
 #' @param ciValue numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the ciValue of
 #' the design object is used to derive the level of the confidence sequence.
-#' @param sigma numeric > 0 only used if pilot equals \code{TRUE}, which is then used to construct the design objects.
-#' If pilot equals \code{FALSE} the sigma specified by the design object is used instead.
-#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-#' alternative specified by the design object is used instead.
 #' @param tol numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
 #' defining parameter to construct a pilot design object.
 #' @param ... further arguments to be passed to or from methods.
@@ -129,8 +121,7 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'
 #' safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 7.7543e+20 > 1/alpha
 safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
-                      pilot=FALSE, h0=0, alpha=NULL, ciValue=NULL, sigma=NULL,
-                      alternative=NULL, tol=1e-05, ...) {
+                      pilot=FALSE, ciValue=NULL, tol=1e-05, ...) {
 
   result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "testType"=NULL, "dataName"=NULL, "h0"=NULL, "sigma"=NULL, "call"=sys.call())
@@ -141,8 +132,6 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
          "A design object can be obtained by running designSafeZ().")
 
   if (!is.null(designObj)) {
-    checkDoubleArgumentsDesignObject(designObj, "alternative"=alternative, "alpha"=alpha, "sigma"=sigma)
-
     if (names(designObj[["parameter"]]) != "phiS")
       warning("The provided design is not constructed for the z-test,",
               "please use designSafeZ() instead. The test results might be invalid.")
@@ -183,23 +172,19 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   }
 
   if (pilot) {
-    if (is.null(alternative))
+    if (is.null(designObj)) {
       alternative <- "two.sided"
-    else {
-      if (!(alternative %in% c("two.sided", "greater", "less")))
-        stop('Provided alternative must be one of "two.sided", "greater", or "less".')
-    }
-
-    if (is.null(alpha))
       alpha <- 0.05
-
-    if (is.null(sigma))
       sigma <- 1
 
-    nPlan <- if (is.null(n2)) n1 else c(n1, n2)
-    designObj <- designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative,
-                                  "sigma"=sigma, "paired"=paired, "tol"=tol)
-    designObj[["pilot"]] <- TRUE
+      nPlan <- if (is.null(n2)) n1 else c(n1, n2)
+      designObj <- designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative,
+                                    "sigma"=sigma, "paired"=paired, "tol"=tol)
+      designObj[["pilot"]] <- TRUE
+    } else {
+      warning("The pilot flag is ignored, since a designObj is given",
+              "The analysis will be run based on the designObj.")
+    }
   }
 
   alpha <- designObj[["alpha"]]
@@ -261,13 +246,11 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' @rdname safeZTest
 #'
 #' @export
-safe.z.test <- function(x, y=NULL, h0=0, paired=FALSE, designObj=NULL,
-                        pilot=FALSE, alpha=0.05, sigma=1,
-                        alternative=c("two.sided", "greater", "less"),
-                        tol=1e-05, ...) {
+safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
+                        pilot=FALSE, tol=1e-05, ...) {
   alternative <- match.arg(alternative)
-  result <- safeZTest("x"=x, "y"=y, "designObj"=designObj, "alternative"=alternative, "h0"=h0,
-                      "paired"=paired, "sigma"=sigma, "pilot"=pilot, "alpha"=alpha, ...)
+  result <- safeZTest("x"=x, "y"=y, "designObj"=designObj,
+                      "paired"=paired, "pilot"=pilot, ...)
   argumentNames <- getArgs()
 
   xLabel <- extractNameFromArgs(argumentNames, "x")
@@ -1026,6 +1009,7 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigm
 #' Helper function: Computes the safe confidence sequence for a z-test
 #'
 #' @inheritParams safeZTest
+#' @inheritParams designSafeZ
 #' @param nEff numeric > 0, the effective sample size
 #' @param meanStat numeric, the mean statistic, this could be the differences of means as well
 #' @param phiS numeric > 0, the safe test defining parameter
