@@ -8,14 +8,11 @@
 safeLogrankTest(
   formula,
   designObj = NULL,
-  h0 = 1,
   ciValue = 0.95,
   data = NULL,
   survTime = NULL,
   group = NULL,
   pilot = FALSE,
-  alpha = NULL,
-  alternative = NULL,
   exact = FALSE,
   ...
 )
@@ -36,8 +33,6 @@ see \code{\link[survival]{Surv}} for more details.}
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
-\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
-
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 
 \item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
@@ -50,13 +45,8 @@ set to \code{NULL} by default.}
 if a formula is provided, therefore set to \code{NULL} by default.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned.}
-
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
-
-\item{alternative}{a character string only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+To change these default values, please use \code{\link{designSafeLogrank}}.}
 
 \item{exact}{a logical indicating whether the exact safe logrank test needs to be performed based on
 the hypergeometric likelihood}
@@ -66,6 +56,9 @@ the hypergeometric likelihood}
 \item{z}{numeric representing the observed z statistic.}
 
 \item{nEvents}{numeric > 0, observed number of events.}
+
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+"greater" or "less".}
 
 \item{dataNull}{numeric > 0, the null hypothesis corresponding to the z statistics.
 By default dataNull = 1 representing}
@@ -86,7 +79,7 @@ following components:
   \item{testType}{"logrank".}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}
-  \item{logrankObj}{an object obtained from \code{\link[coin]{logrank_test}}.}
+  \item{sumStats}{a list containing.the time of events, the progression of the risk sets and events.}
   \item{call}{the expression with which this function is called.}
 }
 
@@ -94,8 +87,7 @@ following components:
 }
 \description{
 A safe test to test whether there is a difference between two survival curves. This function
-builds on the Mantel-Cox version of the logrank test computed with \code{\link[survival]{survdiff}}
-and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
+builds on the Mantel-Cox version of the logrank test.
 }
 \section{Functions}{
 \itemize{
