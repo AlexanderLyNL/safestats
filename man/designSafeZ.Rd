@@ -8,8 +8,10 @@ designSafeZ(
   meanDiffMin = NULL,
   beta = NULL,
   nPlan = NULL,
-  alternative = c("two.sided", "greater", "less"),
   alpha = 0.05,
+  h0 = 0,
+  ciValue = 0.95,
+  alternative = c("two.sided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
@@ -32,11 +34,15 @@ and "phiS". Note that 1-beta defines the power.}
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less".}
-
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+
+\item{h0}{numeric, represents the null hypothesis, default h0=0.}
+
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
+
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+"greater" or "less".}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 

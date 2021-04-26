@@ -2,20 +2,29 @@
 % Please edit documentation in R/logRankTest.R
 \name{safeLogrankTest}
 \alias{safeLogrankTest}
+\alias{safeLogrankTestStat}
 \title{Safe Logrank Test}
 \usage{
 safeLogrankTest(
   formula,
   designObj = NULL,
-  h0 = 1,
+  ciValue = 0.95,
   data = NULL,
   survTime = NULL,
   group = NULL,
   pilot = FALSE,
-  alpha = NULL,
-  alternative = NULL,
   exact = FALSE,
   ...
+)
+
+safeLogrankTestStat(
+  z,
+  nEvents,
+  designObj,
+  ciValue = 0.95,
+  alternative = c("two.sided", "greater", "less"),
+  dataNull = 1,
+  sigma = 1
 )
 }
 \arguments{
@@ -24,7 +33,7 @@ see \code{\link[survival]{Surv}} for more details.}
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
-\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 
 \item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
 
@@ -36,18 +45,25 @@ set to \code{NULL} by default.}
 if a formula is provided, therefore set to \code{NULL} by default.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned.}
-
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
-
-\item{alternative}{a character string only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+To change these default values, please use \code{\link{designSafeLogrank}}.}
 
 \item{exact}{a logical indicating whether the exact safe logrank test needs to be performed based on
 the hypergeometric likelihood}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{z}{numeric representing the observed z statistic.}
+
+\item{nEvents}{numeric > 0, observed number of events.}
+
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+"greater" or "less".}
+
+\item{dataNull}{numeric > 0, the null hypothesis corresponding to the z statistics.
+By default dataNull = 1 representing}
+
+\item{sigma}{numeric > 0, scaling in the data}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -63,15 +79,24 @@ following components:
   \item{testType}{"logrank".}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}
-  \item{logrankObj}{an object obtained from \code{\link[coin]{logrank_test}}.}
+  \item{sumStats}{a list containing.the time of events, the progression of the risk sets and events.}
   \item{call}{the expression with which this function is called.}
 }
+
+
 }
 \description{
 A safe test to test whether there is a difference between two survival curves. This function
-builds on the Mantel-Cox version of the logrank test computed with \code{\link[survival]{survdiff}}
-and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
+builds on the Mantel-Cox version of the logrank test.
 }
+\section{Functions}{
+\itemize{
+\item \code{safeLogrankTestStat}: Safe Logrank Test based on Summary Statistic Z
+All provided data (i.e., z-scores) are assumed to be centred on a hazard ratio = 1, thus, log(hr) = 0 ,
+and the proper (e.g., hypergeometric) scaling is applied to the data, so sigma = 1. The null hypothesis
+in the design object pertains to the population and is allowed to differ from log(theta) = 0.
+}}
+
 \examples{
 # Example taken from survival::survdiff
 designObj <- designSafeLogrank(hrMin=1/2)
@@ -98,4 +123,66 @@ safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
 
 safeLogrankTest(survTime=survival::Surv(callaert$time),
                 group=callaert$group, designObj = designObj)
+
+# Example with left trunctation due to Judith ter Schure
+
+enrollment <- 10     # 5 treatment, 5 placebo
+lambdaC <- 0.03943723
+hr1 <- 0.5           # hazard ratio between treatment en placebo group
+fup <- 40            # folow up of 40 days
+data <- generateSurvData(nP = 5,
+                         nT = 5,
+                         lambdaP = lambdaC,
+                         lambdaT = hr1*lambdaC,
+                         endTime = fup,
+                         seed = 2006)
+
+# Add different time of randomisation
+dateRandStart <- as.Date("2020-05-04")
+dateRandEnd <- as.Date("2020-05-15")
+
+set.seed(2005)
+data$"dateRand" <- sample(seq.Date(from = dateRandStart, to = dateRandEnd, by = "day"),
+                          size = enrollment, replace = TRUE)
+data$"dateEvent/LastFup" <- as.Date(data$dateRand + data$time)
+data$"dateLastFup" <- as.Date("2020-06-15")
+data$"participantID" <- 1:nrow(data)
+data$"participantID"[order(data$"dateRand")] <- 1:nrow(data)
+data <- data[order(data$"dateRand"), ]
+data$time <- data$"dateEvent/LastFup" - dateRandStart
+
+# Add additional complication with multiple events at the same time
+data$"dateEvent/LastFup"[data$participantID == 3] <-
+  data$"dateEvent/LastFup"[data$participantID == 5]
+data$time[data$participantID == 3] <-
+  data$"dateEvent/LastFup"[data$participantID == 3] - dateRandStart
+data$dateRand[data$participantID == 3] <-
+  data$"dateEvent/LastFup"[data$participantID == 3] -
+  data$time[data$participantID == 3]
+
+# Interim analyses events 1 to 4
+
+handResult <- c(-0.8164966, -1.4882057, -0.772088, -0.7502141)
+#'
+for (i in 1:4) {
+  calDate <- sort(data$"dateEvent/LastFup")[i]
+
+  dataSoFar <- data[data$dateRand < calDate, ]
+  dataSoFar$dateLastFup <- calDate
+  dataSoFar$time <- pmin(dataSoFar$time, calDate - dateRandStart)
+  dataSoFar$status[dataSoFar$"dateEvent/LastFup" > calDate] <- 1
+  survObj <- survival::Surv(time = dataSoFar$dateRand - dateRandStart,
+                            time2 = dataSoFar$time,
+                            event = dataSoFar$status,
+                            type = "counting")
+
+  interimResult <- safeLogrankTest(survObj ~ dataSoFar$group, designObj = designObj)
+  interimResult
+
+# Compare logrank score to calculations by hand
+  localTest <- round(interimResult$statistic - handResult[i], 7) == 0
+
+  if (!localTest)
+    stop("Computation of the left-truncated logrank z-score is wrong")
+}
 }

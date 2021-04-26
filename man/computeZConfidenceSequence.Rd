@@ -9,7 +9,7 @@ computeZConfidenceSequence(
   meanStat,
   phiS,
   sigma = 1,
-  alpha = 0.05,
+  ciValue = 0.95,
   alternative = "two.sided",
   a = NULL,
   g = NULL
@@ -22,14 +22,12 @@ computeZConfidenceSequence(
 
 \item{phiS}{numeric > 0, the safe test defining parameter}
 
-\item{sigma}{numeric > 0 only used if pilot equals \code{TRUE}, which is then used to construct the design objects.
-If pilot equals \code{FALSE} the sigma specified by the design object is used instead.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+"greater" or "less".}
 
 \item{a}{numeric, the centre of the normal prior on population mean (of the normal data). Default
 is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis}

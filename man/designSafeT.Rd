@@ -9,8 +9,9 @@ designSafeT(
   alpha = 0.05,
   beta = 0.2,
   alternative = c("two.sided", "greater", "less"),
-  h0 = 0,
   nPlan = NULL,
+  h0 = 0,
+  ciValue = 0.95,
   lowN = 3L,
   highN = 100L,
   lowParam = 0.01,
@@ -35,9 +36,11 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
+\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+
 \item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
-\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 
 \item{lowN}{integer that defines the smallest n of our search space for n.}
 

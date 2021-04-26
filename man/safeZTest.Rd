@@ -8,13 +8,10 @@
 safeZTest(
   x,
   y = NULL,
-  h0 = 0,
   paired = FALSE,
   designObj = NULL,
   pilot = FALSE,
-  alpha = NULL,
-  sigma = NULL,
-  alternative = NULL,
+  ciValue = NULL,
   tol = 1e-05,
   ...
 )
@@ -22,13 +19,9 @@ safeZTest(
 safe.z.test(
   x,
   y = NULL,
-  h0 = 0,
   paired = FALSE,
   designObj = NULL,
   pilot = FALSE,
-  alpha = 0.05,
-  sigma = 1,
-  alternative = c("two.sided", "greater", "less"),
   tol = 1e-05,
   ...
 )
@@ -38,24 +31,16 @@ safe.z.test(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{h0}{a number indicating the hypothesised true value of the (differences of the) mean(s) under the null.
-Default 0}
-
 \item{paired}{a logical indicating whether you want the paired z-test.}
 
 \item{designObj}{an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
-\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the observed
-number of samples is exactly as planned, and a pilot design object is constructed.}
+\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
+samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+To change these default values, please use \code{\link{designSafeZ}}.}
 
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
-
-\item{sigma}{numeric > 0 only used if pilot equals \code{TRUE}, which is then used to construct the design objects.
-If pilot equals \code{FALSE} the sigma specified by the design object is used instead.}
-
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+\item{ciValue}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the ciValue of
+the design object is used to derive the level of the confidence sequence.}
 
 \item{tol}{numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
 defining parameter to construct a pilot design object.}

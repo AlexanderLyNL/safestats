@@ -12,6 +12,7 @@ designFreqZ(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   sigma = 1,
+  h0 = 0,
   kappa = sigma,
   lowN = 3L,
   highN = 100L,
@@ -37,6 +38,8 @@ and "phiS". Note that 1-beta defines the power.}
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+
+\item{h0}{numeric, represents the null hypothesis, default h0=0.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
