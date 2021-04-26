@@ -16,10 +16,12 @@ print.safe2x2_result <- function(x, ...){
     cat("\n")
     cat(paste("    naPlan =", x[["na"]], "and nbPlan =", x[["nb"]]))
     cat("\n")
-    cat("to find an effect size of at least: ")
-    cat("\n")
-    cat("    deltaMin =", round5(x[["deltaMin"]]))
-    cat("\n")
+    if(!is.na(x[["deltaMin"]])){
+      cat("to find an effect size of at least: ")
+      cat("\n")
+      cat("    deltaMin =", round5(x[["deltaMin"]]))
+      cat("\n")
+    }
     cat("with:")
     cat("\n")
     cat("    power = ", 1 - x[["beta"]], " (thus, beta = ", x[["beta"]], ")", sep="")

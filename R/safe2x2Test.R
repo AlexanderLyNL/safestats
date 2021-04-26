@@ -225,7 +225,7 @@ perform_MC_simulations_for_each_data_generating_distribution <- function(H1.delt
 
       reject.S[m] <- s_value >= (1 / alpha)
     }
-    percent.reject.S[i] <- mean(reject.S)
+    percent.reject.S[i] <- mean(reject.S, na.rm = TRUE)
   }
   return(percent.reject.S)
 }
@@ -319,11 +319,25 @@ simulate_maximin_delta_and_power <- function(delta.min, na, nb, delta.stars, see
 designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "greater", "less"),
                                           alpha = 0.05, M = 100, deltaMins = seq(0.1, 0.9, 0.1),
                                           lowDelta = 0.1, highDelta = 0.8, tol = 0.1,
-                                          numberForSeed = NA) {
+                                          numberForSeed = NA, priorInfo = NA) {
   alternative <- match.arg(alternative)
   safe_2x2_design <- create_safe_2x2_design(list('na' = na, 'nb' = nb, 'pilot' = TRUE))
 
   delta.stars <- seq(lowDelta, highDelta, by = tol)
+
+  if(!any(is.na(priorInfo))){
+    #we have a point prior: design independent of n
+    H1set <- matrix(c(priorInfo[["h0"]], priorInfo[["RR"]]*priorInfo[["h0"]]),
+                    nrow = 1)
+    point_h0 <- (na*H1set[1,1]+nb*H1set[1,2])/(na+nb)
+    w1 <- 1
+    safe_2x2_design <- add_attributes(safe_2x2_design, list('point_h0' = point_h0,
+                                                            'H1set' = H1set,
+                                                            'w1' = w1,
+                                                            'call' = sys.call())
+    )
+    return(safe_2x2_design)
+  }
 
   #check if delta ump can be found analytically
   if (na == nb & alternative == "two.sided") {
@@ -408,6 +422,7 @@ designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "
 #'
 #' @param deltaMin numeric that defines the minimal absolute difference between the group means the
 #' safe test should be designed for, i.e. the minimal relevant difference we want to be able to detect.
+#' Can be left black if priorInfo provided.
 #' @param alpha numeric in (0, 1) that specifies the target type 1 error control --independent on n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha. Default
 #' \code{0.05}.
@@ -426,6 +441,9 @@ designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "
 #' @param tol a number that defines the stepsizes between the lowDelta and highDelta
 #' @param numberForSeed Optionally provide your own seed for the simulations.
 #' Default \code{NA}.
+#' @param priorInfo list with components $h0 and $RR, respectively a point null hypothesis and the
+#' minimum clinically relevant relative risk.
+#' @param stepSize step size taken while incrementing group sizes.
 #'
 #' @return Result object that can be used within \code{\link{safeTwoProportionsTest}}
 #' @export
@@ -433,10 +451,13 @@ designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "
 #' @examples
 #' designSafeTwoProportions(deltaMin = 0.7)
 #' designSafeTwoProportions(deltaMin = 0.7, sampleSizeRatio = 2, lowN = 30)
-designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
+#' #example with prior knowledge about point null hypothesis and minimum relative risk:
+#' res_precognition <- designSafeTwoProportions(stepSize = 100, priorInfo = list(h0 = 0.15, RR = 0.5))
+designSafeTwoProportions <- function(deltaMin = NA, alpha = 0.05, beta = 0.20,
                                      alternative = c("two.sided", "greater", "less"), M = 100,
                                      lowN = 20, highN = 200, sampleSizeRatio = 1,
-                                     lowDelta = 0.1, highDelta = 0.8, tol = 0.1, numberForSeed = NA) {
+                                     lowDelta = 0.1, highDelta = 0.8, tol = 0.1, numberForSeed = NA,
+                                     priorInfo = NA, stepSize = 1) {
 
   alternative <- match.arg(alternative)
 
@@ -458,8 +479,16 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
   n <- na + nb
 
   #for H1_delta.min, we want to test the power:
-  H1DeltaMin <- create_data_generating_distributions(deltaDesign = deltaMin, alternative = alternative,
-                                                     length.out = 5)
+  if(!any(is.na(priorInfo))){
+    #sampling from a point alternative hypothesis of interest
+    H1DeltaMin <- matrix(c(priorInfo[["h0"]], priorInfo[["RR"]]*priorInfo[["h0"]]),
+                         nrow = 1)
+    #do not need to try different deltas: one best S.
+    deltas <- 1
+  } else {
+    H1DeltaMin <- create_data_generating_distributions(deltaDesign = deltaMin, alternative = alternative,
+                                                       length.out = 5)
+  }
 
   notreached <- TRUE
 
@@ -473,7 +502,7 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
 
   while (notreached & (n < highN)) {
     #increment the group sizes
-    nGroups <- nGroups + 1
+    nGroups <- nGroups + stepSize
     na <- nGroups
     nb <- sampleSizeRatio*nGroups
     if(nb %%1 != 0){
@@ -487,7 +516,7 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
     #if na = nb and we are testing twosided we only need to test the delta ump,
     #since this is then known analytically
 
-    if (na == nb & alternative == "two.sided") {
+    if (na == nb & alternative == "two.sided" & any(is.na(priorInfo))) {
       delta.ump <- get_delta_ump_analytically(n = na + nb, alpha = alpha,
                                               lower = 0.1, upper = 0.9)
 
@@ -500,29 +529,42 @@ designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
     for (j in 1:length(deltas)) {
       delta <- deltas[j]
 
-      #construct parameters to use in the S-test
-      if (alternative == "two.sided") {
-        if (na == nb) {
-          H1set <- create_h1_set_equal_group_sizes(delta)
-          w1 <- c(0.5, 0.5)
-          point_h0 <- 0.5
-        } else {
-          H1set <- create_h1_set_unequal_group_sizes(delta, na = na, nb = nb)
-          w1 <- c(0.5, 0.5)
-          point_h0 <- 0.5
-        }
-      } else {
-        #if alternative is greater, feed negative delta to create point h1 and h0
-        delta_design <- ifelse(alternative == "greater", -delta, delta)
-        point_H1_and_H0 <- create_point_h1_and_h0_one_sided(delta = delta_design, na = na, nb = nb)
-
-        if (any(is.na(point_H1_and_H0))) {
-          next
-        }
-
-        H1set <- point_H1_and_H0$H1set
+      if(!any(is.na(priorInfo))){
+        #prior knowledge on theta_a: construct simple S
+        H1set <- matrix(c(priorInfo[["h0"]], priorInfo[["RR"]]*priorInfo[["h0"]]),
+                        nrow = 1)
+        point_h0 <- (na*H1set[1,1]+nb*H1set[1,2])/(na+nb)
         w1 <- 1
-        point_h0 <- point_H1_and_H0$point_h0
+      } else {
+        #construct parameters to use in the S-test
+        if (alternative == "two.sided") {
+          if (na == nb) {
+            H1set <- create_h1_set_equal_group_sizes(delta)
+            w1 <- c(0.5, 0.5)
+            point_h0 <- 0.5
+          } else {
+            H1set <- create_h1_set_unequal_group_sizes(delta, na = na, nb = nb)
+            w1 <- c(0.5, 0.5)
+            point_h0 <- 0.5
+          }
+        } else {
+          #if alternative is greater, feed negative delta to create point h1 and h0
+          delta_design <- ifelse(alternative == "greater", -delta, delta)
+          point_H1_and_H0 <- create_point_h1_and_h0_one_sided(delta = delta_design, na = na, nb = nb)
+
+          if (any(is.na(point_H1_and_H0))) {
+            next
+          }
+
+          H1set <- point_H1_and_H0$H1set
+          w1 <- 1
+          point_h0 <- point_H1_and_H0$point_h0
+        }
+      }
+
+      #check if parameters valid, between 0 and 1
+      if(any(H1set <= 0) | any(H1set >=  1)){
+        next
       }
 
       percent.reject.S <-
@@ -1010,7 +1052,6 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
         na <- 1:na.max
         nb <- 1:nb.max
 
-        # TODO(Rosanne): Function factory zoals boven
         na1 <- sapply(1:na.max, function(n.cur) {sum(a.sample[1:n.cur])})
         nb1 <- sapply(1:nb.max, function(n.cur) {sum(b.sample[1:n.cur])})
 
