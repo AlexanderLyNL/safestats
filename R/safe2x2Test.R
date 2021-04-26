@@ -1,5 +1,5 @@
-create_empty_safe_2x2_design <- function() {
-  new_safe_2x2_design <- list(
+createEmptySafe2x2Design <- function() {
+  newSafe2x2Design <- list(
     'delta.star' = NA,
     'na' = NA,
     'nb' = NA,
@@ -10,8 +10,8 @@ create_empty_safe_2x2_design <- function() {
     'pilot' = NA
   )
 
-  class(new_safe_2x2_design) <- "safe2x2_result"
-  return(new_safe_2x2_design)
+  class(newSafe2x2Design) <- "safe2x2_result"
+  return(newSafe2x2Design)
 }
 
 add_attributes <- function(object, attributes_defined) {
@@ -21,42 +21,10 @@ add_attributes <- function(object, attributes_defined) {
 
 create_safe_2x2_design <- function(attributes_defined) {
   stopifnot(is.list(attributes_defined))
-  safe_2x2_design <- create_empty_safe_2x2_design()
+  safe_2x2_design <- createEmptySafe2x2Design()
   safe_2x2_design <- add_attributes(safe_2x2_design, attributes_defined)
   return(safe_2x2_design)
 }
-
-#finds the greatest common divisor of two integers a and b
-#returns this as 'n.iter'
-#together with a/n.iter and b/n.iter
-# findGreatestCommonDivisor <- function(a, b) {
-#   imax <- 100
-#
-#   for (i in 1:imax) {
-#     ratio <- i * a / b
-#     if (abs(round(ratio) - ratio) < 1e-8) {
-#       a.iter <- ratio
-#       b.iter <- i
-#       n.iter <- a / ratio
-#       break
-#     }
-#   }
-#
-#   if (!exists("a.iter")) {
-#     #no greatest common divisor has been found
-#     a.iter <- a
-#     b.iter <- b
-#     n.iter <- 1
-#   }
-#
-#   return(
-#     list(
-#       'a.iter' = a.iter,
-#       'b.iter' = b.iter,
-#       'n.iter' = n.iter
-#     )
-#   )
-# }
 
 #helper function for finding adjustment phi to simple S
 #for case of unequal group sizes
@@ -67,15 +35,14 @@ GetExpectedCapitalGrowthSimpleSWithAdjustment <- function(transl, H1set.neutral,
   H1set.transl <-
     H1set.neutral + rbind(rep(transl, 2), rep(-transl, 2))
 
-  # TODO(Rosanne): Zou je dit kunnen controleren en een betere naam kunnen geven?
-  helpFunc <- function(h) {
+  calculateMarginalAlternative <- function(h) {
     result <- exp((n.grid[, 1]) * log(h[1]) + (na - n.grid[, 1]) * log(1 - h[1]) +
                     (n.grid[, 2]) * log(h[2]) + (nb - n.grid[, 2]) * log(1 - h[2])
     )
     return(result)
   }
 
-  pbar1 <- c(0.5, 0.5) %*% t(apply(H1set.transl, 1, helpFunc))
+  pbar1 <- c(0.5, 0.5) %*% t(apply(H1set.transl, 1, calculateMarginalAlternative))
   return(sum(binom.coef * pbar1 * log(pbar1 / pbar0)))
 }
 
@@ -185,9 +152,8 @@ create_h1_set_unequal_group_sizes <- function(delta_ump, na, nb) {
   pbar0 <- 0.5 ^ (na + nb)
   n.grid <- expand.grid(0:na, 0:nb)
 
-  # TODO(Rosanne): Misschien is het robuster als je lchoose gebruikt en de twee termen optelt.
   binom.coef <- apply(n.grid, 1, function(nc) {
-    return(choose(na, nc[1]) * choose(nb, nc[2]))
+    return(exp(lchoose(na, nc[1]) + lchoose(nb, nc[2])))
   })
 
   H1set.neutral <- create_h1_set_equal_group_sizes(delta_ump)
@@ -284,7 +250,7 @@ simulate_maximin_delta_and_power <- function(delta.min, na, nb, delta.stars, see
       #if alternative is greater, feed negative delta to create point h1 and h0
       delta_design <- ifelse(alternative == "greater", -delta, delta)
       point_H1_and_H0 <- create_point_h1_and_h0_one_sided(delta = delta_design, na = na, nb = nb)
-      # TODO(Rosanne): Misschien is het beter om in functies [["H1set"]] te gebruiken
+
       H1set <- point_H1_and_H0[["H1set"]]
       w1 <- 1
       point_h0 <- point_H1_and_H0[["point_h0"]]
@@ -794,14 +760,13 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
     H1.deltamin <- create_data_generating_distributions(deltaDesign, alternative = "two.sided", length.out = 5)
 
     #condition for looping
-    # TODO(Rosanne): Hier heb TRUE van gemaakt. Klopt dat?
+    notSatisfied <- TRUE
 
-    not.satisfied <- TRUE
     n <- 20
     seed.time <- Sys.time()
 
     #case na=nb now
-    while (not.satisfied) {
+    while (notSatisfied) {
       n <- n + 2
       na <- nb <- n / 2
 
@@ -823,10 +788,8 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
           na1 <- sum(stats::rbinom(na, 1, mu.a))
           nb1 <- sum(stats::rbinom(nb, 1, mu.b))
 
-          # TODO(Rosanne): Dit heb ik uit elkaar getrokken. Klopt dit nog?
           somePValue <- stats::fisher.test(x = matrix(c(na - na1, na1, nb - nb1, nb1),
                                                       byrow = TRUE, nrow = 2))$p.value
-
           reject.F[m] <- somePValue <= alpha
         }
 
@@ -834,8 +797,7 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
       }
 
       if (min(percent.reject.F) >= power) {
-        # TODO(Rosanne): Hier heb ik FALSE van gemaakt klopt dat?
-        not.satisfied <- F
+        notSatisfied <- FALSE
       }
 
       if (n > highN) {
@@ -894,8 +856,8 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
         rejected[i] <- TRUE
         break
       }
-    } # TODO(Rosanne): Wat denk je van de volgende comment: End for loop over the first sample
-  } # TODO(Rosanne): Wat denk je van de volgende comment: End the number of iterations
+    } # End for loop over entries in one sample
+  } # End all simulation iterations
   close(pbar)
   if(makePlot == TRUE){
     graphics::hist(n.final, breaks = nDesign, xlim = c(0, max(n.final)), xlab = "n collected",
@@ -939,7 +901,7 @@ simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, p
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' plotSafeTwoProportionsSampleSizeProfile(alpha = 0.05, beta = 0.20, highN = 100)
 #' }
 plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, deltaMinVec = seq(0.9, 0.2, -0.1),
@@ -974,10 +936,10 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
     )
 
     #condition for looping
-    not.satisfied <- TRUE
+    notSatisfied <- TRUE
 
     #case na=nb now
-    while (not.satisfied) {
+    while (notSatisfied) {
       n <- n + 2
       na <- nb <- n / 2
 
@@ -1026,18 +988,18 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
       }
 
       if (min(percent.reject.S) >= power)
-        not.satisfied <- FALSE
+        notSatisfied <- FALSE
 
       if (n > highN)
         break
 
-    } # TODO(Rosanne): End while satisfied loop for fixed deltamin
+    } # End while satisfied loop for fixed deltamin
 
     if (n > highN)
       break
 
     n.min.vec[d] <- n
-  } # TODO(Rosanne): End looping over all deltaMin
+  } # End looping over all deltaMin
   close(pbar)
 
   #---------------------------------------------------
@@ -1063,15 +1025,10 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
 
     delta.min <- deltaMinVec[d]
 
-    # TODO(Rosanne): Dit zie ik nu een paar keer, maar ik begrijp het niet helemaal
-    #
-    #for H1_delta.min, we want to retrieve E(stopping time) IN THE WORST CASE
-    H1.deltamin <- rbind(
-      cbind(seq(delta.min, 1, length.out = 8),
-            seq(0, 1 - delta.min, length.out = 8)),
-      cbind(seq(0, 1 - delta.min, length.out = 8),
-            seq(delta.min, 1, length.out = 8))
-    )
+    #for all data generating distributions in the alternative,
+    # we want to retrieve E(stopping time) IN THE WORST CASE
+    H1.deltamin <- create_data_generating_distributions(deltaDesign = delta.min,
+                                                        alternative = "two.sided", length.out = 5)
 
     mean.s.os <- numeric(nrow(H1.deltamin))
 
@@ -1098,13 +1055,13 @@ plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, del
         na1 <- sapply(1:na.max, function(n.cur) {sum(a.sample[1:n.cur])})
         nb1 <- sapply(1:nb.max, function(n.cur) {sum(b.sample[1:n.cur])})
 
-        helpFunc <-  function(h) {
+        calculateMarginalAlternative <-  function(h) {
           exp(na1 * log(h[1]) + (na - na1) * log(1 - h[1]) + nb1 * log(h[2]) +
                 (nb -nb1) * log(1 - h[2]))
         }
 
         #retrieve pbar1 at each time point (is a vector now!)
-        pbar1 <- rowSums(0.5 * apply(H1, 1, helpFunc))
+        pbar1 <- rowSums(0.5 * apply(H1, 1, calculateMarginalAlternative))
 
         #n is a vector now! And so is pbar0!
         n <- na + nb

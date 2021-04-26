@@ -2,73 +2,79 @@
 % Please edit documentation in R/tTest.R
 \name{designPilotSafeT}
 \alias{designPilotSafeT}
-\title{Pretends that the observed sample sizes are exactly as they were planned for.}
+\title{Designs a Safe T-Test Based on Planned Samples nPlan}
 \usage{
 designPilotSafeT(
-  n1 = 50,
-  n2 = NULL,
+  nPlan = 50,
   alpha = 0.05,
-  mu0 = 0,
+  h0 = 0,
   alternative = c("two.sided", "greater", "less"),
-  lowDelta = 0.01,
-  highDelta = 1.2,
+  lowParam = 0.01,
+  highParam = 1.2,
   tol = 0.01,
   inverseMethod = TRUE,
   logging = FALSE,
-  paired = FALSE
+  paired = FALSE,
+  maxIter = 10
 )
 }
 \arguments{
-\item{n1, n2}{observed sample sizes}
+\item{nPlan}{the planned sample size(s).}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{mu0}{a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{lowDelta}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
+\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS.}
 
-\item{highDelta}{numeric that defines the largest delta of our search space for the test-defining deltaS}
+\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS.}
 
-\item{tol}{a number that defines the stepsizes between the lowDelta and highDelta}
+\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
-\item{inverseMethod}{logical, always TRUE for the moment}
+\item{inverseMethod}{logical, always \code{TRUE} for the moment.}
 
-\item{logging}{‘logical, if TRUE, then add invSToTThresh to output}
+\item{logging}{logical, if \code{TRUE}, then add invSToTThresh to output.}
 
-\item{paired}{logical, if TRUE then paired t-test}
+\item{paired}{logical, if \code{TRUE} then paired t-test.}
+
+\item{maxIter}{numeric > 0, the maximum number of iterations of adjustment to the candidate set from
+lowParam to highParam, if the minimum is not found.}
 }
 \value{
-Returns a safeDesign object
+Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
+following components:
+
 \describe{
-  \item{n1Plan}{the sample size to plan for}
-  \item{n2Plan}{the sample size of the second group when testType=="twoSampleT" or "pairedSampleT", otherwise NULL}
-  \item{nEffPlan}{the resulting effective sample size when testType=="twoSampleT", otherwise non-existing}
-  \item{deltaS}{the deltaS that defines the safe test}
-  \item{deltaMin}{NULL, no deltaMin specified because it's a pilot}
-  \item{alpha}{the tolerable type I error provided by the user}
-  \item{beta}{NULL, no tolerable type II error specified}
-  \item{lowDelta}{the smallest delta of the search space for delta provided by the user}
-  \item{highDelta}{the largest delta of the search space for delta provided by the user}
-  \item{tol}{the step size between lowDelta and highDelta provided by the user}
-  \item{lowN}{NULL}
-  \item{highN}{NULL}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user}
-  \item{testType}{any of "oneSampleT", "pairedSampleT", "twoSampleT" provided by the user}
-  \item{sampleSizeRatio}{default is 1, only used when testType=="twoSampleT" and defines n2=sampleSizeRatio*n1}
-  \item{pilot}{TRUE to indicate that the design is a pilot study. The assumption is that the sample sizes are as if they were planned for, thus, known in advance.}
-  \item{call}{the expression with which this function is called}
-  \item{error}{the error estimated from the inverse function}
-  \item{invSToTThresh}{if logging=TRUE then shows the inverse of the t-threshold at various test defining deltaS.}
+  \item{nPlan}{the planned sample size(s).}
+  \item{parameter}{the safe test defining parameter. Here deltaS.}
+  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+  \item{alpha}{the tolerable type I error provided by the user.}
+  \item{beta}{the tolerable type II error provided by the user.}
+  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+  \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
+  \item{h0}{the specified hypothesised value of the mean or mean difference depending on
+  whether it was a one-sample or a two-sample test.}
+  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+  ratio between the planned randomisation of condition 2 over condition 1.}
+  \item{lowN}{the smallest n of the search space for n provided by the user.}
+  \item{highN}{the largest n of the search space for n provided by the user.}
+  \item{lowParam}{the smallest delta of the search space for delta provided by the user.}
+  \item{highParam}{the largest delta of the search space for delta provided by the user.}
+  \item{tol}{the step size between lowParam and highParam provided by the user.}
+  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
+  \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-"Designs" a safe experiment for a prespecified tolerable type I error by pretending that the sample size is "known"
-and fixed ahead of time. Outputs a list that includes the deltaS that defines the safe test.
+Designs a safe experiment for a prespecified tolerable type I error based on planned sample
+size(s), which are fixed ahead of time. Outputs a list that includes the deltaS, i.e., the
+safe test defining parameter.
 }
 \examples{
-designPilotSafeT(n1=30)
+designPilotSafeT(nPlan=30)
 }

@@ -2,11 +2,11 @@
 % Please edit documentation in R/helpers.R
 \name{selectivelyContinueTTestCombineData}
 \alias{selectivelyContinueTTestCombineData}
-\title{Selectively continue experiments that did not lead to a null rejection for a (safe) t-test}
+\title{Selectively Continue Experiments that Did Not Lead to a Null Rejection for a (Safe) T-Test}
 \usage{
 selectivelyContinueTTestCombineData(
   oldValues,
-  valuesType = c("sValues", "pValues"),
+  valuesType = c("eValues", "pValues"),
   designObj = NULL,
   alternative = c("two.sided", "greater", "less"),
   oldData,
@@ -22,75 +22,75 @@ selectivelyContinueTTestCombineData(
 )
 }
 \arguments{
-\item{oldValues}{vector of "sValues" or "pValues"}
+\item{oldValues}{vector of e-values or p-values.}
 
-\item{valuesType}{character either "sValues" or "pValues"}
+\item{valuesType}{character string either "eValues" or "pValues".}
 
-\item{designObj}{a safeTDesign object, or NULL if valuesType=="pValues"}
+\item{designObj}{a safeDesign object obtained from \code{\link{designSafeT}}, or \code{NULL}
+if valuesType equal "pValues".}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+"greater" or "less".}
 
-\item{oldData}{a list of matrices with names "dataGroup1" and "dataGroup2"}
+\item{oldData}{a list of matrices with names "dataGroup1" and "dataGroup2".}
 
-\item{deltaTrue}{numeric, the value of the true effect size (test-relevant parameter)}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
-\item{alpha}{the tolerable type I error to be conserved. Also defines the decision rule s > 1/alpha, and for
-frequentist tests the decision rule is p < alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{n1Extra}{integer, that defines the additional number of samples of the first group. If NULL and
-valuesType=="sValues", then n1Extra <- designObj$n1Plan
-use designSafeT to find this)}
+\item{n1Extra}{integer, that defines the additional number of samples of the first group. If
+\code{NULL} and valuesType equals "eValues", then n1Extra equals \code{designObj$nPlan[1]}.}
 
-\item{n2Extra}{optional integer, that defines the additional number of samples of the second group. If NULL, and
-valuesType=="sValues", then n2Extra <- designObj$n2Plan}
+\item{n2Extra}{optional integer, that defines the additional number of samples of the second group.
+If \code{NULL}, and valuesType equals "eValues", then n2Extra equals \code{designObj$nPlan[2]}.}
 
-\item{seed}{To set the seed for the simulated data}
+\item{seed}{To set the seed for the simulated data.}
 
-\item{paired}{logical, true if the simulated data are paired.}
+\item{paired}{logical, if \code{TRUE} then paired t-test.}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value shouldn't matter for the
-test. This parameter treated is treated as a nuisance.}
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
+matter for the test. This parameter is treated as a nuisance.}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value shouldn't matter for the test.
-This parameter treated is treated as a nuisance.}
+\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
+for the test.This parameter treated is treated as a nuisance.}
 
-\item{moreMainText}{character, additional remarks in the title of the histogram}
+\item{moreMainText}{character, additional remarks in the title of the histogram.}
 }
 \value{
-a list that includes the continued s or p-values based on the combined data, and a list of the combined
-data
+a list that includes the continued s or p-values based on the combined data, and a list of the
+combined data.
 }
 \description{
-Selectively continue experiments that did not lead to a null rejection for a (safe) t-test
+Helper function used in the vignette.
 }
 \examples{
 alpha <- 0.05
 mIter <- 1000L
 
 designObj <- designSafeT(deltaMin=1, alpha=alpha)
-oldData <- generateTTestData(n1Plan=designObj$n1Plan, deltaTrue=0, nsim=mIter, seed=1)
+oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
 
-sValues <- vector("numeric", length=mIter)
+eValues <- vector("numeric", length=mIter)
 
-for (i in seq_along(sValues)) {
-  sValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$sValue
+for (i in seq_along(eValues)) {
+  eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
 }
 # First run: 7 false null rejections
-sum(sValues > 1/alpha)
+sum(eValues > 1/alpha)
 
 continuedSafe <- selectivelyContinueTTestCombineData(
-  oldValues=sValues, designObj=designObj, oldData=oldData,
+  oldValues=eValues, designObj=designObj, oldData=oldData,
   deltaTrue=0, seed=2)
 
 # Second run: 8 false null rejections
 sum(continuedSafe$newValues > 1/alpha)
 
 for (i in 1:3) {
-  sValues <- continuedSafe$newValues
+  eValues <- continuedSafe$newValues
   oldData <- continuedSafe$combinedData
   continuedSafe <- selectivelyContinueTTestCombineData(
-   oldValues=sValues, designObj=designObj, oldData=oldData,
+   oldValues=eValues, designObj=designObj, oldData=oldData,
    deltaTrue=0, seed=i+2)
   print(paste("Iteration", i+2))
   print("Number of false null rejections")

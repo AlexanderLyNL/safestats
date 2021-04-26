@@ -1,15 +1,17 @@
-#' Try to evaluate an expression, if not fail with NA (default)
+# Try helper functions -----
+
+#' Tries to Evaluate an Expression and Fails with \code{NA}
 #'
-#' @param expr Expression to be evaluated
-#' @param value Return value if there is an error, default is NA_real_
+#' The evaluation fails with \code{NA} by default, but it is also able to fail with other values.
 #'
-#' @return Returns the evaluation of the expression, or value if it doesn't work out
+#' @param expr Expression to be evaluated.
+#' @param value Return value if there is an error, default is \code{NA_real_}.
+#'
+#' @return Returns the evaluation of the expression, or \code{value} if it doesn't work out.
 #'
 #' @examples
-#' \dontrun{
-#' tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
-#' tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
-#' }
+#' safestats:::tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
+#' safestats:::tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
 tryOrFailWithNA <- function(expr, value=NA_real_) {
   tryCatch(
     error=function(cnd) value,
@@ -17,365 +19,126 @@ tryOrFailWithNA <- function(expr, value=NA_real_) {
   )
 }
 
-
-#' Ensure the Truth of R Expressions and returns TRUE if the expressions are not met.
+#' Checks Whether a Vector of Object Inherits from the Class "try-error"
 #'
-#' This is basically stopifnot{base}, but instead of stopping it returns TRUE. The following descriptions is
-#' adapted from stopifnot{base}: If any of the expressions in ... are not all valid, then instead of stopping a TRUE is
-#' returned and an error message is printed indicating the first of the elements of ... which were not true.
+#' Checks whether any of the provided objects contains a try error.
 #'
-#' @param ... any number of (logical) R expressions, which should evaluate to TRUE
+#' @param ... objects that need testing.
 #'
-#' @return Returns TRUE if the provided expressions are not met
+#' @return Returns \code{TRUE} if there's some object that's a try-error, \code{FALSE} when all objects are
+#' not try-errors.
 #'
-#' @examples
-#' \dontrun{
-#' x <- 0
-#' msg <- failIfNot(x > 3)
-#' print(msg)
-#' }
-failIfNot <- function (...) {
-  # This is equivalent to
-  #
-  # tryCatch(error=function(cnd){
-  #   return(list("failed"=TRUE, "error"=conditionMessage(cnd)))
-  # },
-  # stopifnot(...)
-  # )
-  #
-  result <- NULL
-
-  ll <- list(...)
-  n <- length(ll)
-
-  if (n == 0L) {
-    return(result)
-  }
-
-  Dparse <- function(call, cutoff = 60L) {
-    ch <- deparse(call, width.cutoff = cutoff)
-    if (length(ch) > 1L) {
-      paste(ch[1L], "....")
-    } else {
-      ch
-    }
-  }
-
-  head <- function(x, n = 6L) {
-    x[seq_len(if (n < 0L) max(length(x) + n, 0L) else min(n, length(x)))]
-  }
-
-  abbrev <- function(ae, n = 3L) {
-    paste(c(head(ae, n), if (length(ae) > n) "...."), collapse = "\n  ")
-  }
-
-  mc <- match.call()
-
-  for (i in 1L:n) {
-    if (!(is.logical(r <- ll[[i]]) && !anyNA(r) && all(r))) {
-      cl.i <- mc[[i + 1L]]
-      msg <- if (is.call(cl.i) && identical(cl.i[[1]], quote(all.equal)) &&
-                 (is.null(ni <- names(cl.i)) || length(cl.i) == 3L ||
-                  length(cl.i <- cl.i[!nzchar(ni)]) == 3L)) {
-        sprintf(gettext("%s and %s are not equal:\n  %s"),
-                Dparse(cl.i[[2]]), Dparse(cl.i[[3]]), abbrev(r))
-      } else {
-        sprintf(ngettext(length(r), "%s is not TRUE", "%s are not all TRUE"),
-                Dparse(cl.i))
-      }
-
-      result <- msg
-      return(result)
-    }
-  }
-  return(result)
-}
-
-# Some/any checks -----------
-#'Checks whether some object evaluates to TRUE for a provided criterion function
-#'
-#' @param ... objects that need testing
-#' @param func function used to evaluate the truth
-#'
-#' @return Returns TRUE if there's some object that evaluates to TRUE according to func, and FALSE if all func
-#' evaluations lead to FALSE
-#'
-#' @examples
-#' \dontrun{
-#' x <- 1
-#' y <- "a"
-#' z <- NA
-#'
-#' isSome(x, y, z, func=is.numeric)
-#' isSome(x, y, z, func=is.na)
-#' isSome(x, y, z, func=is.vector)
-#' isSome(x, y, func=is.na)
-#' }
-isSome <- function(..., func) {
-  # TODO: Make these to return at first find
-  obj <- list(...)
-  return( purrr::some(obj, func) )
-}
-
-#'Checks whether some object is NA
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if there's some object that's an NA, FALSE when all objects are not NA.
-#'
-#' @examples
-#' \dontrun{
-#' x <- 1
-#' y <- "a"
-#' z <- NA
-#'
-#' isSomeNA(x, y)
-#' isSomeNA(x, y, z)
-#' }
-#'
-#'
-isSomeNA <- function(...) {
-  return(isSome(..., "func"=anyNA, recursive=TRUE))
-}
-
-#'Checks whether some object is NULL
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if there's some object that's a NULL, FALSE when all objects are not NULL
-#'
-#' @examples
-#' \dontrun{
-#' x <- 1
-#' y <- "a"
-#' z <- NULL
-#'
-#' isSomeNull(x, y)
-#' isSomeNull(x, y, z)
-#' }
-isSomeNull <- function(...) {
-  return(isSome(..., func=is.null))
-}
-
-
-#'Checks whether some object is infinite
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if there's some object that's infinite, FALSE when all objects are finite
-#'
-#'@examples
-#'\dontrun{
-#' x <- 1
-#' y <- "a"
-#' z <- 10^(1e10)
-#'
-#' isSomeInfinite(x, y)
-#' isSomeInfinite(x, y, z)
-#' isSomeInfinite(x, y, z, w)
-#' }
-isSomeInfinite <- function(...) {
-  isSome(..., func=is.infinite)
-}
-
-#'Checks whether some object is TRUE
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if there's some object that's TRUE, FALSE when all objects are not TRUE
-#' @examples
-#'\dontrun{
-#' x <- 1
-#' y <- "a"
-#' z <- TRUE
-#'
-#' isSomeTrue(x, y)
-#' isSomeTrue(x, y, z)
-#' }
-isSomeTrue <- function(...) {
-  isSome(..., func=isTRUE)
-}
-
-
-
-#' Checks whether some object is a try error.
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if there's some object that's a try-error, FALSE when all objects are not try-errors
 #' @export
 #'
 #' @examples
-#' \dontrun{
 #' x <- 1
 #' y <- "a"
 #' z <- try(integrate(exp, -Inf, Inf))
 #' isTryError(x, y)
 #' isTryError(x, y, z)
-#' }
-#'
 isTryError <- function(...) {
-  return(isSome(..., func=function(x){inherits(x, "try-error")}))
-}
-
-
-# Every/all checks -----------
-
-#' Checks whether all objects evaluates to TRUE for a provided function criterion
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if any objects are a try error, returns FALSE otherwise
-#'
-#' @examples
-#' \dontrun{
-#' x <- 1
-#' y <- "a"
-#' z <- NA
-#'
-#' isEvery(x, y, z, func=is.numeric)
-#' isEvery(x, y, z, func=is.na)
-#' isEvery(x, y, z, func=is.vector)
-#' }
-isEvery <- function(..., func) {
-  # TODO: Make these to return at first find
   obj <- list(...)
-  return(purrr::every(obj, func))
-}
-
-#' Checks whether all objects are numeric
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if all objects are numeric, returns FALSE otherwise
-#'
-#' @examples
-#' \dontrun{
-#' x <- 1
-#' y <- 2
-#' z <- "3"
-#'
-#' isEveryNumeric(x, y)
-#' isEveryNumeric(x, y, z)
-#' }
-isEveryNumeric <- function(...) {
-  # TODO: Make these to return at first find
-  return(isEvery(..., func=is.numeric))
-}
-
-#' Checks whether all objects are finite
-#'
-#' @inheritParams isSome
-#'
-#' @return Returns TRUE if all objects are finite, returns FALSE otherwise
-#'
-#' @examples
-#' \dontrun{
-#' x <- 1
-#' y <- 2
-#' z <- 10^(1e10)
-#' isEveryFinite(x, y)
-#' isEveryFinite(x, y, z)
-#' }
-isEveryFinite <- function(...) {
-  isEvery(..., func=is.finite)
+  tryErrorFunc <- function(x){inherits(x, "try-error")}
+  result <- purrr::some(obj, .p=tryErrorFunc)
+  return(result)
 }
 
 
-# Labelling helpers ----------
 
-#' Gets the name of the analysis
+#' Rounds a Numeric to At Most 5 Significant Figures
 #'
-#' @param testType A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".
-#'
-#' @return Returns a character with the name of the analysis.
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' getNameTestType("oneSampleT")
-#' }
-getNameTestType <- function(testType) {
-  nameChar <- switch(testType,
-                     "oneSampleT"="Safe One Sample T-Test",
-                     "pairedSampleT"="Safe Paired Sample T-Test",
-                     "twoSampleT"="Safe Two Sample T-Test")
-  return(nameChar)
-}
-
-#' Gets the name of alternative
-#'
-#' @param alternative A character string. "two.sided", "greater", "less".
-#' @param testType A character string. For the t-tests: "oneSampleT", "pairedSampleT", "twoSampleT".
-#' @return Returns a character with the name of the analysis.
-#'
-#' @examples
-#' \dontrun{
-#' getNameTestType("oneSampleT")
-#' }
-getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), testType) {
-  alternative <- match.arg(alternative)
-
-  if (testType=="oneSampleT") {
-    trueMeanStatement <- "true mean"
-  } else if (testType %in% c("pairedSampleT", "twoSampleT")) {
-    trueMeanStatement <- "true difference in means ('x' minus 'y') is"
-  } else if (testType == "safe2x2_result") {
-	    trueMeanStatement <- "true difference between proportions in group a and b is"
-  }
-
-  nameChar <- paste(trueMeanStatement, switch(alternative,
-                                              "two.sided"= "not equal to 0",
-                                              "greater"= "greater than 0",
-                                              "less"= "less than 0")
-  )
-  return(nameChar)
-}
-
-#' Rounds a numeric to 5
+#' Helper function to round a numeric to 5 significant figures.
 #'
 #' @param num numeric
 #'
-#' @return number rounded up to 5 decimal places
+#' @return number rounded up to 5 decimal places.
 #'
 #' @examples
-#' \dontrun{
-#' round5(pi)
-#' }
+#' safestats:::round5(pi)
 round5 <- function(num) {
   stopifnot(is.numeric(num))
   round(num, 5)
 }
 
-# Plot helper -----
-#' Sets plot options
-#' @param ... further arguments to be passed to or from methods.
+
+#' Helper function: Get all arguments as entered by the user
+#'
+#' @return a list of variable names of class "call" that can be changed into names
 #'
 #' @examples
-#' \dontrun{
-#' safestats::setSafeStatsPlotOptions()
-#' plot(1:10, 1:10)
+#' foo <- function(x, y) {
+#'   safestats:::getArgs()
 #' }
-setSafeStatsPlotOptions <- function(...) {
+#'
+#'foo(x="3", y=df)
+getArgs <- function() {
+  as.list(match.call(definition = sys.function(-1),
+                     call = sys.call(-1)))[-1]
+}
+
+
+#' Helper function: Get all names as entered by the user
+#'
+#' @param list list from which the element needs retrieving
+#' @param name character string, name of the item that need retrieving
+#'
+#' @return returns a character string
+#'
+#' @examples
+#'
+#' foo <- function(x, y) {
+#'   safestats:::getArgs()
+#' }
+#'
+#' bar <- foo(x="3", y=rnorm(10))
+#' safestats:::extractNameFromArgs(bar, "y")
+extractNameFromArgs <- function(list, name) {
+  result <- list[[name]]
+
+  if (class(result)=="call")
+    result <- as.character(as.expression(result))
+
+  return(result)
+}
+
+# Plot helper -----
+#' Sets 'safestats' Plot Options and Returns the Current Plot Options.
+#'
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return Returns a list with the user specified plot options.
+#'
+#' @examples
+#' oldPar <- safestats:::setSafeStatsPlotOptionsAndReturnOldOnes()
+#' graphics::plot(1:10, 1:10)
+#' graphics::par(oldPar)
+setSafeStatsPlotOptionsAndReturnOldOnes <- function(...) {
+  oldPar <- graphics::par(no.readonly = TRUE)
   graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
                 font.lab=2, cex.axis=1.3, bty="n", las=1, ...)
+  return(oldPar)
 }
+
 
 # Vignette helpers ---------
 
-#' Plots the histogram of stopping times
+#' Plots the Histogram of Stopping Times
 #'
-#' @param safeSim A safeSim object, returned from "replicateTTests" and "simulateSpreadSampleSizeTwoProportions"
-#' @param nPlan numeric > 0, the planned sample size (for the first sample)
-#' @param deltaTrue numeric, that represents the true underlying effect size delta
-#' @param showOnlyNRejected logical, when TRUE discards the cases that are
-#' @param nBin numeric > 0, the minimum number of bins in the histogram
+#' Helper function to display the histogram of stopping times.
+#'
+#' @param safeSim A safeSim object, returned from \code{\link{replicateTTests}} and
+#' \code{\link{simulateSpreadSampleSizeTwoProportions}}.
+#' @param nPlan numeric > 0, the planned sample size(s).
+#' @param deltaTrue numeric, that represents the true underlying standardised effect size delta.
+#' @param showOnlyNRejected logical, when \code{TRUE} discards the cases that did not reject.
+#' @param nBin numeric > 0, the minimum number of bins in the histogram.
 #' @param ... further arguments to be passed to or from methods.
+#'
+#' @return a histogram object, and called for its side-effect to plot the histogram.
 #'
 #' @export
 #'
 #' @examples
-#' \dontrun{
 #'# Design safe test
 #' alpha <- 0.05
 #' beta <- 0.20
@@ -385,13 +148,12 @@ setSafeStatsPlotOptions <- function(...) {
 #' freqObj <- designFreqT(1, alpha=alpha, beta=beta)
 #'
 #' # Simulate under the alternative with deltaTrue=deltaMin
-#' simResults <- replicateTTests(n1Plan=designObj$n1Plan, deltaTrue=1, deltaS=designObj$deltaS,
-#' n1PlanFreq=freqObj$n1PlanFreq)
+#' simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1, parameter=designObj$parameter,
+#' nPlanFreq=freqObj$nPlan)
 #'
 #' plotHistogramDistributionStoppingTimes(
-#'   simResults$safeSim, nPlan = simResults$n1Plan,
+#'   simResults$safeSim, nPlan = simResults$nPlan,
 #'   deltaTrue = simResults$deltaTrue)
-#' }
 plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, showOnlyNRejected=FALSE, nBin=25L, ...) {
   if(showOnlyNRejected) {
     dataToPlot <- safeSim[["allRejectedN"]]
@@ -407,7 +169,8 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
   maxLength <- ceiling(nPlan/nStep)
 
   mainTitle <- bquote(~"Spread of stopping times when true difference " == .(round(deltaTrue,2)))
-  setSafeStatsPlotOptions()
+  oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+  on.exit(graphics::par(oldPar))
   graphics::hist(dataToPlot,
                  breaks = nStep*seq.int(maxLength),
                  xlim = c(0, max(safeSim[["allN"]])),
@@ -417,21 +180,24 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 }
 
 
-#' Selectively continue experiments that did not lead to a null rejection for a (safe) t-test
+#' Selectively Continue Experiments that Did Not Lead to a Null Rejection for a (Safe) T-Test
+#'
+#' Helper function used in the vignette.
 #'
 #' @inheritParams replicateTTests
-#' @param oldValues vector of "sValues" or "pValues"
-#' @param valuesType character either "sValues" or "pValues"
-#' @param designObj a safeTDesign object, or NULL if valuesType=="pValues"
-#' @param oldData a list of matrices with names "dataGroup1" and "dataGroup2"
-#' @param n1Extra integer, that defines the additional number of samples of the first group. If NULL and
-#' valuesType=="sValues", then n1Extra <- designObj$n1Plan
-#' use designSafeT to find this)
-#' @param n2Extra optional integer, that defines the additional number of samples of the second group. If NULL, and
-#' valuesType=="sValues", then n2Extra <- designObj$n2Plan
-#' @param moreMainText character, additional remarks in the title of the histogram
-#' @return a list that includes the continued s or p-values based on the combined data, and a list of the combined
-#' data
+#' @param oldValues vector of e-values or p-values.
+#' @param valuesType character string either "eValues" or "pValues".
+#' @param designObj a safeDesign object obtained from \code{\link{designSafeT}}, or \code{NULL}
+#' if valuesType equal "pValues".
+#' @param oldData a list of matrices with names "dataGroup1" and "dataGroup2".
+#' @param n1Extra integer, that defines the additional number of samples of the first group. If
+#' \code{NULL} and valuesType equals "eValues", then n1Extra equals \code{designObj$nPlan[1]}.
+#' @param n2Extra optional integer, that defines the additional number of samples of the second group.
+#' If \code{NULL}, and valuesType equals "eValues", then n2Extra equals \code{designObj$nPlan[2]}.
+#' @param moreMainText character, additional remarks in the title of the histogram.
+#'
+#' @return a list that includes the continued s or p-values based on the combined data, and a list of the
+#' combined data.
 #' @export
 #'
 #' @examples
@@ -439,34 +205,34 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' mIter <- 1000L
 #'
 #' designObj <- designSafeT(deltaMin=1, alpha=alpha)
-#' oldData <- generateTTestData(n1Plan=designObj$n1Plan, deltaTrue=0, nsim=mIter, seed=1)
+#' oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
 #'
-#' sValues <- vector("numeric", length=mIter)
+#' eValues <- vector("numeric", length=mIter)
 #'
-#' for (i in seq_along(sValues)) {
-#'   sValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$sValue
+#' for (i in seq_along(eValues)) {
+#'   eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
 #' }
 #' # First run: 7 false null rejections
-#' sum(sValues > 1/alpha)
+#' sum(eValues > 1/alpha)
 #'
 #' continuedSafe <- selectivelyContinueTTestCombineData(
-#'   oldValues=sValues, designObj=designObj, oldData=oldData,
+#'   oldValues=eValues, designObj=designObj, oldData=oldData,
 #'   deltaTrue=0, seed=2)
 #'
 #' # Second run: 8 false null rejections
 #' sum(continuedSafe$newValues > 1/alpha)
 #'
 #' for (i in 1:3) {
-#'   sValues <- continuedSafe$newValues
+#'   eValues <- continuedSafe$newValues
 #'   oldData <- continuedSafe$combinedData
 #'   continuedSafe <- selectivelyContinueTTestCombineData(
-#'    oldValues=sValues, designObj=designObj, oldData=oldData,
+#'    oldValues=eValues, designObj=designObj, oldData=oldData,
 #'    deltaTrue=0, seed=i+2)
 #'   print(paste("Iteration", i+2))
 #'   print("Number of false null rejections")
 #'   print(sum(continuedSafe$newValues > 1/alpha))
 #' }
-selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues", "pValues"), designObj=NULL,
+selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues", "pValues"), designObj=NULL,
                                                 alternative=c("two.sided", "greater", "less"),
                                                 oldData, deltaTrue, alpha=NULL,
                                                 n1Extra=NULL, n2Extra=NULL, seed=NULL, paired=FALSE,
@@ -482,7 +248,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
     if (is.null(n1Extra) && is.null(n2Extra)) {
       stop("Can't sample extra data without being specified the number of extra samples")
     }
-  } else if (valuesType=="sValues") {
+  } else if (valuesType=="eValues") {
     if (is.null(designObj)) {
       stop("Can't continue safe test analysis without a design object")
     }
@@ -490,8 +256,8 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
     alpha <- designObj[["alpha"]]
 
     if (is.null(n1Extra) && is.null(n2Extra)) {
-      n1Extra <- designObj[["n1Plan"]]
-      n2Extra <- designObj[["n2Plan"]]
+      n1Extra <- designObj[["nPlan"]][1]
+      n2Extra <- designObj[["nPlan"]][2]
     }
   }
 
@@ -501,7 +267,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
   result <- list("oldValues"=oldValues, "newValues"=NULL, "valuesType"=valuesType, "combinedData"=NULL, "deltaTrue"=deltaTrue,
                  "cal"=sys.call())
 
-  if (valuesType=="sValues") {
+  if (valuesType=="eValues") {
     notRejectedIndex <- which(oldValues <= 1/alpha)
   } else if (valuesType=="pValues") {
     notRejectedIndex <- which(oldValues >= alpha)
@@ -513,7 +279,12 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
   oldDataGroup1 <- oldData[["dataGroup1"]][notRejectedIndex, ]
   oldDataGroup2 <- oldData[["dataGroup2"]][notRejectedIndex, ]
 
-  newData <- generateTTestData("n1Plan"=n1Extra, "n2Plan"=n2Extra,
+  if (is.null(n2Extra) || is.na(n2Extra))
+    tempNPlan <- n1Extra
+  else
+    tempNPlan <- c(n1Extra, n2Extra)
+
+  newData <- generateNormalData("nPlan"=tempNPlan,
                                "deltaTrue"=deltaTrue, "nsim"=length(notRejectedIndex),
                                "paired"=paired, "seed"=seed,
                                "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue)
@@ -523,11 +294,11 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
 
   newValues <- vector("numeric", length(notRejectedIndex))
 
-  if (valuesType=="sValues") {
+  if (valuesType=="eValues") {
     for (i in seq_along(newValues)) {
       newValues[i] <- try(safeTTest("x"=dataGroup1[i, ], "y"=dataGroup2[i, ],
                                 "designObj"=designObj, "alternative"=alternative,
-                                "paired"=paired)$sValue)
+                                "paired"=paired)$eValue)
     }
 
     minX <- log(min(oldValues, newValues))
@@ -536,8 +307,8 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
     yOld <- log(oldValues[notRejectedIndex])
     yNew <- log(newValues)
 
-    xLabText <- "log(sValues)"
-    mainText <- paste("Histogram of s-values", moreMainText)
+    xLabText <- "log(eValues)"
+    mainText <- paste("Histogram of e-values", moreMainText)
 
     threshValue <- log(1/alpha)
   } else if (valuesType=="pValues") {
@@ -562,7 +333,9 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
 
   yMax <- max(oldHist[["counts"]], newHist[["counts"]])
 
-  setSafeStatsPlotOptions()
+  oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+  on.exit(graphics::par(oldPar))
+
   graphics::plot(oldHist, "xlim"=c(minX, maxX), ylim=c(0, yMax), "col"="blue",
                  "density"=20, "angle"=45, "xlab"=xLabText, "main"=mainText)
   graphics::plot(newHist, "add"=TRUE, "col"="red", "density"=20, "angle"=-45)
@@ -572,4 +345,113 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("sValues
   result[["combinedData"]] <-list("dataGroup1"=dataGroup1, "dataGroup2"=dataGroup2)
 
   return(result)
+}
+
+
+#' Generate Survival Data which Can Be Analysed With the `survival` Package
+#'
+#'
+#' @param nP integer > 0 representing the number of of patients in the placebo group.
+#' @param nT integer > 0 representing the number of of patients in the treatment group.
+#' @param alpha numeric > 0, representing the shape parameter of the Weibull distribution.
+#' If alpha=1, then data are generated from the exponential, i.e., constant hazard. For alpha > 1
+#' the hazard increases, if alpha < 1, the hazard decreases.
+#' @param lambdaP The (relative) hazard of the placebo group.
+#' @param lambdaT The (relative) hazard of the treatment group.
+#' @param seed A seed number.
+#' @param nDigits numeric, the number of digits to round of the random time to
+#' @param startTime numeric, adds this to the random times. Default 1, so the startTime is not 0, which
+#' is the start time of \code{\link[stats]{rweibull}}.
+#' @param endTime The endtime of the experiment.
+#' @param orderTime logical, if \code{TRUE} then put the data set in increasing order
+#' @param competeRatio The ratio of the data that is due to competing risk.
+#'
+#' @return A data set with time, status and group.
+#' @export
+#'
+#' @examples
+#' generateSurvData(800, 800, alpha=1, lambdaP=0.008, lambdaT=0.008/2)
+generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigits=0,
+                             startTime=1, endTime=180, orderTime=TRUE, competeRatio=0) {
+  stopifnot(competeRatio >=0, competeRatio < 1, is.numeric(startTime), is.numeric(endTime))
+  set.seed(seed)
+  data <- list()
+
+  if (competeRatio==0) {
+    data[["time"]] <- round(c(stats::rweibull("n" = nP, "shape" = alpha,
+                                              "scale" = lambdaP^(-1/alpha)),
+                              stats::rweibull("n" = nT, "shape" = alpha,
+                                              "scale" = lambdaT^(-1/alpha))) + startTime,
+                            "digits" = nDigits)
+    data[["status"]] <- 2  # 2 is death
+    data[["group"]] <- c(rep("P", times = nP), rep("T", times = nT))
+    data <- as.data.frame(data)
+    data[["status"]][data[["time"]] > endTime] <- 1  # 1 is censored
+    data[["time"]][data[["time"]] > endTime] <- endTime
+  } else {
+    moreNP <- ceiling((1+competeRatio)*nP)
+    moreNT <- ceiling((1+competeRatio)*nT)
+
+    data[["time"]] <- round(c(stats::rweibull("n" = moreNP, "shape" = alpha,
+                                              "scale" = lambdaP^(-1/alpha)),
+                              stats::rweibull("n" = moreNT, "shape" = alpha,
+                                              "scale" = lambdaT^(-1/alpha))) + startTime,
+                            "digits" = nDigits)
+
+    data[["status"]] <- 2  # 2 is death
+    data[["group"]] <- c(rep("P", times = moreNP), rep("T", times = moreNT))
+    data <- as.data.frame(data)
+    data[["status"]][data[["time"]] > endTime] <- 0  # 0 is censored
+    data[["time"]][data[["time"]] > endTime] <- endTime
+
+    indexOfDeaths <- which(data[["status"]]==2)
+    totalNDeaths <- length(indexOfDeaths)
+    nCompete <- floor(competeRatio*totalNDeaths)
+
+    if (nCompete < 1)
+      nCompete <- 1
+
+    indexOfCompete <- sample(indexOfDeaths, nCompete)
+
+    data[["status"]][indexOfCompete] <- 1
+    data[["status"]] <- factor(data[["status"]], 0:2, c("censored", "competing", "death"))
+  }
+
+  if (orderTime)
+    data <- data[order(data[["time"]]), ]
+
+  return(data)
+}
+
+
+
+
+
+
+
+#' Helper function to check whether arguments are specified in a function at a higher level and already
+#' provided in the design object.
+#'
+#' @param designObj an object of class "safeDesign".
+#' @param ... arguments that need checking.
+#'
+#' @return Returns nothing only used for its side-effects to produces warnings if needed.
+#'
+#' @examples
+#' designObj <- designSafeZ(0.4)
+#'
+#' safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
+#' safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
+checkDoubleArgumentsDesignObject <- function(designObj, ...) {
+
+  argsToCheck <- list(...)
+
+  for (neem in names(argsToCheck)) {
+    argument <- argsToCheck[[neem]]
+
+    if (!is.null(argument) && argument != designObj[[neem]])
+      warning("Both a design object and '", neem, "' provided. The '", neem, "' specified by the design ",
+              "object is used for the test, and the provided '", neem, "' is ignored.")
+
+  }
 }

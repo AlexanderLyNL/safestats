@@ -2,63 +2,104 @@
 % Please edit documentation in R/tTest.R
 \name{safeTTest}
 \alias{safeTTest}
-\title{Safe Student's t-test.}
+\alias{safe.t.test}
+\title{Safe Student's T-Test.}
 \usage{
 safeTTest(
   x,
   y = NULL,
   designObj = NULL,
-  alternative = c("two.sided", "less", "greater"),
-  mu0 = 0,
   paired = FALSE,
   varEqual = TRUE,
-  confLevel = 0.95,
+  h0 = 0,
   pilot = FALSE,
-  alpha = 0.05,
+  alpha = NULL,
+  alternative = NULL,
+  ...
+)
+
+safe.t.test(
+  x,
+  y = NULL,
+  designObj = NULL,
+  paired = FALSE,
+  var.equal = TRUE,
+  h0 = 0,
+  pilot = FALSE,
+  alpha = NULL,
+  alternative = NULL,
   ...
 )
 }
 \arguments{
-\item{x}{a (non-empty) numeric vector of data values}
+\item{x}{a (non-empty) numeric vector of data values.}
 
-\item{y}{an optional (non-empty) numeric vector of data values}
+\item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{designObj}{an object from designSafeT, or NULL, when pilot=TRUE}
+\item{designObj}{an object obtained from \code{\link{designSafeT}}, or \code{NULL}, when pilot equals \code{TRUE}..}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
-
-\item{mu0}{a number indicating the hypothesised true value of the mean under the null. For the moment mu0=0}
-
-\item{paired}{a logical indicating whether you want to paired t-test.}
+\item{paired}{a logical indicating whether you want a paired t-test.}
 
 \item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For the moment,
-this is always TRUE.}
+this is always \code{TRUE}.}
 
-\item{confLevel}{confidence level of the interval. Not yet implemented}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0}
 
-\item{pilot}{a logical indicating whether a pilot study is run. If TRUE, it is assumed that the number of samples is
-exactly as planned.}
+\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
+samples is exactly as planned.}
 
-\item{alpha}{numeric representing the tolerable type I error rate. This also serves as a decision rule and it was
-shown that for safe tests S we have P(S > 1/alpha) < alpha under the null.}
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
+the design object is used instead in constructing the decision rule S > 1/alpha.}
+
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
+alternative specified by the design object is used instead.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{var.equal}{a logical variable indicating whether to treat the two variances as being equal. For the moment,
+this is always \code{TRUE}.}
 }
 \value{
-Returns a safeTest object
+Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+following components:
+
+\describe{
+  \item{statistic}{the value of the t-statistic.}
+  \item{n}{The realised sample size(s).}
+  \item{eValue}{the realised e-value from the safe test.}
+  \item{confSeq}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
+  hypothesis.}
+  \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
+  sample test or a two-sample test.}
+  \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+  or a two-sample test.}
+  \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
+  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+  \item{dataName}{a character string giving the name(s) of the data.}
+  \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
+  \item{call}{the expression with which this function is called.}
+}
 }
 \description{
-A safe version of t.test to perform one and two sample t-tests on vectors of data
+A safe t-test adapted from  \code{\link[stats]{t.test}} to perform one and two sample t-tests on vectors of data.
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-testType="twoSampleT", sampleSizeRatio=1.2)
+testType="twoSample", ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)
 y <- rnorm(100)
-safeTTest(x, y, alternative="greater", designObj=designObj)      #0.2959334
+safeTTest(x, y, designObj=designObj)      #0.2959334
 
-safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 3121.604 > 1/alpha
+safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
+designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
+testType="twoSample", ratio=1.2)
+
+set.seed(1)
+x <- rnorm(100)
+y <- rnorm(100)
+safe.t.test(x, y, alternative="greater", designObj=designObj)      #0.2959334
+
+safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
 }
