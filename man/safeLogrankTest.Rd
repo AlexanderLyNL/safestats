@@ -70,12 +70,11 @@ Returns an object of class "safeTest". An object of class "safeTest" is a list c
 following components:
 
 \describe{
-  \item{statistic}{the value of the z-statistic.}
+  \item{statistic}{the value of the summary, i.e., z-statistic or the e-value.}
   \item{nEvents}{The number of observed events.}
   \item{eValue}{the s-value of the safe test.}
   \item{confSeq}{An anytime-valid confidence sequence.}
   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
-  \item{h0}{the specified hypothesised value of hazard ratio.}
   \item{testType}{"logrank".}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}

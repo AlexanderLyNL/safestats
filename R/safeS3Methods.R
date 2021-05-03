@@ -16,12 +16,14 @@ getNameTestType <- function(testType, parameterName) {
                      "oneSample"="Safe One Sample",
                      "paired"="Safe Paired Sample",
                      "twoSample"="Safe Two Sample",
-                     "logrank"="Safe")
+                     "logrank"="Safe",
+                     "2x2" = "Safe")
 
   testName <- switch(parameterName,
                      "phiS"="Z-Test",
                      "deltaS"="T-Test",
-                     "log(thetaS)"="Logrank Test")
+                     "log(thetaS)"="Logrank Test",
+                     "Beta prior parameters" = "2x2 test")
 
   return(paste(nameChar, testName))
 }
@@ -44,7 +46,7 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
     trueMeanStatement <- "true mean"
   } else if (testType %in% c("paired", "twoSample")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
-  } else if (testType == "safe2x2_result") {
+  } else if (testType == "2x2") {
     trueMeanStatement <- "true difference between proportions in group a and b is"
   } else if (testType == "logrank") {
     trueMeanStatement <- "true hazard ratio is"
@@ -106,7 +108,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   }
   cat("\n")
 
-  statValue <- x[["statistic"]]
+  if(!is.null(x[["statistic"]])){statValue <- x[["statistic"]]}
   parameter <- designObj[["parameter"]]
   eValue <- x[["eValue"]]
 
@@ -115,7 +117,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   eThresholdString <- format(1/designObj[["alpha"]], digits = max(1L, digits - 2L))
 
   out <- character()
-  out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
+  if(exists("statValue")){out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))}
   out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
   cat(paste0("test: ", paste(out, collapse = ", "), sep="\n"))
   cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",

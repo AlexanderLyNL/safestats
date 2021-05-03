@@ -1,32 +1,307 @@
-createEmptySafe2x2Design <- function() {
-  newSafe2x2Design <- list(
-    'delta.star' = NA,
-    'na' = NA,
-    'nb' = NA,
-    'point_h0' = 0.5,
-    'H1set' = NA,
-    'w1' = c(0.5, 0.5),
-    'call' = NA,
-    'pilot' = NA
+#EXPORT --------------------------------------------------------------------
+designSafeTwoPortions <- function(na, nb, maxNgroups = NULL, prior = c("noPriorKnowledge", "priorOnDifference", "priorOnLogOddsRatio"),
+                                  priorVal = 0.18, delta = 0, alpha = 0.05, beta = 0.8){
+  prior <- match.arg(prior)
+
+  if(!is.null(maxNgroups)){
+    nPlan <- c(na, nb, maxNgroups)
+    names(nPlan) <- c("na", "nb", "maxNgroups")
+  } else {
+    nPlan <- c(na, nb)
+    names(nPlan) <- c("na", "nb")
+  }
+
+  names(priorVal) <- "Beta prior parameters"
+
+  if(prior == "priorOnLogOddsRatio"){
+    names(delta) <- "log odds ratio"
+  } else {
+    names(delta) <- "difference"
+  }
+
+  testType <- "2x2"
+
+  #might change for the confidence sequences
+  h0 <- 0
+
+  result <- list("nPlan"=nPlan, "parameter"= priorVal, "esMin"= delta, "alpha"=alpha, "beta"=beta,
+                 "h0"= h0, "testType"=testType, "priorType" = prior, alternative = "two.sided",
+                 "pilot"=FALSE, "lowN"=NULL, "highN"=NULL, "call"=sys.call(),
+                 "timeStamp"=Sys.time())
+  class(result) <- "safeDesign"
+
+  return(result)
+}
+
+#' Perform a safe test for two proportions for stream data
+#'
+#' Perform a safe test for two proportions (a 2x2 contingency table test) with a
+#' result object retrieved through one of design functions for two proportions
+#' in this package, \code{\link{designPilotSafeTwoProportions}} or
+#' \code{\link{designSafeTwoProportions}}.
+#'
+#' @param ya observations (0,1) in group a
+#' @param yb observations (0,1) in group b
+#' @param designObj a safe test design for two proportions retrieved through \code{\link{designPilotSafeTwoProportions}} or
+#' \code{\link{designSafeTwoProportions}}.
+#'
+#' @return safe2x2 test result object with the data used for the test, the S-value and the corresponding
+#' safe p-value.
+#'
+#' @export
+#'
+#' @examples
+#'
+#'
+safeTwoProportionsTest <- function(ya, yb, designObj) {
+
+  eValue <- calculateSequential2x2E(aSample = ya, bSample = yb,
+                                    betaPriorValue = designObj[["parameter"]],
+                                    method = designObj[["priorType"]],
+                                    delta = designObj[["esMin"]],
+                                    na = designObj[["nPlan"]][["na"]],
+                                    nb = designObj[["nPlan"]][["nb"]])
+
+  argumentNames <- getArgs()
+  xLabel <- extractNameFromArgs(argumentNames, "ya")
+  yLabel <- extractNameFromArgs(argumentNames, "yb")
+  dataName <- paste(xLabel, "and", yLabel)
+  n <- c(length(ya)*designObj[["nPlan"]][["na"]], length(yb)*designObj[["nPlan"]][["nb"]])
+  names(n) <- c("nGroupsA", "nGroupsB")
+
+  testResult <- list(designObj = designObj,
+                     eValue = eValue,
+                     dataName = dataName,
+                     n = n)
+  class(testResult) <- "safeTest"
+
+  return(testResult)
+}
+
+#' Alias for \code{\link{safeTwoProportionsTest}}
+#'
+#' @inheritParams safeTwoProportionsTest
+#' @return safe2x2 test result object with the data used for the test, the S-value and the corresponding
+#' safe p-value.
+#' @export
+#'
+#' @examples
+
+safe.proportion.test <- function(ya, yb, designObj) {
+  return(safeTwoProportionsTest(ya, yb, designObj))
+}
+
+#NON-EXPORT ----------------------------------------------------------------
+calculateSequential2x2E <- function(aSample, bSample,
+                                 method = c("noPriorKnowledge", "priorOnDifference", "priorOnLogOddsRatio"),
+                                 betaPriorValue,
+                                 delta = NULL,
+                                 gridspacing = 1e3,
+                                 na = 1,
+                                 nb = 1){
+  method <- match.arg(method)
+
+  if(method %in% c("priorOnDifference", "priorOnLogOddsRatio") & is.null(delta)){
+    stop("Provide value for divergence measure: absolute difference or log Odds ratio")
+  }
+  betaPriorValue <- as.numeric(testt[["parameter"]])
+
+  #set starting E variable
+  if(method == "priorOnDifference"){
+    thetaAvalues <- seq(1/gridspacing, 1 - delta - 1/gridspacing, length.out = gridspacing)
+    thetaBvalues <- thetaAvalues + delta
+    EVariable <- createEWithPriorKnowledge(na = na, nb = nb, thetaAvalues = thetaAvalues, delta = delta,
+                                              betaPriorValue = betaPriorValue, logOdds = FALSE)
+
+  } else if(method == "priorOnLogOddsRatio"){
+    thetaAvalues <- seq(1/gridspacing, 1 - 1/gridspacing, length.out = gridspacing)
+    thetaBvalues <- sapply(thetaAvalues, calculateThetaBFromThetaAandLOR, lOR = delta)
+    EVariable <- createEWithPriorKnowledge(na = na, nb = nb, thetaAvalues = thetaAvalues, delta = delta,
+                                           betaPriorValue = betaPriorValue, logOdds = TRUE)
+  } else if(method == "noPriorKnowledge"){
+    EVariable <- updateE(nSuccessA = 0, nFailA = 0, nSuccessB = 0, nFailB = 0,
+                         na = na, nb = nb,
+                         alphaA = betaPriorValue, betaA = betaPriorValue,
+                         alphaB = betaPriorValue, betaB = betaPriorValue)
+  }
+
+  if(length(aSample) != length(bSample) | na != nb){
+    stop("Software not suitable for unequal sample sizes yet")
+  }
+
+  successA <- cumsum(aSample)
+  successB <- cumsum(bSample)
+
+  groupSizeVec <- seq_along(successA)
+
+  failA <- groupSizeVec - successA
+  failB <- groupSizeVec - successB
+
+  currentE <- 1
+  for(i in seq_along(aSample)){
+    newE <- calculateE(na1 = aSample[i],
+                       na = na,
+                       nb1 = bSample[i],
+                       nb = nb,
+                       thetaA = EVariable[["thetaA"]],
+                       thetaB = EVariable[["thetaB"]],
+                       theta0 = EVariable[["theta0"]])
+    currentE <- newE * currentE
+
+    if(method == "noPriorKnowledge"){
+      #updating the noPriorKnowledge E variable: using all data seen so far + priors at the start, new Bernoulli ML
+      EVariable <- updateE(nSuccessA = successA[i], nFailA = failA[i],
+                           nSuccessB = successB[i], nFailB = failB[i],
+                           na = na, nb = nb,
+                           alphaA = betaPriorValue, betaA = betaPriorValue,
+                           alphaB = betaPriorValue, betaB = betaPriorValue)
+    } else if(method == "priorOnDifference"){
+      #updating the prior knowledge on delta E variable: take product of previous posterior and posterior of NEW data
+      EVariable <- updatePosterior(na1 = aSample[i], nb1 = bSample[i], na = na, nb = nb,
+                                   priorDensity = EVariable$posteriorDensity, thetaAvalues = thetaAvalues,
+                                   thetaBvalues = thetaBvalues, delta = delta, logOdds = FALSE)
+    } else if (method == "priorOnLogOddsRatio"){
+      EVariable <- updatePosterior(na1 = aSample[i], nb1 = bSample[i], na = na, nb = nb,
+                                   priorDensity = EVariable$posteriorDensity, thetaAvalues = thetaAvalues,
+                                   thetaBvalues = thetaBvalues, delta = delta,
+                                   logOdds = TRUE)
+    }
+  }
+
+  return(currentE)
+}
+
+bernoulliML <- function(nSuccess, nFailure, priorS, priorF){
+  (nSuccess + priorS)/(nSuccess + nFailure + priorS + priorF)
+}
+
+calculateE <- function(na1, na, nb1, nb, thetaA, thetaB, theta0){
+  exp(
+    na1*log(thetaA) + (na - na1)*log(1-thetaA) + nb1*log(thetaB) + (nb-nb1)*log(1 - thetaB) -
+      (na1 + nb1) * log(theta0) - (na + nb - na1 - nb1) * log(1 - theta0)
   )
-
-  class(newSafe2x2Design) <- "safe2x2_result"
-  return(newSafe2x2Design)
 }
 
-add_attributes <- function(object, attributes_defined) {
-  object[names(attributes_defined)] <- attributes_defined
-  return(object)
+#No prior knowledge fncs --------------------------------------------------
+
+updateE <- function(nSuccessA, nFailA, nSuccessB, nFailB, na, nb,
+                    alphaA = 0.5, betaA = 0.5, alphaB = 0.5, betaB = 0.5){
+
+  thetaA <- bernoulliML(nSuccess = nSuccessA,
+                        nFailure = nFailA,
+                        priorS = alphaA,
+                        priorF = betaA)
+  thetaB <- bernoulliML(nSuccess = nSuccessB,
+                        nFailure = nFailB,
+                        priorS = alphaB,
+                        priorF = betaB)
+
+  theta0 <- (na*thetaA + nb*thetaB)/(na+nb)
+
+  return(
+    list(
+      thetaA = thetaA,
+      thetaB = thetaB,
+      theta0 = theta0
+    )
+  )
 }
 
-create_safe_2x2_design <- function(attributes_defined) {
-  stopifnot(is.list(attributes_defined))
-  safe_2x2_design <- createEmptySafe2x2Design()
-  safe_2x2_design <- add_attributes(safe_2x2_design, attributes_defined)
-  return(safe_2x2_design)
+#Prior knowledge variant fncs -----------------------------------------------------------------
+calculateThetaBFromThetaAandLOR <- function(thetaA, lOR){
+  c <- exp(lOR)*(1 - thetaA)/thetaA
+  return(1/(1+c))
+}
+#quick test
+# lOR <- -3
+# thetaA <- 0.4
+# thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = lOR)
+# all.equal(log(thetaA/(1-thetaA)*(1-thetaB)/thetaB), lOR)
+
+createEWithPriorKnowledge <- function(na, nb, thetaAvalues, delta, betaPriorValue, logOdds = FALSE){
+  densityStart <- createPriorDensity(grid = thetaAvalues, delta = delta,
+                                     betaPriorValue = betaPriorValue, logOdds = logOdds)
+
+  #calculate marginal pred. prob
+  thetaA <- thetaAvalues %*% densityStart
+  if(logOdds){
+    thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = delta)
+  } else {
+    thetaB <- thetaA + delta
+  }
+
+  return(list(posteriorDensity = densityStart,
+              thetaA = thetaA,
+              thetaB = thetaB,
+              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
+}
+
+createPriorDensity <- function(grid, delta, betaPriorValue, logOdds = FALSE){
+  if(logOdds){
+    rhovector <- grid
+  } else {
+    if(delta <= 0){
+      stop("Effect size should be between 0 and 1 for absolute divergence measure.")
+    }
+    rhovector <- grid/(1 - delta)
+  }
+  rhoGridDensity <- dbeta(x = rhovector, shape1 = betaPriorValue, shape2 = betaPriorValue)
+  densityStart <- rhoGridDensity/sum(rhoGridDensity)
+
+  return(densityStart)
+}
+
+updatePosterior <- function(na1, nb1, na, nb, priorDensity, thetaAvalues, thetaBvalues,
+                            delta, logOdds = FALSE){
+  likelihoodPrior <- exp(na1*log(thetaAvalues) + (na - na1)*log(1-thetaAvalues) +
+                           nb1*log(thetaBvalues) + (nb - nb1)*log(1-thetaBvalues) +
+                           log(priorDensity))
+
+  #normalize
+  posteriorDensity <- likelihoodPrior/(sum(likelihoodPrior))
+
+  #calculate new marginal pred. probs
+  thetaA <- thetaAvalues %*% posteriorDensity
+  if(logOdds){
+    thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = delta)
+  } else {
+    thetaB <- thetaA + delta
+  }
+
+  return(list(posteriorDensity = posteriorDensity,
+              thetaA = thetaA,
+              thetaB = thetaB,
+              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
 }
 
 #OLD CODE FOR GROW ANALYSIS OF STATIC DATA----------------------------------
+# createEmptySafe2x2Design <- function() {
+#   newSafe2x2Design <- list(
+#     'delta.star' = NA,
+#     'na' = NA,
+#     'nb' = NA,
+#     'point_h0' = 0.5,
+#     'H1set' = NA,
+#     'w1' = c(0.5, 0.5),
+#     'call' = NA,
+#     'pilot' = NA
+#   )
+#
+#   class(newSafe2x2Design) <- "safe2x2_result"
+#   return(newSafe2x2Design)
+# }
+#
+# add_attributes <- function(object, attributes_defined) {
+#   object[names(attributes_defined)] <- attributes_defined
+#   return(object)
+# }
+#
+# create_safe_2x2_design <- function(attributes_defined) {
+#   stopifnot(is.list(attributes_defined))
+#   safe_2x2_design <- createEmptySafe2x2Design()
+#   safe_2x2_design <- add_attributes(safe_2x2_design, attributes_defined)
+#   return(safe_2x2_design)
+# }
 #' #helper function for finding adjustment phi to simple S
 #' #for case of unequal group sizes
 #' #calculates the expected capital growth of a simple S value adjusted with
