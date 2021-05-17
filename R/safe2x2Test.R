@@ -1,7 +1,13 @@
 #EXPORT --------------------------------------------------------------------
-designSafeTwoPortions <- function(na, nb, maxNgroups = NULL, prior = c("noPriorKnowledge", "priorOnDifference", "priorOnLogOddsRatio"),
-                                  priorVal = 0.18, delta = 0, alpha = 0.05, beta = 0.8){
-  prior <- match.arg(prior)
+designSafeTwoProportions <- function(na, nb, maxNgroups = NULL, alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                   delta = NULL, alpha = 0.05, beta = NULL, pilot = "FALSE",
+                                   priorValues = list(betaA1 = 0.18, betaB1 = 0.18, betaA2 = 0.18, betaB2 = 0.18)){
+  prior <- match.arg(alternativeRestriction)
+
+  #scenario 1a
+  if(is.null(maxNgroups) && delta != 0 && !is.null(beta)){
+    maxNgroups <- simulateWorstCaseQuantile(delta = delta, na = na, nb = nb, priorValues = priorValues, alternativeRestriction = alternativeRestriction, alpha = alpha, beta = beta)
+  }
 
   if(!is.null(maxNgroups)){
     nPlan <- c(na, nb, maxNgroups)
@@ -11,24 +17,38 @@ designSafeTwoPortions <- function(na, nb, maxNgroups = NULL, prior = c("noPriorK
     names(nPlan) <- c("na", "nb")
   }
 
-  names(priorVal) <- "Beta prior parameters"
+  alternative <- switch(alternativeRestriction,
+                        "none" = "two.sided",
+                        "difference" = "greater",
+                        "logOddsRatio" = ifelse(delta > 0, "less", "greater"))
 
-  if(prior == "priorOnLogOddsRatio"){
-    names(delta) <- "log odds ratio"
-  } else {
-    names(delta) <- "difference"
-  }
+  names(delta) <- ifelse(alternativeRestriction == "logOddsRatio", "log odds ratio", "difference")
+  #names(priorValues) <- "Beta prior parameters"
 
   testType <- "2x2"
+  note <- "Optimality of hyperparameters only verified for equal group sizes (na = nb = 1)"
 
   #might change for the confidence sequences
   h0 <- 0
 
-  result <- list("nPlan"=nPlan, "parameter"= priorVal, "esMin"= delta, "alpha"=alpha, "beta"=beta,
-                 "h0"= h0, "testType"=testType, "priorType" = prior, alternative = "two.sided",
-                 "pilot"=FALSE, "lowN"=NULL, "highN"=NULL, "call"=sys.call(),
-                 "timeStamp"=Sys.time())
+  result <- list("nPlan"=nPlan,
+                 "parameter"= priorValues,
+                 "alpha"=alpha,
+                 "beta"=beta,
+                 "esMin" = delta,
+                 "h0"= h0,
+                 "testType"=testType,
+                 "alternativeRestriction" = prior,
+                 "alternative" = alternative,
+                 "pilot" = pilot,
+                 "pilot"=FALSE,
+                 "lowN"=NULL,
+                 "highN"=NULL,
+                 "call"=sys.call(),
+                 "timeStamp"=Sys.time(),
+                 "note" = note)
   class(result) <- "safeDesign"
+  names(result[["parameter"]]) <- "Beta prior values"
 
   return(result)
 }
@@ -53,10 +73,18 @@ designSafeTwoPortions <- function(na, nb, maxNgroups = NULL, prior = c("noPriorK
 #' @examples
 #'
 #'
-safeTwoProportionsTest <- function(ya, yb, designObj) {
+safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
+  if(is.null(designObj) & !pilot){
+    stop("Please provide a safe 2x2 design object, or run the function with pilot=TRUE. A design object can be obtained by running designSafeTwoProportions().")
+  }
 
+  if(pilot){
+    designObj <- designSafeTwoPortions(na = 1, nb = 1, maxNgroups = length(ya), prior = "none", pilot = TRUE)
+  }
+
+  betaPriorValue <- as.numeric(designObj[["parameter"]])
   eValue <- calculateSequential2x2E(aSample = ya, bSample = yb,
-                                    betaPriorValue = designObj[["parameter"]],
+                                    betaPriorValue = betaPriorValue,
                                     method = designObj[["priorType"]],
                                     delta = designObj[["esMin"]],
                                     na = designObj[["nPlan"]][["na"]],
@@ -92,33 +120,68 @@ safe.proportion.test <- function(ya, yb, designObj) {
 }
 
 #NON-EXPORT ----------------------------------------------------------------
+simulateWorstCaseQuantile <- function(na, nb, priorValues, prior, alpha, delta, beta, M = 1e3, maxSimStoptime = 1e4){
+  thetaAvec <- seq(0 + 1e-3, 1 - delta - 1e-3, length.out = 5)
+  CurrentWorstCaseQuantile <- 0
+
+  message("Simulating stopping times to determine maximal sample size")
+  pbSafe <- utils::txtProgressBar(style=1)
+  for(t in seq_along(thetaAvec)){
+    StoppingTimes <- numeric(M)
+
+    for(i in 1:M){
+      ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaAvec[t])
+      yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaAvec[t] + delta)
+      StoppingTimes[i] <- calculateSequential2x2E(aSample = ya, bSample = yb,
+                                                  priorValues = priorValues,
+                                                  method = prior,
+                                                  delta = delta,
+                                                  na = na,
+                                                  nb = nb, simSetting = TRUE, alphaSim = alpha)
+      utils::setTxtProgressBar(pbSafe, value=((t-1)*M+i)/(length(thetaAvec)*M))
+    }
+    CurrentQuantile <- quantile(StoppingTimes, probs = 1 - beta)
+    if(CurrentQuantile >= CurrentWorstCaseQuantile){CurrentWorstCaseQuantile <- CurrentQuantile}
+  }
+  close(pbSafe)
+
+  return(CurrentWorstCaseQuantile)
+}
+
 calculateSequential2x2E <- function(aSample, bSample,
-                                 method = c("noPriorKnowledge", "priorOnDifference", "priorOnLogOddsRatio"),
-                                 betaPriorValue,
+                                 method = c("none", "difference", "logOddsRatio"),
+                                 priorValues,
                                  delta = NULL,
                                  gridspacing = 1e3,
                                  na = 1,
-                                 nb = 1){
+                                 nb = 1,
+                                 simSetting = FALSE,
+                                 alphaSim = 0.05){
   method <- match.arg(method)
 
-  if(method %in% c("priorOnDifference", "priorOnLogOddsRatio") & is.null(delta)){
+  if(method %in% c("difference", "logOddsRatio") & is.null(delta)){
     stop("Provide value for divergence measure: absolute difference or log Odds ratio")
   }
-  betaPriorValue <- as.numeric(testt[["parameter"]])
+
+  #unpack the prior values
+  betaA1 <- priorValues[["betaA1"]]
+  betaA2 <- priorValues[["betaA2"]]
+  betaB1 <- priorValues[["betaB1"]]
+  betaB2 <- priorValues[["betaB2"]]
 
   #set starting E variable
-  if(method == "priorOnDifference"){
+  if(method == "difference"){
     thetaAvalues <- seq(1/gridspacing, 1 - delta - 1/gridspacing, length.out = gridspacing)
     thetaBvalues <- thetaAvalues + delta
     EVariable <- createEWithPriorKnowledge(na = na, nb = nb, thetaAvalues = thetaAvalues, delta = delta,
                                               betaPriorValue = betaPriorValue, logOdds = FALSE)
 
-  } else if(method == "priorOnLogOddsRatio"){
+  } else if(method == "logOddsRatio"){
     thetaAvalues <- seq(1/gridspacing, 1 - 1/gridspacing, length.out = gridspacing)
     thetaBvalues <- sapply(thetaAvalues, calculateThetaBFromThetaAandLOR, lOR = delta)
     EVariable <- createEWithPriorKnowledge(na = na, nb = nb, thetaAvalues = thetaAvalues, delta = delta,
                                            betaPriorValue = betaPriorValue, logOdds = TRUE)
-  } else if(method == "noPriorKnowledge"){
+  } else if(method == "none"){
     EVariable <- updateE(nSuccessA = 0, nFailA = 0, nSuccessB = 0, nFailB = 0,
                          na = na, nb = nb,
                          alphaA = betaPriorValue, betaA = betaPriorValue,
@@ -148,24 +211,30 @@ calculateSequential2x2E <- function(aSample, bSample,
                        theta0 = EVariable[["theta0"]])
     currentE <- newE * currentE
 
-    if(method == "noPriorKnowledge"){
+    #in simulation setting, interested in the stopping time
+    if(simSetting & currentE >= (1/alphaSim)){
+      return(i)
+    }
+
+    if(method == "none"){
       #updating the noPriorKnowledge E variable: using all data seen so far + priors at the start, new Bernoulli ML
       EVariable <- updateE(nSuccessA = successA[i], nFailA = failA[i],
                            nSuccessB = successB[i], nFailB = failB[i],
                            na = na, nb = nb,
                            alphaA = betaPriorValue, betaA = betaPriorValue,
                            alphaB = betaPriorValue, betaB = betaPriorValue)
-    } else if(method == "priorOnDifference"){
+    } else if(method == "difference"){
       #updating the prior knowledge on delta E variable: take product of previous posterior and posterior of NEW data
       EVariable <- updatePosterior(na1 = aSample[i], nb1 = bSample[i], na = na, nb = nb,
                                    priorDensity = EVariable$posteriorDensity, thetaAvalues = thetaAvalues,
                                    thetaBvalues = thetaBvalues, delta = delta, logOdds = FALSE)
-    } else if (method == "priorOnLogOddsRatio"){
+    } else if (method == "logOddsRatio"){
       EVariable <- updatePosterior(na1 = aSample[i], nb1 = bSample[i], na = na, nb = nb,
                                    priorDensity = EVariable$posteriorDensity, thetaAvalues = thetaAvalues,
                                    thetaBvalues = thetaBvalues, delta = delta,
                                    logOdds = TRUE)
     }
+
   }
 
   return(currentE)

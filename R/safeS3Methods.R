@@ -218,7 +218,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
 
   displayList <- list()
 
-  for (item in c("nPlan", "nEvents", "esMin", "alternative", "beta", "parameter",
+  for (item in c("nPlan", "nEvents", "esMin", "alternative","alternativeRestriction", "beta", "parameter",
                  "alpha", "decision rule")) {
     itemValue <- designObj[[item]]
 
@@ -233,6 +233,8 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
         displayList[["decision rule: e-value > 1/alpha"]] <- itemValue
       } else if (item=="esMin") {
         displayList[[paste("minimal", names(itemValue))]] <- itemValue
+      } else if (item == "alternativeRestriction"){
+        displayList[["alternative restriction"]] <- itemValue
       } else {
         displayList[[item]] <- itemValue
       }
