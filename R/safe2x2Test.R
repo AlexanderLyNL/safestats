@@ -82,9 +82,8 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
     designObj <- designSafeTwoPortions(na = 1, nb = 1, maxNgroups = length(ya), prior = "none", pilot = TRUE)
   }
 
-  betaPriorValue <- as.numeric(designObj[["parameter"]])
   eValue <- calculateSequential2x2E(aSample = ya, bSample = yb,
-                                    betaPriorValue = betaPriorValue,
+                                    priorValues = designObj[["parameter"]],
                                     method = designObj[["priorType"]],
                                     delta = designObj[["esMin"]],
                                     na = designObj[["nPlan"]][["na"]],
@@ -119,7 +118,216 @@ safe.proportion.test <- function(ya, yb, designObj) {
   return(safeTwoProportionsTest(ya, yb, designObj))
 }
 
-#NON-EXPORT ----------------------------------------------------------------
+#NON-EXPORT --------------------------------------------------------------------
+#basics ------------------------------------------------------------------------
+calculateE <- function(na1, na, nb1, nb, thetaA, thetaB, theta0){
+  exp(
+    na1*log(thetaA) + (na - na1)*log(1-thetaA) + nb1*log(thetaB) + (nb-nb1)*log(1 - thetaB) -
+      (na1 + nb1) * log(theta0) - (na + nb - na1 - nb1) * log(1 - theta0)
+  )
+}
+
+calculateThetaBFromThetaAandLOR <- function(thetaA, lOR){
+  c <- exp(lOR)*thetaA/(1-thetaA)
+  return(c/(1+c))
+}
+
+#No restrictions fncs ---------------------------------------------------------
+#NOTE THAT FOR THESE FUNCTIONS TOTALS ARE USED
+bernoulliML <- function(totalSuccess, totalFail, priorSuccess, priorFail){
+  (totalSuccess + priorSuccess)/(totalSuccess + totalFail + priorSuccess + priorFail)
+}
+
+updateE <- function(totalSuccessA, totalFailA, totalSuccessB, totalFailB, na, nb,
+                    betaA1, betaA2, betaB1, betaB2){
+
+  thetaA <- bernoulliML(totalSuccess = totalSuccessA,
+                        totalFail = totalFailA,
+                        priorSuccess = betaA1,
+                        priorFail = betaA2)
+  thetaB <- bernoulliML(totalSuccess = totalSuccessB,
+                        totalFail = totalFailB,
+                        priorSuccess = betaB1,
+                        priorFail = betaB2)
+
+  theta0 <- (na*thetaA + nb*thetaB)/(na+nb)
+
+  return(
+    list(
+      thetaA = thetaA,
+      thetaB = thetaB,
+      theta0 = theta0
+    )
+  )
+}
+
+#Restriction on H1 variant fncs ------------------------------------------------
+createStartEWithRestriction <- function(na, nb, delta, logOdds, betaA1, betaA2, gridSize = 1e3){
+  #do not start at 0/ end at 1, because using log/ exp trick on calcualtions
+  #later for precision and log(0) raises error
+  rhoGrid <- seq(1/gridSize, 1 - 1/gridSize, length.out = gridSize)
+  rhoGridDensity <- dbeta(x = rhoGrid, shape1 = betaA1, shape2 = betaA2)
+  densityStart <- rhoGridDensity/sum(rhoGridDensity)
+
+  #calculate marginal pred. prob
+  if(logOdds){
+    #log odds: theta A in (0,1), no reparameterization needed
+    thetaAgrid <- rhoGrid
+    thetaBgrid <- sapply(thetaAgrid, calculateThetaBFromThetaAandLOR, lOR = delta)
+
+    thetaA <- as.numeric(thetaAgrid %*% densityStart)
+    thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = delta)
+  } else {
+    #if delta < 0, add term to reparameterization
+    thetaAgrid <- rhoGrid*(1 - abs(delta)) - ifelse(delta < 0, delta, 0)
+    thetaBgrid <- thetaAgrid + delta
+
+    thetaA <- as.numeric(thetaAgrid %*% densityStart)
+    thetaB <- thetaA + delta
+  }
+
+  return(list(posteriorDensity = densityStart,
+              thetaAgrid = thetaAgrid,
+              thetaBgrid = thetaBgrid,
+              thetaA = thetaA,
+              thetaB = thetaB,
+              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
+}
+
+updateEWithRestriction <- function(na1, nb1, na, nb, delta, logOdds,
+                                   priorDensity, thetaAgrid, thetaBgrid){
+  likelihoodTimesPrior <- exp(na1*log(thetaAgrid) + (na - na1)*log(1-thetaAgrid) +
+                           nb1*log(thetaBgrid) + (nb - nb1)*log(1-thetaBgrid) +
+                           log(priorDensity))
+
+  #normalize
+  posteriorDensity <- likelihoodTimesPrior/(sum(likelihoodTimesPrior))
+
+  #calculate new marginal pred. probs
+  thetaA <- as.numeric(thetaAgrid %*% posteriorDensity)
+  if(logOdds){
+    thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = delta)
+  } else {
+    thetaB <- thetaA + delta
+  }
+
+  return(list(posteriorDensity = posteriorDensity,
+              thetaAgrid = thetaAgrid,
+              thetaBgrid = thetaBgrid,
+              thetaA = thetaA,
+              thetaB = thetaB,
+              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
+}
+
+#Main functions ---------------------------------------------------------------
+calculateSequential2x2E <- function(aSample, bSample,
+                                 method = c("none", "difference", "logOddsRatio"),
+                                 priorValues,
+                                 delta = NULL,
+                                 gridSize = 1e3,
+                                 na = 1,
+                                 nb = 1,
+                                 simSetting = FALSE,
+                                 alphaSim = 0.05){
+  method <- match.arg(method)
+
+  if(method %in% c("difference", "logOddsRatio") & is.null(delta)){
+    stop("Provide value for divergence measure: absolute difference or log Odds ratio")
+  }
+
+  #unpack the prior values
+  betaA1 <- priorValues[["betaA1"]]
+  betaA2 <- priorValues[["betaA2"]]
+  betaB1 <- priorValues[["betaB1"]]
+  betaB2 <- priorValues[["betaB2"]]
+
+  #set starting E variable
+  if(method == "difference"){
+    EVariable <- createStartEWithRestriction(na = na, nb = nb,
+                                             delta = delta,
+                                             logOdds = FALSE,
+                                             betaA1 = betaA1, betaA2 = betaA2,
+                                             gridSize = gridSize
+                                             )
+
+  } else if(method == "logOddsRatio"){
+    EVariable <- createStartEWithRestriction(na = na, nb = nb,
+                                             delta = delta,
+                                             logOdds = TRUE,
+                                             betaA1 = betaA1, betaA2 = betaA2,
+                                             gridSize = gridSize
+                                             )
+  } else if(method == "none"){
+    EVariable <- updateE(totalSuccessA = 0, totalFailA = 0,
+                         totalSuccessB = 0, totalFailB = 0,
+                         na = na, nb = nb,
+                         betaA1 = betaA1, betaA2 = betaA2,
+                         betaB1 = betaB1, betaB2 = betaB2)
+  }
+
+  if(length(aSample) != length(bSample) | na != nb){
+    stop("Software not suitable for unequal sample sizes yet")
+  }
+
+  totalSuccessA <- cumsum(aSample)
+  totalSuccessB <- cumsum(bSample)
+
+  groupSizeVec <- seq_along(totalSuccessA)
+
+  totalFailA <- groupSizeVec - totalSuccessA
+  totalFailB <- groupSizeVec - totalSuccessB
+
+  currentE <- 1
+  for(i in seq_along(aSample)){
+    newE <- calculateE(na1 = aSample[i],
+                       na = na,
+                       nb1 = bSample[i],
+                       nb = nb,
+                       thetaA = EVariable[["thetaA"]],
+                       thetaB = EVariable[["thetaB"]],
+                       theta0 = EVariable[["theta0"]])
+    currentE <- newE * currentE
+
+    #in simulation setting, interested in the stopping time
+    if(simSetting & currentE >= (1/alphaSim)){
+      return(i)
+    }
+
+    if(method == "none"){
+      #updating the E variable without restrictions:
+      #using all data seen so far + priorSuccess at the start, new Bernoulli ML
+      EVariable <- updateE(totalSuccessA = totalSuccessA[i], totalFailA = totalFailA[i],
+                           totalSuccessB = totalSuccessB[i], totalFailB = totalFailB[i],
+                           na = na, nb = nb,
+                           betaA1 = betaA1, betaA2 = betaA2,
+                           betaB1 = betaB1, betaB2 = betaB2)
+    } else if(method == "difference"){
+      #updating the E variable with restriction on H1:
+      #take product of previous posterior and posterior of NEW data
+      EVariable <- updateEWithRestriction(na1 = aSample[i], nb1 = bSample[i],
+                                          na = na, nb = nb,
+                                          priorDensity = EVariable$posteriorDensity,
+                                          thetaAvalues = thetaAvalues,
+                                          thetaBvalues = thetaBvalues,
+                                          delta = delta,
+                                          logOdds = FALSE
+                                          )
+    } else if (method == "logOddsRatio"){
+      EVariable <- updateEWithRestriction(na1 = aSample[i], nb1 = bSample[i],
+                                          na = na, nb = nb,
+                                          priorDensity = EVariable[["posteriorDensity"]],
+                                          thetaAvalues = thetaAvalues,
+                                          thetaBvalues = thetaBvalues,
+                                          delta = delta,
+                                          logOdds = TRUE
+                                          )
+    }
+
+  }
+
+  return(currentE)
+}
+
 simulateWorstCaseQuantile <- function(na, nb, priorValues, prior, alpha, delta, beta, M = 1e3, maxSimStoptime = 1e4){
   thetaAvec <- seq(0 + 1e-3, 1 - delta - 1e-3, length.out = 5)
   CurrentWorstCaseQuantile <- 0
@@ -146,201 +354,6 @@ simulateWorstCaseQuantile <- function(na, nb, priorValues, prior, alpha, delta, 
   close(pbSafe)
 
   return(CurrentWorstCaseQuantile)
-}
-
-calculateSequential2x2E <- function(aSample, bSample,
-                                 method = c("none", "difference", "logOddsRatio"),
-                                 priorValues,
-                                 delta = NULL,
-                                 gridspacing = 1e3,
-                                 na = 1,
-                                 nb = 1,
-                                 simSetting = FALSE,
-                                 alphaSim = 0.05){
-  method <- match.arg(method)
-
-  if(method %in% c("difference", "logOddsRatio") & is.null(delta)){
-    stop("Provide value for divergence measure: absolute difference or log Odds ratio")
-  }
-
-  #unpack the prior values
-  betaA1 <- priorValues[["betaA1"]]
-  betaA2 <- priorValues[["betaA2"]]
-  betaB1 <- priorValues[["betaB1"]]
-  betaB2 <- priorValues[["betaB2"]]
-
-  #set starting E variable
-  if(method == "difference"){
-    thetaAvalues <- seq(1/gridspacing, 1 - delta - 1/gridspacing, length.out = gridspacing)
-    thetaBvalues <- thetaAvalues + delta
-    EVariable <- createEWithPriorKnowledge(na = na, nb = nb, thetaAvalues = thetaAvalues, delta = delta,
-                                              betaPriorValue = betaPriorValue, logOdds = FALSE)
-
-  } else if(method == "logOddsRatio"){
-    thetaAvalues <- seq(1/gridspacing, 1 - 1/gridspacing, length.out = gridspacing)
-    thetaBvalues <- sapply(thetaAvalues, calculateThetaBFromThetaAandLOR, lOR = delta)
-    EVariable <- createEWithPriorKnowledge(na = na, nb = nb, thetaAvalues = thetaAvalues, delta = delta,
-                                           betaPriorValue = betaPriorValue, logOdds = TRUE)
-  } else if(method == "none"){
-    EVariable <- updateE(nSuccessA = 0, nFailA = 0, nSuccessB = 0, nFailB = 0,
-                         na = na, nb = nb,
-                         alphaA = betaPriorValue, betaA = betaPriorValue,
-                         alphaB = betaPriorValue, betaB = betaPriorValue)
-  }
-
-  if(length(aSample) != length(bSample) | na != nb){
-    stop("Software not suitable for unequal sample sizes yet")
-  }
-
-  successA <- cumsum(aSample)
-  successB <- cumsum(bSample)
-
-  groupSizeVec <- seq_along(successA)
-
-  failA <- groupSizeVec - successA
-  failB <- groupSizeVec - successB
-
-  currentE <- 1
-  for(i in seq_along(aSample)){
-    newE <- calculateE(na1 = aSample[i],
-                       na = na,
-                       nb1 = bSample[i],
-                       nb = nb,
-                       thetaA = EVariable[["thetaA"]],
-                       thetaB = EVariable[["thetaB"]],
-                       theta0 = EVariable[["theta0"]])
-    currentE <- newE * currentE
-
-    #in simulation setting, interested in the stopping time
-    if(simSetting & currentE >= (1/alphaSim)){
-      return(i)
-    }
-
-    if(method == "none"){
-      #updating the noPriorKnowledge E variable: using all data seen so far + priors at the start, new Bernoulli ML
-      EVariable <- updateE(nSuccessA = successA[i], nFailA = failA[i],
-                           nSuccessB = successB[i], nFailB = failB[i],
-                           na = na, nb = nb,
-                           alphaA = betaPriorValue, betaA = betaPriorValue,
-                           alphaB = betaPriorValue, betaB = betaPriorValue)
-    } else if(method == "difference"){
-      #updating the prior knowledge on delta E variable: take product of previous posterior and posterior of NEW data
-      EVariable <- updatePosterior(na1 = aSample[i], nb1 = bSample[i], na = na, nb = nb,
-                                   priorDensity = EVariable$posteriorDensity, thetaAvalues = thetaAvalues,
-                                   thetaBvalues = thetaBvalues, delta = delta, logOdds = FALSE)
-    } else if (method == "logOddsRatio"){
-      EVariable <- updatePosterior(na1 = aSample[i], nb1 = bSample[i], na = na, nb = nb,
-                                   priorDensity = EVariable$posteriorDensity, thetaAvalues = thetaAvalues,
-                                   thetaBvalues = thetaBvalues, delta = delta,
-                                   logOdds = TRUE)
-    }
-
-  }
-
-  return(currentE)
-}
-
-bernoulliML <- function(nSuccess, nFailure, priorS, priorF){
-  (nSuccess + priorS)/(nSuccess + nFailure + priorS + priorF)
-}
-
-calculateE <- function(na1, na, nb1, nb, thetaA, thetaB, theta0){
-  exp(
-    na1*log(thetaA) + (na - na1)*log(1-thetaA) + nb1*log(thetaB) + (nb-nb1)*log(1 - thetaB) -
-      (na1 + nb1) * log(theta0) - (na + nb - na1 - nb1) * log(1 - theta0)
-  )
-}
-
-#No prior knowledge fncs --------------------------------------------------
-
-updateE <- function(nSuccessA, nFailA, nSuccessB, nFailB, na, nb,
-                    alphaA = 0.5, betaA = 0.5, alphaB = 0.5, betaB = 0.5){
-
-  thetaA <- bernoulliML(nSuccess = nSuccessA,
-                        nFailure = nFailA,
-                        priorS = alphaA,
-                        priorF = betaA)
-  thetaB <- bernoulliML(nSuccess = nSuccessB,
-                        nFailure = nFailB,
-                        priorS = alphaB,
-                        priorF = betaB)
-
-  theta0 <- (na*thetaA + nb*thetaB)/(na+nb)
-
-  return(
-    list(
-      thetaA = thetaA,
-      thetaB = thetaB,
-      theta0 = theta0
-    )
-  )
-}
-
-#Prior knowledge variant fncs -----------------------------------------------------------------
-calculateThetaBFromThetaAandLOR <- function(thetaA, lOR){
-  c <- exp(lOR)*(1 - thetaA)/thetaA
-  return(1/(1+c))
-}
-#quick test
-# lOR <- -3
-# thetaA <- 0.4
-# thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = lOR)
-# all.equal(log(thetaA/(1-thetaA)*(1-thetaB)/thetaB), lOR)
-
-createEWithPriorKnowledge <- function(na, nb, thetaAvalues, delta, betaPriorValue, logOdds = FALSE){
-  densityStart <- createPriorDensity(grid = thetaAvalues, delta = delta,
-                                     betaPriorValue = betaPriorValue, logOdds = logOdds)
-
-  #calculate marginal pred. prob
-  thetaA <- thetaAvalues %*% densityStart
-  if(logOdds){
-    thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = delta)
-  } else {
-    thetaB <- thetaA + delta
-  }
-
-  return(list(posteriorDensity = densityStart,
-              thetaA = thetaA,
-              thetaB = thetaB,
-              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
-}
-
-createPriorDensity <- function(grid, delta, betaPriorValue, logOdds = FALSE){
-  if(logOdds){
-    rhovector <- grid
-  } else {
-    if(delta <= 0){
-      stop("Effect size should be between 0 and 1 for absolute divergence measure.")
-    }
-    rhovector <- grid/(1 - delta)
-  }
-  rhoGridDensity <- dbeta(x = rhovector, shape1 = betaPriorValue, shape2 = betaPriorValue)
-  densityStart <- rhoGridDensity/sum(rhoGridDensity)
-
-  return(densityStart)
-}
-
-updatePosterior <- function(na1, nb1, na, nb, priorDensity, thetaAvalues, thetaBvalues,
-                            delta, logOdds = FALSE){
-  likelihoodPrior <- exp(na1*log(thetaAvalues) + (na - na1)*log(1-thetaAvalues) +
-                           nb1*log(thetaBvalues) + (nb - nb1)*log(1-thetaBvalues) +
-                           log(priorDensity))
-
-  #normalize
-  posteriorDensity <- likelihoodPrior/(sum(likelihoodPrior))
-
-  #calculate new marginal pred. probs
-  thetaA <- thetaAvalues %*% posteriorDensity
-  if(logOdds){
-    thetaB <- calculateThetaBFromThetaAandLOR(thetaA = thetaA, lOR = delta)
-  } else {
-    thetaB <- thetaA + delta
-  }
-
-  return(list(posteriorDensity = posteriorDensity,
-              thetaA = thetaA,
-              thetaB = thetaB,
-              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
 }
 
 #OLD CODE FOR GROW ANALYSIS OF STATIC DATA----------------------------------
