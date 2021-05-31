@@ -1,45 +1,75 @@
 #EXPORT --------------------------------------------------------------------
 designSafeTwoProportions <- function(na, nb,
                                      nBlocksPlan = NULL,
-                                     alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                     beta = NULL,
                                      delta = NULL,
-                                     alpha = 0.05, beta = NULL,
+                                     alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                     alpha = 0.05,
                                      pilot = "FALSE",
-                                     priorValues = NULL){
+                                     priorValues = NULL,
+                                     M = 1e3){
   alternativeRestriction <- match.arg(alternativeRestriction)
+
+  if(alternativeRestriction %in% c("difference", "logOddsRatio") & !is.numeric(delta)){
+    stop("Provide numeric value for divergence measure when testing with restriction: a difference or log Odds ratio")
+  }
 
   if(is.null(priorValues)){
     #use the default
     priorValues <- list(betaA1 = 0.18, betaB1 = (nb/na)*0.18,
                         betaA2 = 0.18, betaB2 = (nb/na)*0.18)
+    priorValuesForPrint <- "standard, REGRET optimal"
   } else {
     #user provided: perform checks
-  }
 
-  #scenario 1a
+    priorValuesForPrint <- paste(priorValues, collapse = " ")
+  }
+  names(priorValuesForPrint) <- "Beta hyperparameters"
+
+  #Check each possible design scenario
   if(is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && !is.null(beta)){
+    #scenario 1a: delta + power known, calculate nPlan
     nBlocksPlan <- simulateWorstCaseQuantile(delta = delta,
                                             na = na, nb = nb,
                                             priorValues = priorValues,
                                             alternativeRestriction = alternativeRestriction,
-                                            alpha = alpha, beta = beta)
+                                            alpha = alpha, beta = beta, M = M)[["worstCaseQuantile"]]
+  } else if(!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && is.null(beta)){
+    #scenario 1c: only nPlan known, can perform a pilot (no warning though)
+    pilot <- TRUE
+  } else if(!is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && is.null(beta)){
+    #scenario 2: given effect size and nPlan, calculate power
+    beta <- 1 - simulateWorstCaseQuantile(delta = delta,
+                                         na = na, nb = nb,
+                                         priorValues = priorValues,
+                                         alternativeRestriction = alternativeRestriction,
+                                         maxSimStoptime = nBlocksPlan,
+                                         alpha = alpha, beta = 0, M = M)[["worstCasePower"]]
+  } else if(!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && !is.null(beta)){
+    #scenario 3: given power and nPlan, calculate minimal effect size to be "detected"
+    delta <- simulateWorstCaseDelta(na = na, nb = nb, priorValues = priorValues,
+                                    alternativeRestriction = alternativeRestriction,
+                                    alpha = alpha, beta = beta, M = M, maxSimStoptime = nBlocksPlan)
+    if(length(delta) == 0){
+      stop("For this sample size and power, no effect size below deltamax yielded the desired power")
+    }
+  } else {
+    #also includes scenario 1b: only delta known, raise error
+    stop("Provide two of nBlocksPlan, delta and power, or only nBlocksPlan for a pilot with default settings.")
   }
 
-  if(!is.null(nBlocksPlan)){
-    nPlan <- c(na, nb, nBlocksPlan)
-    names(nPlan) <- c("na", "nb", "nBlocksPlan")
-  } else {
-    nPlan <- c(na, nb)
-    names(nPlan) <- c("na", "nb")
-  }
+  #in the scenario's we accept now, there always is an nBlocksPlan not null
+  nPlan <- c(na, nb, nBlocksPlan)
+  names(nPlan) <- c("na", "nb", "nBlocksPlan")
 
   alternative <- switch(alternativeRestriction,
                         "none" = "two.sided",
-                        "difference" = ifelse(delta > 0, "less", "greater"),
-                        "logOddsRatio" = ifelse(delta > 0, "less", "greater"))
+                        "difference" = ifelse(delta < 0, "less", "greater"),
+                        "logOddsRatio" = ifelse(delta < 0, "less", "greater"))
 
-  names(delta) <- ifelse(alternativeRestriction == "logOddsRatio", "log odds ratio", "difference")
-  #names(priorValues) <- "Beta prior parameters"
+  if(!is.null(delta)){
+    names(delta) <- ifelse(alternativeRestriction == "logOddsRatio", "log odds ratio", "difference")
+  }
 
   testType <- "2x2"
   note <- "Optimality of hyperparameters only verified for equal group sizes (na = nb = 1)"
@@ -48,7 +78,8 @@ designSafeTwoProportions <- function(na, nb,
   h0 <- 0
 
   result <- list("nPlan"=nPlan,
-                 "parameter"= priorValues,
+                 "parameter"= priorValuesForPrint,
+                 "betaPriorParameterValues" = priorValues,
                  "alpha"=alpha,
                  "beta"=beta,
                  "esMin" = delta,
@@ -57,14 +88,12 @@ designSafeTwoProportions <- function(na, nb,
                  "alternativeRestriction" = alternativeRestriction,
                  "alternative" = alternative,
                  "pilot" = pilot,
-                 "pilot"=FALSE,
                  "lowN"=NULL,
                  "highN"=NULL,
                  "call"=sys.call(),
                  "timeStamp"=Sys.time(),
                  "note" = note)
   class(result) <- "safeDesign"
-  names(result[["parameter"]]) <- "Beta prior values"
 
   return(result)
 }
@@ -319,7 +348,7 @@ calculateSequential2x2E <- function(aSample, bSample,
 
     #in simulation setting, only interested in the stopping time
     if(simSetting & currentE >= (1/alphaSim)){
-      return(i)
+      break
     }
 
     #after observing the data, also update the E variable
@@ -357,14 +386,19 @@ calculateSequential2x2E <- function(aSample, bSample,
 
   }
 
-  #we have looped over the entire stream: return the E value
-  return(currentE)
+  if(!simSetting){
+    #we have looped over the entire stream: return the E value
+    return(currentE)
+  } else {
+    return(list(stopTime = i, stopE = currentE))
+  }
+
 }
 
 simulateWorstCaseQuantile <- function(na, nb, priorValues,
                                       alternativeRestriction = c("none", "difference", "logOddsRatio"),
                                       alpha,
-                                      delta, beta, M = 1e3,
+                                      delta, beta = 0, M = 1e3,
                                       maxSimStoptime = 1e4,
                                       gridSize = 8){
 
@@ -379,11 +413,12 @@ simulateWorstCaseQuantile <- function(na, nb, priorValues,
     thetaAvec <- rhoGrid*(1 - abs(delta)) - ifelse(delta < 0, delta, 0)
   }
   CurrentWorstCaseQuantile <- 0
+  CurrentWorstCasePower <- 1
 
-  message("Simulating stopping times to determine maximal sample size")
+  message(paste("Simulating E values and stopping times for divergence between groups of ", delta))
   pbSafe <- utils::txtProgressBar(style=1)
   for(t in seq_along(thetaAvec)){
-    StoppingTimes <- numeric(M)
+    StoppingTimes <- stopEs <- numeric(M)
 
     thetaA <- thetaAvec[t]
     if(restriction == "logOddsRatio"){
@@ -397,7 +432,7 @@ simulateWorstCaseQuantile <- function(na, nb, priorValues,
       #at which we would have stopped
       ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaA)
       yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
-      StoppingTimes[i] <- calculateSequential2x2E(aSample = ya, bSample = yb,
+      simResult <- calculateSequential2x2E(aSample = ya, bSample = yb,
                                                   priorValues = priorValues,
                                                   restriction = restriction,
                                                   delta = delta,
@@ -405,21 +440,53 @@ simulateWorstCaseQuantile <- function(na, nb, priorValues,
                                                   nb = nb,
                                                   simSetting = TRUE,
                                                   alphaSim = alpha)
+      StoppingTimes[i] <- simResult [["stopTime"]]
+      stopEs[i] <- simResult[["stopE"]]
       utils::setTxtProgressBar(pbSafe, value=((t-1)*M+i)/(length(thetaAvec)*M))
     }
 
     #get the quantile for (1-b) power
     CurrentQuantile <- quantile(StoppingTimes, probs = 1 - beta)
+    CurrentPower <- mean(stopEs >= 1/alpha)
 
-    #we look for the worst case (1-beta)% stopping time: store only that one
+    #we look for the worst case (1-beta)% stopping time or power: store only that one
     if(CurrentQuantile >= CurrentWorstCaseQuantile){
       CurrentWorstCaseQuantile <- CurrentQuantile
+    }
+    if(CurrentPower <= CurrentWorstCasePower){
+      CurrentWorstCasePower <- CurrentPower
     }
   }
   close(pbSafe)
 
-  return(CurrentWorstCaseQuantile)
+  return(list(worstCasePower = CurrentWorstCasePower,
+              worstCaseQuantile = CurrentWorstCaseQuantile))
 }
+
+simulateWorstCaseDelta <- function(na, nb, priorValues,
+                                   alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                   alpha,
+                                   beta, maxSimStoptime,
+                                   M = 1e3,
+                                   deltaGridSize = 10,
+                                   deltamax = 0.99, deltamin = 0.01,
+                                   thetaAgridSize = 8){
+  deltaVec <- seq(deltamax, deltamin, length.out = deltaGridSize)
+  for(deltaIndex in seq_along(deltaVec)){
+    if(simulateWorstCaseQuantile(na = na, nb = nb,
+                                 priorValues = priorValues,
+                                 alternativeRestriction = alternativeRestriction,
+                                 alpha = alpha,
+                                 delta = deltaVec[deltaIndex], M = M,
+                                 maxSimStoptime = maxSimStoptime,
+                                 gridSize = thetaAgridSize)$worstCasePower < (1 - beta)){
+      break
+    }
+  }
+  return(deltaVec[deltaIndex - 1])
+}
+
+
 
 #OLD CODE FOR GROW ANALYSIS OF STATIC DATA----------------------------------
 # createEmptySafe2x2Design <- function() {
