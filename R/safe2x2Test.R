@@ -1,17 +1,33 @@
 #EXPORT --------------------------------------------------------------------
-designSafeTwoProportions <- function(na, nb, maxNgroups = NULL, alternativeRestriction = c("none", "difference", "logOddsRatio"),
-                                   delta = NULL, alpha = 0.05, beta = NULL, pilot = "FALSE",
-                                   priorValues = list(betaA1 = 0.18, betaB1 = 0.18, betaA2 = 0.18, betaB2 = 0.18)){
-  prior <- match.arg(alternativeRestriction)
+designSafeTwoProportions <- function(na, nb,
+                                     nBlocksPlan = NULL,
+                                     alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                     delta = NULL,
+                                     alpha = 0.05, beta = NULL,
+                                     pilot = "FALSE",
+                                     priorValues = NULL){
+  alternativeRestriction <- match.arg(alternativeRestriction)
 
-  #scenario 1a
-  if(is.null(maxNgroups) && delta != 0 && !is.null(beta)){
-    maxNgroups <- simulateWorstCaseQuantile(delta = delta, na = na, nb = nb, priorValues = priorValues, alternativeRestriction = alternativeRestriction, alpha = alpha, beta = beta)
+  if(is.null(priorValues)){
+    #use the default
+    priorValues <- list(betaA1 = 0.18, betaB1 = (nb/na)*0.18,
+                        betaA2 = 0.18, betaB2 = (nb/na)*0.18)
+  } else {
+    #user provided: perform checks
   }
 
-  if(!is.null(maxNgroups)){
-    nPlan <- c(na, nb, maxNgroups)
-    names(nPlan) <- c("na", "nb", "maxNgroups")
+  #scenario 1a
+  if(is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && !is.null(beta)){
+    nBlocksPlan <- simulateWorstCaseQuantile(delta = delta,
+                                            na = na, nb = nb,
+                                            priorValues = priorValues,
+                                            alternativeRestriction = alternativeRestriction,
+                                            alpha = alpha, beta = beta)
+  }
+
+  if(!is.null(nBlocksPlan)){
+    nPlan <- c(na, nb, nBlocksPlan)
+    names(nPlan) <- c("na", "nb", "nBlocksPlan")
   } else {
     nPlan <- c(na, nb)
     names(nPlan) <- c("na", "nb")
@@ -19,7 +35,7 @@ designSafeTwoProportions <- function(na, nb, maxNgroups = NULL, alternativeRestr
 
   alternative <- switch(alternativeRestriction,
                         "none" = "two.sided",
-                        "difference" = "greater",
+                        "difference" = ifelse(delta > 0, "less", "greater"),
                         "logOddsRatio" = ifelse(delta > 0, "less", "greater"))
 
   names(delta) <- ifelse(alternativeRestriction == "logOddsRatio", "log odds ratio", "difference")
@@ -38,7 +54,7 @@ designSafeTwoProportions <- function(na, nb, maxNgroups = NULL, alternativeRestr
                  "esMin" = delta,
                  "h0"= h0,
                  "testType"=testType,
-                 "alternativeRestriction" = prior,
+                 "alternativeRestriction" = alternativeRestriction,
                  "alternative" = alternative,
                  "pilot" = pilot,
                  "pilot"=FALSE,
@@ -79,12 +95,12 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
   }
 
   if(pilot){
-    designObj <- designSafeTwoPortions(na = 1, nb = 1, maxNgroups = length(ya), prior = "none", pilot = TRUE)
+    designObj <- designSafeTwoPortions(na = 1, nb = 1, nBlocksPlan = length(ya), prior = "none", pilot = TRUE)
   }
 
   eValue <- calculateSequential2x2E(aSample = ya, bSample = yb,
                                     priorValues = designObj[["parameter"]],
-                                    method = designObj[["priorType"]],
+                                    restriction = designObj[["priorType"]],
                                     delta = designObj[["esMin"]],
                                     na = designObj[["nPlan"]][["na"]],
                                     nb = designObj[["nPlan"]][["nb"]])
@@ -162,7 +178,13 @@ updateE <- function(totalSuccessA, totalFailA, totalSuccessB, totalFailB, na, nb
 }
 
 #Restriction on H1 variant fncs ------------------------------------------------
-createStartEWithRestriction <- function(na, nb, delta, logOdds, betaA1, betaA2, gridSize = 1e3){
+createStartEWithRestriction <- function(na, nb,
+                                        delta,
+                                        logOdds,
+                                        betaA1,
+                                        betaA2,
+                                        gridSize = 1e3
+                                        ){
   #do not start at 0/ end at 1, because using log/ exp trick on calcualtions
   #later for precision and log(0) raises error
   rhoGrid <- seq(1/gridSize, 1 - 1/gridSize, length.out = gridSize)
@@ -201,7 +223,7 @@ updateEWithRestriction <- function(na1, nb1, na, nb, delta, logOdds,
                            log(priorDensity))
 
   #normalize
-  posteriorDensity <- likelihoodTimesPrior/(sum(likelihoodTimesPrior))
+  posteriorDensity <- likelihoodTimesPrior/sum(likelihoodTimesPrior)
 
   #calculate new marginal pred. probs
   thetaA <- as.numeric(thetaAgrid %*% posteriorDensity)
@@ -221,18 +243,28 @@ updateEWithRestriction <- function(na1, nb1, na, nb, delta, logOdds,
 
 #Main functions ---------------------------------------------------------------
 calculateSequential2x2E <- function(aSample, bSample,
-                                 method = c("none", "difference", "logOddsRatio"),
+                                 restriction = c("none", "difference", "logOddsRatio"),
                                  priorValues,
                                  delta = NULL,
-                                 gridSize = 1e3,
                                  na = 1,
                                  nb = 1,
+                                 gridSize = 1e3,
                                  simSetting = FALSE,
                                  alphaSim = 0.05){
-  method <- match.arg(method)
+  restriction <- match.arg(restriction)
 
-  if(method %in% c("difference", "logOddsRatio") & is.null(delta)){
-    stop("Provide value for divergence measure: absolute difference or log Odds ratio")
+  #these errors should all be caught in the export level function
+  #but remain here now for testing purposes
+  if(restriction %in% c("difference", "logOddsRatio") & !is.numeric(delta)){
+    stop("Provide numeric value for divergence measure: a difference or log Odds ratio")
+  }
+
+  if(length(aSample) != length(bSample)){
+    stop("Can only process complete data blocks: provide vectors with numbers of positive observations per timepoint, see example in helpfile.")
+  }
+
+  if(any(aSample > na | aSample < 0) | any(bSample > nb | bSample < 0)){
+    stop("Provided sample sizes within blocks, na and nb, do not match provided aSample and bSample.")
   }
 
   #unpack the prior values
@@ -242,7 +274,7 @@ calculateSequential2x2E <- function(aSample, bSample,
   betaB2 <- priorValues[["betaB2"]]
 
   #set starting E variable
-  if(method == "difference"){
+  if(restriction == "difference"){
     EVariable <- createStartEWithRestriction(na = na, nb = nb,
                                              delta = delta,
                                              logOdds = FALSE,
@@ -250,35 +282,32 @@ calculateSequential2x2E <- function(aSample, bSample,
                                              gridSize = gridSize
                                              )
 
-  } else if(method == "logOddsRatio"){
+  } else if(restriction == "logOddsRatio"){
     EVariable <- createStartEWithRestriction(na = na, nb = nb,
                                              delta = delta,
                                              logOdds = TRUE,
                                              betaA1 = betaA1, betaA2 = betaA2,
                                              gridSize = gridSize
                                              )
-  } else if(method == "none"){
+  } else if(restriction == "none"){
     EVariable <- updateE(totalSuccessA = 0, totalFailA = 0,
                          totalSuccessB = 0, totalFailB = 0,
                          na = na, nb = nb,
                          betaA1 = betaA1, betaA2 = betaA2,
                          betaB1 = betaB1, betaB2 = betaB2)
+
+    #for updating without restriction, use totals: store them here
+    totalSuccessA <- cumsum(aSample)
+    totalSuccessB <- cumsum(bSample)
+    groupSizeVecA <- seq_along(totalSuccessA)*na
+    groupSizeVecB <- seq_along(totalSuccessB)*nb
+    totalFailA <- groupSizeVecA - totalSuccessA
+    totalFailB <- groupSizeVecB - totalSuccessB
   }
-
-  if(length(aSample) != length(bSample) | na != nb){
-    stop("Software not suitable for unequal sample sizes yet")
-  }
-
-  totalSuccessA <- cumsum(aSample)
-  totalSuccessB <- cumsum(bSample)
-
-  groupSizeVec <- seq_along(totalSuccessA)
-
-  totalFailA <- groupSizeVec - totalSuccessA
-  totalFailB <- groupSizeVec - totalSuccessB
 
   currentE <- 1
   for(i in seq_along(aSample)){
+    #use only new data to calculate the new E variable
     newE <- calculateE(na1 = aSample[i],
                        na = na,
                        nb1 = bSample[i],
@@ -288,36 +317,39 @@ calculateSequential2x2E <- function(aSample, bSample,
                        theta0 = EVariable[["theta0"]])
     currentE <- newE * currentE
 
-    #in simulation setting, interested in the stopping time
+    #in simulation setting, only interested in the stopping time
     if(simSetting & currentE >= (1/alphaSim)){
       return(i)
     }
 
-    if(method == "none"){
+    #after observing the data, also update the E variable
+    if(restriction == "none"){
       #updating the E variable without restrictions:
       #using all data seen so far + priorSuccess at the start, new Bernoulli ML
-      EVariable <- updateE(totalSuccessA = totalSuccessA[i], totalFailA = totalFailA[i],
-                           totalSuccessB = totalSuccessB[i], totalFailB = totalFailB[i],
+      EVariable <- updateE(totalSuccessA = totalSuccessA[i],
+                           totalFailA = totalFailA[i],
+                           totalSuccessB = totalSuccessB[i],
+                           totalFailB = totalFailB[i],
                            na = na, nb = nb,
                            betaA1 = betaA1, betaA2 = betaA2,
                            betaB1 = betaB1, betaB2 = betaB2)
-    } else if(method == "difference"){
+    } else if(restriction == "difference"){
       #updating the E variable with restriction on H1:
       #take product of previous posterior and posterior of NEW data
       EVariable <- updateEWithRestriction(na1 = aSample[i], nb1 = bSample[i],
                                           na = na, nb = nb,
-                                          priorDensity = EVariable$posteriorDensity,
-                                          thetaAvalues = thetaAvalues,
-                                          thetaBvalues = thetaBvalues,
+                                          priorDensity = EVariable[["posteriorDensity"]],
+                                          thetaAgrid = EVariable[["thetaAgrid"]],
+                                          thetaBgrid = EVariable[["thetaBgrid"]],
                                           delta = delta,
                                           logOdds = FALSE
                                           )
-    } else if (method == "logOddsRatio"){
+    } else if (restriction == "logOddsRatio"){
       EVariable <- updateEWithRestriction(na1 = aSample[i], nb1 = bSample[i],
                                           na = na, nb = nb,
                                           priorDensity = EVariable[["posteriorDensity"]],
-                                          thetaAvalues = thetaAvalues,
-                                          thetaBvalues = thetaBvalues,
+                                          thetaAgrid = EVariable[["thetaAgrid"]],
+                                          thetaBgrid = EVariable[["thetaBgrid"]],
                                           delta = delta,
                                           logOdds = TRUE
                                           )
@@ -325,11 +357,27 @@ calculateSequential2x2E <- function(aSample, bSample,
 
   }
 
+  #we have looped over the entire stream: return the E value
   return(currentE)
 }
 
-simulateWorstCaseQuantile <- function(na, nb, priorValues, prior, alpha, delta, beta, M = 1e3, maxSimStoptime = 1e4){
-  thetaAvec <- seq(0 + 1e-3, 1 - delta - 1e-3, length.out = 5)
+simulateWorstCaseQuantile <- function(na, nb, priorValues,
+                                      alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                      alpha,
+                                      delta, beta, M = 1e3,
+                                      maxSimStoptime = 1e4,
+                                      gridSize = 8){
+
+  restriction <- match.arg(alternativeRestriction)
+
+  rhoGrid <- seq(1/gridSize, 1 - 1/gridSize, length.out = gridSize)
+  if(restriction == "logOddsRatio"){
+    #log odds: theta A in (0,1), no reparameterization needed
+    thetaAvec <- rhoGrid
+  } else {
+    #if delta < 0, reparameterize + translate
+    thetaAvec <- rhoGrid*(1 - abs(delta)) - ifelse(delta < 0, delta, 0)
+  }
   CurrentWorstCaseQuantile <- 0
 
   message("Simulating stopping times to determine maximal sample size")
@@ -337,19 +385,36 @@ simulateWorstCaseQuantile <- function(na, nb, priorValues, prior, alpha, delta, 
   for(t in seq_along(thetaAvec)){
     StoppingTimes <- numeric(M)
 
+    thetaA <- thetaAvec[t]
+    if(restriction == "logOddsRatio"){
+      thetaB <- calculateThetaBFromThetaAandLOR(thetaA, delta)
+    } else {
+      thetaB <- thetaA + delta
+    }
+
     for(i in 1:M){
-      ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaAvec[t])
-      yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaAvec[t] + delta)
+      #For every m, draw a sample of max streamlength and record the time
+      #at which we would have stopped
+      ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaA)
+      yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
       StoppingTimes[i] <- calculateSequential2x2E(aSample = ya, bSample = yb,
                                                   priorValues = priorValues,
-                                                  method = prior,
+                                                  restriction = restriction,
                                                   delta = delta,
                                                   na = na,
-                                                  nb = nb, simSetting = TRUE, alphaSim = alpha)
+                                                  nb = nb,
+                                                  simSetting = TRUE,
+                                                  alphaSim = alpha)
       utils::setTxtProgressBar(pbSafe, value=((t-1)*M+i)/(length(thetaAvec)*M))
     }
+
+    #get the quantile for (1-b) power
     CurrentQuantile <- quantile(StoppingTimes, probs = 1 - beta)
-    if(CurrentQuantile >= CurrentWorstCaseQuantile){CurrentWorstCaseQuantile <- CurrentQuantile}
+
+    #we look for the worst case (1-beta)% stopping time: store only that one
+    if(CurrentQuantile >= CurrentWorstCaseQuantile){
+      CurrentWorstCaseQuantile <- CurrentQuantile
+    }
   }
   close(pbSafe)
 
