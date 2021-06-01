@@ -17,13 +17,12 @@ getNameTestType <- function(testType, parameterName) {
                      "paired"="Safe Paired Sample",
                      "twoSample"="Safe Two Sample",
                      "logrank"="Safe",
-                     "2x2" = "Safe")
+                     "2x2" = "Safe Test of Two Proportions")
 
   testName <- switch(parameterName,
                      "phiS"="Z-Test",
                      "deltaS"="T-Test",
-                     "log(thetaS)"="Logrank Test",
-                     "Beta prior parameters" = "2x2 test")
+                     "log(thetaS)"="Logrank Test")
 
   return(paste(nameChar, testName))
 }
