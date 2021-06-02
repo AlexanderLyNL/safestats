@@ -1,20 +1,36 @@
 #EXPORT --------------------------------------------------------------------
-#' Designs a Safe 2x2 Experiment
+#' Designs a Safe Experiment to Test Two Proportions in Stream Data
 #'
-#' @param na number of observations in group a per data block collected
-#' @param nb number of observations in group b per data block collected
+#' The design requires the number of observations one expects to collect in each group in each data block.
+#' I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyze
+#' the data stream each time a new observation in both groups has come in. The best results in terms of power
+#' are achieved when the data blocks are chosen as small as possible, as this allows for analyzing and updating
+#' the safe test as often as possible, to fit the data best.
+#' Further, the design requires two out of the following three parameters to be known:
+#' \itemize{
+#'  \item the power one aims to achieve (\code{1 - beta}),
+#'  \item the minimal relevant difference between the groups (\code{delta})
+#'  \item the number of blocks planned (\code{nBlocksPlan}),
+#' }
+#' where the unknown out of the three will be estimated. In the case of an exploratory "pilot" analysis,
+#' one can also only provide the number of blocks planned.
+
+#'
+#' @param na number of observations in group a per data block
+#' @param nb number of observations in group b per data block
 #' @param nBlocksPlan planned number of data blocks collected
-#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-#' and "phiS". Note that 1-beta defines the power.
+#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "nBlocksPlan"
+#' and "delta". Note that 1-beta defines the power.
 #' @param delta a priori minimal relevant divergence between group means b and a, either a numeric between -1 and 1 for
+#' no alternative restriction or a restriction on difference, or a real for a restriction on the log odds ratio.
 #' @param alternativeRestriction a character string specifying an optional restriction on the alternative hypothesis; must be one of "none" (default),
 #' "difference" (difference group mean b minus group b) or "logOddsRatio" (the log odds ratio between group means b and a).
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
 #' @param pilot logical, specifying whether it's a pilot design.
-#' @param hyperParameterValues list containing values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
+#' @param hyperParameterValues named list containing numeric values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
 #' equivalent to \code{shape1} in \code{stats::dbeta} for groups A and B, respectively, and betaA2 and betaB2 equivalent to \code{shape2}. By default
-#' chosen to optimize evidence collected over subsequent experiments (REGRET).
+#' chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format: \code{(betaA1 = num1, betaA2 = num2, betaB1 = num3, betaB2 = num4)}.
 #' @param M number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.
 #'
 #' @return Returns a safeDesign object that includes:
@@ -34,7 +50,7 @@
 #' @export
 #'
 #' @examples
-#' #plan for an experiment to detect minimal difference of 0.6
+#' #plan for an experiment to detect minimal difference of 0.6 with a balanced design
 #' set.seed(3152021)
 #' designSafeTwoProportions(na = 1,
 #'                          nb = 1,
@@ -168,25 +184,57 @@ designSafeTwoProportions <- function(na, nb,
   return(result)
 }
 
-#' Perform a safe test for two proportions for stream data
+#' Perform a Safe Test for Two Proportions with Stream Data
 #'
 #' Perform a safe test for two proportions (a 2x2 contingency table test) with a
-#' result object retrieved through one of design functions for two proportions
-#' in this package, \code{\link{designPilotSafeTwoProportions}} or
-#' \code{\link{designSafeTwoProportions}}.
+#' result object retrieved through the design function for planning an experiment to compare
+#' two proportions in this package, \code{\link{designSafeTwoProportions}}.
 #'
-#' @param ya observations (0,1) in group a
-#' @param yb observations (0,1) in group b
-#' @param designObj a safe test design for two proportions retrieved through \code{\link{designPilotSafeTwoProportions}} or
-#' \code{\link{designSafeTwoProportions}}.
+#' @param ya positive observations/ events per data block in group a: a numeric with integer values
+#' between (and including) 0 and \code{na}, the number of observations in group a per block.
+#' @param yb positive observations/ events per data block in group b: a numeric with integer values
+#' between (and including) 0 and \code{nb}, the number of observations in group b per block.
+#' @param designObj a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}}.
+#' @param pilot logical that can be set to true when performing an exploratory analysis
+#' without a \code{designObj}; only allows for \code{na = nb = 1}.
 #'
-#' @return safe2x2 test result object with the data used for the test, the S-value and the corresponding
-#' safe p-value.
+#' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+#' following components:
+#'
+#' \describe{
+#'   \item{n}{The realised sample size(s).}
+#'   \item{eValue}{the e-value of the safe test.}
+#'   \item{dataName}{a character string giving the name(s) of the data.}
+#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}}.}
+#' }
 #'
 #' @export
 #'
 #' @examples
+#' #balanced design
+#' yb <- c(1,0,1,1,1,0,1)
+#' ya <- c(1,0,1,0,0,0,1)
+#' safeDesign <- designSafeTwoProportions(na = 1,
+#'                                        nb = 1,
+#'                                        beta = 0.20,
+#'                                        delta = 0.6,
+#'                                        alternativeRestriction = "none",
+#'                                        M = 1e1)
+#' safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
 #'
+#' #pilot
+#' safeTwoProportionsTest(ya = ya, yb = yb, pilot = TRUE)
+#'
+#' #unbalanced design
+#' yb <- c(1,0,1,1,1,0,1)
+#' ya <- c(2,2,1,2,0,2,2)
+#' safeDesign <- designSafeTwoProportions(na = 2,
+#'                                        nb = 1,
+#'                                        beta = 0.20,
+#'                                        delta = 0.6,
+#'                                        alternativeRestriction = "none",
+#'                                        M = 1e1)
+#' safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
 #'
 safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
   if(is.null(designObj) & !pilot){
@@ -230,13 +278,9 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
 
 #' Alias for \code{\link{safeTwoProportionsTest}}
 #'
-#' @inheritParams safeTwoProportionsTest
-#' @return safe2x2 test result object with the data used for the test, the S-value and the corresponding
-#' safe p-value.
-#' @export
+#' @rdname safeTwoProportionsTest
 #'
-#' @examples
-
+#' @export
 safe.proportion.test <- function(ya, yb, designObj = NULL, pilot = FALSE) {
   res <- tryCatch(safeTwoProportionsTest(ya = ya, yb = yb, designObj = designObj, pilot = pilot),
                   error = function(e){e})
@@ -249,6 +293,59 @@ safe.proportion.test <- function(ya, yb, designObj = NULL, pilot = FALSE) {
   }
 }
 
+#' Compare Different Hyperparameter Settings for Safe Tests of Two Proportions.
+#'
+#' Simulates for a range of divergence parameter values (differences or log odds ratios) the worst-case stopping times
+#' (i.e., number of data blocks collected) and expected stopping times needed to achieve the desired power for each hyperparameter setting provided.
+#'
+#' @inheritParams designSafeTwoProportions
+#' @param hyperparameterList list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}}.
+#' @param deltaDesign optional; when using a restricted alternative, the value of the divergence measure used.
+#' Either a numeric between -1 and 1 for a restriction on difference, or a real for a restriction on the log odds ratio.
+#' @param beta numeric in (0, 1) that specifies the tolerable type II error control in the study. Necessary to calculate the
+#' worst case stopping time.
+#' @param deltamax maximal effect size to calculate power for; between -1 and 1 for designs without restriction or a restriction on difference;
+#' real number for a restriction on the log odds ratio. Default \code{0.9}.
+#' @param deltamin minimal effect size to calculate power for; between -1 and 1 for designs without restriction or a restriction on difference;
+#' real number for a restriction on the log odds ratio. Default \code{0.1}.
+#' @param deltaGridSize numeric, positive integer: size of grid of delta values worst case and expected sample sizes are simulated for.
+#' @param M number of simulations used to estimate sample sizes. Default \code{100}.
+#' @param maxSimStoptime maximal stream length in simulations; when the e value does not reach the rejection threshold before the end of the stream,
+#' the maximal stream length is returned as the stopping time. Default \code{1e4}.
+#' @param thetaAgridSize numeric, positive integer: size of the grid of probability distributions examined for each delta value to find the
+#' worst case sample size over.
+#'
+#' @return Returns an object of class "safe2x2Sim". An object of class "safe2x2Sim" is a list containing at least the
+#' following components:
+#'
+#' \describe{
+#'   \item{simData}{A data frame containing simulation results with worst case and expected stopping times for each
+#'   hyperparameter setting, for the specified or default range of effect sizes.}
+#'   \item{alpha}{the significance threshold used in the simulations}
+#'   \item{beta}{the type-II error control used in the simulations}
+#'   \item{deltaDesign}{the value of restriction on the alternative hypothesis parameter space used for the E variables in the simulations}
+#'   \item{restriction}{the type of restriction used for the E variables in the simulation}
+#'   \item{hyperparameters}{list of the hyperparameters tested in the simulation}
+#' }
+#'
+#' @export
+#'
+#' @examples
+#' priorList1 <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+#' priorList2 <- list(betaA1 = 0.18, betaA2 = 0.18, betaB1 = 0.18, betaB2 = 0.18)
+#' priorList3 <- list(betaA1 = 1, betaA2 = 1, betaB1 = 1, betaB2 = 1)
+#'
+#' simResult <- simulateTwoProportions(
+#'   hyperparameterList = list(priorList1, priorList2, priorList3),
+#'   alternativeRestriction = "none",
+#'   alpha = 0.1, beta = 0.2, na = 1, nb = 1,
+#'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
+#'   M = 10
+#'   )
+#'
+#' print(simResult)
+#' plot(simResult)
+#'
 simulateTwoProportions <- function(hyperparameterList,
                                    alternativeRestriction = c("none", "difference", "logOddsRatio"),
                                    deltaDesign = NULL,
@@ -316,48 +413,95 @@ simulateTwoProportions <- function(hyperparameterList,
                     restriction = alternativeRestriction,
                     hyperparameters = hyperparameterList
                     )
-  class(simResult) <- "simResult2x2"
+  class(simResult) <- "safe2x2Sim"
   return(simResult)
 }
 
-print.simResult2x2 <- function(simResult){
+#' Prints Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
+#'
+#' @param x a result object obtained through \code{\link{simulateTwoProportions}}.
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return The data frame with simulation results, called for side effects to pretty print the simulation results.
+#'
+#' @export
+#'
+#' @examples
+#' priorList1 <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+#' priorList2 <- list(betaA1 = 0.18, betaA2 = 0.18, betaB1 = 0.18, betaB2 = 0.18)
+#' priorList3 <- list(betaA1 = 1, betaA2 = 1, betaB1 = 1, betaB2 = 1)
+#'
+#' simResult <- simulateTwoProportions(
+#'   hyperparameterList = list(priorList1, priorList2, priorList3),
+#'   alternativeRestriction = "none",
+#'   alpha = 0.1, beta = 0.2, na = 1, nb = 1,
+#'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
+#'   M = 10
+#'   )
+#'
+#' print(simResult)
+#'
+print.safe2x2Sim <- function(x, ...){
   cat("Simulation results for test of two proportions")
   cat("\n\n")
 
-  cat("Simulations ran with alpha =", simResult[["alpha"]], "and beta =", simResult[["beta"]], ".\n")
-  if(!is.null(simResult[["deltaDesign"]])){
+  cat("Simulations ran with alpha =", x[["alpha"]], "and beta =", x[["beta"]], ".\n")
+  if(!is.null(x[["deltaDesign"]])){
     cat("The alternative hypothesis was restricted based on a",
-        simResult[["restriction"]], "of", simResult[["deltaDesign"]], ".\n")
+        x[["restriction"]], "of", x[["deltaDesign"]], ".\n")
   }
 
   cat("The following hyperparameter settings were evaluated:\n")
   displayList <- list()
-  for(i in 1:length(simResult[["hyperparameters"]])){
-    displaytext <- paste(names(simResult[["hyperparameters"]][[i]]), unlist(simResult[["hyperparameters"]][[i]]), sep = " = ", collapse = "; ")
-    displayList[[names(simResult[["hyperparameters"]])[i]]] <- displaytext
+  for(i in 1:length(x[["hyperparameters"]])){
+    displaytext <- paste(names(x[["hyperparameters"]][[i]]), unlist(x[["hyperparameters"]][[i]]), sep = " = ", collapse = "; ")
+    displayList[[names(x[["hyperparameters"]])[i]]] <- displaytext
   }
   cat(paste(format(names(displayList), width = 20L, justify = "right"),
             format(displayList), sep = ": "), sep = "\n")
   cat("and yielded the following results:\n")
-  print(simResult[["simdata"]], justify = "right")
-
+  print(x[["simdata"]], justify = "right")
 }
 
-plot.simResult2x2 <- function(simResult){
-  if(is.null(simResult[["deltaDesign"]])){
+#' Plots Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
+#'
+#' @param x a result object obtained through \code{\link{simulateTwoProportions}}.
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return Plot data, mainly called for side effects, the plot of simulation results.
+#'
+#' @export
+#'
+#' @examples
+#' priorList1 <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+#' priorList2 <- list(betaA1 = 0.18, betaA2 = 0.18, betaB1 = 0.18, betaB2 = 0.18)
+#' priorList3 <- list(betaA1 = 1, betaA2 = 1, betaB1 = 1, betaB2 = 1)
+#'
+#' simResult <- simulateTwoProportions(
+#'   hyperparameterList = list(priorList1, priorList2, priorList3),
+#'   alternativeRestriction = "none",
+#'   alpha = 0.1, beta = 0.2, na = 1, nb = 1,
+#'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
+#'   M = 10
+#'   )
+#'
+#' plot(simResult)
+#'
+plot.safe2x2Sim <- function(x, ...){
+  if(is.null(x[["deltaDesign"]])){
     mainTitle <- "Worst case and expected stopping times without restriction on H1"
   } else {
     mainTitle <- paste("Worst case and expected stopping times with a restriction on the",
-                               simResult[["restriction"]], "of", round(simResult[["deltaDesign"]],2))
+                               x[["restriction"]], "of", round(x[["deltaDesign"]],2))
   }
-  subTitle <- bquote(alpha == .(simResult[["alpha"]]) ~"," ~ beta == .(simResult[["beta"]]))
+  subTitle <- bquote(alpha == .(x[["alpha"]]) ~"," ~ beta == .(x[["beta"]]))
 
-  xmin <- min(simResult[["simdata"]][,"delta"])
-  xmax <- max(simResult[["simdata"]][,"delta"])
+  xmin <- min(x[["simdata"]][,"delta"])
+  xmax <- max(x[["simdata"]][,"delta"])
   ymin <- 0
-  ymax <- ceiling(max(simResult[["simdata"]][,c("worstCaseQuantile", "expected")]))
+  ymax <- ceiling(max(x[["simdata"]][,c("worstCaseQuantile", "expected")]))
 
-  xlab <- paste("divergence value:", ifelse(simResult[["restriction"]] == "logOddsRatio", "log odds ratio", "difference"))
+  xlab <- paste("divergence value:", ifelse(x[["restriction"]] == "logOddsRatio", "log odds ratio", "difference"))
 
   graphics::plot(x = 1, type = "n",
                  xlim = c(xmin, xmax),
@@ -368,26 +512,26 @@ plot.simResult2x2 <- function(simResult){
                  sub = subTitle,
                  col = "lightgrey")
 
-  priorcolors <- rainbow(length(unique(simResult[["simdata"]][,"hyperparameters"])))
-  names(priorcolors) <- unique(simResult[["simdata"]][,"hyperparameters"])
+  priorcolors <- grDevices::rainbow(length(unique(x[["simdata"]][,"hyperparameters"])))
+  names(priorcolors) <- unique(x[["simdata"]][,"hyperparameters"])
 
   #first, add the worst case stopping times
-  for(hyperparameters in unique(simResult[["simdata"]][,"hyperparameters"])){
-    plotData <- simResult[["simdata"]][simResult[["simdata"]]$hyperparameters == hyperparameters,]
+  for(hyperparameters in unique(x[["simdata"]][,"hyperparameters"])){
+    plotData <- x[["simdata"]][x[["simdata"]]$hyperparameters == hyperparameters,]
     linecolor <- priorcolors[hyperparameters]
-    lines(x = plotData[,"delta"], y = plotData[,"worstCaseQuantile"], col = linecolor, lty = 2, lwd = 2)
+    graphics::lines(x = plotData[,"delta"], y = plotData[,"worstCaseQuantile"], col = linecolor, lty = 2, lwd = 2)
   }
 
   #then, add the expected stopping times
-  for(hyperparameters in unique(simResult[["simdata"]][,"hyperparameters"])){
-    plotData <- simResult[["simdata"]][simResult[["simdata"]]$hyperparameters == hyperparameters,]
+  for(hyperparameters in unique(x[["simdata"]][,"hyperparameters"])){
+    plotData <- x[["simdata"]][x[["simdata"]]$hyperparameters == hyperparameters,]
     linecolor <- priorcolors[hyperparameters]
-    lines(x = plotData[,"delta"], y = plotData[,"expected"], col = linecolor, lty = 1, lwd = 2)
+    graphics::lines(x = plotData[,"delta"], y = plotData[,"expected"], col = linecolor, lty = 1, lwd = 2)
   }
 
-  legend(x = "topright", legend = c(names(priorcolors), "worst case", "expected"), col = c(priorcolors, "grey", "grey"),
-         lty = c(rep(2, length(priorcolors)), 2, 1), lwd = 2)
-
+  graphics::legend(x = "topright", legend = c(names(priorcolors), "worst case", "expected"),
+                   col = c(priorcolors, "grey", "grey"),
+                   lty = c(rep(2, length(priorcolors)), 2, 1), lwd = 2)
 }
 
 

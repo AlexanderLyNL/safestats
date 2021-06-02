@@ -17,29 +17,20 @@ knitr::opts_chunk$set(
 )
 ```
 
-_Safe tests_ is a collective name for a new form of hypothesis tests that yield _e-values_ (instead of _p-values_). The original paper on e-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide e-values for the t-test, Fisher's exact test, and the chi-squared test (the safe test of 2 proportions). These safe tests were designed to be _GROW_; they <!--yield e-values that, for each specific hypothesis testing setting,-->
-perform the best under the worst case in the alternative hypothesis (see the [original paper](https://arxiv.org/abs/1906.07801)).
+_Safe tests_ is a collective name for a new form of hypothesis tests that yield _e-values_ (instead of _p-values_). The original paper on e-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide e-values for the t-test, Fisher's exact test, and the chi-squared test (the safe test of 2 proportions). In this vignette, we will illustrate the concepts of safe testing and e-values through the t-test example. <!--These safe tests were designed to be _GROW_; theyperform the best under the worst case in the alternative hypothesis . (no longer the case for 2x2; GRO only)
+-->
 
->Technically, $E$-values are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The $E$-value can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $E$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $e$-value, the larger the incentive to reject the null. 
+>Technically, $E$-values are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The $E$-value can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $E$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $e$-value, the larger the incentive to reject the null (see the [original paper](https://arxiv.org/abs/1906.07801)). 
 
 A big advantage of the e-values over their $p$-value equivalents is that safe tests conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping), whenever the evidence is compelling. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, which means that the researcher can extend the experiment irrespectively of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
 
 Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the promised type I error guarantee. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. We illustrate these properties below. 
 
-Firstly, we show how to design an experiment based on safe tests. 
+Firstly, we show how to design an experiment based on safe tests [for testing means](#designT). 
 
- - [for testing means](#designT)
- - [for testing proportions](#design2x2)
+Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping [for testing means](#optStopT). We also show that optional stopping causes the false null rejection rate of the classical $p$-value test to exceed the promised level $\alpha$ type I error guarantee. This implies that with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
 
-Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping. We also show that optional stopping causes the false null rejection rate of the classical $p$-value test to exceed the promised level $\alpha$ type I error guarantee. This implies that with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
-
- - [for testing means](#optStopT)
- - [for testing proportions](#optStop2x2)
-
-Lastly, it is shown that _optionally continuing non-significant experiments_ also causes the $p$-value tests to exceed the promised level $\alpha$ type I error guarantee, whereas this is not the case for safe tests. 
-
- - [for testing means](#optContT)
- - [for testing proportions](#optCont2x2)
+Lastly, it is shown that _optionally continuing non-significant experiments_ also causes the $p$-value tests to exceed the promised level $\alpha$ type I error guarantee, whereas this is not the case [for safe tests](#optContT). 
 
 This demonstration further emphasises the rigidity of experimental designs when inference is based on a classical test: the experiment cannot be stopped early, or extended. Thus, the planned sample size has to be final. As such, the protocol needs to account for possible future sample sizes, which is practically impossible to plan for. Even if such a protocol can be made, there is no guarantee that the experiments go exactly according to plan, as things might go wrong during the study. <!--, and flexibility is required to act on new information.Furthermore, the failure of $p$-values to be robust to optional continuation implies that one cannot build on previously acquired data, thus, engage in (scientific) learning. 
 
@@ -567,7 +558,7 @@ mean(eValuesMulti > 1/alpha)
 ```
 This led to 988 null rejections out of the 1,000 experiments, which is the correct result as the effect is across the original and replication studies. 
 
-## Subconclusion
+## Conclusion
 We believe that optional continuation is essential for (scientific) learning, as it allows us to revisit uncertain decisions such as ($p < \alpha$ and $S > 1/\alpha$) either by extending an experiment directly, or via replication studies. Hence, we view learning as an ongoing process, which requires that inference becomes more precise as data accumulate. The inability of $p$-values to conserve the $\alpha$-level under optional continuation, however, is at odds with this view --by gathering more data after an initial look, the inference becomes less precise, as the likelihood of the null being true after observing $p < \alpha$ increases beyond what is tolerable. 
 
 Safe tests on the other hand benefit from more data, as the chance of seeing $S > 1/\alpha$ (slowly) decreases when the null is true, whereas it (quickly) increases when the alternative is true, as the number of samples increases.  
@@ -664,6 +655,8 @@ As such, we conclude that safe tests are robust to pertubations of the experimen
 We hope to have shed some light on how e-values are robust to the design of the experiment. This 
 -->
 
+<!-- TODO: move all two proportions instructions to separate vignette and update to the new
+stream data setting
 # Tests of two proportions
 ## 1. <a name = "design2x2">Designing Safe Experiments</a>
 The safestats package also contains a safe alternative for tests of two proportions. The standard tests for this setting, which cannot deal with optional stopping, are Fisher’s exact test or the chi-squared test. These tests are applicable to data collected from two groups (indicated with "a" and "b" from here), where each data point is a binary outcome 0 (e.g., deceased) or 1 (e.g., survived). For example, group "a" might refer to the group of patients that are given the placebo, whereas group "b" is given the drug. 
@@ -715,15 +708,6 @@ We might not have enough resources to fund our study to detect the minimal diffe
 Observe that the smallest absolute difference detectable with our available resources is 0.4; we might have to cancel the study, or try to acquire more research funds, as with our current funds, we can not guarantee a high enough power for detecting the difference between the groups we are interested in. This implies that, when a non-significant result is obtained, we would be unsure whether this was caused by our underpowered study, or because there was really no difference between the groups.
 
 Furthermore, the plot also shows the _expected sample sizes_ under optional stopping. The plot function generates experiments based on the minimal difference corresponding to the x-axis and carries out a simulation with _optional stopping_, i.e., experiments were stopped early as soon as $S > 1/\alpha=20$ was observed, and the realised average number of patients was calculated. Observe that the difference between the planned sample size and the sample size under optional stopping is substantial. In the next section, the behaviour of the safe test for two proportions and Fisher's exact test under optional stopping is studied further.
-
-<!--If we are happy with this minimally detectable effect size, we would then design a safe test with our fixed sample sizes with the pilot function for two proportions:
-
-```{r }
-safePilotDesign <- designPilotSafeTwoProportions(na = 50, nb = 50)
-```
-
-After this first 'Pilot' we could then decide to free up further resources and funds, and to design a follow-up study with enough power to detect our desired clinically relevant effect size.
--->
 
 ## 2. Inference with Safe Tests and <a name = "optStop2x2">Optional Stopping</a>
 #### True effect size equals minimal clinically relevant effect size
@@ -929,3 +913,4 @@ When a balanced design is not possible, a safe test of two proportions for unequ
 #                            sampleSizeRatio=2)
 # safeDesignProportionsImbalanced
 ```
+untill here -->

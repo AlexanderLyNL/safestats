@@ -2,7 +2,7 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{designSafeTwoProportions}
 \alias{designSafeTwoProportions}
-\title{Designs a Safe 2x2 Experiment}
+\title{Designs a Safe Experiment to Test Two Proportions in Stream Data}
 \usage{
 designSafeTwoProportions(
   na,
@@ -18,16 +18,17 @@ designSafeTwoProportions(
 )
 }
 \arguments{
-\item{na}{number of observations in group a per data block collected}
+\item{na}{number of observations in group a per data block}
 
-\item{nb}{number of observations in group b per data block collected}
+\item{nb}{number of observations in group b per data block}
 
 \item{nBlocksPlan}{planned number of data blocks collected}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "nBlocksPlan"
+and "delta". Note that 1-beta defines the power.}
 
-\item{delta}{a priori minimal relevant divergence between group means b and a, either a numeric between -1 and 1 for}
+\item{delta}{a priori minimal relevant divergence between group means b and a, either a numeric between -1 and 1 for
+no alternative restriction or a restriction on difference, or a real for a restriction on the log odds ratio.}
 
 \item{alternativeRestriction}{a character string specifying an optional restriction on the alternative hypothesis; must be one of "none" (default),
 "difference" (difference group mean b minus group b) or "logOddsRatio" (the log odds ratio between group means b and a).}
@@ -37,9 +38,9 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{pilot}{logical, specifying whether it's a pilot design.}
 
-\item{hyperParameterValues}{list containing values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
+\item{hyperParameterValues}{named list containing numeric values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
 equivalent to \code{shape1} in \code{stats::dbeta} for groups A and B, respectively, and betaA2 and betaB2 equivalent to \code{shape2}. By default
-chosen to optimize evidence collected over subsequent experiments (REGRET).}
+chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format: \code{(betaA1 = num1, betaA2 = num2, betaB1 = num3, betaB2 = num4)}.}
 
 \item{M}{number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.}
 }
@@ -60,10 +61,22 @@ Returns a safeDesign object that includes:
 }
 }
 \description{
-Designs a Safe 2x2 Experiment
+The design requires the number of observations one expects to collect in each group in each data block.
+I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyze
+the data stream each time a new observation in both groups has come in. The best results in terms of power
+are achieved when the data blocks are chosen as small as possible, as this allows for analyzing and updating
+the safe test as often as possible, to fit the data best.
+Further, the design requires two out of the following three parameters to be known:
+\itemize{
+ \item the power one aims to achieve (\code{1 - beta}),
+ \item the minimal relevant difference between the groups (\code{delta})
+ \item the number of blocks planned (\code{nBlocksPlan}),
+}
+where the unknown out of the three will be estimated. In the case of an exploratory "pilot" analysis,
+one can also only provide the number of blocks planned.
 }
 \examples{
-#want to plan for an experiment to detect minimal difference of 0.6
+#plan for an experiment to detect minimal difference of 0.6 with a balanced design
 set.seed(3152021)
 designSafeTwoProportions(na = 1,
                          nb = 1,
@@ -73,15 +86,15 @@ designSafeTwoProportions(na = 1,
                          alternativeRestriction = "none",
                          M = 1e2)
 
- #want to use safe analysis of a pilot: number of samples already known
- designSafeTwoProportions(na = 1,
+#safe analysis of a pilot: number of samples already known
+designSafeTwoProportions(na = 1,
                           nb = 1,
                           nBlocksPlan = 20,
                           pilot = TRUE)
 
- #want to specify own hyperparameters
- hyperParameterValues <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
- designSafeTwoProportions(na = 1,
+#specify own hyperparameters
+hyperParameterValues <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+designSafeTwoProportions(na = 1,
                          nb = 1,
                          alpha = 0.1,
                          beta = 0.20,

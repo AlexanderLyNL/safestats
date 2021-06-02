@@ -2,29 +2,65 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{safeTwoProportionsTest}
 \alias{safeTwoProportionsTest}
-\title{Perform a safe test for two proportions for stream data}
+\alias{safe.proportion.test}
+\title{Perform a Safe Test for Two Proportions with Stream Data}
 \usage{
 safeTwoProportionsTest(ya, yb, designObj = NULL, pilot = FALSE)
+
+safe.proportion.test(ya, yb, designObj = NULL, pilot = FALSE)
 }
 \arguments{
-\item{ya}{observations (0,1) in group a}
+\item{ya}{positive observations/ events per data block in group a: a numeric with integer values
+between (and including) 0 and \code{na}, the number of observations in group a per block.}
 
-\item{yb}{observations (0,1) in group b}
+\item{yb}{positive observations/ events per data block in group b: a numeric with integer values
+between (and including) 0 and \code{nb}, the number of observations in group b per block.}
 
-\item{designObj}{a safe test design for two proportions retrieved through \code{\link{designPilotSafeTwoProportions}} or
-\code{\link{designSafeTwoProportions}}.}
+\item{designObj}{a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}}.}
+
+\item{pilot}{logical that can be set to true when performing an exploratory analysis
+without a \code{designObj}; only allows for \code{na = nb = 1}.}
 }
 \value{
-safe2x2 test result object with the data used for the test, the S-value and the corresponding
-safe p-value.
+Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+following components:
+
+\describe{
+  \item{n}{The realised sample size(s).}
+  \item{eValue}{the e-value of the safe test.}
+  \item{dataName}{a character string giving the name(s) of the data.}
+  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}}.}
+}
 }
 \description{
 Perform a safe test for two proportions (a 2x2 contingency table test) with a
-result object retrieved through one of design functions for two proportions
-in this package, \code{\link{designPilotSafeTwoProportions}} or
-\code{\link{designSafeTwoProportions}}.
+result object retrieved through the design function for planning an experiment to compare
+two proportions in this package, \code{\link{designSafeTwoProportions}}.
 }
 \examples{
+#balanced design
+yb <- c(1,0,1,1,1,0,1)
+ya <- c(1,0,1,0,0,0,1)
+safeDesign <- designSafeTwoProportions(na = 1,
+                                       nb = 1,
+                                       beta = 0.20,
+                                       delta = 0.6,
+                                       alternativeRestriction = "none",
+                                       M = 1e1)
+safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
 
+#pilot
+safeTwoProportionsTest(ya = ya, yb = yb, pilot = TRUE)
+
+#unbalanced design
+yb <- c(1,0,1,1,1,0,1)
+ya <- c(2,2,1,2,0,2,2)
+safeDesign <- designSafeTwoProportions(na = 2,
+                                       nb = 1,
+                                       beta = 0.20,
+                                       delta = 0.6,
+                                       alternativeRestriction = "none",
+                                       M = 1e1)
+safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
 
 }
