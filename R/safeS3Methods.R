@@ -107,7 +107,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   }
   cat("\n")
 
-  if(!is.null(x[["statistic"]])){statValue <- x[["statistic"]]}
+  statValue <- x[["statistic"]]
   parameter <- designObj[["parameter"]]
   eValue <- x[["eValue"]]
 
@@ -116,7 +116,9 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   eThresholdString <- format(1/designObj[["alpha"]], digits = max(1L, digits - 2L))
 
   out <- character()
-  if(exists("statValue")){out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))}
+  if (!is.null(statValue)) {
+    out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
+  }
   out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
   cat(paste0("test: ", paste(out, collapse = ", "), sep="\n"))
   cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",

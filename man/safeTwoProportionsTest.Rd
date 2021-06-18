@@ -2,12 +2,12 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{safeTwoProportionsTest}
 \alias{safeTwoProportionsTest}
-\alias{safe.proportion.test}
+\alias{safe.prop.test}
 \title{Perform a Safe Test for Two Proportions with Stream Data}
 \usage{
 safeTwoProportionsTest(ya, yb, designObj = NULL, pilot = FALSE)
 
-safe.proportion.test(ya, yb, designObj = NULL, pilot = FALSE)
+safe.prop.test(ya, yb, designObj = NULL, pilot = FALSE)
 }
 \arguments{
 \item{ya}{positive observations/ events per data block in group a: a numeric with integer values
