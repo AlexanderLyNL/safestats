@@ -126,8 +126,7 @@ setSafeStatsPlotOptionsAndReturnOldOnes <- function(...) {
 #'
 #' Helper function to display the histogram of stopping times.
 #'
-#' @param safeSim A safeSim object, returned from \code{\link{replicateTTests}} and
-#' \code{\link{simulateSpreadSampleSizeTwoProportions}}.
+#' @param safeSim A safeSim object, returned from \code{\link{replicateTTests}}.
 #' @param nPlan numeric > 0, the planned sample size(s).
 #' @param deltaTrue numeric, that represents the true underlying standardised effect size delta.
 #' @param showOnlyNRejected logical, when \code{TRUE} discards the cases that did not reject.

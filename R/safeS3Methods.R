@@ -16,7 +16,8 @@ getNameTestType <- function(testType, parameterName) {
                      "oneSample"="Safe One Sample",
                      "paired"="Safe Paired Sample",
                      "twoSample"="Safe Two Sample",
-                     "logrank"="Safe")
+                     "logrank"="Safe",
+                     "2x2" = "Safe Test of Two Proportions")
 
   testName <- switch(parameterName,
                      "phiS"="Z-Test",
@@ -44,7 +45,7 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
     trueMeanStatement <- "true mean"
   } else if (testType %in% c("paired", "twoSample")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
-  } else if (testType == "safe2x2_result") {
+  } else if (testType == "2x2") {
     trueMeanStatement <- "true difference between proportions in group a and b is"
   } else if (testType == "logrank") {
     trueMeanStatement <- "true hazard ratio is"
@@ -115,7 +116,9 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   eThresholdString <- format(1/designObj[["alpha"]], digits = max(1L, digits - 2L))
 
   out <- character()
-  out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
+  if (!is.null(statValue)) {
+    out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
+  }
   out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
   cat(paste0("test: ", paste(out, collapse = ", "), sep="\n"))
   cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
@@ -216,7 +219,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
 
   displayList <- list()
 
-  for (item in c("nPlan", "nEvents", "esMin", "alternative", "beta", "parameter",
+  for (item in c("nPlan", "nEvents", "esMin", "alternative","alternativeRestriction", "beta", "parameter",
                  "alpha", "decision rule")) {
     itemValue <- designObj[[item]]
 
@@ -231,6 +234,8 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
         displayList[["decision rule: e-value > 1/alpha"]] <- itemValue
       } else if (item=="esMin") {
         displayList[[paste("minimal", names(itemValue))]] <- itemValue
+      } else if (item == "alternativeRestriction"){
+        displayList[["alternative restriction"]] <- itemValue
       } else {
         displayList[[item]] <- itemValue
       }

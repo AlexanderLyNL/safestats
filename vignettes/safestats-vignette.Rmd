@@ -17,29 +17,19 @@ knitr::opts_chunk$set(
 )
 ```
 
-_Safe tests_ is a collective name for a new form of hypothesis tests that yield _e-values_ (instead of _p-values_). The original paper on e-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide e-values for the t-test, Fisher's exact test, and the chi-squared test (the safe test of 2 proportions). These safe tests were designed to be _GROW_; they <!--yield e-values that, for each specific hypothesis testing setting,-->
-perform the best under the worst case in the alternative hypothesis (see the [original paper](https://arxiv.org/abs/1906.07801)).
+_Safe tests_ is a collective name for a new form of hypothesis tests that yield _e-values_ (instead of _p-values_). The original paper on e-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide e-values for the t-test, Fisher's exact test, and the chi-squared test (the safe test of 2 proportions). In this vignette, we will illustrate the concepts of safe testing and e-values through the t-test example. These safe tests were designed to be _GROW_; they perform the best under the worst case in the alternative hypothesis.
 
->Technically, $E$-values are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The $E$-value can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $E$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $e$-value, the larger the incentive to reject the null. 
+>Technically, $E$-values are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The $E$-value can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $E$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $e$-value, the larger the incentive to reject the null (see the [original paper](https://arxiv.org/abs/1906.07801)). 
 
 A big advantage of the e-values over their $p$-value equivalents is that safe tests conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping), whenever the evidence is compelling. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, which means that the researcher can extend the experiment irrespectively of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
 
 Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the promised type I error guarantee. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. We illustrate these properties below. 
 
-Firstly, we show how to design an experiment based on safe tests. 
+Firstly, we show how to design an experiment based on safe tests [for testing means](#designT). 
 
- - [for testing means](#designT)
- - [for testing proportions](#design2x2)
+Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping [for testing means](#optStopT). We also show that optional stopping causes the false null rejection rate of the classical $p$-value test to exceed the promised level $\alpha$ type I error guarantee. This implies that with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
 
-Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping. We also show that optional stopping causes the false null rejection rate of the classical $p$-value test to exceed the promised level $\alpha$ type I error guarantee. This implies that with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
-
- - [for testing means](#optStopT)
- - [for testing proportions](#optStop2x2)
-
-Lastly, it is shown that _optionally continuing non-significant experiments_ also causes the $p$-value tests to exceed the promised level $\alpha$ type I error guarantee, whereas this is not the case for safe tests. 
-
- - [for testing means](#optContT)
- - [for testing proportions](#optCont2x2)
+Lastly, it is shown that _optionally continuing non-significant experiments_ also causes the $p$-value tests to exceed the promised level $\alpha$ type I error guarantee, whereas this is not the case [for safe tests](#optContT). 
 
 This demonstration further emphasises the rigidity of experimental designs when inference is based on a classical test: the experiment cannot be stopped early, or extended. Thus, the planned sample size has to be final. As such, the protocol needs to account for possible future sample sizes, which is practically impossible to plan for. Even if such a protocol can be made, there is no guarantee that the experiments go exactly according to plan, as things might go wrong during the study. <!--, and flexibility is required to act on new information.Furthermore, the failure of $p$-values to be robust to optional continuation implies that one cannot build on previously acquired data, thus, engage in (scientific) learning. 
 
@@ -567,7 +557,7 @@ mean(eValuesMulti > 1/alpha)
 ```
 This led to 988 null rejections out of the 1,000 experiments, which is the correct result as the effect is across the original and replication studies. 
 
-## Subconclusion
+## Conclusion
 We believe that optional continuation is essential for (scientific) learning, as it allows us to revisit uncertain decisions such as ($p < \alpha$ and $S > 1/\alpha$) either by extending an experiment directly, or via replication studies. Hence, we view learning as an ongoing process, which requires that inference becomes more precise as data accumulate. The inability of $p$-values to conserve the $\alpha$-level under optional continuation, however, is at odds with this view --by gathering more data after an initial look, the inference becomes less precise, as the likelihood of the null being true after observing $p < \alpha$ increases beyond what is tolerable. 
 
 Safe tests on the other hand benefit from more data, as the chance of seeing $S > 1/\alpha$ (slowly) decreases when the null is true, whereas it (quickly) increases when the alternative is true, as the number of samples increases.  
@@ -664,6 +654,8 @@ As such, we conclude that safe tests are robust to pertubations of the experimen
 We hope to have shed some light on how e-values are robust to the design of the experiment. This 
 -->
 
+<!-- TODO: move all two proportions instructions to separate vignette and update to the new
+stream data setting
 # Tests of two proportions
 ## 1. <a name = "design2x2">Designing Safe Experiments</a>
 The safestats package also contains a safe alternative for tests of two proportions. The standard tests for this setting, which cannot deal with optional stopping, are Fisher’s exact test or the chi-squared test. These tests are applicable to data collected from two groups (indicated with "a" and "b" from here), where each data point is a binary outcome 0 (e.g., deceased) or 1 (e.g., survived). For example, group "a" might refer to the group of patients that are given the placebo, whereas group "b" is given the drug. 
@@ -673,14 +665,14 @@ The safestats package also contains a safe alternative for tests of two proporti
 As with the t-test, we might know the minimal clinically relevant effect size upfront for our test of two proportions. For example, we might only be interested in further researching or developing a drug when the difference in the proportion of cured patients in the treatment group compared to the placebo group is at least 0.3. In practice this implies, for example, that when 20% of patients get cured on average in the placebo group, we want the drug to add at least 30% to this average, so in the treated group 50% of patients should be cured. We could design a safe test for this study:
 
 ```{r }
-safeDesignProportions <- designSafeTwoProportions(deltaMin=0.3, alpha=0.05,
-                                                  beta=0.20, lowN=100,
-                                                  numberForSeed = 5227)
+# safeDesignProportions <- designSafeTwoProportions(deltaMin=0.3, alpha=0.05,
+#                                                   beta=0.20, lowN=100,
+#                                                   numberForSeed = 5227)
 ```
 For detecting this difference with a power of at least 80%, while testing at significance level 0.05, we would need:
 
 ```{r }
-safeDesignProportions$n.star
+#safeDesignProportions$n.star
 ```
 
 patients. 
@@ -688,126 +680,117 @@ patients.
 A safe test could now be performed with this design object; for this, some mock data are generated below:
 
 ```{r }
-sampleExample <- as.table(matrix(c(10, safeDesignProportions[["na"]]-10, 40,
-                                   safeDesignProportions[["nb"]]-40), 
-                                 byrow=TRUE, nrow=2))
-colnames(sampleExample) <- c(0, 1)
-sampleExample
+# sampleExample <- as.table(matrix(c(10, safeDesignProportions[["na"]]-10, 40,
+#                                    safeDesignProportions[["nb"]]-40), 
+#                                  byrow=TRUE, nrow=2))
+# colnames(sampleExample) <- c(0, 1)
+# sampleExample
 ```
 
 Performing the safe test:
 
 ```{r }
-safeTwoProportionsTest(x = sampleExample, testDesign = safeDesignProportions)
+#safeTwoProportionsTest(x = sampleExample, testDesign = safeDesignProportions)
 ```
 
 ### Case (II): Minimal clinically relevant effect size unknown, but maximum number of samples known.
 We might not have enough resources to fund our study to detect the minimal difference of 0.3. For example, we might only have funds to treat 50 patients in each group, so 100 in total. If this is the case, we could, [just as with the t-test](#powerplotT), inspect the minimal number of patients we need for the experiment to achieve a power of 80% at our significance level per effect size of interest:
 
 ```{r }
-plotResult <- plotSafeTwoProportionsSampleSizeProfile(alpha=0.05,
-                                                      beta=0.20,
-                                                      highN=200, 
-                                                      maxN=100,
-                                                      numberForSeed=5222)
+# plotResult <- plotSafeTwoProportionsSampleSizeProfile(alpha=0.05,
+#                                                       beta=0.20,
+#                                                       highN=200, 
+#                                                       maxN=100,
+#                                                       numberForSeed=5222)
 ```
 
 Observe that the smallest absolute difference detectable with our available resources is 0.4; we might have to cancel the study, or try to acquire more research funds, as with our current funds, we can not guarantee a high enough power for detecting the difference between the groups we are interested in. This implies that, when a non-significant result is obtained, we would be unsure whether this was caused by our underpowered study, or because there was really no difference between the groups.
 
 Furthermore, the plot also shows the _expected sample sizes_ under optional stopping. The plot function generates experiments based on the minimal difference corresponding to the x-axis and carries out a simulation with _optional stopping_, i.e., experiments were stopped early as soon as $S > 1/\alpha=20$ was observed, and the realised average number of patients was calculated. Observe that the difference between the planned sample size and the sample size under optional stopping is substantial. In the next section, the behaviour of the safe test for two proportions and Fisher's exact test under optional stopping is studied further.
 
-<!--If we are happy with this minimally detectable effect size, we would then design a safe test with our fixed sample sizes with the pilot function for two proportions:
-
-```{r }
-safePilotDesign <- designPilotSafeTwoProportions(na = 50, nb = 50)
-```
-
-After this first 'Pilot' we could then decide to free up further resources and funds, and to design a follow-up study with enough power to detect our desired clinically relevant effect size.
--->
-
 ## 2. Inference with Safe Tests and <a name = "optStop2x2">Optional Stopping</a>
 #### True effect size equals minimal clinically relevant effect size
 As with the safe t-test, the safe test for two proportions can be used in the optional stopping setting while retaining the type I error guarantee. In the figure below the spread of the stopping times among 1,000 simulated experiments is depicted, if the real effect size equals the minimal clinically relevant effect size as planned:
 
 ```{r }
-set.seed(5224)
-
-optionalStoppingTrueMeanIsDesign <- 
-  simulateSpreadSampleSizeTwoProportions(
-    safeDesign=safeDesignProportions, M=1000,
-    parametersDataGeneratingDistribution=c(0.3, 0.6))
-
-plotHistogramDistributionStoppingTimes(
-  optionalStoppingTrueMeanIsDesign, 
-  nPlan=safeDesignProportions[["n.star"]], 
-  deltaTrue = 0.3)
+# set.seed(5224)
+# 
+# optionalStoppingTrueMeanIsDesign <- 
+#   simulateSpreadSampleSizeTwoProportions(
+#     safeDesign=safeDesignProportions, M=1000,
+#     parametersDataGeneratingDistribution=c(0.3, 0.6))
+# 
+# plotHistogramDistributionStoppingTimes(
+#   optionalStoppingTrueMeanIsDesign, 
+#   nPlan=safeDesignProportions[["n.star"]], 
+#   deltaTrue = 0.3)
 ```
 
 We designed the safe test such that we had a minimal power of 0.8, would the data truly come from a distribution with an absolute difference of 0.3 between the proportions of cured patients in the groups. Has this power been achieved?
 
 ```{r }
 #power achieved:
-mean(optionalStoppingTrueMeanIsDesign$rejected == 1)
+#mean(optionalStoppingTrueMeanIsDesign$rejected == 1)
 ```
 
 #### True effect size larger than the minimal clinically relevant effect size
 We have designed the safe test for a minimal clinically relevant effect size, but what would happen if the difference between the groups was even larger in reality, i.e., if the drug had an even bigger effect?
 
 ```{r }
-set.seed(5224)
-
-optionalStoppingTrueDifferenceBig <- 
-  simulateSpreadSampleSizeTwoProportions(
-    safeDesign=safeDesignProportions, M=1000, 
-    parametersDataGeneratingDistribution = c(0.2, 0.9))
-
-plotHistogramDistributionStoppingTimes(
-  optionalStoppingTrueDifferenceBig, nPlan=safeDesignProportions[["n.star"]],
-  deltaTrue = 0.7)
+# set.seed(5224)
+# 
+# optionalStoppingTrueDifferenceBig <- 
+#   simulateSpreadSampleSizeTwoProportions(
+#     safeDesign=safeDesignProportions, M=1000, 
+#     parametersDataGeneratingDistribution = c(0.2, 0.9))
+# 
+# plotHistogramDistributionStoppingTimes(
+#   optionalStoppingTrueDifferenceBig, nPlan=safeDesignProportions[["n.star"]],
+#   deltaTrue = 0.7)
 ```
 
 We would stop, on average, even earlier! The power of the experiment also increases:
 
 ```{r }
 #power achieved:
-mean(optionalStoppingTrueDifferenceBig$rejected == 1)
+#mean(optionalStoppingTrueDifferenceBig$rejected == 1)
 ```
 
 #### Data under the null: True effect size is zero, thus, much smaller than the minimal clinically relevant effect size
 We can also illustrate what would happen under optional stopping, when our *null hypothesis* that there is no difference between the effect of the drug and the placebo is true:
 
 ```{r }
-set.seed(5224)
-
-optionalStoppingTrueMeanNull <- 
-  simulateSpreadSampleSizeTwoProportions(
-    safeDesign=safeDesignProportions, M=1000, 
-    parametersDataGeneratingDistribution = c(0.5, 0.5))
-
-plotHistogramDistributionStoppingTimes(
-  optionalStoppingTrueMeanNull, 
-  nPlan=safeDesignProportions[["n.star"]], 
-  deltaTrue = 0)
+# set.seed(5224)
+# 
+# optionalStoppingTrueMeanNull <- 
+#   simulateSpreadSampleSizeTwoProportions(
+#     safeDesign=safeDesignProportions, M=1000, 
+#     parametersDataGeneratingDistribution = c(0.5, 0.5))
+# 
+# plotHistogramDistributionStoppingTimes(
+#   optionalStoppingTrueMeanNull, 
+#   nPlan=safeDesignProportions[["n.star"]], 
+#   deltaTrue = 0)
 ```
 
 The type I error rate has stayed below 0.05:
 
 ```{r }
 # The rate of false null rejections remained under alpha=0.05
-mean(optionalStoppingTrueMeanNull$rejected == 1)
+#mean(optionalStoppingTrueMeanNull$rejected == 1)
 ```
 
 #### Classical test "Fisher's exact test" under the null with optional stopping
 Optional stopping, however, causes Fisher's exact test to overreject the null. When the null is true, the rate of incorrect null rejections exceeds the tolerable $\alpha$-level:
 
 ```{r }
-set.seed(5224)
-
-fisher_result <- simulateFisherSpreadSampleSizeOptionalStopping(
-  deltaDesign=0.5, alpha=0.05, nDesign=safeDesignProportions$n.star, 
-  power=0.8, M=100, parametersDataGeneratingDistribution=c(0.5, 0.5))
-
-mean(fisher_result$rejected == 1)
+# set.seed(5224)
+# 
+# fisher_result <- simulateFisherSpreadSampleSizeOptionalStopping(
+#   deltaDesign=0.5, alpha=0.05, nDesign=safeDesignProportions$n.star, 
+#   power=0.8, M=100, parametersDataGeneratingDistribution=c(0.5, 0.5))
+# 
+# mean(fisher_result$rejected == 1)
 ```
 Thus, 20% which is four times as much as promised. 
 
@@ -817,23 +800,23 @@ In each of the simulations above, a fraction of the experiments did not lead to 
 We are now going to zoom in on two of the optional stopping simulations we carried out above, where the true difference between the groups equalled our design difference (0.3), and where the true difference equalled 0. In the experiment where the true difference was 0.3, we did not reject the null in 13.2% of the studies. If we now imagine the situation we would encounter in reality, where we would not know that we were really sampling from the alternative hypothesis, how high should e-values then be to support starting a replication study? To give us some handles, we could look at the spread of e-values from studies where the null was not rejected, from our experiments under the null and under the alternative:
 
 ```{r}
-notRejectedIndex <- which(optionalStoppingTrueMeanIsDesign$rejected==FALSE)
-eValuesNotRejected <- optionalStoppingTrueMeanIsDesign$s_values[notRejectedIndex]
-nullNotRejectedIndex <- which(optionalStoppingTrueMeanNull$rejected == FALSE)
-eValuesNotRejectedNull <- optionalStoppingTrueMeanNull$s_values[nullNotRejectedIndex]
+# notRejectedIndex <- which(optionalStoppingTrueMeanIsDesign$rejected==FALSE)
+# eValuesNotRejected <- optionalStoppingTrueMeanIsDesign$s_values[notRejectedIndex]
+# nullNotRejectedIndex <- which(optionalStoppingTrueMeanNull$rejected == FALSE)
+# eValuesNotRejectedNull <- optionalStoppingTrueMeanNull$s_values[nullNotRejectedIndex]
 ```
 ```{r, echo = FALSE}
-trueHist <- graphics::hist(x = eValuesNotRejected, plot = FALSE)
-nullHist <- graphics::hist(x = eValuesNotRejectedNull, plot = FALSE)
-yMax <- max(trueHist[["counts"]], nullHist[["counts"]])
-graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
-              font.lab=2, cex.axis=1.3, bty="n", las=1)
-graphics::plot(nullHist, xlim = c(0, max(eValuesNotRejected, eValuesNotRejectedNull)), 
-               freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "e-values", 
-               main = "Histogram of e-values where null not rejected")
-graphics::plot(trueHist, add = TRUE, freq = FALSE, col = "red", density = 20, 
-               angle = -45)
-graphics::legend(x = "topright", legend = c("True delta: null", "True delta: design"), fill = c("blue", "red"))
+# trueHist <- graphics::hist(x = eValuesNotRejected, plot = FALSE)
+# nullHist <- graphics::hist(x = eValuesNotRejectedNull, plot = FALSE)
+# yMax <- max(trueHist[["counts"]], nullHist[["counts"]])
+# graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
+#               font.lab=2, cex.axis=1.3, bty="n", las=1)
+# graphics::plot(nullHist, xlim = c(0, max(eValuesNotRejected, eValuesNotRejectedNull)), 
+#                freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "e-values", 
+#                main = "Histogram of e-values where null not rejected")
+# graphics::plot(trueHist, add = TRUE, freq = FALSE, col = "red", density = 20, 
+#                angle = -45)
+# graphics::legend(x = "topright", legend = c("True delta: null", "True delta: design"), fill = c("blue", "red"))
 ```
 
 It can be observed that, when the true difference between the groups equals our design difference, the e-values are spread out between 0 and 13. On the other hand, with our experiment under the null, all e-values were smaller than 8.
@@ -841,34 +824,34 @@ It can be observed that, when the true difference between the groups equals our 
 Based on this plot we could for example conclude that studies that yielded a final e-value between 10 and 20 look promising; under the null hypothesis, such high e-values were not observed in the spread plot! What would happen if we followed these studies up with a small extra study with 40 participants, and combined the resulting e-values? How many of the initially futile experiments will now lead to rejection of the null hypothesis?
 
 ```{r optionalContinuation2x2}
-continueIndex <- which(optionalStoppingTrueMeanIsDesign$s_values < 20 & 
-                         optionalStoppingTrueMeanIsDesign$s_values > 10)
-
-interestingEValues <-
-  optionalStoppingTrueMeanIsDesign$s_values[continueIndex]
-
-newEValues <- 
-  simulateOptionalContinuationTwoProportions(
-    interestingEValues, nFollowUp=40, 
-    parametersDataGeneratingDistribution=c(0.3, 0.6))
-
-mean(newEValues>=20)
+# continueIndex <- which(optionalStoppingTrueMeanIsDesign$s_values < 20 & 
+#                          optionalStoppingTrueMeanIsDesign$s_values > 10)
+# 
+# interestingEValues <-
+#   optionalStoppingTrueMeanIsDesign$s_values[continueIndex]
+# 
+# newEValues <- 
+#   simulateOptionalContinuationTwoProportions(
+#     interestingEValues, nFollowUp=40, 
+#     parametersDataGeneratingDistribution=c(0.3, 0.6))
+# 
+# mean(newEValues>=20)
 ```
 
 What happens when we apply this optional continuation when the data are truly generated under the null hypothesis? (note that we relax our bound of initial 'interesting' e-values here to 1, otherwise there would be no e-values to continue with)
 
 ```{r optionalContinuation2x2Null}
-continueIndex <- optionalStoppingTrueMeanNull$s_values < 20 & 
-  optionalStoppingTrueMeanNull$s_values > 1
-
-interestingEValues <-optionalStoppingTrueMeanNull$s_values[continueIndex]
-
-newEValues <- 
-  simulateOptionalContinuationTwoProportions(
-    interestingEValues, nFollowUp=40, 
-    parametersDataGeneratingDistribution=c(0.5, 0.5))
-
-mean(newEValues>=20)
+# continueIndex <- optionalStoppingTrueMeanNull$s_values < 20 & 
+#   optionalStoppingTrueMeanNull$s_values > 1
+# 
+# interestingEValues <-optionalStoppingTrueMeanNull$s_values[continueIndex]
+# 
+# newEValues <- 
+#   simulateOptionalContinuationTwoProportions(
+#     interestingEValues, nFollowUp=40, 
+#     parametersDataGeneratingDistribution=c(0.5, 0.5))
+# 
+# mean(newEValues>=20)
 ```
 We still keep our type-I error probability guarantee.
 
@@ -879,53 +862,54 @@ Some short examples with code snippets for other testing scenarios are illustrat
 Safe tests for two proportions can also be designed for one-sided testing. For the case when one hypothesizes that the population mean of group "a" is higher than the population mean of group "b":
 
 ```{r }
-safeDesignProportionsOneSided <- 
-  designSafeTwoProportions(deltaMin=0.5, alternative="greater",
-                           numberForSeed = 291202)
+# safeDesignProportionsOneSided <- 
+#   designSafeTwoProportions(deltaMin=0.5, alternative="greater",
+#                            numberForSeed = 291202)
 ```
 
 We can now simulate data that fit our hypothesis (more 1s observed in group "a" than in "b"):
 
 ```{r }
-sampleExampleGreater <- 
-  as.table(matrix(c(5, safeDesignProportionsOneSided[["na"]]-5, 19,
-                    safeDesignProportionsOneSided[["nb"]]-19), 
-                  byrow=TRUE, nrow=2))
-
-colnames(sampleExampleGreater) <- c(0,1)
-sampleExampleGreater
+# sampleExampleGreater <- 
+#   as.table(matrix(c(5, safeDesignProportionsOneSided[["na"]]-5, 19,
+#                     safeDesignProportionsOneSided[["nb"]]-19), 
+#                   byrow=TRUE, nrow=2))
+# 
+# colnames(sampleExampleGreater) <- c(0,1)
+# sampleExampleGreater
 ```
 
 This yields a high e-value:
 
 ```{r }
-safeTwoProportionsTest(x=sampleExampleGreater, 
-                       testDesign=safeDesignProportionsOneSided)
+# safeTwoProportionsTest(x=sampleExampleGreater, 
+#                        testDesign=safeDesignProportionsOneSided)
 ```
 
 But if we now observe the opposite, more 1s in group "b" than in "a", the e-value will be low;
 
 ```{r }
-sampleExampleLesser <- 
-  as.table(matrix(c(safeDesignProportionsOneSided[["na"]]-5, 5,
-                    safeDesignProportionsOneSided[["nb"]]-19, 19), 
-                  byrow=TRUE, nrow=2))
-
-colnames(sampleExampleGreater) <- colnames(sampleExampleLesser) <- c(0,1)
-sampleExampleLesser
+# sampleExampleLesser <- 
+#   as.table(matrix(c(safeDesignProportionsOneSided[["na"]]-5, 5,
+#                     safeDesignProportionsOneSided[["nb"]]-19, 19), 
+#                   byrow=TRUE, nrow=2))
+# 
+# colnames(sampleExampleGreater) <- colnames(sampleExampleLesser) <- c(0,1)
+# sampleExampleLesser
 ```
 
 ```{r }
-safeTwoProportionsTest(x=sampleExampleLesser,
-                       testDesign=safeDesignProportionsOneSided)
+# safeTwoProportionsTest(x=sampleExampleLesser,
+#                        testDesign=safeDesignProportionsOneSided)
 ```
 
 #### Unbalanced design: unequal group sizes
 When a balanced design is not possible, a safe test of two proportions for unequal sample sizes can be designed as well; the final ratio between the sample sizes one is going to collect has to be known for this.
 
 ```{r }
-safeDesignProportionsImbalanced <- 
-  designSafeTwoProportions(deltaMin=0.3, alpha=0.05, beta=0.20, lowN=120,
-                           sampleSizeRatio=2)
-safeDesignProportionsImbalanced
+# safeDesignProportionsImbalanced <- 
+#   designSafeTwoProportions(deltaMin=0.3, alpha=0.05, beta=0.20, lowN=120,
+#                            sampleSizeRatio=2)
+# safeDesignProportionsImbalanced
 ```
+untill here -->
