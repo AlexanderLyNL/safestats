@@ -3,6 +3,7 @@
 #' A safe test to test whether there is a difference between two survival curves. This function
 #' builds on the Mantel-Cox version of the logrank test.
 #'
+#' @inheritParams computeLogrankZ
 #' @param formula a formula expression as for other survival models, of the form Surv(time, status) ~ groupingVariable,
 #' see \code{\link[survival]{Surv}} for more details.
 #' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
@@ -17,7 +18,8 @@
 #' To change these default values, please use \code{\link{designSafeLogrank}}.
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
 #' @param exact a logical indicating whether the exact safe logrank test needs to be performed based on
-#' the hypergeometric likelihood
+#' the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the safe z-test (for Gaussian data)
+#' applied to the logrank z-statistic is used instead.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -26,7 +28,7 @@
 #' \describe{
 #'   \item{statistic}{the value of the summary, i.e., z-statistic or the e-value.}
 #'   \item{nEvents}{The number of observed events.}
-#'   \item{eValue}{the s-value of the safe test.}
+#'   \item{eValue}{the e-value of the safe test.}
 #'   \item{confSeq}{An anytime-valid confidence sequence.}
 #'   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
 #'   \item{testType}{"logrank".}
@@ -116,17 +118,17 @@
 #'                             event = dataSoFar$status,
 #'                             type = "counting")
 #'
-#'   interimResult <- safeLogrankTest(survObj ~ dataSoFar$group, designObj = designObj)
-#'   interimResult
+#'   interimResult <- safeLogrankTest(survObj ~ dataSoFar$group,
+#'                                    designObj = designObj, exact=FALSE)
 #'
-#' # Compare logrank score to calculations by hand
+#'   # Compare logrank score to calculations by hand
 #'   localTest <- round(interimResult$statistic - handResult[i], 7) == 0
 #'
 #'   if (!localTest)
 #'     stop("Computation of the left-truncated logrank z-score is wrong")
 #' }
 safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, survTime=NULL,
-                            group=NULL, pilot=FALSE, exact=FALSE, ...) {
+                            group=NULL, pilot=FALSE, exact=TRUE, computeZ=TRUE, ...) {
 
   # Check inputs  ----
   #
@@ -240,12 +242,15 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
   alternative <- designObj[["alternative"]]
   ratio <- designObj[["ratio"]]
   h0 <- designObj[["h0"]]
-  theta1 <- exp(designObj[["parameter"]])
+  theta1 <- designObj[["esMin"]]
+
+  # Note(Alexander): This is okay because it's always wrt h0=1
+  #
+  if (theta1 > 1)
+    theta1 <- 1/theta1
 
   # Compute stats ------
   #
-  computeZ <- if (exact) FALSE else TRUE
-
   sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
                               "computeZ"=computeZ, "computeExactE" =exact,
                               "theta0"=h0, "theta1"=theta1)
@@ -267,7 +272,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
 
     names(eValue) <- "e"
 
-    result <- list("statistic"=eValue, "n"=nEvents, "estimate"=NULL, "eValue"=eValue,
+    result <- list("n"=nEvents, "estimate"=NULL, "eValue"=eValue,
                    "confSeq"=NULL, "estimate"=NULL, "testType"="logrank",
                    "dataName"=dataName, "exact"=TRUE)
     class(result) <- "safeTest"
@@ -323,16 +328,12 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
 #' @param nEvents numeric > 0, observed number of events.
 #' @param dataNull numeric > 0, the null hypothesis corresponding to the z statistics.
 #' By default dataNull = 1 representing
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less".
 #' @param sigma numeric > 0, scaling in the data
 #'
 #' @return
 #' @export
 safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
-                                alternative=c("two.sided", "greater", "less"),
                                 dataNull=1, sigma=1) {
-  alternative <- match.arg(alternative)
 
   if (length(z) != length(nEvents))
     stop("The provided number of z-scores and number of events not equal.")
@@ -355,7 +356,8 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
   }
 
   eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
-                          "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
+                          "n2"=NULL, "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1)
+
 
   tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                             "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
@@ -439,10 +441,15 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       meanDiffMin <- NULL
     }
 
-    # Note(Alexander): I scaled meanDiffMin so I can get nPlan correct. I'll scale back below
+    # Note(Alexander): I scaled meanDiffMin so I can get nPlan correct.
+    # I'll scale back below
     #
-    safeZObj <- designSafeZ("meanDiffMin"=meanDiffMin , "beta"=beta, "alpha"=alpha,
-                            "nPlan"=nEvents, "alternative"=alternative,
+    # TODO(Alexander):
+      # - For the case with only nEvents,
+      # - How to do GROW? Or forget about it.
+    safeZObj <- designSafeZ("meanDiffMin"=meanDiffMin , "beta"=beta,
+                            "alpha"=alpha, "nPlan"=nEvents,
+                            "alternative"=alternative,
                             "sigma"=1, "testType"="oneSample")
     nEvents <- safeZObj[["nPlan"]]
     safeZObj[["nPlan"]] <- NULL
@@ -451,7 +458,9 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     if (!is.null(nEvents))
       names(safeZObj[["nEvents"]]) <- "nEvents"
 
-    safeZObj[["parameter"]] <- safeZObj[["parameter"]]*(1+ratio)/sqrt(ratio)
+    if (!is.null(logHazardRatio))
+      safeZObj[["parameter"]] <- logHazardRatio
+
     names(safeZObj[["parameter"]]) <- "log(thetaS)"
 
     safeZObj[["esMin"]] <- hrMin
@@ -470,14 +479,14 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     safeZObj[["paired"]] <- NULL
     safeZObj[["call"]] <- sys.call()
     safeZObj[["h0"]] <- h0
+    result <- safeZObj
   }
 
-  result <- safeZObj
+  result[["ratio"]] <- ratio
   names(result[["h0"]]) <- "theta"
 
   return(result)
 }
-
 #' Helper function computes single component of the logrank statistic
 #'
 #' @param obs0 integer, number of observations in the control group
