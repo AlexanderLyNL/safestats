@@ -5,29 +5,29 @@ Version: 0.8.6
 Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = "aut"),
-  person("Alexander", "Ly", email = "a.ly@jasp-stats.org", 
+  person("Alexander", "Ly", email = "a.ly@jasp-stats.org",
   role = c("cre", "aut")),
-  person("Muriel", "Perez", email = "Muriel.Perez@cwi.nl", 
+  person("Muriel Felipe", "Pérez-Ortiz", email = "Muriel.Perez@cwi.nl",
   role = c("ctb")),
-  person("Judith", "ter Schure", email = "Judith.ter.Schure@cwi.nl", 
+  person("Judith", "ter Schure", email = "Judith.ter.Schure@cwi.nl",
   role = c("ctb")),
-  person("Peter", "Grunwald", email = "Peter.Grunwald@cwi.nl", 
+  person("Peter", "Grunwald", email = "Peter.Grunwald@cwi.nl",
   role = c("ctb"))
   )
 Maintainer: Alexander Ly <a.ly@jasp-stats.org>
-Description: Functions to design and apply tests that are anytime valid. The 
-  functions can be used to design hypothesis tests in the prospective/randomised 
-  control trial setting or in the observational/retrospective setting. The 
-  resulting tests remain valid under both optional stopping and optional 
-  continuation. The current version includes safe t-tests and safe tests of 
-  two proportions. For details on the theory of safe tests, see 
+Description: Functions to design and apply tests that are anytime valid. The
+  functions can be used to design hypothesis tests in the prospective/randomised
+  control trial setting or in the observational/retrospective setting. The
+  resulting tests remain valid under both optional stopping and optional
+  continuation. The current version includes safe t-tests and safe tests of
+  two proportions. For details on the theory of safe tests, see
   Grunwald, de Heide and Koolen (2019) "Safe Testing". <arXiv:1906.07801>.
 License: LGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Depends:
   R (>= 3.6)
-Imports: 
+Imports:
   stats (>= 3.6),
   hypergeo (>= 1.2-13),
   purrr (>= 0.3.3),

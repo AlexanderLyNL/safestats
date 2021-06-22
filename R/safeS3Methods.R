@@ -116,9 +116,10 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   eThresholdString <- format(1/designObj[["alpha"]], digits = max(1L, digits - 2L))
 
   out <- character()
-  if (!is.null(statValue)) {
+
+  if (!is.null(statValue))
     out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
-  }
+
   out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
   cat(paste0("test: ", paste(out, collapse = ", "), sep="\n"))
   cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
