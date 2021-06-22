@@ -13,7 +13,8 @@ safeLogrankTest(
   survTime = NULL,
   group = NULL,
   pilot = FALSE,
-  exact = FALSE,
+  exact = TRUE,
+  computeZ = TRUE,
   ...
 )
 
@@ -22,7 +23,6 @@ safeLogrankTestStat(
   nEvents,
   designObj,
   ciValue = 0.95,
-  alternative = c("two.sided", "greater", "less"),
   dataNull = 1,
   sigma = 1
 )
@@ -49,16 +49,17 @@ samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and al
 To change these default values, please use \code{\link{designSafeLogrank}}.}
 
 \item{exact}{a logical indicating whether the exact safe logrank test needs to be performed based on
-the hypergeometric likelihood}
+the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the safe z-test (for Gaussian data)
+applied to the logrank z-statistic is used instead.}
+
+\item{computeZ}{logical. If \code{TRUE} computes the logrank z-statistic.
+Default is \code{TRUE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
 \item{z}{numeric representing the observed z statistic.}
 
 \item{nEvents}{numeric > 0, observed number of events.}
-
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less".}
 
 \item{dataNull}{numeric > 0, the null hypothesis corresponding to the z statistics.
 By default dataNull = 1 representing}
@@ -72,7 +73,7 @@ following components:
 \describe{
   \item{statistic}{the value of the summary, i.e., z-statistic or the e-value.}
   \item{nEvents}{The number of observed events.}
-  \item{eValue}{the s-value of the safe test.}
+  \item{eValue}{the e-value of the safe test.}
   \item{confSeq}{An anytime-valid confidence sequence.}
   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
   \item{testType}{"logrank".}
@@ -175,10 +176,10 @@ for (i in 1:4) {
                             event = dataSoFar$status,
                             type = "counting")
 
-  interimResult <- safeLogrankTest(survObj ~ dataSoFar$group, designObj = designObj)
-  interimResult
+  interimResult <- safeLogrankTest(survObj ~ dataSoFar$group,
+                                   designObj = designObj, exact=FALSE)
 
-# Compare logrank score to calculations by hand
+  # Compare logrank score to calculations by hand
   localTest <- round(interimResult$statistic - handResult[i], 7) == 0
 
   if (!localTest)
