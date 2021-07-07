@@ -261,7 +261,7 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
                    format(bootObj[["bootSd"]], digits = digits), ". \n",
                    "Thus, with a relative approximate error of ",
                    format(bootObj[["bootSd"]]/bootObj[["t0"]]*100, digits=digits),
-                   "%. \n", "For a more accurate estimate nsim can be increased.")
+                   "%. \n", "For a more accurate estimate nSim can be increased.")
 
   if (!is.null(note))
     cat("\n\n", "Note: ", note, "\n\n", sep = "")
