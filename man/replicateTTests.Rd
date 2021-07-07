@@ -108,7 +108,7 @@ freqObj <- designFreqT(1, alpha=alpha, beta=beta)
 
 # Simulate under the alternative with deltaTrue=deltaMin
 simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1, parameter=designObj$parameter,
-nPlanFreq=freqObj$nPlan, beta=beta, nsim=400)
+                              nPlanFreq=freqObj$nPlan, beta=beta, nsim=250)
 
 # Should be about 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -119,11 +119,11 @@ simResults$safeSim$powerOptioStop
 # Optional stopping allows us to do better than n1PlanFreq once in a while
 simResults$safeSim$probLeqN1PlanFreq
 graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-breaks=seq.int(designObj$nPlan[1]))
+               breaks=seq.int(designObj$nPlan[1]))
 
 # Simulate under the alternative with deltaTrue > deltaMin
 simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1.5, parameter=designObj$parameter,
-nPlanFreq=freqObj$nPlan, beta=beta, nsim=400)
+                              nPlanFreq=freqObj$nPlan, beta=beta, nsim=250)
 
 # Should be larger than 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -134,11 +134,11 @@ simResults$safeSim$powerOptioStop
 # Optional stopping allows us to do better than n1PlanFreq once in a while
 simResults$safeSim$probLeqN1PlanFreq
 graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-breaks=seq.int(designObj$nPlan[1]))
+               breaks=seq.int(designObj$nPlan[1]))
 
 # Under the null deltaTrue=0
 simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=0, parameter=designObj$parameter,
-nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nsim=400)
+                              nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nsim=250)
 
 # Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
 simResults$safeSim$powerAtN1Plan

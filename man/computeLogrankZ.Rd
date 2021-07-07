@@ -11,7 +11,7 @@ computeLogrankZ(
   computeZ = TRUE,
   computeExactE = FALSE,
   theta0 = 1,
-  theta1 = NULL,
+  thetaS = NULL,
   ...
 )
 }
@@ -29,7 +29,7 @@ Default is \code{FALSE}.}
 \item{theta0}{numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
 Default is 1.}
 
-\item{theta1}{numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
+\item{thetaS}{numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
 Default is NULL.}
 
 \item{...}{further arguments to be passed to or from methods.}

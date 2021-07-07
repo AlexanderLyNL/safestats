@@ -116,7 +116,7 @@ callaert <- data.frame(
   group = factor(rep(0:1, c(7, 8)))
 )
 
-designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
+designObj <- designSafeLogrank(hrMin=1/2)
 
 safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
                 designObj = designObj)

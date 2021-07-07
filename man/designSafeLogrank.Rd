@@ -12,8 +12,16 @@ designSafeLogrank(
   alternative = c("two.sided", "greater", "less"),
   alpha = 0.05,
   ratio = 1,
-  zApprox = TRUE,
+  zApprox = FALSE,
   tol = 1e-05,
+  m0 = 50000L,
+  m1 = 50000L,
+  nSim = 1000L,
+  nBoot = 10000L,
+  ciValue = 0.95,
+  parameter = NULL,
+  groupSizePerTimeFunction = returnOne,
+  pb = TRUE,
   ...
 )
 }
@@ -38,12 +46,34 @@ alternative specifies that survival in population 2 is higher than in population
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If the design is
-based on nPlan, then ratio equals \code{nPlan[2]/nPlan[1]}.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 (Treatment) over condition 1 (Placebo),
+thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
+ignores m1 and m0.}
 
 \item{zApprox}{logical, default TRUE to use the asymptotic normality results.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
+
+\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
+
+\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
+
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
+safe logrank test}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the power and
+nEvents for the exact safe logrank test}
+
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
+
+\item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
+algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
+
+\item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
+of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
+step.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -75,7 +105,8 @@ the smallest nEvents for which hrMin is found with power of at least 1 - beta. T
 asymptotic normal chracterisation of the sampling distribution of the logrank test derived by Schoenfeld (1981).
 }
 \examples{
-designSafeLogrank(nEvents=89)
-designSafeLogrank(hrMin=0.4, beta=0.05)
-designSafeLogrank(hrMin=0.4)
+designSafeLogrank(hrMin=0.7)
+designSafeLogrank(hrMin=0.7, zApprox=TRUE)
+designSafeLogrank(hrMin=0.7, beta=0.3, nSim=10)
+designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
 }

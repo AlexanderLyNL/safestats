@@ -407,7 +407,7 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
 #'
 #' @examples
 #'
-#'# Design safe test
+#' # Design safe test
 #' alpha <- 0.05
 #' beta <- 0.20
 #' designObj <- designSafeT(1, alpha=alpha, beta=beta)
@@ -417,7 +417,7 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
 #'
 #' # Simulate under the alternative with deltaTrue=deltaMin
 #' simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1, parameter=designObj$parameter,
-#' nPlanFreq=freqObj$nPlan, beta=beta, nsim=400)
+#'                               nPlanFreq=freqObj$nPlan, beta=beta, nsim=250)
 #'
 #' # Should be about 1-beta
 #' simResults$safeSim$powerAtN1Plan
@@ -428,11 +428,11 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
 #' # Optional stopping allows us to do better than n1PlanFreq once in a while
 #' simResults$safeSim$probLeqN1PlanFreq
 #' graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-#' breaks=seq.int(designObj$nPlan[1]))
+#'                breaks=seq.int(designObj$nPlan[1]))
 #'
 #' # Simulate under the alternative with deltaTrue > deltaMin
 #' simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1.5, parameter=designObj$parameter,
-#' nPlanFreq=freqObj$nPlan, beta=beta, nsim=400)
+#'                               nPlanFreq=freqObj$nPlan, beta=beta, nsim=250)
 #'
 #' # Should be larger than 1-beta
 #' simResults$safeSim$powerAtN1Plan
@@ -443,13 +443,13 @@ simulate.safeDesign <- function(object, nsim=1, seed=NULL, deltaTrue=NULL, muGlo
 #' # Optional stopping allows us to do better than n1PlanFreq once in a while
 #' simResults$safeSim$probLeqN1PlanFreq
 #' graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-#' breaks=seq.int(designObj$nPlan[1]))
+#'                breaks=seq.int(designObj$nPlan[1]))
 #'
 #' # Under the null deltaTrue=0
 #' simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=0, parameter=designObj$parameter,
-#' nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nsim=400)
+#'                               nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nsim=250)
 #'
-#'# Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
+#' # Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
 #' simResults$safeSim$powerAtN1Plan
 #'
 #' # This is a bit higher due to optional stopping, but if the null is true,
@@ -572,7 +572,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
     n2Samples <- if (is.null(n2Plan)) NULL else ceiling(ratio*n1Samples)
 
     if (pb)
-      pbSafe <- utils::txtProgressBar(style=1, title="Safe optional stopping")
+      pbSafe <- utils::txtProgressBar(style=3, title="Safe optional stopping")
 
     for (iter in seq.int(nsim)) {
       subData1 <- dataGroup1[iter, ]
@@ -684,7 +684,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
     n2Samples <- if (is.null(n2PlanFreq)) NULL else n2Samples <- ceiling(ratio*n1Samples)
 
     if (pb)
-      pbFreq <- utils::txtProgressBar(style=1, title="Frequentist optional stopping")
+      pbFreq <- utils::txtProgressBar(style=3, title="Frequentist optional stopping")
 
     for (iter in seq.int(nsim)) {
       subData1 <- dataGroup1[iter, ]

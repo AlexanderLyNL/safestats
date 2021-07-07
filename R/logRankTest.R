@@ -58,7 +58,7 @@
 #'   group = factor(rep(0:1, c(7, 8)))
 #' )
 #'
-#' designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
+#' designObj <- designSafeLogrank(hrMin=1/2)
 #'
 #' safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
 #'                 designObj = designObj)
@@ -137,7 +137,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
          "A design object can be obtained by running designSafeLogrank().")
 
   if (!is.null(designObj)) {
-    if (names(designObj[["parameter"]]) != "log(thetaS)")
+    if (names(designObj[["parameter"]]) != "log(thetaS)" && names(designObj[["parameter"]]) != "thetaS")
       warning("The provided design is not constructed for the logrank test,",
               "please use designSafeLogrank() instead. The test results might be invalid.")
   }
@@ -229,7 +229,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
 
     if (is.null(designObj)) {
       designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
-                                     "alternative"=alternative, "h0"=h0)
+                                     "alternative"=alternative, "h0"=h0, "zApprox"=TRUE)
       designObj[["pilot"]] <- TRUE
     } else {
       warning("The pilot flag is ignored, since a designObj is given",
@@ -237,23 +237,27 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
     }
   }
 
-
   alpha <- designObj[["alpha"]]
   alternative <- designObj[["alternative"]]
   ratio <- designObj[["ratio"]]
   h0 <- designObj[["h0"]]
-  theta1 <- designObj[["esMin"]]
+
+  thetaS <- designObj[["esMin"]]
 
   # Note(Alexander): This is okay because it's always wrt h0=1
   #
-  if (theta1 > 1)
-    theta1 <- 1/theta1
+  if (thetaS > 1)
+    thetaS <- 1/thetaS
+
+  # TODO(Alexander):
+  #   -Automate exact=TRUE or exact=FALSE depending on parameterName?
+  #   - Warning if exact flag overrules
 
   # Compute stats ------
   #
   sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
                               "computeZ"=computeZ, "computeExactE" =exact,
-                              "theta0"=h0, "theta1"=theta1)
+                              "theta0"=h0, "thetaS"=thetaS)
   nEvents <- sumStats[["nEvents"]]
 
   # Compute e-value ------
@@ -391,14 +395,29 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 #' @param hrMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 #' detect.
 #' @param zApprox logical, default TRUE to use the asymptotic normality results.
-#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If the design is
-#' based on nPlan, then ratio equals \code{nPlan[2]/nPlan[1]}.
+#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 (Treatment) over condition 1 (Placebo),
+#' thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
+#' ignores m1 and m0.
+#' @param parameter numeric > 0 representing the test defining thetaS. Default is NULL, then GROW the choice is used,
+#' that is, parameter equals the data generating hazardRatio.
 #' @param alternative The null hypothesis of equality of the survival distribution of y in the groups defined by x is
 #' tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the
 #' hazard ratio, and compared to theta != h0. If alternative = "less", the null hypothesis is compared to
 #' theta <= h0. For h0=1 the alternative specifies that survival in population 1 is higher than in population 2.
 #' When alternative = "greater", the null hypothesis is compared to the alternative theta >= h0. For h0=1 the
 #' alternative specifies that survival in population 2 is higher than in population 1.
+#' @param m0 Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].
+#' @param m1 Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].
+#' @param parameter Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
+#' algorithm, typically, this equals hrMin, which corresponds to the GROW choice.
+#' @param nSim integer > 0, the number of simulations needed to compute power or the number of events for the exact
+#' safe logrank test
+#' @param groupSizePerTimeFunction A function without parameters and integer output. This function provides the number
+#' of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
+#' step.
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of the power and
+#' nEvents for the exact safe logrank test
+#' @param pb logical, if \code{TRUE}, then show progress bar.
 #'
 #' @return Returns a safeDesign object that includes:
 #'
@@ -420,22 +439,40 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 #' @export
 #'
 #' @examples
-#' designSafeLogrank(nEvents=89)
-#' designSafeLogrank(hrMin=0.4, beta=0.05)
-#' designSafeLogrank(hrMin=0.4)
+#' designSafeLogrank(hrMin=0.7)
+#' designSafeLogrank(hrMin=0.7, zApprox=TRUE)
+#' designSafeLogrank(hrMin=0.7, beta=0.3, nSim=10)
+#' designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
 designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                               alternative=c("two.sided", "greater", "less"),
-                              alpha=0.05, ratio=1, zApprox=TRUE, tol=1e-5, ...) {
+                              alpha=0.05, ratio=1, zApprox=FALSE, tol=1e-5,
+                              m0=50000L, m1=50000L, nSim=1e3L, nBoot=1e4L, ciValue=0.95,
+                              parameter=NULL, groupSizePerTimeFunction=returnOne,
+                              pb=TRUE, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
   result <- list()
 
   alternative <- match.arg(alternative)
 
+  if (hrMin < 1 && alternative=="greater") {
+    warning('Minimum hazard ratio < 1 incongruent with alternative "greater".',
+            "hrMin set to 1/hrMin > 1 in order to compare H+: hazardRatio > 1 against H0: hazardRatio =1")
+    hrMin <- 1/hrMin
+  }
+
+  if (hrMin > 1 && alternative=="less") {
+    warning('Minimum hazard ratio > 1 incongruent with alternative "less".',
+            "hrMin set to 1/hrMin < 1 in order to compare H-: hazardRatio < 1 against H0: hazardRatio =1")
+    hrMin <- 1/hrMin
+  }
+
+  thetaS <- if (is.null(parameter)) hrMin else parameter
+
   if (zApprox) {
     if (!is.null(hrMin)) {
       logHazardRatio <- if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
-      meanDiffMin <- abs(logHazardRatio)*sqrt(ratio)/(1+ratio)
+      meanDiffMin <- logHazardRatio*sqrt(ratio)/(1+ratio)
     } else {
       logHazardRatio <- NULL
       meanDiffMin <- NULL
@@ -444,13 +481,10 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     # Note(Alexander): I scaled meanDiffMin so I can get nPlan correct.
     # I'll scale back below
     #
-    # TODO(Alexander):
-      # - For the case with only nEvents,
-      # - How to do GROW? Or forget about it.
     safeZObj <- designSafeZ("meanDiffMin"=meanDiffMin , "beta"=beta,
                             "alpha"=alpha, "nPlan"=nEvents,
                             "alternative"=alternative,
-                            "sigma"=1, "testType"="oneSample")
+                            "sigma"=1, "testType"="oneSample", "parameter"=log(thetaS))
     nEvents <- safeZObj[["nPlan"]]
     safeZObj[["nPlan"]] <- NULL
     safeZObj[["nEvents"]] <- nEvents
@@ -463,30 +497,110 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
     names(safeZObj[["parameter"]]) <- "log(thetaS)"
 
+    if (!is.null(hrMin))
+      names(hrMin) <- "hazard ratio"
+
     safeZObj[["esMin"]] <- hrMin
-
-    if (!is.null(safeZObj[["esMin"]]))
-      names(safeZObj[["esMin"]]) <- "hazard ratio"
-
-    # if (!is.null(safeZObj[["esMin"]])) {
-    #   names(safeZObj[["esMin"]]) <- switch(alternative,
-    #                                        "two.sided"="log hazard difference at least abs(log(theta))",
-    #                                        "greater"="log hazard ratio at least",
-    #                                        "less"="log hazard ratio less than")
-    # }
 
     safeZObj[["testType"]] <- "logrank"
     safeZObj[["paired"]] <- NULL
     safeZObj[["call"]] <- sys.call()
+
+    if (!is.null(h0))
+      names(h0) <- "theta"
+
     safeZObj[["h0"]] <- h0
     result <- safeZObj
+    result[["ratio"]] <- ratio
+
+    return(result)
+  } else {
+    designScenario <- NULL
+
+    ratio <- m1/m0
+
+    bootObj <- NULL
+
+    if (!is.null(hrMin) && !is.null(beta) && is.null(nEvents)) {
+      # Scenario "1a"
+      designScenario <- "1a"
+
+      tempResult <- computeLogrankNEvents("hrMin"=hrMin, "beta"=beta, "m0"=m0, "m1"=m1, "alpha"=alpha,
+                                          "alternative"=alternative, "nSim"=nSim, "nBoot"=nBoot,
+                                          "groupSizePerTimeFunction"=groupSizePerTimeFunction,
+                                          "parameter"=parameter, "pb"=pb)
+      nEvents <- tempResult[["nEvents"]]
+      bootObj <- tempResult[["bootObj"]]
+    } else if (!is.null(hrMin) && is.null(beta) && is.null(nEvents)) {
+      # Scenario "1b"
+      designScenario <- "1b"
+    } else if (is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
+      # Scenario "1c"
+      # designScenario <- "1c"
+
+      # TODO(Alexander):
+      # - For the case with only nEvents,
+      # - How to do GROW? Or forget about it.
+      #
+      #       Do we have a PILOT version for this?
+
+      warning("Designs without minimal clinically relevant hazard ratios not yet implemented")
+      # return(designPilotSafeZ("nPlan"=nPlan, "alpha"=alpha, "alternative"=alternative,
+      #                         "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired))
+    } else if (!is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
+      # Scenario 2
+      designScenario <- "2"
+
+      tempResult <- computeLogrankBetaFrom("hrMin"=hrMin, "nEvents"=nEvents, "m0"=m0, "m1"=m1, "alpha"=alpha,
+                                           "alternative"=alternative, "nSim"=nSim, "nBoot"=nBoot,
+                                           "groupSizePerTimeFunction"=groupSizePerTimeFunction,
+                                           "parameter"=thetaS, "pb"=pb)
+
+      beta <- tempResult[["beta"]]
+      bootObj <- tempResult[["bootObj"]]
+    } else if (is.null(hrMin) && !is.null(beta) && !is.null(nEvents)) {
+      # Scenario 3
+      # designScenario <- "3"
+
+      warning("Designs without minimal clinically relevant hazard ratios not yet implemented")
+    }
+
+    if (is.null(designScenario)) {
+      stop("Can't design: Please provide this function with either: \n",
+           "(1.a) non-null hrMin, non-null beta and NULL nEvents, or \n",
+           "(1.b) non-null hrMin, NULL beta, and NULL nEvents, or \n",
+           # "(1.c) NULL hrMin, NULL beta, non-null nEvents, or \n",
+           "(2) non-null hrMin, NULL beta and non-null nEvents.")
+      # "(3) NULL hrMin, non-null beta, and non-null nEvents.")
+    }
+
+    if (is.na(hrMin))
+      hrMin <- NULL
+
+    if (!is.null(nEvents))
+      names(nEvents) <- "nEvents"
+
+    if (!is.null(hrMin))
+      names(hrMin) <- "hazard ratio"
+
+    if (!is.null(thetaS))
+      names(thetaS) <- "thetaS"
+
+    if (!is.null(h0))
+      names(h0) <- "theta"
+
+    result <- list("nPlan"=nEvents, "parameter"=thetaS, "esMin"=hrMin, "alpha"=alpha, "beta"=beta,
+                   "alternative"=alternative, "h0"=h0, "testType"="logrank", "ciValue"=ciValue,
+                   "ratio"=m1/m0, "pilot"=FALSE, "bootObj"=bootObj, "call"=sys.call(), "timeStamp"=Sys.time())
+
+    class(result) <- "safeDesign"
+
+    return(result)
   }
-
-  result[["ratio"]] <- ratio
-  names(result[["h0"]]) <- "theta"
-
-  return(result)
 }
+
+
+
 #' Helper function computes single component of the logrank statistic
 #'
 #' @param obs0 integer, number of observations in the control group
@@ -545,8 +659,8 @@ logrankSingleZ <- function(obs0, obs1, y0, y1, ...) {
 #' @param y0 integer, total number of participants in the control group.
 #' @param y1 integer, total number of participants in the treatment group.
 #' @param y1 integer, total number of participants in the treatment group.
-#' @param theta1 numeric > 0 represents the (GROW) alternative hypothesis obtained
-#' from \code{designSafeLogrank}.
+#' @param thetaS numeric > 0 represents the safe test defining (GROW) alternative
+#' hypothesis obtained from \code{designSafeLogrank}.
 #' @param theta0 numeric > 0 represents the null hypothesis. Default theta0=1.
 #' @param ... further arguments to be passed to or from methods.
 #'
@@ -570,7 +684,7 @@ logrankSingleZ <- function(obs0, obs1, y0, y1, ...) {
 #' for (i in seq_along(y0Vector)) {
 #'   tempResult <- logrankSingleEExact(obs0=obs0Vector[i], obs1=obs1Vector[i],
 #'                                     y0=y0Vector[i], y1=y1Vector[i],
-#'                                     theta1=0.7, theta0=1)
+#'                                     thetaS=0.7, theta0=1)
 #'   logEValueLess[i] <- tempResult[["logEValueLess"]]
 #'   logEValueGreater[i] <- tempResult[["logEValueGreater"]]
 #' }
@@ -582,11 +696,11 @@ logrankSingleZ <- function(obs0, obs1, y0, y1, ...) {
 #' eValue <- 1/2*eValueLess + 1/2*eValueGreater
 #' eValue # 0.9413714
 #'
-logrankSingleEExact <- function(obs0, obs1, y0, y1, theta1, theta0=1, ...) {
+logrankSingleEExact <- function(obs0, obs1, y0, y1, thetaS, theta0=1, ...) {
   logP0 <- log(BiasedUrn::dFNCHypergeo(x=obs1, m1=y1, m2=y0, n=obs0+obs1, odds=theta0))
-  logPLess <- log(BiasedUrn::dFNCHypergeo(x=obs1, m1=y1, m2=y0, n=obs0+obs1, odds=theta1))
+  logPLess <- log(BiasedUrn::dFNCHypergeo(x=obs1, m1=y1, m2=y0, n=obs0+obs1, odds=thetaS))
   logEValueLess <- logPLess-logP0
-  logPGreater <- log(BiasedUrn::dFNCHypergeo(x=obs1, m1=y1, m2=y0, n=obs0+obs1, odds=1/theta1))
+  logPGreater <- log(BiasedUrn::dFNCHypergeo(x=obs1, m1=y1, m2=y0, n=obs0+obs1, odds=1/thetaS))
   logEValueGreater <- logPGreater-logP0
 
   result <- list("logP0"=logP0, "logEValueLess"=logEValueLess, "logEValueGreater"=logEValueGreater)
@@ -674,7 +788,7 @@ computeStatsForLogrank <- function(survDataFrame, y0Index, y1Index, timeNow, tim
 #' Default is \code{FALSE}.
 #' @param theta0 numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
 #' Default is 1.
-#' @param theta1 numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
+#' @param thetaS numeric > 0 used only for the e-value, i.e., if computeExactE is \code{TRUE}.
 #' Default is NULL.
 #' @param ... further arguments to be passed to or from methods.
 #'
@@ -705,13 +819,13 @@ computeStatsForLogrank <- function(survDataFrame, y0Index, y1Index, timeNow, tim
 #' result$z
 #' sqrt(survival::survdiff(survObj~data$group)$chisq)
 computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
-                            theta0=1, theta1=NULL, ...) {
+                            theta0=1, thetaS=NULL, ...) {
   result <- list()
 
   # Check exact requirements -----
   #
   if (computeExactE)
-    if (is.null(theta1))
+    if (is.null(thetaS))
       stop("Can't compute exact E-value without a designed alternative.",
            "Please check designSafeLogrank.")
 
@@ -802,7 +916,7 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
       if (computeExactE) {
         tempResult <- logrankSingleEExact(obs0=tempStats[["obs0"]], obs1=tempStats[["obs1"]],
                                           y0=tempStats[["y0"]], y1=tempStats[["y1"]],
-                                          theta0=theta0, theta1=theta1)
+                                          theta0=theta0, thetaS=thetaS)
         logP0[i] <- tempResult[["logP0"]]
         logEValueLess[i] <- tempResult[["logEValueLess"]]
         logEValueGreater[i] <- tempResult[["logEValueGreater"]]
@@ -836,7 +950,7 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
       if (computeExactE) {
         tempResult <- logrankSingleEExact(obs0=tempStats[["obs0"]], obs1=tempStats[["obs1"]],
                                           y0=tempStats[["y0"]], y1=tempStats[["y1"]],
-                                          theta0=theta0, theta1=theta1)
+                                          theta0=theta0, thetaS=thetaS)
         logP0[i] <- tempResult[["logP0"]]
         logEValueLess[i] <- tempResult[["logEValueLess"]]
         logEValueGreater[i] <- tempResult[["logEValueGreater"]]
@@ -866,4 +980,265 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
   }
 
   return(result)
+}
+
+
+
+
+
+
+
+# Sampling functions for design ----
+
+#' Simulate stopping times for the exact safe logrank test
+#'
+#' @inheritParams designSafeLogrank
+#'
+#' @param hazardRatio numeric that defines the data generating hazard ratio with which data are sampled.
+#' @param nMax An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
+#' crossing crossing already. Default is Inf
+#' @return A vector containing nSim number of events resulting from simulation.
+#' @author Muriel Felipe Pérez-Ortiz
+#'
+#'
+#' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
+#' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, or running out of participants, which implies
+#' that in corresponding stopping time is Inf.
+#'
+#' @export
+#'
+#' @examples
+#' sampleLogrankStoppingTimes(0.7, nSim=10)
+sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+                                       m0=5e4L, m1=5e4L, nSim=1e3L, groupSizePerTimeFunction = returnOne,
+                                       parameter=NULL, nMax=Inf, pb=TRUE) {
+
+  stopifnot(is.null(parameter) || parameter > 0, alpha > 0, alpha <= 1)
+
+  alternative <- match.arg(alternative)
+
+  ## Object that will be returned. A sample of stopping times
+  stoppingTimes <- breakVector <- integer(nSim)
+
+  if (is.null(parameter))
+    thetaS <- if (hazardRatio > 1) 1/hazardRatio else hazardRatio
+  else
+    thetaS <- parameter
+
+  if (pb)
+    pbSafe <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
+
+  ## Cycle through simulations
+  #
+  for (sim in seq_along(stoppingTimes)) {
+    ## Reset number of individuals in each group
+    y0 <- m0
+    y1 <- m1
+
+    nEvents <- 0
+
+    logEValueGreater <- 0
+    logEValueLess <- 0
+
+    ## Make events happen in each simulation
+    for (group in 1:(y0 + y1)) { ## End point
+      groupSize <- min(groupSizePerTimeFunction(),
+                       y1 + y0) ## cannot sample more subjects than there are
+
+      obs1 <- rLogrank(n=1, y0=y0, y1=y1, obsTotal=groupSize,
+                       theta=hazardRatio)
+
+      obs0 <- groupSize - obs1
+
+      ## If we run out of subjects, we never stopped
+      if (y1 - obs1 <= 0 || y0 - obs0 <= 0) {
+        stoppingTimes[sim] <- Inf
+        break()
+      }
+
+      tempResults <- logrankSingleEExact(obs0, obs1, y0, y1, thetaS)
+
+      logEValueGreater <- logEValueGreater + tempResults[["logEValueGreater"]]
+      logEValueLess <- logEValueLess + tempResults[["logEValueLess"]]
+
+      y0 <- y0 - obs0
+      y1 <- y1 - obs1
+      nEvents <- nEvents + groupSize
+
+
+      evidenceNow <- switch(alternative,
+                            "less" = exp(logEValueLess),
+                            "greater" = exp(logEValueGreater),
+                            "two.sided" = 1/2*exp(logEValueGreater) +
+                              1/2*exp(logEValueLess))
+
+      # Note(Alexander): If exceeds 1/alpha threshold then reject normally
+      #
+      if (evidenceNow >= 1/alpha) {
+        stoppingTimes[sim] <- nEvents
+        break()
+      }
+
+      # Note(Alexander): If passed maximum number of events stop
+      #
+      if (nEvents >= nMax) {
+        stoppingTimes[sim] <- nEvents
+        breakVector[sim] <- 1
+        break()
+      }
+    }
+
+    if (pb)
+      utils::setTxtProgressBar(pbSafe, value=sim/nSim, title="Trials")
+  }
+
+  result <- list(stoppingTimes=stoppingTimes, breakVector=breakVector)
+  return(result)
+}
+
+
+
+
+
+
+#' Helper function: Computes the type II error based on the minimal clinically relevant hazard ratio and nEvents
+#'
+#' @inheritParams designSafeLogrank
+#' @inheritParams sampleLogrankStoppingTimes
+#'
+#' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#' @author Muriel Felipe Pérez-Ortiz
+#' @export
+#'
+#' @examples
+#' computeLogrankBetaFrom(hrMin=0.7, 300, nSim=10)
+computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
+                                   alternative = c("two.sided", "greater","less"),
+                                   nSim=1e3L, nBoot=1e4L, groupSizePerTimeFunction = returnOne,
+                                   parameter=NULL, pb=TRUE) {
+
+  alternative <- match.arg(alternative)
+
+  tempResult <- sampleLogrankStoppingTimes(hazardRatio=hrMin, alternative=alternative,alpha=alpha,
+                                           m0=m0, m1=m1, nSim=nSim, groupSizePerTimeFunction=groupSizePerTimeFunction,
+                                           nMax=nEvents+1, parameter=parameter)
+
+  times <- tempResult[["stoppingTimes"]]
+
+  bootObj <- boot::boot(times,
+                        function(x, idx) {
+                          1-mean(x[idx] <= nEvents)
+                        },  R = nBoot)
+
+  bootSd <- sd(bootObj[["t"]])
+  bootObj[["bootSd"]] <- bootSd
+  bootObj[["target"]] <- "beta"
+
+  result <- list("beta" = bootObj[["t0"]],
+                 "bootObj" = bootObj)
+
+  return(result)
+}
+
+
+#' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
+#' difference, alpha and beta
+#'
+#'
+#' @inheritParams designSafeLogrank
+#' @inheritParams sampleLogrankStoppingTimes
+#'
+#' @return a list which contains at least nEvents and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#' @author Muriel Felipe Pérez-Ortiz
+#'
+#' @export
+#'
+#' @examples
+#' computeLogrankNEvents(0.7, 0.2, nSim=10)
+computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
+                                  alternative = c("two.sided", "greater","less"),
+                                  nSim=1e3L, nBoot=1e3L, groupSizePerTimeFunction = returnOne,
+                                  nMax=Inf, parameter=NULL, pb=TRUE) {
+
+  alternative <- match.arg(alternative)
+
+  if (is.infinite(nMax)) {
+    if (hrMin >= 0.5 && hrMin <= 2) {
+      ratio <- m1/m0
+
+      logHazardRatio <- if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
+      meanDiffMin <- logHazardRatio*sqrt(ratio)/(1+ratio)
+
+      logThetaS <- if (!is.null(parameter)) log(parameter) else NULL
+
+      tempResult <- batchComputeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "beta"=beta,
+                                                  "alpha"=alpha, "alternative"=alternative,
+                                                  "testType"="oneSample",
+                                                  "ratio"=ratio, "parameter"=logThetaS)
+      nMax <- tempResult[["nPlan"]]
+    }
+  }
+
+  tempResult <- sampleLogrankStoppingTimes(hazardRatio=hrMin, alternative=alternative, alpha=alpha,
+                                           m0=m0, m1=m1, nSim=nSim, groupSizePerTimeFunction=groupSizePerTimeFunction,
+                                           nMax=nMax)
+
+  times <- tempResult[["stoppingTimes"]]
+
+  bootObj <- boot::boot(times,
+                        function(x, idx) {
+                          quantile(x[idx], prob=1-beta, names=FALSE)
+                        }, R = nBoot)
+
+  bootSd <- sd(bootObj[["t"]])
+  bootObj[["bootSd"]] <- bootSd
+  bootObj[["target"]] <- "nEvents"
+
+  result <- list("nEvents" = ceiling(bootObj[["t0"]]),
+                 "bootObj" = bootObj)
+
+  return(result)
+}
+
+# Auxilary functions ----
+
+#' Randomly samples from a "logrank" distribution
+#'
+#' Draws a number of occurences in group 1 (treatment) out of
+#' obsTotal number of occurences.
+#'
+#' @param n integer, number of observations to be sampled.
+#' @param y0 Size of the risk set of group 0 (Placebo).
+#' @param y1 Size of the risk set of group 1 (Treatment).
+#' @param obsTotal Total number of observations.
+#' @param theta Odds of group 1 over group 0 (treatment over placebo).
+#'
+#' @return integer representing the number of occurences in group 1 out of
+#' obsTotal number of occurences.
+#'
+#' @export
+#'
+#' @author Muriel Felipe Pérez-Ortiz
+#'
+#' @examples
+#' rLogrank(y0=360, y1=89, obsTotal=12, theta=3.14)
+#'
+rLogrank <- function(n=1, y0, y1, obsTotal, theta) {
+  BiasedUrn::rFNCHypergeo(nran = n, # number of rv's to generate
+                          m1   = y1,# number of balls in 1st group (treatment)
+                          m2   = y0,# number of balls in 2nd group (placebo)
+                          n    = obsTotal, # number balls sampled
+                          odds = theta) # odds of 1st over 2nd group (treatment over placebo)
+}
+
+
+#' Auxiliary function for sampling of the logrank simulations to return the integer 1 event per time
+#'
+#' @return 1
+#' @export
+#'
+#' @examples
+#' returnOne()
+returnOne <- function() {
+  1L
 }

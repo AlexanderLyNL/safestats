@@ -22,7 +22,8 @@ getNameTestType <- function(testType, parameterName) {
   testName <- switch(parameterName,
                      "phiS"="Z-Test",
                      "deltaS"="T-Test",
-                     "log(thetaS)"="Logrank Test")
+                     "log(thetaS)"="Gaussian Logrank Test",
+                     "thetaS"="Exact Logrank Test")
 
   return(paste(nameChar, testName))
 }
@@ -203,7 +204,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
 #' @examples
 #' designSafeZ(meanDiffMin=0.5)
 #' designSafeT(deltaMin=0.5)
-#' designSafeLogrank(nEvents=89)
+#' designSafeLogrank(hrMin=0.7)
 print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
   testType <- designObj[["testType"]]
@@ -253,8 +254,17 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
     cat(paste("Timestamp:", format(someTime, usetz = TRUE)))
   }
 
+  bootObj <- designObj[["bootObj"]]
+
+  if (!is.null(bootObj))
+    note <- paste0(bootObj[["target"]], " is estimated with bootstrap standard error ",
+                   format(bootObj[["bootSd"]], digits = digits), ". \n",
+                   "Thus, with a relative approximate error of ",
+                   format(bootObj[["bootSd"]]/bootObj[["t0"]]*100, digits=digits),
+                   "%. \n", "For a more accurate estimate nsim can be increased.")
+
   if (!is.null(note))
-    cat("\n", "NOTE: ", note, "\n\n", sep = "")
+    cat("\n\n", "Note: ", note, "\n\n", sep = "")
   else
     cat("\n")
 }

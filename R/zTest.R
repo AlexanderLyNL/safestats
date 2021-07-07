@@ -519,6 +519,20 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
+  if (meanDiffMin < 0 && alternative=="greater") {
+    warning('Minimum mean difference < 0 incongruent with alternative "greater".',
+            "meanDiffMin set to -meanDiffMin > 0 in order to compare H+: meanDiff > 0 ",
+            "against H0 : meanDiff = 0")
+    meanDiffMin <- -meanDiffMin
+  }
+
+  if (meanDiffMin > 0 && alternative=="less") {
+    warning('Minimum mean difference > 0 incongruent with alternative "less".',
+            "meanDiffMin set to -meanDiffMin < 0 in order to compare H-: meanDiff < 0 ",
+            "against H0 : meanDiff = 0")
+    meanDiffMin <- -meanDiffMin
+  }
+
   paired <- if (testType=="paired") TRUE else FALSE
 
   designScenario <- NULL
@@ -579,11 +593,11 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   if (is.null(designScenario)) {
     stop("Can't design: Please provide this function with either: \n",
-         "(1) non-null meanDiffMen, non-null beta and NULL nPlan, or \n",
-         "(2) non-null meanDiffMen, NULL beta and non-null meanDiffMen, or \n",
-         "(3) NULL meanDiffMen, non-null beta, and non-null nPlan, or \n",
-         "(4) non-null meanDiffMen, NULL beta, and NULL nPlan, or \n",
-         "(5) NULL meanDiffMen, NULL meanDiffMen, non-null nPlan.")
+         "(1.a) non-null meanDiffMin, non-null beta and NULL nPlan, or \n",
+         "(1.b) non-null meanDiffMin, NULL beta, and NULL nPlan, or \n",
+         "(1.c) NULL meanDiffMin, NULL beta, non-null nPlan, or \n",
+         "(2) non-null meanDiffMin, NULL beta and non-null nPlan, or \n",
+         "(3) NULL meanDiffMin, non-null beta, and non-null nPlan.")
   }
 
   if (is.na(meanDiffMin))
@@ -619,6 +633,127 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   return(result)
 }
 
+#' Helper function: Computes the safe confidence sequence for a z-test
+#'
+#' @inheritParams safeZTest
+#' @inheritParams designSafeZ
+#' @param nEff numeric > 0, the effective sample size
+#' @param meanStat numeric, the mean statistic, this could be the differences of means as well
+#' @param phiS numeric > 0, the safe test defining parameter
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
+#' @param a numeric, the centre of the normal prior on population mean (of the normal data). Default
+#' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis
+#' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
+#' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2
+#'
+#' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
+#' @export
+#'
+#' @examples
+#' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
+computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.95,
+                                       alternative="two.sided", a=NULL, g=NULL) {
+  if (!is.null(a) && !is.null(g)) {
+    # Note(Alexander): Here normal distribution not centred at null
+    if (alternative != "two.sided")
+      stop("Not implemented")
+
+    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanStat-a)^2/(1+nEff*g))
+    lowerCS <- meanStat - shift
+    upperCS <- meanStat + shift
+  } else {
+    # Note(Alexander): Here normal distribution centred at the null
+    # Here use GROW
+    if (is.null(g)) {
+      meanDiffMin <- phiS
+      g <- meanDiffMin^2/sigma^2
+    }
+
+    if (alternative=="two.sided") {
+      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+      lowerCS <- meanStat - shift
+      upperCS <- meanStat + shift
+    } else {
+      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+
+      if (alternative=="greater") {
+        lowerCS <- meanStat + shift
+        upperCS <- Inf
+      } else {
+        lowerCS <- -Inf
+        upperCS <- meanStat - shift
+      }
+    }
+  }
+
+  ### OLD confidence sequence based on point priors.
+  #
+  # if (alternative=="two.sided") {
+  #   shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
+  #   lowerCS <- meanStat - shift
+  #   upperCS <- meanStat + shift
+  # } else {
+  #   shift <- sigma^2/nEff*log(alpha)*1/phiS - phiS/2
+  #
+  #   if (alternative=="greater") {
+  #     lowerCS <- meanStat + shift
+  #     upperCS <- Inf
+  #   } else {
+  #     lowerCS <- -Inf
+  #     upperCS <- meanStat - shift
+  #   }
+  # }
+  return(unname(c(lowerCS, upperCS)))
+}
+# Helpers ------
+
+
+#' Help function to compute the effecitve sample size based on a length 2 vector of samples
+#'
+#' @inheritParams designSafeZ
+#' @param n vector of length at most 2 representing the sample sizes of the first and second group
+#' @param silent logical, if true, then turn off warnings
+#'
+#' @return a numeric that represents the effective sample size.
+#'
+#' @examples
+#' safestats:::computeNEff(c(3, 4), testType="twoSample")
+computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silent=TRUE) {
+  testType <- match.arg(testType)
+
+  stopifnot(all(n > 0))
+
+  if (testType=="oneSample") {
+    if (length(n) > 1)
+      if (!silent)
+        warning("One sample test wanted, but n is longer. Only first element used")
+
+    nEff <- n[1]
+  } else if (testType=="paired") {
+    nEff <- n[1]
+
+    if (!silent) {
+      if (length(n)==1)
+        warning("Paired sample design wanted, but n is of length 1. Copied n")
+
+      if (length(n) > 1) {
+        n2 <- n[2]
+        if (nEff != n2)
+          warning("Paired sample design wanted, but n[1] != n[2]. Copied n[2] ignored and n[1] copied")
+      }
+    }
+  } else if (testType=="twoSample") {
+    if (length(n) == 1)
+      stop("Two sample design specified, but only one sample size provided")
+
+    n1 <- n[1]
+    n2 <- n[2]
+    nEff <- (1/n1+1/n2)^(-1)
+  }
+  return(nEff)
+}
+
+# Design helpers ------
 
 #' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
 #' difference, alpha and beta
@@ -853,52 +988,6 @@ computeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1,
 }
 
 
-#' Help function to compute the effecitve sample size based on a length 2 vector of samples
-#'
-#' @inheritParams designSafeZ
-#' @param n vector of length at most 2 representing the sample sizes of the first and second group
-#' @param silent logical, if true, then turn off warnings
-#'
-#' @return a numeric that represents the effective sample size.
-#'
-#' @examples
-#' safestats:::computeNEff(c(3, 4), testType="twoSample")
-computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silent=TRUE) {
-  testType <- match.arg(testType)
-
-  stopifnot(all(n > 0))
-
-  if (testType=="oneSample") {
-    if (length(n) > 1)
-      if (!silent)
-        warning("One sample test wanted, but n is longer. Only first element used")
-
-    nEff <- n[1]
-  } else if (testType=="paired") {
-    nEff <- n[1]
-
-    if (!silent) {
-      if (length(n)==1)
-        warning("Paired sample design wanted, but n is of length 1. Copied n")
-
-      if (length(n) > 1) {
-        n2 <- n[2]
-        if (nEff != n2)
-          warning("Paired sample design wanted, but n[1] != n[2]. Copied n[2] ignored and n[1] copied")
-      }
-    }
-  } else if (testType=="twoSample") {
-    if (length(n) == 1)
-      stop("Two sample design specified, but only one sample size provided")
-
-    n1 <- n[1]
-    n2 <- n[2]
-    nEff <- (1/n1+1/n2)^(-1)
-  }
-  return(nEff)
-}
-
-
 
 
 #' Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
@@ -977,7 +1066,7 @@ computeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=
 #' @return numeric that represents the type II error
 #'
 #' @examples
-  #' safestats:::computeZBetaFrom(meanDiffMin=0.9, nPlan=12)
+#' safestats:::computeZBetaFrom(meanDiffMin=0.9, nPlan=12)
 computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
                              alternative=c("two.sided", "greater", "less"),
                              testType=c("oneSample", "paired", "twoSample"),
@@ -1006,76 +1095,342 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigm
   return(result)
 }
 
-#' Helper function: Computes the safe confidence sequence for a z-test
+# Batch versions ----------
+
+
+#' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
+#' difference, alpha and beta
 #'
-#' @inheritParams safeZTest
-#' @inheritParams designSafeZ
-#' @param nEff numeric > 0, the effective sample size
-#' @param meanStat numeric, the mean statistic, this could be the differences of means as well
-#' @param phiS numeric > 0, the safe test defining parameter
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
-#' @param a numeric, the centre of the normal prior on population mean (of the normal data). Default
-#' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis
-#' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
-#' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2
+#' @inheritParams  designSafeZ
+#' @param designScenario a character string specifying the scenario for which needs designing either
+#' "1a" or "1b"
 #'
-#' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
-#' @export
+#' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
 #'
 #' @examples
-#' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
-computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.95,
-                                       alternative="two.sided", a=NULL, g=NULL) {
-  if (!is.null(a) && !is.null(g)) {
-    # Note(Alexander): Here normal distribution not centred at null
-    if (alternative != "two.sided")
-      stop("Not implemented")
+#' safestats:::batchComputeZSafeTestAndNFrom(0.4)
+#' safestats:::batchComputeZSafeTestAndNFrom(0.4, grow=FALSE)
+batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+                                          alternative=c("two.sided", "greater", "less"),
+                                          testType=c("oneSample", "paired", "twoSample"),
+                                          tol=1e-5, highN=8e9, ratio=1, parameter=NULL,
+                                          designScenario="1a", grow=TRUE) {
+  alternative <- match.arg(alternative)
+  testType <- match.arg(testType)
 
-    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanStat-a)^2/(1+nEff*g))
-    lowerCS <- meanStat - shift
-    upperCS <- meanStat + shift
-  } else {
-    # Note(Alexander): Here normal distribution centred at the null
-    # Here use GROW
-    if (is.null(g)) {
-      meanDiffMin <- phiS
-      g <- meanDiffMin^2/sigma^2
-    }
+  result <- list(nPlan=NULL, phiS=NULL)
+  meanDiffMin <- abs(meanDiffMin)
 
-    if (alternative=="two.sided") {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
-      lowerCS <- meanStat - shift
-      upperCS <- meanStat + shift
-    } else {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+  n1Plan <- NULL
+  n2Plan <- NULL
 
-      if (alternative=="greater") {
-        lowerCS <- meanStat + shift
-        upperCS <- Inf
+  nEffToN1Ratio <- if (testType=="twoSample") (1+ratio)/ratio else 1
+
+  if (designScenario=="1a") {
+    if (grow) {
+      phiS <- abs(meanDiffMin)
+
+      if (alternative == "two.sided") {
+        criterionFunction <- function(n) {
+          lowerTail <- sigma^4/(n*kappa^2*meanDiffMin^2)*acosh(exp((n*meanDiffMin^2)/(2*sigma^2))/alpha)^2
+          stats::pchisq(q=lowerTail, df=1, ncp=n*meanDiffMin^2/kappa^2)-beta
+        }
+
+        highN <- 2*sigma^2/meanDiffMin^2*log(1e100)
+        tempResult <- stats::uniroot(criterionFunction, interval=c(1, highN))
+        nEff <- tempResult[["root"]]
       } else {
-        lowerCS <- -Inf
-        upperCS <- meanStat - shift
+        qB <- qnorm(beta)
+
+        nEff <- exp(2*(log(kappa)-log(meanDiffMin))) *
+          (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))+2*kappa^2/sigma^2*log(1/alpha))
       }
+
+      if (testType == "twoSample") {
+        n1Plan <- ceiling(nEff * nEffToN1Ratio)
+        n2Plan <- ceiling(nEff * nEffToN1Ratio * ratio)
+      } else {
+        n1Plan <- ceiling(nEff)
+        n2Plan <- if (testType == "paired") n1Plan else NULL
+      }
+    } else {
+      # Note(Alexander): Compute one-sided nExact. This provides us with a lower bound on
+      # the two-sided test.
+      #
+      nEffExact <- tryOrFailWithNA(((sigma*sqrt(2*log(1/alpha))-kappa*qnorm(beta))/meanDiffMin)^2)
+
+      if (is.na(nEffExact))
+        stop("Something went wrong, couldn't design based on the given input.")
+
+      if (nEffExact > highN)
+        stop("More samples needed than highN, which is ", highN)
+
+      if (alternative %in% c("greater", "less")) {
+        # Note(Alexander): Here I use nEff exact, not ceiling(nEff), which should be an integer if testType != "twoSample"
+        # when testType == "twoSample" I do take nEff <- (1/n1Plan + 1/n2Plan), where n1Plan and n2Plan are integers
+        # This means that discriminant D is very close to 0. I tried using the exact nEff, but this performed less well
+        # for the actual sample sizes.
+        #
+        #
+        if (testType == "twoSample") {
+          n1Plan <- ceiling(nEffExact*nEffToN1Ratio)
+          n2Plan <- ceiling(nEffExact*nEffToN1Ratio*ratio)
+          nEff <- (1/n1Plan+1/n2Plan)^(-1)
+        } else {
+          n1Plan <- ceiling(nEffExact)
+
+          if (testType == "paired")
+            n2Plan <- n1Plan
+
+          nEff <- ceiling(nEffExact)
+        }
+
+        qBeta <- kappa/sigma*qnorm(beta) + sqrt(nEff)*meanDiffMin/sigma
+        discriminantD <- max(qBeta^2-2*log(1/alpha), 0)
+
+        phiS <- sigma/sqrt(nEff)*(qBeta + sqrt(discriminantD))
+      } else {
+        # Two.sided
+
+        nEffExactUpper <- tryOrFailWithNA(
+          ((sigma*sqrt(2*log(2/alpha))-kappa*qnorm(beta))/meanDiffMin)^2
+        )
+
+        # Note(Alexander): Translate to lower and upper bound in terms of n1
+        #
+        lowN <- floor(nEffExact*nEffToN1Ratio)
+        highN <- ceiling(nEffExactUpper*nEffToN1Ratio)
+
+        # This shouldn't occur
+        if (is.na(highN))
+          highN <- 2*lowN
+
+        result[["lowN"]] <- lowN
+        result[["highN"]] <- highN
+
+        # Note(Alexander): This function is used to
+        #   1. Find n and creates is looped downwards, hence the  reflection ! in result
+        #   2. Given n find the parameter phiS
+        #
+        criterionFunctionExact <- function(n, parameter=NULL) {
+          if (is.null(parameter))
+            parameter <- sqrt(2*sigma^2/n*log(2/alpha))
+
+          zArg <- sigma^4/(kappa^2*n*parameter^2)*(acosh(exp(n*parameter^2/(2*sigma^2))/alpha))^2
+
+          result <- (stats::pchisq(zArg, df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta)
+
+          if (is.null(parameter))
+            result <- !result
+
+          return(result)
+        }
+
+        candidateN1 <- highN
+        candidateNEff <- candidateN1/nEffToN1Ratio
+
+        continueWhile <- TRUE
+
+        # Note(Alexander): Loop backwards to find a smaller n1Plan
+        #
+        while (continueWhile && candidateN1 > lowN) {
+          continueWhile <- criterionFunctionExact(n=candidateNEff, parameter=NULL)
+
+          if (isTRUE(continueWhile)) {
+            candidateN1 <- candidateN1 - 1
+            candidateNEff <- candidateN1/nEffToN1Ratio
+          } else {
+            candidateN1 <- candidateN1 + 1
+            break()
+          }
+        }
+
+        nEff <- candidateN1/nEffToN1Ratio
+
+        if (testType=="twoSample") {
+          n1Plan <- ceiling(candidateN1)
+          n2Plan <- ceiling(n1Plan*ratio)
+          nEff <- (1/n1Plan+1/n2Plan)^(-1)
+          result[["nEffPlan"]] <- nEff
+        } else {
+          n1Plan <- ceiling(nEff)
+
+          if (testType=="pairedSample")
+            n2Plan <- n1Plan
+
+        }
+
+        # Candidate parameters ---
+        phiUmp <- sqrt(2/(sigma^2*nEff)*log(2/alpha))
+
+        chiSqInverseBeta <- stats::qchisq(beta, df=1, ncp=nEff*meanDiffMin^2/kappa^2)
+        discriminantD <- max(chiSqInverseBeta-sigma^2/kappa^2*2*log(2/alpha), 0)
+
+        phiSApprox <-kappa/sqrt(nEff)*(sqrt(chiSqInverseBeta)+sqrt(discriminantD))
+
+        # Random lower bound for phi
+        # TODO(Alexander): Get a better bounds perhaps
+        #
+        lowPhi <- min(phiUmp, phiSApprox, meanDiffMin/2)
+        highPhi <- if (beta < 1/2) meanDiffMin else 2*meanDiffMin
+
+        candidatePhis <- seq(lowPhi, highPhi, "by"=tol)
+
+        phiIndex <- purrr::detect_index(candidatePhis, criterionFunctionExact, "n"=nEff)
+
+        phiS <- if (phiIndex==0) phiSApprox else candidatePhis[phiIndex]
+
+        result[["lowParam"]] <- lowPhi
+        result[["highParam"]] <- highPhi
+      } # end two.sided
+    }
+  } else if (designScenario=="1b") {
+    sideConstant <- if (alternative %in% c("greater", "less")) 1 else 2
+
+    phiS <- if (!is.null(parameter)) parameter else meanDiffMin
+
+    nEffExact <- 2*sigma^2*log(sideConstant/alpha)/phiS^2
+
+    if (testType=="twoSample") {
+      n1Plan <- ceiling(nEffExact*(1+ratio)/ratio)
+      n2Plan <- ceiling(nEffExact*(1+ratio))
+      nEff <- (1/n1Plan + 1/n2Plan)^(-1)
+    } else {
+      nEff <- nEffExact
+      n1Plan <- ceiling(nEff)
+
+      if (testType=="paired")
+        n2Plan <- n1Plan
+
+    }
+    #
+    if (alternative=="two.sided") {
+      lowerTail <- sigma^4/(nEff*kappa^2*phiS^2)*(acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha))^2
+      result[["beta"]] <- stats::pchisq(q=lowerTail, df=1, ncp=nEff*meanDiffMin^2/kappa^2)
+    } else {
+      lowerTail <- sqrt(nEff)*(phiS-2*meanDiffMin)/(2*kappa) -
+        sigma^2*log(alpha)/(kappa*sqrt(nEff))*1/phiS
+      result[["beta"]] <- pnorm(lowerTail)
     }
   }
 
-  ### OLD confidence sequence based on point priors.
-  #
-  # if (alternative=="two.sided") {
-  #   shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
-  #   lowerCS <- meanStat - shift
-  #   upperCS <- meanStat + shift
-  # } else {
-  #   shift <- sigma^2/nEff*log(alpha)*1/phiS - phiS/2
-  #
-  #   if (alternative=="greater") {
-  #     lowerCS <- meanStat + shift
-  #     upperCS <- Inf
-  #   } else {
-  #     lowerCS <- -Inf
-  #     upperCS <- meanStat - shift
-  #   }
-  # }
-  return(unname(c(lowerCS, upperCS)))
+  if (alternative=="less")
+    phiS <- - phiS
+
+  if (is.null(n2Plan)) {
+    result[["nPlan"]] <- n1Plan
+    names(result[["nPlan"]]) <- "n1Plan"
+  } else {
+    result[["nPlan"]] <- c(n1Plan, n2Plan)
+    names(result[["nPlan"]]) <- c("n1Plan", "n2Plan")
+  }
+
+  result[["phiS"]] <- phiS
+
+  return(result)
 }
 
+#' Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.
+#'
+#' @inheritParams designSafeZ
+#'
+#' @return numeric that represents the type II error
+#'
+#' @examples
+#' safestats:::batchComputeZBetaFrom(meanDiffMin=0.9, nPlan=12)
+batchComputeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
+                                  alternative=c("two.sided", "greater", "less"),
+                                  testType=c("oneSample", "paired", "twoSample"),
+                                  parameter=NULL) {
+
+  alternative <- match.arg(alternative)
+  testType <- match.arg(testType)
+
+  nEff <- computeNEff("n"=nPlan, "testType" = testType)
+
+  if (is.null(parameter))
+    parameter <- meanDiffMin
+
+  if (alternative=="two.sided") {
+    lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(parameter)) *
+      (acosh(exp(nEff*parameter^2/(2*sigma^2))/alpha))^2
+
+    result <- stats::pchisq(lowerTail, df=1, ncp=nEff*meanDiffMin^2/kappa^2, lower.tail = TRUE)
+  } else {
+    lowerTail <- sqrt(nEff)*(parameter-2*meanDiffMin)/(2*kappa) -
+      sigma^2*log(alpha)/(kappa*sqrt(nEff))*1/parameter
+
+    result <- stats::pnorm(lowerTail, lower.tail = TRUE)
+  }
+
+  return(result)
+}
+
+#' Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
+#' sample size
+#'
+#' @inheritParams designSafeZ
+#' @param maxIter maximum number of iterations in the optimisation process for two-sided designs
+#'
+#' @return numeric > 0 that represents the minimal detectable mean difference
+#'
+#' @examples
+#' safestats:::batchComputeZMeanDiffMinFrom(nPlan=78)
+batchComputeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+                                         alternative=c("two.sided", "greater", "less"),
+                                         testType=c("oneSample", "paired", "twoSample"),
+                                         parameter=NULL, maxIter=10) {
+  alternative <- match.arg(alternative)
+  testType <- match.arg(testType)
+
+  nEff <- computeNEff("n"=nPlan, "testType" = testType)
+
+  if (alternative=="two.sided") {
+    if (is.null(parameter)) {
+      criterionFunction <- function(x) {
+        lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(x)) *
+          (acosh(exp(nEff*x^2/(2*sigma^2))/alpha))^2
+
+        stats::pchisq(lowerTail, 1, nEff*x^2/kappa^2)-beta
+      }
+    } else {
+      criterionFunction <- function(x) {
+        lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(parameter)) *
+          (acosh(exp(nEff*parameter^2/(2*sigma^2))/alpha))^2
+
+        stats::pchisq(lowerTail, 1, nEff*x^2/kappa^2)-beta
+      }
+    }
+
+    mIter <- 1
+    tempResult <- 1
+    class(tempResult) <- "try-error"
+
+    while (isTryError(tempResult) && mIter <= maxIter) {
+      tempResult <- try(uniroot(criterionFunction, c(0, 4*4^(-mIter+1))), silent=TRUE)
+
+      if (isTryError(tempResult))
+        mIter <- mIter + 1
+      else
+        break()
+    }
+
+    if (mIter > maxIter || isTryError(tempResult))
+      stop("uniroot couldn't find meanDiffMin. Perhaps maxIter not big enough, ",
+           "but most likely pchisq underflow")
+    else
+      result <- tempResult[["root"]]
+  } else {
+    if (is.null(parameter)) {
+      D <- kappa^2*qnorm(beta)^2 - 2 * sigma^2*log(alpha)
+      result <- 1/sqrt(nEff)*(-kappa*qnorm(beta) + sqrt(D))
+    } else {
+      result <- parameter/2-sigma^2*log(alpha)/(nEff*parameter)-kappa/(sqrt(nEff))*qnorm(beta)
+    }
+  }
+
+  if (alternative=="less")
+    result <- -result
+
+  return(result)
+}
