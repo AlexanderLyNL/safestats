@@ -6,7 +6,7 @@
 \usage{
 generateNormalData(
   nPlan,
-  nsim = 1000L,
+  nSim = 1000L,
   deltaTrue = NULL,
   muGlobal = 0,
   sigmaTrue = 1,
@@ -18,7 +18,7 @@ generateNormalData(
 \arguments{
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
-\item{nsim}{the number of replications, that is, experiments with max samples nPlan.}
+\item{nSim}{the number of replications, that is, experiments with max samples nPlan.}
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
@@ -41,8 +41,8 @@ Default \code{NULL}}
 Returns a list of two data matrices contains at least the following components:
 
 \describe{
-  \item{dataGroup1}{a matrix of data dimension nsim by \code{nPlan[1]}.}
-  \item{dataGroup2}{a matrix of data dimension nsim by \code{nPlan[2]}.}
+  \item{dataGroup1}{a matrix of data dimension nSim by \code{nPlan[1]}.}
+  \item{dataGroup2}{a matrix of data dimension nSim by \code{nPlan[2]}.}
 }
 }
 \description{

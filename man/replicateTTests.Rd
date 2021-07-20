@@ -12,7 +12,7 @@ replicateTTests(
   paired = FALSE,
   alternative = c("two.sided", "greater", "less"),
   lowN = 3,
-  nsim = 1000L,
+  nSim = 1000L,
   alpha = 0.05,
   beta = 0.2,
   safeOptioStop = TRUE,
@@ -43,7 +43,7 @@ for the test.This parameter treated is treated as a nuisance.}
 
 \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
 
-\item{nsim}{the number of replications, that is, experiments with max samples nPlan.}
+\item{nSim}{the number of replications, that is, experiments with max samples nPlan.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
@@ -82,7 +82,7 @@ least the following components:
   \item{paired}{if \code{TRUE} then paired t-test.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
-  \item{nsim}{the number of replications of the experiment.}
+  \item{nSim}{the number of replications of the experiment.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
@@ -108,7 +108,7 @@ freqObj <- designFreqT(1, alpha=alpha, beta=beta)
 
 # Simulate under the alternative with deltaTrue=deltaMin
 simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1, parameter=designObj$parameter,
-                              nPlanFreq=freqObj$nPlan, beta=beta, nsim=250)
+                              nPlanFreq=freqObj$nPlan, beta=beta, nSim=250)
 
 # Should be about 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -123,7 +123,7 @@ graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab
 
 # Simulate under the alternative with deltaTrue > deltaMin
 simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1.5, parameter=designObj$parameter,
-                              nPlanFreq=freqObj$nPlan, beta=beta, nsim=250)
+                              nPlanFreq=freqObj$nPlan, beta=beta, nSim=250)
 
 # Should be larger than 1-beta
 simResults$safeSim$powerAtN1Plan
@@ -138,7 +138,7 @@ graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab
 
 # Under the null deltaTrue=0
 simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=0, parameter=designObj$parameter,
-                              nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nsim=250)
+                              nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nSim=250)
 
 # Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
 simResults$safeSim$powerAtN1Plan

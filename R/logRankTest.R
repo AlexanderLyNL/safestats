@@ -127,6 +127,36 @@
 #'   if (!localTest)
 #'     stop("Computation of the left-truncated logrank z-score is wrong")
 #' }
+#'
+#' ###### Example switching between safe exact and safe Gaussian logrank test
+#'
+#' designObj <- designSafeLogrank(0.8, alternative="less")
+#'
+#' dat <- safestats::generateSurvData(300, 300, 2, 0.0065, 0.0065*0.8, seed=1)
+#' survTime <- survival::Surv(dat$time, dat$status)
+#'
+#' resultE <- safeLogrankTest(survTime ~ dat$group,
+#'                            designObj = designObj)
+#'
+#' resultG <- safeLogrankTest(survTime ~ dat$group,
+#'                            designObj = designObj, exact=FALSE)
+#'
+#' resultE
+#' resultG
+#'
+#'
+#' ###### Example switching between safe exact and safe Gaussian logrank test other side
+#'
+#' designObj <- designSafeLogrank(0.8, alternative="greater")
+#'
+#' resultE <- safeLogrankTest(survTime ~ dat$group,
+#'                            designObj = designObj)
+#'
+#' resultG <- safeLogrankTest(survTime ~ dat$group,
+#'                            designObj = designObj, exact=FALSE)
+#'
+#' if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
+#'   stop("one-sided wrong")
 safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, survTime=NULL,
                             group=NULL, pilot=FALSE, exact=TRUE, computeZ=TRUE, ...) {
 
@@ -229,7 +259,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
 
     if (is.null(designObj)) {
       designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
-                                     "alternative"=alternative, "h0"=h0, "zApprox"=TRUE)
+                                     "alternative"=alternative, "h0"=h0, "exact"=FALSE)
       designObj[["pilot"]] <- TRUE
     } else {
       warning("The pilot flag is ignored, since a designObj is given",
@@ -242,21 +272,21 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
   ratio <- designObj[["ratio"]]
   h0 <- designObj[["h0"]]
 
-  thetaS <- designObj[["esMin"]]
+  thetaS <- designObj[["parameter"]]
 
-  # Note(Alexander): This is okay because it's always wrt h0=1
+  # Note(Alexander): Sign is needed for the safe Gaussian logrank test
+  #
+  phiS <- log(thetaS)
+
+  # Note(Alexander): Remove sign for safe exact logrank test
   #
   if (thetaS > 1)
     thetaS <- 1/thetaS
 
-  # TODO(Alexander):
-  #   -Automate exact=TRUE or exact=FALSE depending on parameterName?
-  #   - Warning if exact flag overrules
-
   # Compute stats ------
   #
   sumStats <- computeLogrankZ("survObj"=survTime, "group"=group,
-                              "computeZ"=computeZ, "computeExactE" =exact,
+                              "computeZ"=computeZ, "computeExactE"=exact,
                               "theta0"=h0, "thetaS"=thetaS)
   nEvents <- sumStats[["nEvents"]]
 
@@ -277,7 +307,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
     names(eValue) <- "e"
 
     result <- list("n"=nEvents, "estimate"=NULL, "eValue"=eValue,
-                   "confSeq"=NULL, "estimate"=NULL, "testType"="logrank",
+                   "confSeq"=NULL, "estimate"=NULL, "testType"="eLogrank",
                    "dataName"=dataName, "exact"=TRUE)
     class(result) <- "safeTest"
     result[["designObj"]] <- designObj
@@ -288,7 +318,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
     meanStat <- zStat/sqrt(nEff)
 
     result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "eValue"=NULL,
-                   "confSeq"=NULL, "testType"="logrank", "dataName"=dataName)
+                   "confSeq"=NULL, "testType"="gLogrank", "dataName"=dataName)
     class(result) <- "safeTest"
 
     names(result[["estimate"]]) <-"hazard ratio"
@@ -299,11 +329,11 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
     # but to avoid rounding erros zStat is used instead
     zStat <- zStat - sqrt(nEff)*(log(h0))
 
-    eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
+    eValue <- safeZTestStat("z"=zStat, "parameter"=phiS, "n1"=nEff,
                             "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
 
     tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                              "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
+                                              "phiS"=abs(phiS), "sigma"=1,
                                               "ciValue"=ciValue, "alternative"="two.sided")
 
     result[["confSeq"]] <- exp(tempConfSeq)
@@ -394,7 +424,8 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 #' @param h0 numeric > 0, represents the null hypothesis, default h0=1.
 #' @param hrMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 #' detect.
-#' @param zApprox logical, default TRUE to use the asymptotic normality results.
+#' @param exact a logical indicating whether the design should be based on the exact safe logrank test based on the
+#' hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then thedesign is based on a  safe z-test.
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 (Treatment) over condition 1 (Placebo),
 #' thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
 #' ignores m1 and m0.
@@ -445,7 +476,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 #' designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
 designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                               alternative=c("two.sided", "greater", "less"),
-                              alpha=0.05, ratio=1, zApprox=FALSE, tol=1e-5,
+                              alpha=0.05, ratio=1, exact=TRUE, tol=1e-5,
                               m0=50000L, m1=50000L, nSim=1e3L, nBoot=1e4L, ciValue=0.95,
                               parameter=NULL, groupSizePerTimeFunction=returnOne,
                               pb=TRUE, ...) {
@@ -469,7 +500,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
   thetaS <- if (is.null(parameter)) hrMin else parameter
 
-  if (zApprox) {
+  if (!exact) {
     if (!is.null(hrMin)) {
       logHazardRatio <- if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
       meanDiffMin <- logHazardRatio*sqrt(ratio)/(1+ratio)
@@ -485,6 +516,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                             "alpha"=alpha, "nPlan"=nEvents,
                             "alternative"=alternative,
                             "sigma"=1, "testType"="oneSample", "parameter"=log(thetaS))
+
     nEvents <- safeZObj[["nPlan"]]
     safeZObj[["nPlan"]] <- NULL
     safeZObj[["nEvents"]] <- nEvents
@@ -492,17 +524,22 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     if (!is.null(nEvents))
       names(safeZObj[["nEvents"]]) <- "nEvents"
 
-    if (!is.null(logHazardRatio))
-      safeZObj[["parameter"]] <- logHazardRatio
+    safeZObj[["parameter"]] <- if (!is.null(parameter)) {
+      parameter
+    } else if (!is.null(hrMin)) {
+      thetaS
+    } else {
+      exp(safeZObj[["parameter"]])
+    }
 
-    names(safeZObj[["parameter"]]) <- "log(thetaS)"
+    names(safeZObj[["parameter"]]) <- "thetaS"
 
     if (!is.null(hrMin))
       names(hrMin) <- "hazard ratio"
 
     safeZObj[["esMin"]] <- hrMin
 
-    safeZObj[["testType"]] <- "logrank"
+    safeZObj[["testType"]] <- "gLogrank"
     safeZObj[["paired"]] <- NULL
     safeZObj[["call"]] <- sys.call()
 
@@ -512,6 +549,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     safeZObj[["h0"]] <- h0
     result <- safeZObj
     result[["ratio"]] <- ratio
+    result[["exact"]] <- exact
 
     return(result)
   } else {
@@ -590,8 +628,9 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       names(h0) <- "theta"
 
     result <- list("nPlan"=nEvents, "parameter"=thetaS, "esMin"=hrMin, "alpha"=alpha, "beta"=beta,
-                   "alternative"=alternative, "h0"=h0, "testType"="logrank", "ciValue"=ciValue,
-                   "ratio"=m1/m0, "pilot"=FALSE, "bootObj"=bootObj, "call"=sys.call(), "timeStamp"=Sys.time())
+                   "alternative"=alternative, "h0"=h0, "testType"="eLogrank", "ciValue"=ciValue,
+                   "exact"=exact, "ratio"=m1/m0, "pilot"=FALSE, "bootObj"=bootObj,
+                   "call"=sys.call(), "timeStamp"=Sys.time())
 
     class(result) <- "safeDesign"
 

@@ -69,7 +69,7 @@ alpha <- 0.05
 mIter <- 1000L
 
 designObj <- designSafeT(deltaMin=1, alpha=alpha)
-oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
+oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nSim=mIter, seed=1)
 
 eValues <- vector("numeric", length=mIter)
 

@@ -185,4 +185,34 @@ for (i in 1:4) {
   if (!localTest)
     stop("Computation of the left-truncated logrank z-score is wrong")
 }
+
+###### Example switching between safe exact and safe Gaussian logrank test
+
+designObj <- designSafeLogrank(0.8, alternative="less")
+
+dat <- safestats::generateSurvData(300, 300, 2, 0.0065, 0.0065*0.8, seed=1)
+survTime <- survival::Surv(dat$time, dat$status)
+
+resultE <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj)
+
+resultG <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj, exact=FALSE)
+
+resultE
+resultG
+
+
+###### Example switching between safe exact and safe Gaussian logrank test other side
+
+designObj <- designSafeLogrank(0.8, alternative="greater")
+
+resultE <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj)
+
+resultG <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj, exact=FALSE)
+
+if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
+  stop("one-sided wrong")
 }

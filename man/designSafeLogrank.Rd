@@ -12,7 +12,7 @@ designSafeLogrank(
   alternative = c("two.sided", "greater", "less"),
   alpha = 0.05,
   ratio = 1,
-  zApprox = FALSE,
+  exact = TRUE,
   tol = 1e-05,
   m0 = 50000L,
   m1 = 50000L,
@@ -50,7 +50,8 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
 ignores m1 and m0.}
 
-\item{zApprox}{logical, default TRUE to use the asymptotic normality results.}
+\item{exact}{a logical indicating whether the design should be based on the exact safe logrank test based on the
+hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then thedesign is based on a  safe z-test.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
