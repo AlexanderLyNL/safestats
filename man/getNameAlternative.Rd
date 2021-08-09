@@ -13,7 +13,7 @@ getNameAlternative(
 \arguments{
 \item{alternative}{A character string. "two.sided", "greater", "less".}
 
-\item{testType}{A character string either "oneSample", "paired", "twoSample", or "logrank".}
+\item{testType}{A character string either "oneSample", "paired", "twoSample", "gLogrank", or "eLogrank".}
 
 \item{h0}{the value of the null hypothesis}
 }

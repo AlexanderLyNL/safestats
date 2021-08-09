@@ -204,7 +204,7 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' mIter <- 1000L
 #'
 #' designObj <- designSafeT(deltaMin=1, alpha=alpha)
-#' oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
+#' oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nSim=mIter, seed=1)
 #'
 #' eValues <- vector("numeric", length=mIter)
 #'
@@ -284,7 +284,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues
     tempNPlan <- c(n1Extra, n2Extra)
 
   newData <- generateNormalData("nPlan"=tempNPlan,
-                               "deltaTrue"=deltaTrue, "nsim"=length(notRejectedIndex),
+                               "deltaTrue"=deltaTrue, "nSim"=length(notRejectedIndex),
                                "paired"=paired, "seed"=seed,
                                "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue)
 

@@ -12,7 +12,7 @@ plotSafeTDesignSampleSizeProfile(
   highParam = 1,
   tol = 0.1,
   testType = c("oneSample", "paired", "twoSample"),
-  nsim = 1000L,
+  nSim = 1000L,
   alternative = c("two.sided", "greater", "less"),
   ratio = 1,
   deltaFactor = 0.5,
@@ -43,7 +43,7 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{nsim}{the number of replications, that is, experiments with max samples nPlan.}
+\item{nSim}{the number of replications, that is, experiments with max samples nPlan.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}

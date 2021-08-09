@@ -199,7 +199,7 @@ The following code replicates 1,000 experiments and each data set is generated w
 # alpha <- 0.05
 # beta <- 0.2
 # deltaMin <- 9/(sqrt(2)*15)      # = 0.42
-simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nsim=1000L,
+simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=1000L,
                                          seed=1, deltaTrue=deltaMin,
                                          muGlobal=120, sigmaTrue=15)
 simResultDeltaTrueIsDeltaMin
@@ -232,7 +232,7 @@ What we believe is clinically minimally relevant might not match reality. One ad
 deltaTrueLarger <- 0.6
 
 simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
-                                                 nsim=1000L, seed=1,
+                                                 nSim=1000L, seed=1,
                                                  deltaTrue=deltaTrueLarger,
                                                  muGlobal=120, sigmaTrue=15)
 simResultDeltaTrueLargerThanDeltaMin
@@ -260,7 +260,7 @@ For this purpose we run the code
 freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta,
                              alternative="greater", testType="paired")
 
-simResultDeltaTrueIsZero <- simulate(object=designObj, nsim=1000L, seed=1,
+simResultDeltaTrueIsZero <- simulate(object=designObj, nSim=1000L, seed=1,
                                      deltaTrue=0, freqOptioStop=TRUE,
                                      nPlanFreq=freqDesignObj$nPlan,
                                      muGlobal=120, sigmaTrue=15)
@@ -286,7 +286,7 @@ The following code simulates 1,000 (first batch) experiments under the null, eac
 
 ```{r}
 dataBatch1 <- generateNormalData(nPlan=freqDesignObj$nPlan,
-                               deltaTrue=0, nsim=1000, paired=TRUE, seed=1,
+                               deltaTrue=0, nSim=1000, paired=TRUE, seed=1,
                                muGlobal=120, sigmaTrue=15)
 
 pValuesBatch1 <- vector("numeric", length=1000)
@@ -505,7 +505,7 @@ someConstant <- 1.2
 
 repData <- generateNormalData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
                                      ceiling(someConstant*designObj$nPlan[2])),
-                             deltaTrue=0, nsim=1000, 
+                             deltaTrue=0, nSim=1000, 
                              muGlobal=90, sigmaTrue=6,
                              paired=TRUE, seed=2)
 
@@ -540,7 +540,7 @@ someConstant <- 1.2
 
 repData <- generateNormalData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
                                      ceiling(someConstant*designObj$nPlan[2])), 
-                             deltaTrue=deltaMin, nsim=1000, 
+                             deltaTrue=deltaMin, nSim=1000, 
                              muGlobal=110, sigmaTrue=50,
                              paired=TRUE, seed=2)
 

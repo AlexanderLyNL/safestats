@@ -33,7 +33,7 @@ designObj <- designSafeT(1, alpha=alpha, beta=beta)
 freqObj <- designFreqT(1, alpha=alpha, beta=beta)
 
 # Simulate under the alternative with deltaTrue=deltaMin
-simResults <- simulate(designObj, nsim=100)
+simResults <- simulate(designObj, nSim=100)
 
 plot(simResults)
 

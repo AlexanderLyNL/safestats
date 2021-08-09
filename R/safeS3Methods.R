@@ -16,13 +16,15 @@ getNameTestType <- function(testType, parameterName) {
                      "oneSample"="Safe One Sample",
                      "paired"="Safe Paired Sample",
                      "twoSample"="Safe Two Sample",
+                     "gLogrank"="Safe Gaussian",
+                     "eLogrank"="Safe Exact",
                      "logrank"="Safe",
                      "2x2" = "Safe Test of Two Proportions")
 
   testName <- switch(parameterName,
                      "phiS"="Z-Test",
                      "deltaS"="T-Test",
-                     "log(thetaS)"="Logrank Test")
+                     "thetaS"="Logrank Test")
 
   return(paste(nameChar, testName))
 }
@@ -32,7 +34,7 @@ getNameTestType <- function(testType, parameterName) {
 #' Helper function that outputs the alternative hypothesis of the analysis.
 #'
 #' @param alternative A character string. "two.sided", "greater", "less".
-#' @param testType A character string either "oneSample", "paired", "twoSample", or "logrank".
+#' @param testType A character string either "oneSample", "paired", "twoSample", "gLogrank", or "eLogrank".
 #' @param h0 the value of the null hypothesis
 #' @return Returns a character string with the name of the analysis.
 #'
@@ -47,7 +49,7 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
   } else if (testType == "2x2") {
     trueMeanStatement <- "true difference between proportions in group a and b is"
-  } else if (testType == "logrank") {
+  } else if (testType %in% c("gLogrank", "eLogrank", "logrank")) {
     trueMeanStatement <- "true hazard ratio is"
   }
 
@@ -79,6 +81,10 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
                             printConfSeq=FALSE, ...) {
   designObj <- x[["designObj"]]
+
+  if (!is.null(x[["testType"]]) && x[["testType"]] != designObj[["testType"]])
+    designObj[["testType"]] <- x[["testType"]]
+
   testType <- designObj[["testType"]]
 
   analysisName <- getNameTestType("testType"=testType, "parameterName"=names(designObj[["parameter"]]))
@@ -203,7 +209,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
 #' @examples
 #' designSafeZ(meanDiffMin=0.5)
 #' designSafeT(deltaMin=0.5)
-#' designSafeLogrank(nEvents=89)
+#' designSafeLogrank(hrMin=0.7)
 print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
   testType <- designObj[["testType"]]
@@ -253,8 +259,17 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
     cat(paste("Timestamp:", format(someTime, usetz = TRUE)))
   }
 
+  bootObj <- designObj[["bootObj"]]
+
+  if (!is.null(bootObj))
+    note <- paste0(bootObj[["target"]], " is estimated with bootstrap standard error ",
+                   format(bootObj[["bootSd"]], digits = digits), ". \n",
+                   "Thus, with a relative approximate error of ",
+                   format(bootObj[["bootSd"]]/bootObj[["t0"]]*100, digits=digits),
+                   "%. \n", "For a more accurate estimate nSim can be increased.")
+
   if (!is.null(note))
-    cat("\n", "NOTE: ", note, "\n\n", sep = "")
+    cat("\n\n", "Note: ", note, "\n\n", sep = "")
   else
     cat("\n")
 }
@@ -287,7 +302,7 @@ print.safeTSim <- function(x, ...) {
     cat("\n")
   }
 
-  cat("Based on nsim =", x[["nsim"]], "and ")
+  cat("Based on nSim =", x[["nsim"]], "and ")
 
   cat("if the true effect size is \n")
   cat("    deltaTrue =", x[["deltaTrue"]])

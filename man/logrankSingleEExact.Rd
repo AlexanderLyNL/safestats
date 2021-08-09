@@ -4,7 +4,7 @@
 \alias{logrankSingleEExact}
 \title{Helper function computes single component of the exact logrank e-value}
 \usage{
-logrankSingleEExact(obs0, obs1, y0, y1, theta1, theta0 = 1, ...)
+logrankSingleEExact(obs0, obs1, y0, y1, thetaS, theta0 = 1, ...)
 }
 \arguments{
 \item{obs0}{integer, number of observations in the control group.}
@@ -15,8 +15,8 @@ logrankSingleEExact(obs0, obs1, y0, y1, theta1, theta0 = 1, ...)
 
 \item{y1}{integer, total number of participants in the treatment group.}
 
-\item{theta1}{numeric > 0 represents the (GROW) alternative hypothesis obtained
-from \code{designSafeLogrank}.}
+\item{thetaS}{numeric > 0 represents the safe test defining (GROW) alternative
+hypothesis obtained from \code{designSafeLogrank}.}
 
 \item{theta0}{numeric > 0 represents the null hypothesis. Default theta0=1.}
 
@@ -45,7 +45,7 @@ logEValueGreater <- logEValueLess <- vector("numeric", length(y0Vector))
 for (i in seq_along(y0Vector)) {
   tempResult <- logrankSingleEExact(obs0=obs0Vector[i], obs1=obs1Vector[i],
                                     y0=y0Vector[i], y1=y1Vector[i],
-                                    theta1=0.7, theta0=1)
+                                    thetaS=0.7, theta0=1)
   logEValueLess[i] <- tempResult[["logEValueLess"]]
   logEValueGreater[i] <- tempResult[["logEValueGreater"]]
 }
