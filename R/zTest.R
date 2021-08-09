@@ -51,7 +51,7 @@ safeZTestStat <- function(z, parameter, n1, n2=NULL, alternative=c("two.sided", 
 #' Computes the Inverse of the Two-Sided Safe Z-Test
 #'
 #' This helper function is used in \code{\link{designSafeZ}} to find parameter. The function is the (two-sided)
-#' inverse of safeZTestStat.
+#' inverse of 'safeZTestStat'.
 #'
 #' @inheritParams safeZTestStat
 #' @inheritParams designSafeZ

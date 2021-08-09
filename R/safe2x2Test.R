@@ -198,7 +198,7 @@ designSafeTwoProportions <- function(na, nb,
 #' @param pilot logical that can be set to true when performing an exploratory analysis
 #' without a \code{designObj}; only allows for \code{na = nb = 1}.
 #'
-#' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+#' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 #' following components:
 #'
 #' \describe{

@@ -291,7 +291,7 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
 
 #' Simulate Early Stopping Experiments for the T Test
 #'
-#' Applied to a safeDesign object this function empirically shows the performance of a safe experiments under
+#' Applied to a 'safeDesign' object this function empirically shows the performance of safe experiments under
 #' optional stopping.
 #'
 #' @param object A safeDesign obtained obtained from \code{\link{designSafeT}}.
@@ -741,10 +741,10 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
 
 
 
-#' Plots a safeTSim Object
+#' Plots a 'safeTSim' Object
 #'
 #' @inheritParams plotHistogramDistributionStoppingTimes
-#' @param x a "safeDesign" object acquired from \code{\link{designSafeT}}.
+#' @param x a 'safeDesign' object acquired from \code{\link{designSafeT}}.
 #' @param y \code{NULL}.
 #' @param ... further arguments to be passed to or from methods.
 #'
