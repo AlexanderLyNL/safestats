@@ -1448,7 +1448,7 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
 }
 
 
-#' Alias for safeTTest
+#' Alias for safeTTest()
 #'
 #' @rdname safeTTest
 #'
@@ -1581,7 +1581,7 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
 
 #' safeTTestStat Subtracted with 1/alpha.
 #'
-#' This is basically just \code{\link{safeTTestStat}} - 1/alpha. This function is used for root finding for
+#' This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is used for root finding for
 #' pilot designs.
 #'
 #' @inheritParams safeTTest
