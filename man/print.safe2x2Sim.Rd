@@ -29,7 +29,4 @@ simResult <- simulateTwoProportions(
   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
   M = 10
   )
-
-print(simResult)
-
 }

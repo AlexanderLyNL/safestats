@@ -88,5 +88,4 @@ simResult <- simulateTwoProportions(
 
 print(simResult)
 plot(simResult)
-
 }

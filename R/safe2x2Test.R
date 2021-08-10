@@ -348,7 +348,6 @@ safe.prop.test <- function(ya, yb, designObj = NULL, pilot = FALSE) {
 #'
 #' print(simResult)
 #' plot(simResult)
-#'
 simulateTwoProportions <- function(hyperparameterList,
                                    alternativeRestriction = c("none", "difference", "logOddsRatio"),
                                    deltaDesign = NULL,
@@ -442,9 +441,6 @@ simulateTwoProportions <- function(hyperparameterList,
 #'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
 #'   M = 10
 #'   )
-#'
-#' print(simResult)
-#'
 print.safe2x2Sim <- function(x, ...){
   cat("Simulation results for test of two proportions")
   cat("\n\n")
