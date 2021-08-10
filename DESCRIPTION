@@ -21,7 +21,12 @@ Description: Functions to design and apply tests that are anytime valid. The
   resulting tests remain valid under both optional stopping and optional
   continuation. The current version includes safe t-tests and safe tests of
   two proportions. For details on the theory of safe tests, see
-  Grunwald, de Heide and Koolen (2019) "Safe Testing". <arXiv:1906.07801>.
+  Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>, 
+  for details on safe logrank tests see ter Schure, Perez-Ortiz, Ly and Grunwald
+  (2020) "The Safe Logrank Test: Error Control under Continuous Monitoring with 
+  Unlimited Horizon" <arXiv:2011.06931v3> and Turner, Ly and Grunwald (2021)
+  "Safe Tests and Always-Valid Confidence Intervals for contingency tables and 
+  beyond" <arXiv:2106.02693> for details on safe contingency table tests.
 License: LGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
