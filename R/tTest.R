@@ -6,7 +6,7 @@
 #'
 #' @inheritParams designSafeT
 #'
-#' @return Returns an object of class "freqTDesign". An object of class "freqTDesign" is a list containing at least the
+#' @return Returns an object of class 'freqTDesign'. An object of class 'freqTDesign' is a list containing at least the
 #' following components:
 #' \describe{
 #'   \item{nPlan}{the planned sample size(s).}
@@ -123,7 +123,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' @param logging logical, if \code{TRUE} return altSThreshes.
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
 #'
-#' @return Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
+#' @return Returns an object of class 'safeDesign'. An object of class 'safeDesign' is a list containing at least the
 #' following components:
 #'
 #' \describe{
@@ -294,7 +294,7 @@ designSafeT <- function(deltaMin=NULL, alpha=0.05, beta=0.2, alternative=c("two.
 #' Applied to a 'safeDesign' object this function empirically shows the performance of safe experiments under
 #' optional stopping.
 #'
-#' @param object A safeDesign obtained obtained from \code{\link{designSafeT}}.
+#' @param object A safeDesign obtained obtained from \code{\link{designSafeT}()}.
 #' @param nSim integer, number of iterations.
 #' @param nsim integer, formally the number of iterations, but by default nsim=nSim
 #' @param seed numeric, seed number.
@@ -373,7 +373,7 @@ simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, mu
 #' @param parameter numeric, the safe test defining parameter, i.e., deltaS (use designSafeT to find this).
 #' @param freqOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for
 #' the frequentist test.
-#' @param nPlanFreq the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}}.
+#' @param nPlanFreq the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}()}.
 #' @param paired logical, if \code{TRUE} then paired t-test.
 #' @param seed To set the seed for the simulated data.
 #' @param logging logical, if \code{TRUE}, then return the simulated data.
@@ -397,8 +397,8 @@ simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, mu
 #'   \item{beta}{the tolerable type II error provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
-#'   Acquired from \code{\link{designSafeT}}.}
-#'   \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}
+#'   Acquired from \code{\link{designSafeT}()}.}
+#'   \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}()}
 #'   \item{safeSim}{list with the simulation results of the safe test under optional stopping.}
 #'   \item{freqSim}{list with the simulation results of the frequentist test under optional stopping.}
 #'}
@@ -744,7 +744,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
 #' Plots a 'safeTSim' Object
 #'
 #' @inheritParams plotHistogramDistributionStoppingTimes
-#' @param x a 'safeDesign' object acquired from \code{\link{designSafeT}}.
+#' @param x a 'safeDesign' object acquired from \code{\link{designSafeT}()}.
 #' @param y \code{NULL}.
 #' @param ... further arguments to be passed to or from methods.
 #'
@@ -1306,11 +1306,11 @@ generateNormalData <- function(nPlan, nSim=1000L, deltaTrue=NULL, muGlobal=0, si
 
 #' Safe Student's T-Test.
 #'
-#' A safe t-test adapted from  \code{\link[stats]{t.test}} to perform one and two sample t-tests on vectors of data.
+#' A safe t-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample t-tests on vectors of data.
 #'
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
-#' @param designObj an object obtained from \code{\link{designSafeT}}, or \code{NULL}, when pilot equals \code{TRUE}..
+#' @param designObj an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot equals \code{TRUE}..
 #' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0
 #' @param paired a logical indicating whether you want a paired t-test.
 #' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For the moment,
@@ -1339,7 +1339,7 @@ generateNormalData <- function(nPlan, nSim=1000L, deltaTrue=NULL, muGlobal=0, si
 #'   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
-#'   \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
+#'   \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}()}.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
@@ -1482,7 +1482,7 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE,
 
 #' Computes E-Values Based on the T-Statistic
 #'
-#' A summary stats version of \code{\link{safeTTest}} with the data replaced by t, n1 and n2, and the
+#' A summary stats version of \code{\link{safeTTest}()} with the data replaced by t, n1 and n2, and the
 #' design object by deltaS.
 #'
 #' @param t numeric that represents the observed t-statistic.

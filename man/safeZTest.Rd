@@ -33,11 +33,11 @@ safe.z.test(
 
 \item{paired}{a logical indicating whether you want the paired z-test.}
 
-\item{designObj}{an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.}
+\item{designObj}{an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
-To change these default values, please use \code{\link{designSafeZ}}.}
+To change these default values, please use \code{\link{designSafeZ}()}.}
 
 \item{ciValue}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the ciValue of
 the design object is used to derive the level of the confidence sequence.}
@@ -48,7 +48,7 @@ defining parameter to construct a pilot design object.}
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 following components:
 
 
@@ -64,12 +64,12 @@ following components:
   or a two-sample test.}
   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
   \item{dataName}{a character string giving the name(s) of the data.}
-  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}}.}
+  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}()}.}
   \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-Safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}}.
+Safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
 }
 \examples{
 designObj <- designSafeZ(meanDiffMin=0.6, alpha=0.008, beta=0.2,

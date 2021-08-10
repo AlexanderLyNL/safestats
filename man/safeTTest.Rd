@@ -36,7 +36,7 @@ safe.t.test(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{designObj}{an object obtained from \code{\link{designSafeT}}, or \code{NULL}, when pilot equals \code{TRUE}..}
+\item{designObj}{an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot equals \code{TRUE}..}
 
 \item{paired}{a logical indicating whether you want a paired t-test.}
 
@@ -76,12 +76,12 @@ following components:
   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{dataName}{a character string giving the name(s) of the data.}
-  \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
+  \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}()}.}
   \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-A safe t-test adapted from  \code{\link[stats]{t.test}} to perform one and two sample t-tests on vectors of data.
+A safe t-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample t-tests on vectors of data.
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",

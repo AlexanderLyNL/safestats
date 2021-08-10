@@ -21,7 +21,7 @@ simulateTwoProportions(
 )
 }
 \arguments{
-\item{hyperparameterList}{list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}}.}
+\item{hyperparameterList}{list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}()}.}
 
 \item{alternativeRestriction}{a character string specifying an optional restriction on the alternative hypothesis; must be one of "none" (default),
 "difference" (difference group mean b minus group b) or "logOddsRatio" (the log odds ratio between group means b and a).}

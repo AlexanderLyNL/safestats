@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{computeLogrankZ}
 \alias{computeLogrankZ}
-\title{Helper function to computes the logrank statistic for Surv objects of type
+\title{Helper function to computes the logrank statistic for 'Surv' objects of type
 "right" and "counting" with the hypergeometric variance.}
 \usage{
 computeLogrankZ(
@@ -46,7 +46,7 @@ Returns a list containing at least the following components:
 }
 \description{
 This function was created to complement \code{\link[survival]{survdiff}} from the
-survival package, which is restricted to Surv objects of type "right". Most likely
+'survival' package, which is restricted to 'Surv' objects of type "right". Most likely
 \code{\link[survival]{survdiff}} is much faster
 }
 \examples{

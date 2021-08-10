@@ -16,7 +16,7 @@ logrankSingleEExact(obs0, obs1, y0, y1, thetaS, theta0 = 1, ...)
 \item{y1}{integer, total number of participants in the treatment group.}
 
 \item{thetaS}{numeric > 0 represents the safe test defining (GROW) alternative
-hypothesis obtained from \code{designSafeLogrank}.}
+hypothesis obtained from \code{designSafeLogrank()}.}
 
 \item{theta0}{numeric > 0 represents the null hypothesis. Default theta0=1.}
 

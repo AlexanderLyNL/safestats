@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{rLogrank}
 \alias{rLogrank}
-\title{Randomly samples from a "logrank" distribution}
+\title{Randomly samples from a logrank distribution}
 \usage{
 rLogrank(n = 1, y0, y1, obsTotal, theta)
 }

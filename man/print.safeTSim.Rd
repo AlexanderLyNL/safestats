@@ -7,7 +7,7 @@
 \method{print}{safeTSim}(x, ...)
 }
 \arguments{
-\item{x}{a "safeTSim" object.}
+\item{x}{a 'safeTSim' object.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

@@ -45,7 +45,7 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 lowParam to highParam, if the minimum is not found.}
 }
 \value{
-Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
+Returns an object of class 'safeDesign'. An object of class 'safeDesign' is a list containing at least the
 following components:
 
 \describe{

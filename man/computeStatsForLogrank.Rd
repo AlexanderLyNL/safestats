@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{computeStatsForLogrank}
 \alias{computeStatsForLogrank}
-\title{Computes the sufficient statistics needed to compute logrankSingleZ}
+\title{Computes the sufficient statistics needed to compute 'logrankSingleZ'}
 \usage{
 computeStatsForLogrank(
   survDataFrame,
@@ -15,7 +15,7 @@ computeStatsForLogrank(
 )
 }
 \arguments{
-\item{survDataFrame}{a Surv object converted to a matrix, then to a data.frame}
+\item{survDataFrame}{a 'Surv' object converted to a matrix, then to a data.frame}
 
 \item{y0Index}{vector of integers corresponding to the control group}
 
@@ -39,7 +39,7 @@ Returns a list containing at least the following components:
 }
 }
 \description{
-Computes the sufficient statistics needed to compute logrankSingleZ
+Computes the sufficient statistics needed to compute 'logrankSingleZ'
 }
 \examples{
 

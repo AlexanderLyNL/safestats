@@ -45,7 +45,7 @@ chosen to optimize evidence collected over subsequent experiments (REGRET). Pass
 \item{M}{number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.}
 }
 \value{
-Returns a safeDesign object that includes:
+Returns a 'safeDesign' object that includes:
 
 \describe{
   \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user

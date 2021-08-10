@@ -37,8 +37,8 @@ see \code{\link[survival]{Surv}} for more details.}
 
 \item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
 
-\item{survTime}{an optional survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
-a name of a column in the data set of class "Surv". Does not need specifying if a formula is provided, therefore
+\item{survTime}{an optional survival time object of class 'Surv' created with \code{\link[survival]{Surv}}, or
+a name of a column in the data set of class 'Surv'. Does not need specifying if a formula is provided, therefore
 set to \code{NULL} by default.}
 
 \item{group}{an optional factor, a grouping variable. Currently, only two levels allowed. Does not need specifying
@@ -67,7 +67,7 @@ By default dataNull = 1 representing}
 \item{sigma}{numeric > 0, scaling in the data}
 }
 \value{
-Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 following components:
 
 \describe{

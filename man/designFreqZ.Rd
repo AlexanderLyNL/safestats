@@ -51,7 +51,7 @@ number. Default highN is set 8e9 to correspond to the current population of the 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-returns a freqZDesign object.
+returns a 'freqZDesign' object.
 }
 \description{
 Computes the number of samples necessary to reach a tolerable type I and type II error for the

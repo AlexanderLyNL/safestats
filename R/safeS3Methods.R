@@ -63,7 +63,7 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 
 #' Print Method for Safe Tests
 #'
-#' Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.htest}}.
+#' Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.htest}()}.
 #'
 #' @param x a safeTest object.
 #' @param digits number of significant digits to be used.
@@ -199,7 +199,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
 
 #' Print Method for Safe Tests
 #'
-#' Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.power.htest}}.
+#' Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.power.htest}()}.
 #'
 #' @inheritParams print.safeTest
 #'

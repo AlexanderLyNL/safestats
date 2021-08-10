@@ -63,7 +63,7 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
-Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
+Returns an object of class 'safeDesign'. An object of class 'safeDesign' is a list containing at least the
 following components:
 
 \describe{

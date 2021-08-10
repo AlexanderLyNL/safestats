@@ -42,7 +42,7 @@ alternative specified by the design object is used instead.}
 Returns a numeric that represent the e10, that is, the e-value in favour of the alternative over the null
 }
 \description{
-A summary stats version of \code{\link{safeTTest}} with the data replaced by t, n1 and n2, and the
+A summary stats version of \code{\link{safeTTest}()} with the data replaced by t, n1 and n2, and the
 design object by deltaS.
 }
 \examples{

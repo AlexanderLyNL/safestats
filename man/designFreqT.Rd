@@ -45,7 +45,7 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
-Returns an object of class "freqTDesign". An object of class "freqTDesign" is a list containing at least the
+Returns an object of class 'freqTDesign'. An object of class 'freqTDesign' is a list containing at least the
 following components:
 \describe{
   \item{nPlan}{the planned sample size(s).}

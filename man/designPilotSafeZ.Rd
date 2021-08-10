@@ -40,7 +40,7 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{paired}{logical, if \code{TRUE} then paired z-test.}
 }
 \value{
-Returns a safeDesign object
+Returns a 'safeDesign' object
 \describe{
   \item{nPlan}{the sample size(s) to plan for. Provided by the user.}
   \item{parameter}{the safe test defining parameter. Here phiS.}

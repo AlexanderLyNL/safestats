@@ -33,7 +33,7 @@
 #' chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format: \code{(betaA1 = num1, betaA2 = num2, betaB1 = num3, betaB2 = num4)}.
 #' @param M number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.
 #'
-#' @return Returns a safeDesign object that includes:
+#' @return Returns a 'safeDesign' object that includes:
 #'
 #' \describe{
 #'   \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
@@ -188,13 +188,13 @@ designSafeTwoProportions <- function(na, nb,
 #'
 #' Perform a safe test for two proportions (a 2x2 contingency table test) with a
 #' result object retrieved through the design function for planning an experiment to compare
-#' two proportions in this package, \code{\link{designSafeTwoProportions}}.
+#' two proportions in this package, \code{\link{designSafeTwoProportions}()}.
 #'
 #' @param ya positive observations/ events per data block in group a: a numeric with integer values
 #' between (and including) 0 and \code{na}, the number of observations in group a per block.
 #' @param yb positive observations/ events per data block in group b: a numeric with integer values
 #' between (and including) 0 and \code{nb}, the number of observations in group b per block.
-#' @param designObj a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}}.
+#' @param designObj a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
 #' @param pilot logical that can be set to true when performing an exploratory analysis
 #' without a \code{designObj}; only allows for \code{na = nb = 1}.
 #'
@@ -205,7 +205,7 @@ designSafeTwoProportions <- function(na, nb,
 #'   \item{n}{The realised sample size(s).}
 #'   \item{eValue}{the e-value of the safe test.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
-#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}}.}
+#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}()}.}
 #' }
 #'
 #' @export
@@ -279,7 +279,7 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
   return(testResult)
 }
 
-#' Alias for \code{\link{safeTwoProportionsTest}}
+#' Alias for \code{\link{safeTwoProportionsTest}()}
 #'
 #' @rdname safeTwoProportionsTest
 #'
@@ -302,7 +302,7 @@ safe.prop.test <- function(ya, yb, designObj = NULL, pilot = FALSE) {
 #' (i.e., number of data blocks collected) and expected stopping times needed to achieve the desired power for each hyperparameter setting provided.
 #'
 #' @inheritParams designSafeTwoProportions
-#' @param hyperparameterList list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}}.
+#' @param hyperparameterList list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}()}.
 #' @param deltaDesign optional; when using a restricted alternative, the value of the divergence measure used.
 #' Either a numeric between -1 and 1 for a restriction on difference, or a real for a restriction on the log odds ratio.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control in the study. Necessary to calculate the
@@ -423,7 +423,7 @@ simulateTwoProportions <- function(hyperparameterList,
 
 #' Prints Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
 #'
-#' @param x a result object obtained through \code{\link{simulateTwoProportions}}.
+#' @param x a result object obtained through \code{\link{simulateTwoProportions}()}.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return The data frame with simulation results, called for side effects to pretty print the simulation results.
@@ -470,7 +470,7 @@ print.safe2x2Sim <- function(x, ...){
 
 #' Plots Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
 #'
-#' @param x a result object obtained through \code{\link{simulateTwoProportions}}.
+#' @param x a result object obtained through \code{\link{simulateTwoProportions}()}.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Plot data, mainly called for side effects, the plot of simulation results.
