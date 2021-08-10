@@ -41,7 +41,7 @@ Returns a numeric that represent the e10 - 1/alpha, that is, the e-value in favo
 alternative over the null - 1/alpha.
 }
 \description{
-This is basically just \code{\link{safeTTestStat}} - 1/alpha. This function is used for root finding for
+This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is used for root finding for
 pilot designs.
 }
 \examples{

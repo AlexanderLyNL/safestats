@@ -1251,7 +1251,6 @@ plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, maxN=200, low
 #' @param muTrue numeric representing the true mean for simulations with a z-test.
 #' Default \code{NULL}
 #'
-#' @return
 #' @return Returns a list of two data matrices contains at least the following components:
 #'
 #' \describe{
