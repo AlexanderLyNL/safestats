@@ -535,8 +535,360 @@ plot.safe2x2Sim <- function(x, ...){
                    lty = c(rep(2, length(priorcolors)), 2, 1), lwd = 2)
 }
 
+#' Get Confidence Bounds for Difference Divergence Measure for Two Proportions
+#'
+#'
+#'
+#' @param ya observed
+#' @param yb
+#' @param precision
+#' @param safeDesign a 'safeDesign' object obtained through
+#' \code{\link{designSafeTwoProportions}}
+#'
+#' @return list with
+#' @export
+#'
+#' @examples
+getConfidenceBoundsForDifferenceTwoProportions <- function(ya,
+                                                           yb,
+                                                           precision,
+                                                           safeDesign){
+  na <- safeDesign[["nPlan"]][["na"]]
+  nb <- safeDesign[["nPlan"]][["nb"]]
+  priorParameter <- safeDesign[["betaPriorParameterValues"]][["betaA1"]]
+  alpha <- safeDesign[["alpha"]]
 
+  #TODO adjust for use of non-uniform priors
+  eValuesDeltaGrid <- calculateEValuesForLinearDeltaGrid(ya = ya, yb = yb,
+                                                         na = na, nb = nb,
+                                                         generalPriorValue = priorParameter,
+                                                         precision = precision, alpha = alpha, runningIntersection = TRUE)
+  #include in the CS: not rejected delta values
+  ciSummary <- eValuesDeltaGrid %>%
+    dplyr::filter(E < 1/alpha) %>%
+    dplyr::summarise(lowerbound = min(delta), upperbound = max(delta))
 
+  return(ciSummary)
+}
+
+#' Title
+#'
+#' @param ya
+#' @param yb
+#' @param safeDesign
+#' @param bound
+#' @param precision
+#' @param deltaStart
+#' @param deltaStop
+#'
+#' @return numeric: the established lower- or upper bound on the logarithm of the odds
+#' ratio between the groups
+#'
+#' @export
+#'
+#' @examples
+getConfidenceBoundForLogOddsTwoProportions <- function(ya,
+                                                       yb,
+                                                       safeDesign,
+                                                       bound = c("lower", "upper"),
+                                                       precision,
+                                                       deltaStart,
+                                                       deltaStop){
+  na <- safeDesign[["nPlan"]][["na"]]
+  nb <- safeDesign[["nPlan"]][["nb"]]
+  priorParameter <- safeDesign[["betaPriorParameterValues"]][["betaA1"]]
+  alpha <- safeDesign[["alpha"]]
+  bound = match.arg(bound)
+  lowerBound = ifelse(bound == "lower", TRUE, FALSE)
+
+  eValuesDeltaGrid <- calculateEValuesForOddsDeltaGrid(ya = ya, yb = yb,
+                                                       na = na, nb = nb,
+                                                       lowerBound = lowerBound,
+                                                       generalPriorValue = priorParameter,
+                                                       precision = precision,
+                                                       deltaStart = deltaStart,
+                                                       deltaStop = deltaStop,
+                                                       alpha = alpha)
+
+  if(all(eValuesDeltaGrid$E < 1/alpha)){
+    warning(paste("No", bound, "bound could be established; try different bound or smaller deltaStart"))
+    return(0)
+  }
+
+  if(lowerBound){
+    deltaBound <- as.numeric(eValuesDeltaGrid %>%
+                               #lower bound: the smallest delta we did not reject
+                               dplyr::group_by(delta) %>%
+                               dplyr::filter(block == max(block)) %>%
+                               dplyr::ungroup() %>%
+                               dplyr::filter(E < 1/alpha) %>%
+                               dplyr::summarise(bound = min(delta)))
+  } else {
+    deltaBound <- as.numeric(eValuesDeltaGrid %>%
+                               dplyr::group_by(delta) %>%
+                               dplyr::filter(block == max(block)) %>%
+                               dplyr::ungroup() %>%
+                               #upper bound: the biggest delta we did not reject
+                               dplyr::filter(E < 1/alpha) %>%
+                               dplyr::summarise(bound = max(delta)))
+  }
+
+  return(deltaBound)
+}
+
+#vignette-----------------------------------------------------------------------
+#' Title
+#'
+#' @param safeDesign
+#' @param M
+#' @param thetaA
+#' @param thetaB
+#'
+#' @return
+#' @export
+#'
+#' @examples
+simulateOptionalStoppingScenarioTwoProportions <- function(safeDesign,
+                                                           M,
+                                                           thetaA,
+                                                           thetaB){
+
+  stoppingTimes <- stopEs <- numeric(M)
+
+  for(i in 1:M){
+    #For every m, draw a sample of max streamlength and record the time
+    #at which we would have stopped
+    ya <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
+                 size = safeDesign[["nPlan"]]["na"],
+                 prob = thetaA
+    )
+    yb <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
+                 size = safeDesign[["nPlan"]]["nb"],
+                 prob = thetaB
+    )
+    simResult <- calculateSequential2x2E(aSample = ya, bSample = yb,
+                                         priorValues = safeDesign[["betaPriorParameterValues"]],
+                                         restriction = safeDesign[["alternativeRestriction"]],
+                                         #if explicitly passsed deltaDesign (neq delta), use that one for test
+                                         #e.g. when studying effect of overestimated/ underestimated effect size
+                                         delta = safeDesign[["esMin"]],
+                                         na = safeDesign[["nPlan"]]["na"],
+                                         nb = safeDesign[["nPlan"]]["nb"],
+                                         simSetting = TRUE,
+                                         alphaSim = safeDesign[["alpha"]])
+    stoppingTimes[i] <- simResult [["stopTime"]]
+    stopEs[i] <- simResult[["stopE"]]
+  }
+
+  allSafeDecisions <- stopEs >= (1/safeDesign[["alpha"]])
+  safeSim <- list("powerOptioStop"=mean(allSafeDecisions),
+                  "nMean"=mean(stoppingTimes),
+                  "probLessNDesign"=mean(stoppingTimes < safeDesign[["nPlan"]]["nBlocksPlan"]),
+                  "lowN"=min(stoppingTimes), "eValues"=stopEs
+  )
+
+  safeSim[["allN"]] <- stoppingTimes
+  safeSim[["allSafeDecisions"]] <- allSafeDecisions
+  safeSim[["allRejectedN"]] <- stoppingTimes[allSafeDecisions]
+
+  return(safeSim)
+}
+
+#' Title
+#'
+#' @param thetaA
+#' @param thetaB
+#' @param alpha
+#' @param na
+#' @param nb
+#' @param maxSimStoptime
+#' @param M
+#' @param numberForSeed
+#'
+#' @return
+#' @export
+#'
+#' @examples
+simulateIncorrectstoppingTimesFisher <- function(thetaA, thetaB, alpha,
+                                                 na, nb,
+                                                 maxSimStoptime = 1e4,
+                                                 M = 1e3, numberForSeed = NULL){
+
+  #setup
+  stoppingTimes <- rejections <- numeric(M)
+  numberForSeed <- ifelse(is.null(numberForSeed), Sys.time(), numberForSeed)
+  set.seed(numberForSeed)
+
+  groupSizeVecA <- (1:maxSimStoptime)*na
+  groupSizeVecB <- (1:maxSimStoptime)*nb
+
+  for(m in 1:M){
+
+    #simulate data
+    ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaA)
+    yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
+
+    successAVec <- cumsum(ya)
+    successBVec <- cumsum(yb)
+
+    failAVec <- groupSizeVecA - successAVec
+    failBVec <- groupSizeVecB - successBVec
+    for(i in 5:maxSimStoptime){
+      #new data come in
+      successA <- successAVec[i]
+      failA <- failAVec[i]
+      successB <- successBVec[i]
+      failB <- failBVec[i]
+
+      #Fisher's exact test with all data seen so far
+      pVal <- tryCatch(fisher.test(matrix(data = c(successA, failA, successB, failB), nrow = 2, byrow = TRUE))$p.value,
+                       error = function(e){return(1)})
+
+      #if first significant result, record stopping time
+      if(pVal <= alpha){
+        stoppingTimes[m] <- i
+        rejections[m] <- 1
+        break
+      }
+      #if we have reached last iteration, we have not stopped; register max stopping time
+      if(i == maxSimStoptime){
+        stoppingTimes[m] <- maxSimStoptime
+        rejections[m] <- 0
+      }
+    }
+  }
+  return(list(stoppingTimes = stoppingTimes, rejections = rejections))
+}
+
+#' Title
+#'
+#' @param ya
+#' @param yb
+#' @param safeDesign
+#' @param differenceMeasure
+#' @param precision
+#' @param deltaStart
+#' @param deltaStop
+#' @param trueDifference
+#'
+#' @return
+#' @export
+#'
+#' @examples
+plotConfidenceSequenceTwoProportions <- function(ya, yb,
+                                                 safeDesign,
+                                                 differenceMeasure = c("difference", "odds"),
+                                                 precision = 100,
+                                                 deltaStart = 0.001,
+                                                 deltaStop = 3,
+                                                 trueDifference = NA){
+  differenceMeasure <- match.arg(differenceMeasure)
+
+  if(differenceMeasure == "difference"){
+    lowerBounds <- upperBounds <- numeric(length(ya))
+    for(m in seq_along(ya)){
+      confidenceInterval <- getConfidenceBoundsForDifferenceTwoProportions(
+        ya = ya[1:m],
+        yb = yb[1:m],
+        precision = precision,
+        safeDesign = balancedSafeDesign
+      )
+      lowerBounds[m] <- confidenceInterval[["lowerbound"]]
+      upperBounds[m] <- confidenceInterval[["upperbound"]]
+    }
+    graphics::plot(x = 1:length(ya), y = lowerBounds, ylim = c(-1, 1), col = "blue", type = "l",
+                   xlab = "data block number", ylab = "difference",
+                   main = "Upper and lower bound confidence sequence for difference")
+    graphics::lines(x = 1:length(yb), y = upperBounds, col = "red")
+    graphics::abline(h = 0, lty = 2, col = "grey")
+    if(!is.na(trueDifference)){
+      graphics::abline(h = trueDifference, lty = 4, col = "black")
+    }
+  } else {
+    positiveLOREstimate <- (sum(yb)/length(yb) - sum(ya)/length(ya)) > 0
+    if(!positiveLOREstimate) {
+      deltaStart <- -1 * deltaStart
+      deltaStop <- -1 * deltaStop
+    }
+    ciValues <- calculateEValuesForOddsDeltaGrid(ya = ya, yb = yb,
+                                                 na = safeDesign[["nPlan"]][["na"]],
+                                                 nb = safeDesign[["nPlan"]][["nb"]],
+                                                 lowerBound = positiveLOREstimate,
+                                                 generalPriorValue = safeDesign[["betaPriorParameterValues"]][["betaA1"]],
+                                                 precision = precision,
+                                                 deltaStart = deltaStart,
+                                                 deltaStop = deltaStop,
+                                                 alpha = safeDesign[["alpha"]])
+
+    plotdfstep <- ciValues %>%
+      dplyr::filter(E < 1/safeDesign[["alpha"]]) %>%
+      dplyr::group_by(block) %>%
+      dplyr::summarise(delta = min(delta))
+
+    #make sure the step function walks until the end of the x axis
+    plotdfstepextra <- rbind(plotdfstep,
+                             data.frame(
+                               block = length(ya),
+                               delta = max(plotdfstep$delta)
+                             )
+    )
+
+    if(positiveLOREstimate){
+      yLimits <- c(0, max(plotdfstepextra$delta, trueDifference) + 0.1)
+    } else {
+      yLimits <- c(min(plotdfstepextra$delta, trueDifference) - 0.1, 0)
+    }
+    graphics::plot(x = plotdfstepextra$block, y = plotdfstepextra$delta,
+                   ylim = yLimits, col = "blue", type = "l",
+                   xlab = "data block number", ylab = "difference",
+                   main = "Confidence sequence for log odds ratio")
+    if(!is.na(trueDifference)){
+      graphics::abline(h = trueDifference, lty = 2, col = "grey")
+    }
+  }
+}
+
+#' Title
+#'
+#' @param successProbabilityA
+#' @param trueDelta
+#' @param safeDesign
+#' @param precision
+#' @param M
+#' @param numberForSeed
+#'
+#' @return
+#' @export
+#'
+#' @examples
+simulateConfidenceDifferenceTwoProportions <- function(successProbabilityA,
+                                                       trueDelta,
+                                                       safeDesign,
+                                                       precision = 100,
+                                                       M = 1000,
+                                                       numberForSeed = NA){
+  if(!is.na(numberForSeed)){
+    set.seed(numberForSeed)
+  }
+
+  successProbabilityB <- successProbabilityA + trueDelta
+  trueDeltaIncluded <- logical(M)
+
+  for(simulationNumber in 1:M){
+    yaSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityA)
+    ybSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityB)
+    confidenceInterval <- getConfidenceBoundsForDifferenceTwoProportions(
+      ya = yaSim,
+      yb = ybSim,
+      precision = precision,
+      safeDesign = safeDesign
+    )
+    trueDeltaIncluded[simulationNumber] <- (trueDelta >= confidenceInterval[["lowerbound"]]) &
+      (trueDelta <= confidenceInterval[["upperbound"]])
+  }
+
+  return(mean(trueDeltaIncluded))
+}
 
 #NON-EXPORT --------------------------------------------------------------------
 #basics ------------------------------------------------------------------------
@@ -550,6 +902,16 @@ calculateETwoProportions <- function(na1, na, nb1, nb, thetaA, thetaB, theta0){
 calculateThetaBFromThetaAAndLOR <- function(thetaA, lOR){
   c <- exp(lOR)*thetaA/(1-thetaA)
   return(c/(1+c))
+}
+
+logOddsRatio <- function(thetaA, thetaB){
+  log(thetaB/(1 - thetaB) * (1 - thetaA)/thetaA)
+}
+
+likelihoodTwoProportions<- function(na1, na, nb1, nb, thetaA, thetaB){
+  exp(
+    na1*log(thetaA) + (na - na1)*log(1-thetaA) + nb1*log(thetaB) + (nb-nb1)*log(1 - thetaB)
+  )
 }
 
 #No restrictions fncs ---------------------------------------------------------
@@ -643,6 +1005,197 @@ updateEWithRestrictionTwoProportions <- function(na1, nb1, na, nb, delta, logOdd
               thetaA = thetaA,
               thetaB = thetaB,
               theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
+}
+
+#Confidence functions ---------------------------------------------------------
+calculateKLTwoProportions <- function(candidateThetaA, distanceFunction, delta, na, nb, breveThetaA,breveThetaB){
+  candidateThetaB <- distanceFunction(candidateThetaA, delta)
+
+  na1vec <- 0:na
+  nb1vec <- 0:nb
+  outcomeSpace <- expand.grid(na1vec, nb1vec)
+
+  likelihoodAlternative <- likelihoodTwoProportions(na1 = outcomeSpace[,1], na = na,
+                                                    nb1 = outcomeSpace[,2], nb = nb,
+                                                    thetaA = breveThetaA, thetaB = breveThetaB
+  )
+  likelihoodNull <- likelihoodTwoProportions(na1 = outcomeSpace[,1], na = na,
+                                             nb1 = outcomeSpace[,2], nb = nb,
+                                             thetaA = candidateThetaA, thetaB = candidateThetaB
+  )
+
+  sum(likelihoodAlternative * (log(likelihoodAlternative) - log(likelihoodNull)))
+}
+
+derivativeKLTwoProportionsLinear <- function(candidateThetaA, delta, na, nb, breveThetaA, breveThetaB, c = 1){
+  candidateThetaB <- candidateThetaA + delta
+
+  na*((1 - breveThetaA)/(1 - candidateThetaA) - breveThetaA/candidateThetaA) + nb*c*((1 - breveThetaB)/(1 - candidateThetaB) - breveThetaB/candidateThetaB)
+}
+
+calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
+                                               generalPriorValue = 1,
+                                               precision = 10,
+                                               alpha = 0.05,
+                                               runningIntersection = TRUE){
+  deltaVec <- seq(-0.99, 0.99, length.out = precision)
+  ciEValues <- data.frame()
+
+  for(delta in deltaVec){
+    currentE <- 1
+    breveThetaA <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorS = generalPriorValue,
+                                             priorF = generalPriorValue)
+
+    breveThetaB <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorS = generalPriorValue,
+                                             priorF = generalPriorValue)
+
+    thetaARIPr <- tryOrFailWithNA(stats::uniroot(derivativeKLTwoProportionsLinear,
+                                          interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
+                                          delta = delta,
+                                          na = na, nb = nb,
+                                          breveThetaA = breveThetaA,
+                                          breveThetaB = breveThetaB)$root)
+
+
+    for(i in seq_along(ya)){
+      if(!is.na(thetaARIPr)){
+        likelihoodAlternative <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                          nb1 = yb[i], nb = nb,
+                                                          thetaA = breveThetaA, thetaB = breveThetaB
+        )
+        likelihoodRIPr <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                   nb1 = yb[i], nb = nb,
+                                                   thetaA = thetaARIPr, thetaB = thetaARIPr + delta
+        )
+        currentE <- currentE * likelihoodAlternative/likelihoodRIPr
+      }
+
+
+      #if we reject, we reject this delta FOR EVER
+      if((currentE >= 1/alpha) & runningIntersection){
+        break
+      }
+
+      #update the E variable
+      breveThetaA <- bernoulliMLTwoProportions(totalSuccess = sum(ya[1:i]),
+                                               totalFail = i*na - sum(ya[1:i]),
+                                               priorS = generalPriorValue,
+                                               priorF = generalPriorValue)
+
+      breveThetaB <- bernoulliMLTwoProportions(totalSuccess = sum(yb[1:i]),
+                                               totalFail = i*nb - sum(yb[1:i]),
+                                               priorS = generalPriorValue,
+                                               priorF = generalPriorValue)
+
+      thetaARIPr <- tryOrFailWithNA(stats::uniroot(derivativeKLTwoProportionsLinear, interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
+                                            delta = delta,
+                                            na = na, nb = nb,
+                                            breveThetaA = breveThetaA,
+                                            breveThetaB = breveThetaB)$root)
+    }
+    ciEValues <- rbind(ciEValues, data.frame(delta = delta, E = currentE))
+  }
+  return(ciEValues)
+}
+
+calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
+                                             lowerBound = TRUE,
+                                             generalPriorValue = 1,
+                                             precision = 10,
+                                             deltaStart = 0,
+                                             deltaStop = 10,
+                                             alpha = 0.05,
+                                             runningIntersection = TRUE,
+                                             stopAfterBoundHasBeenFound = FALSE){
+  deltaVector <- seq(deltaStart, deltaStop, length.out = precision)
+  ciEValues <- data.frame()
+
+  for(delta in deltaVector){
+    currentE <- 1
+    breveThetaA <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorS = generalPriorValue,
+                                             priorF = generalPriorValue)
+
+    breveThetaB <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorS = generalPriorValue,
+                                             priorF = generalPriorValue)
+
+    #if the point alternative lies within H0(delta), the RIPr and the point alternative should coincide
+    if(sign(delta)*logOddsRatio(breveThetaA, breveThetaB) <= sign(delta)*delta){
+      thetaARIPr <- breveThetaA
+    } else {
+      #otherwise, the RIPr lies on the lOR line
+      thetaARIPr <- optim(0.5, fn = calculateKLTwoProportions,
+                          method = "L-BFGS-B", lower = 1e-4, upper = 1-1e-4,
+                          distanceFunction = calculateThetaBFromThetaAAndLOR,
+                          delta = delta,
+                          na = na, nb = nb,
+                          breveThetaA = breveThetaA, breveThetaB = breveThetaB)$par
+    }
+
+    for(i in seq_along(ya)){
+      #if point alternative coincides with H0(delta), E value for this block equals 1
+      #i.e., the E value remains the same
+      if(breveThetaA != thetaARIPr){
+        likelihoodAlternative <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                          nb1 = yb[i], nb = nb,
+                                                          thetaA = breveThetaA, thetaB = breveThetaB
+        )
+
+        likelihoodRIPr <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                   nb1 = yb[i], nb = nb,
+                                                   thetaA = thetaARIPr, thetaB = calculateThetaBFromThetaAAndLOR(thetaARIPr, delta)
+        )
+        currentE <- currentE * likelihoodAlternative/likelihoodRIPr
+      }
+
+      ciEValues <- rbind(ciEValues, data.frame(delta = delta, block = i, E = currentE))
+
+      #if we reject, we reject this delta FOR EVER (running intersection)
+      if((currentE >= 1/alpha) & runningIntersection){
+        break
+      }
+
+      #update the E variable
+      breveThetaA <- bernoulliMLTwoProportions(totalSuccess = sum(ya[1:i]),
+                                               totalFail = i*na - sum(ya[1:i]),
+                                               priorS = generalPriorValue,
+                                               priorF = generalPriorValue)
+
+      breveThetaB <- bernoulliMLTwoProportions(totalSuccess = sum(yb[1:i]),
+                                               totalFail = i*nb - sum(yb[1:i]),
+                                               priorS = generalPriorValue,
+                                               priorF = generalPriorValue)
+
+      #if the point alternative lies within H0(delta), the RIPr and the point alternative should coincide
+      if(sign(delta)*logOddsRatio(breveThetaA, breveThetaB) <= sign(delta)*delta){
+        thetaARIPr <- breveThetaA
+      } else {
+        #otherwise, the RIPr lies on the lOR line
+        thetaARIPr <- optim(0.5, fn = calculateKLTwoProportions,
+                            method = "L-BFGS-B", lower = 1e-4, upper = 1-1e-4,
+                            distanceFunction = calculateThetaBFromThetaAAndLOR,
+                            delta = delta,
+                            na = na, nb = nb,
+                            breveThetaA = breveThetaA, breveThetaB = breveThetaB)$par
+      }
+    }
+    #if we want to be fast, we can stop the first time the OR is not significant,
+    #if we search in the direction from not extreme -> extreme.
+    #Then we have found the bound, where we switch from not include to include
+    if(stopAfterBoundHasBeenFound){
+      if(currentE <= 1/alpha){
+        break
+      }
+    }
+  }
+  return(ciEValues)
 }
 
 #Main functions ---------------------------------------------------------------
