@@ -36,8 +36,6 @@ for the test.This parameter treated is treated as a nuisance.}
 Default \code{NULL}}
 }
 \value{
-
-
 Returns a list of two data matrices contains at least the following components:
 
 \describe{

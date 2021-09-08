@@ -16,26 +16,26 @@ between (and including) 0 and \code{na}, the number of observations in group a p
 \item{yb}{positive observations/ events per data block in group b: a numeric with integer values
 between (and including) 0 and \code{nb}, the number of observations in group b per block.}
 
-\item{designObj}{a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}}.}
+\item{designObj}{a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.}
 
 \item{pilot}{logical that can be set to true when performing an exploratory analysis
 without a \code{designObj}; only allows for \code{na = nb = 1}.}
 }
 \value{
-Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 following components:
 
 \describe{
   \item{n}{The realised sample size(s).}
   \item{eValue}{the e-value of the safe test.}
   \item{dataName}{a character string giving the name(s) of the data.}
-  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}}.}
+  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}()}.}
 }
 }
 \description{
 Perform a safe test for two proportions (a 2x2 contingency table test) with a
 result object retrieved through the design function for planning an experiment to compare
-two proportions in this package, \code{\link{designSafeTwoProportions}}.
+two proportions in this package, \code{\link{designSafeTwoProportions}()}.
 }
 \examples{
 #balanced design

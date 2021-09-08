@@ -19,7 +19,7 @@ tryOrFailWithNA <- function(expr, value=NA_real_) {
   )
 }
 
-#' Checks Whether a Vector of Object Inherits from the Class "try-error"
+#' Checks Whether a Vector of Object Inherits from the Class 'try-error'
 #'
 #' Checks whether any of the provided objects contains a try error.
 #'

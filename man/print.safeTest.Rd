@@ -28,7 +28,7 @@ Default \code{FALSE}}
 No returned value, called for side effects.
 }
 \description{
-Printing objects of class "safeTest" modelled after \code{\link[stats]{print.htest}}.
+Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.htest}()}.
 }
 \examples{
 safeTTest(rnorm(19), pilot=TRUE)

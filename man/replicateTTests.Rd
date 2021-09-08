@@ -59,7 +59,7 @@ the safe test.}
 \item{freqOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
 the frequentist test.}
 
-\item{nPlanFreq}{the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}}.}
+\item{nPlanFreq}{the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}()}.}
 
 \item{logging}{logical, if \code{TRUE}, then return the simulated data.}
 
@@ -87,8 +87,8 @@ least the following components:
   \item{beta}{the tolerable type II error provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
-  Acquired from \code{\link{designSafeT}}.}
-  \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}
+  Acquired from \code{\link{designSafeT}()}.}
+  \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}()}
   \item{safeSim}{list with the simulation results of the safe test under optional stopping.}
   \item{freqSim}{list with the simulation results of the frequentist test under optional stopping.}
 }

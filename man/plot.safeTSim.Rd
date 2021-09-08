@@ -2,12 +2,12 @@
 % Please edit documentation in R/tTest.R
 \name{plot.safeTSim}
 \alias{plot.safeTSim}
-\title{Plots a safeTSim Object}
+\title{Plots a 'safeTSim' Object}
 \usage{
 \method{plot}{safeTSim}(x, y = NULL, showOnlyNRejected = FALSE, nBin = 25, ...)
 }
 \arguments{
-\item{x}{a "safeDesign" object acquired from \code{\link{designSafeT}}.}
+\item{x}{a 'safeDesign' object acquired from \code{\link{designSafeT}()}.}
 
 \item{y}{\code{NULL}.}
 
@@ -21,7 +21,7 @@
 a histogram object, and called for its side-effect to plot the histogram.
 }
 \description{
-Plots a safeTSim Object
+Plots a 'safeTSim' Object
 }
 \examples{
 # Design safe test

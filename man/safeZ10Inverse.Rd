@@ -24,8 +24,8 @@ A number that represents a z-value. The function's domain is the positive real l
 is the real line, i.e., the outcome space of the z-statistic.
 }
 \description{
-This helper function is used in \code{\link{designSafeZ}} to find parameter. The function is the (two-sided)
-inverse of safeZTestStat.
+This helper function is used in \code{\link{designSafeZ}()} to find parameter. The function is the (two-sided)
+inverse of 'safeZTestStat'.
 }
 \examples{
 safeZ10Inverse(0.4, n=13)

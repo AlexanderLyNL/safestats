@@ -50,8 +50,8 @@ safeZTestStat <- function(z, parameter, n1, n2=NULL, alternative=c("two.sided", 
 
 #' Computes the Inverse of the Two-Sided Safe Z-Test
 #'
-#' This helper function is used in \code{\link{designSafeZ}} to find parameter. The function is the (two-sided)
-#' inverse of safeZTestStat.
+#' This helper function is used in \code{\link{designSafeZ}()} to find parameter. The function is the (two-sided)
+#' inverse of 'safeZTestStat'.
 #'
 #' @inheritParams safeZTestStat
 #' @inheritParams designSafeZ
@@ -73,23 +73,23 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 
 #' Safe Z-Test
 #'
-#' Safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}}.
+#' Safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
 #'
 #' @aliases safe.z.test
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
 #' @param paired a logical indicating whether you want the paired z-test.
-#' @param designObj an object obtained from \code{\link{designSafeZ}}, or \code{NULL}, when pilot is set to \code{TRUE}.
+#' @param designObj an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
-#' To change these default values, please use \code{\link{designSafeZ}}.
+#' To change these default values, please use \code{\link{designSafeZ}()}.
 #' @param ciValue numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the ciValue of
 #' the design object is used to derive the level of the confidence sequence.
 #' @param tol numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
 #' defining parameter to construct a pilot design object.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+#' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 #' following components:
 #'
 #'
@@ -105,7 +105,7 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'   or a two-sample test.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
-#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}}.}
+#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}()}.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
@@ -274,7 +274,7 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' @inheritParams designSafeZ
 #' @param lowN the smallest number of samples (first group) at which monitoring of the tests begins.
 #'
-#' @return returns a freqZDesign object.
+#' @return returns a 'freqZDesign' object.
 #' @export
 #'
 #' @examples
@@ -351,7 +351,7 @@ designFreqZ <- function(meanDiffMin, alternative=c("two.sided", "greater", "less
 #' @inheritParams designSafeZ
 #' @param paired logical, if \code{TRUE} then paired z-test.
 #'
-#' @return Returns a safeDesign object
+#' @return Returns a 'safeDesign' object
 #' \describe{
 #'   \item{nPlan}{the sample size(s) to plan for. Provided by the user.}
 #'   \item{parameter}{the safe test defining parameter. Here phiS.}

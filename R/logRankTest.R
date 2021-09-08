@@ -8,8 +8,8 @@
 #' see \code{\link[survival]{Surv}} for more details.
 #' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
 #' @param data an optional data frame in which to interpret the variables occurring in survTime and group
-#' @param survTime an optional survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
-#' a name of a column in the data set of class "Surv". Does not need specifying if a formula is provided, therefore
+#' @param survTime an optional survival time object of class 'Surv' created with \code{\link[survival]{Surv}}, or
+#' a name of a column in the data set of class 'Surv'. Does not need specifying if a formula is provided, therefore
 #' set to \code{NULL} by default.
 #' @param group an optional factor, a grouping variable. Currently, only two levels allowed. Does not need specifying
 #' if a formula is provided, therefore set to \code{NULL} by default.
@@ -22,7 +22,7 @@
 #' applied to the logrank z-statistic is used instead.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+#' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 #' following components:
 #'
 #' \describe{
@@ -699,7 +699,7 @@ logrankSingleZ <- function(obs0, obs1, y0, y1, ...) {
 #' @param y1 integer, total number of participants in the treatment group.
 #' @param y1 integer, total number of participants in the treatment group.
 #' @param thetaS numeric > 0 represents the safe test defining (GROW) alternative
-#' hypothesis obtained from \code{designSafeLogrank}.
+#' hypothesis obtained from \code{designSafeLogrank()}.
 #' @param theta0 numeric > 0 represents the null hypothesis. Default theta0=1.
 #' @param ... further arguments to be passed to or from methods.
 #'
@@ -746,9 +746,9 @@ logrankSingleEExact <- function(obs0, obs1, y0, y1, thetaS, theta0=1, ...) {
   return(result)
 }
 
-#' Computes the sufficient statistics needed to compute logrankSingleZ
+#' Computes the sufficient statistics needed to compute 'logrankSingleZ'
 #'
-#' @param survDataFrame a Surv object converted to a matrix, then to a data.frame
+#' @param survDataFrame a 'Surv' object converted to a matrix, then to a data.frame
 #' @param y0Index vector of integers corresponding to the control group
 #' @param y1Index vector of integers corresponding to the treatment group
 #' @param timeNow numeric, current time
@@ -812,11 +812,11 @@ computeStatsForLogrank <- function(survDataFrame, y0Index, y1Index, timeNow, tim
 }
 
 
-#' Helper function to computes the logrank statistic for Surv objects of type
+#' Helper function to computes the logrank statistic for 'Surv' objects of type
 #' "right" and "counting" with the hypergeometric variance.
 #'
 #' This function was created to complement \code{\link[survival]{survdiff}} from the
-#' survival package, which is restricted to Surv objects of type "right". Most likely
+#' 'survival' package, which is restricted to 'Surv' objects of type "right". Most likely
 #' \code{\link[survival]{survdiff}} is much faster
 #'
 #' @param survObj a Surv object that is either of type
@@ -1241,7 +1241,7 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
 # Auxilary functions ----
 
-#' Randomly samples from a "logrank" distribution
+#' Randomly samples from a logrank distribution
 #'
 #' Draws a number of occurences in group 1 (treatment) out of
 #' obsTotal number of occurences.

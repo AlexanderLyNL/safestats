@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{isTryError}
 \alias{isTryError}
-\title{Checks Whether a Vector of Object Inherits from the Class "try-error"}
+\title{Checks Whether a Vector of Object Inherits from the Class 'try-error'}
 \usage{
 isTryError(...)
 }

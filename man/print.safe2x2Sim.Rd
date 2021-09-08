@@ -7,7 +7,7 @@
 \method{print}{safe2x2Sim}(x, ...)
 }
 \arguments{
-\item{x}{a result object obtained through \code{\link{simulateTwoProportions}}.}
+\item{x}{a result object obtained through \code{\link{simulateTwoProportions}()}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -29,7 +29,4 @@ simResult <- simulateTwoProportions(
   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
   M = 10
   )
-
-print(simResult)
-
 }
