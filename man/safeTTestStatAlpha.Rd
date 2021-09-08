@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{safeTTestStatAlpha}
 \alias{safeTTestStatAlpha}
-\title{safeTTestStat Subtracted with 1/alpha.}
+\title{safeTTestStat() Subtracted with 1/alpha.}
 \usage{
 safeTTestStatAlpha(
   t,
