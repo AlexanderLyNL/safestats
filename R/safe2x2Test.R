@@ -30,7 +30,8 @@
 #' @param pilot logical, specifying whether it's a pilot design.
 #' @param hyperParameterValues named list containing numeric values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
 #' equivalent to \code{shape1} in \code{stats::dbeta} for groups A and B, respectively, and betaA2 and betaB2 equivalent to \code{shape2}. By default
-#' chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format: \code{(betaA1 = num1, betaA2 = num2, betaB1 = num3, betaB2 = num4)}.
+#' chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format:
+#' \code{list(betaA1 = numeric1, betaA2 = numeric2, betaB1 = numeric3, betaB2 = numeric4)}.
 #' @param M number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.
 #'
 #' @return Returns a 'safeDesign' object that includes:
@@ -555,14 +556,14 @@ getConfidenceBoundsForDifferenceTwoProportions <- function(ya,
                                                            safeDesign){
   na <- safeDesign[["nPlan"]][["na"]]
   nb <- safeDesign[["nPlan"]][["nb"]]
-  priorParameter <- safeDesign[["betaPriorParameterValues"]][["betaA1"]]
   alpha <- safeDesign[["alpha"]]
 
-  #TODO adjust for use of non-uniform priors
   eValuesDeltaGrid <- calculateEValuesForLinearDeltaGrid(ya = ya, yb = yb,
                                                          na = na, nb = nb,
-                                                         generalPriorValue = priorParameter,
-                                                         precision = precision, alpha = alpha, runningIntersection = TRUE)
+                                                         generalPriorValue = safeDesign[["betaPriorParameterValues"]],
+                                                         precision = precision,
+                                                         alpha = alpha,
+                                                         runningIntersection = TRUE)
   #include in the CS: not rejected delta values
   ciSummary <- eValuesDeltaGrid %>%
     dplyr::filter(E < 1/alpha) %>%
@@ -1030,11 +1031,12 @@ calculateKLTwoProportions <- function(candidateThetaA, distanceFunction, delta, 
 derivativeKLTwoProportionsLinear <- function(candidateThetaA, delta, na, nb, breveThetaA, breveThetaB, c = 1){
   candidateThetaB <- candidateThetaA + delta
 
-  na*((1 - breveThetaA)/(1 - candidateThetaA) - breveThetaA/candidateThetaA) + nb*c*((1 - breveThetaB)/(1 - candidateThetaB) - breveThetaB/candidateThetaB)
+  na*((1 - breveThetaA)/(1 - candidateThetaA) - breveThetaA/candidateThetaA) +
+    nb*c*((1 - breveThetaB)/(1 - candidateThetaB) - breveThetaB/candidateThetaB)
 }
 
 calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
-                                               generalPriorValue = 1,
+                                               priorParameters,
                                                precision = 10,
                                                alpha = 0.05,
                                                runningIntersection = TRUE){
@@ -1045,13 +1047,13 @@ calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
     currentE <- 1
     breveThetaA <- bernoulliMLTwoProportions(totalSuccess = 0,
                                              totalFail = 0,
-                                             priorS = generalPriorValue,
-                                             priorF = generalPriorValue)
+                                             priorS = priorParameters[["betaA1"]],
+                                             priorF = priorParameters[["betaA2"]])
 
     breveThetaB <- bernoulliMLTwoProportions(totalSuccess = 0,
                                              totalFail = 0,
-                                             priorS = generalPriorValue,
-                                             priorF = generalPriorValue)
+                                             priorS = priorParameters[["betaB1"]],
+                                             priorF = priorParameters[["betaB2"]])
 
     thetaARIPr <- tryOrFailWithNA(stats::uniroot(derivativeKLTwoProportionsLinear,
                                           interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
@@ -1060,8 +1062,9 @@ calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
                                           breveThetaA = breveThetaA,
                                           breveThetaB = breveThetaB)$root)
 
-
+    #loop over all observed data
     for(i in seq_along(ya)){
+      #if RIPr could not be determined, skip this iteration. E-value stays 1
       if(!is.na(thetaARIPr)){
         likelihoodAlternative <- likelihoodTwoProportions(na1 = ya[i], na = na,
                                                           nb1 = yb[i], nb = nb,
@@ -1075,21 +1078,22 @@ calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
       }
 
 
-      #if we reject, we reject this delta FOR EVER
+      #if we reject, we reject this delta FOR EVER in the running intersection
+      #do not need to loop over the rest of the data
       if((currentE >= 1/alpha) & runningIntersection){
         break
       }
 
-      #update the E variable
+      #update the E variable for the next data block
       breveThetaA <- bernoulliMLTwoProportions(totalSuccess = sum(ya[1:i]),
                                                totalFail = i*na - sum(ya[1:i]),
-                                               priorS = generalPriorValue,
-                                               priorF = generalPriorValue)
+                                               priorS = priorParameters[["betaA1"]],
+                                               priorF = priorParameters[["betaA2"]])
 
       breveThetaB <- bernoulliMLTwoProportions(totalSuccess = sum(yb[1:i]),
                                                totalFail = i*nb - sum(yb[1:i]),
-                                               priorS = generalPriorValue,
-                                               priorF = generalPriorValue)
+                                               priorS = priorParameters[["betaB1"]],
+                                               priorF = priorParameters[["betaB2"]])
 
       thetaARIPr <- tryOrFailWithNA(stats::uniroot(derivativeKLTwoProportionsLinear, interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
                                             delta = delta,
@@ -1104,13 +1108,21 @@ calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
 
 calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
                                              lowerBound = TRUE,
-                                             generalPriorValue = 1,
+                                             priorParameters,
                                              precision = 10,
                                              deltaStart = 0,
                                              deltaStop = 10,
                                              alpha = 0.05,
                                              runningIntersection = TRUE,
                                              stopAfterBoundHasBeenFound = FALSE){
+  if(lowerBound & any(c(deltaStart, deltaStop) < 0)){
+    stop("Cannot check for negative bound values when assessing lower bound.")
+  }
+
+  if(!lowerBound & any(c(deltaStart, deltaStop) > 0)){
+    stop("Cannot check for positive bound values when assessing upper bound.")
+  }
+
   deltaVector <- seq(deltaStart, deltaStop, length.out = precision)
   ciEValues <- data.frame()
 
@@ -1118,13 +1130,13 @@ calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
     currentE <- 1
     breveThetaA <- bernoulliMLTwoProportions(totalSuccess = 0,
                                              totalFail = 0,
-                                             priorS = generalPriorValue,
-                                             priorF = generalPriorValue)
+                                             priorS = priorParameters[["betaA1"]],
+                                             priorF = priorParameters[["betaA2"]])
 
     breveThetaB <- bernoulliMLTwoProportions(totalSuccess = 0,
                                              totalFail = 0,
-                                             priorS = generalPriorValue,
-                                             priorF = generalPriorValue)
+                                             priorS = priorParameters[["betaB1"]],
+                                             priorF = priorParameters[["betaB2"]])
 
     #if the point alternative lies within H0(delta), the RIPr and the point alternative should coincide
     if(sign(delta)*logOddsRatio(breveThetaA, breveThetaB) <= sign(delta)*delta){
@@ -1165,13 +1177,13 @@ calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
       #update the E variable
       breveThetaA <- bernoulliMLTwoProportions(totalSuccess = sum(ya[1:i]),
                                                totalFail = i*na - sum(ya[1:i]),
-                                               priorS = generalPriorValue,
-                                               priorF = generalPriorValue)
+                                               priorS = priorParameters[["betaA1"]],
+                                               priorF = priorParameters[["betaA2"]])
 
       breveThetaB <- bernoulliMLTwoProportions(totalSuccess = sum(yb[1:i]),
                                                totalFail = i*nb - sum(yb[1:i]),
-                                               priorS = generalPriorValue,
-                                               priorF = generalPriorValue)
+                                               priorS = priorParameters[["betaA1"]],
+                                               priorF = priorParameters[["betaA2"]])
 
       #if the point alternative lies within H0(delta), the RIPr and the point alternative should coincide
       if(sign(delta)*logOddsRatio(breveThetaA, breveThetaB) <= sign(delta)*delta){
