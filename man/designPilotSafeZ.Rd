@@ -13,7 +13,8 @@ designPilotSafeZ(
   h0 = 0,
   kappa = sigma,
   tol = 1e-05,
-  paired = FALSE
+  paired = FALSE,
+  parameter = NULL
 )
 }
 \arguments{
@@ -38,6 +39,8 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
 \item{paired}{logical, if \code{TRUE} then paired z-test.}
+
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 }
 \value{
 Returns a 'safeDesign' object
