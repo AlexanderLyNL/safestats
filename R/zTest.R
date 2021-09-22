@@ -3,7 +3,7 @@
 #' Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
 #'
 #' @param z numeric that represents the observed z-statistic.
-#' @param parameter numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
+#' @param phiS numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
 #' denominator the likelihood with mean difference 0 and in the numerator an average likelihood defined by
 #' the likelihood at the parameter value. For the two sided case 1/2 at the parameter value and 1/2 at minus the
 #' parameter value.
@@ -22,23 +22,35 @@
 #' @export
 #'
 #' @examples
-#' safeZTestStat(z=1, n1=100, parameter=0.4)
-#' safeZTestStat(z=3, n1=100, parameter=0.3)
-safeZTestStat <- function(z, parameter, n1, n2=NULL, alternative=c("two.sided", "less", "greater"),
+#' safeZTestStat(z=1, n1=100, phiS=0.4)
+#' safeZTestStat(z=3, n1=100, phiS=0.3)
+safeZTestStat <- function(z, phiS, n1, n2=NULL, alternative=c("two.sided", "less", "greater"),
                           paired=FALSE, sigma=1, ...) {
   alternative <- match.arg(alternative)
-
-  phiS <- parameter
 
   if (is.null(n2) || is.na(n2) || paired==TRUE)
     nEff <- n1
   else
     nEff <- (1/n1+1/n2)^(-1)
 
-  if (alternative=="two.sided") # two-sided
+  if (alternative=="two.sided") { # two-sided
     result <- exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z)
-  else # one-sided
+  } else { # one-sided
+    if (alternative=="greater" && phiS < 0) {
+      phiS <- -phiS
+
+      warning('phiS < 0 incongruent with alternative "greater".',
+              "phiS set to -phiS > 0 in order to compare H+: meanDiff > 0 ",
+              "against H0 : meanDiff = 0")
+    } else if (alternative=="less" && phiS > 0) {
+      phiS <- -phiS
+
+      warning('phiS > 0 incongruent with alternative "less".',
+              "phiS set to -phiS < 0 in order to compare H-: meanDiff > 0 ",
+              "against H0 : meanDiff = 0")
+    }
     result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
+  }
 
   if (result < 0) {
     warning("Overflow: e-value smaller than 0")
@@ -201,7 +213,7 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
     warning('The test type of designObj is "', designObj[["testType"]],
             '", whereas the data correspond to a testType "', testType, '"')
 
-  eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
+  eValue <- safeZTestStat("z"=zStat, "phiS"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
                           "alternative"=alternative, "paired"=paired)
 
   argumentNames <- getArgs()
@@ -222,7 +234,7 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   result[["designObj"]] <- designObj
 
   result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                                    "phiS"=abs(designObj[["parameter"]]),
+                                                    "phiS"=designObj[["parameter"]],
                                                     "sigma"=sigma, "ciValue"=designObj[["ciValue"]],
                                                     "alternative"="two.sided")
 
@@ -375,7 +387,7 @@ designFreqZ <- function(meanDiffMin, alternative=c("two.sided", "greater", "less
 #' designPilotSafeZ(nPlan=30, alpha = 0.05)
 designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"),
                              alpha=0.05, ciValue=0.95, sigma=1, h0=0, kappa=sigma, tol=1e-5,
-                             paired=FALSE) {
+                             paired=FALSE, parameter=NULL) {
 
   alternative <- match.arg(alternative)
   stopifnot(all(nPlan > 0))
@@ -414,31 +426,33 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
     }
   }
 
-  result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=NULL, "alpha"=alpha, "beta"=NULL,
+  result <- list("nPlan"=nPlan, "parameter"=parameter, "esMin"=NULL, "alpha"=alpha, "beta"=NULL,
                  "h0"=h0, "sigma"=sigma, "alternative"=alternative, "ciValue"=ciValue, "testType"=testType,
                  "paired"=paired, "kappa"=kappa, "ratio"=ratio, "tol"=tol, "pilot"=FALSE,
                  "call"=sys.call(), "timeStamp"=Sys.time())
 
   class(result) <- "safeDesign"
 
-  phiSPlus0 <- sigma*sqrt(2/nEff*log(1/alpha))
+  if (is.null(parameter)) {
+    phiSPlus0 <- sigma*sqrt(2/nEff*log(1/alpha))
 
-  if (alternative == "two.sided") {
-    phiS10 <- sigma*sqrt(2/nEff*log(2/alpha))
+    if (alternative == "two.sided") {
+      phiS10 <- sigma*sqrt(2/nEff*log(2/alpha))
 
-    candidatePhi <- seq(phiSPlus0, phiS10, by=tol)
+      candidatePhi <- seq(phiSPlus0, phiS10, by=tol)
 
-    safeZInverseValues <- purrr::map_dbl(candidatePhi, safeZ10Inverse, "nEff"=nEff, "sigma"=sigma, "alpha"=alpha)
+      safeZInverseValues <- purrr::map_dbl(candidatePhi, safeZ10Inverse, "nEff"=nEff, "sigma"=sigma, "alpha"=alpha)
 
-    phiIndex <- which.min(safeZInverseValues)
+      phiIndex <- which.min(safeZInverseValues)
 
-    result[["parameter"]] <- candidatePhi[phiIndex]
-  } else {
+      result[["parameter"]] <- candidatePhi[phiIndex]
+    } else {
 
-    if (alternative=="less")
-      phiSPlus0 <- -phiSPlus0
+      if (alternative=="less")
+        phiSPlus0 <- -phiSPlus0
 
-    result[["parameter"]] <- phiSPlus0
+      result[["parameter"]] <- phiSPlus0
+    }
   }
 
   names(result[["parameter"]]) <- "phiS"
@@ -519,18 +533,36 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
-  if (meanDiffMin < 0 && alternative=="greater") {
-    warning('Minimum mean difference < 0 incongruent with alternative "greater".',
-            "meanDiffMin set to -meanDiffMin > 0 in order to compare H+: meanDiff > 0 ",
-            "against H0 : meanDiff = 0")
-    meanDiffMin <- -meanDiffMin
+  if (!is.null(parameter)) {
+    if (parameter < 0 && alternative=="greater") {
+      warning('Minimum mean difference < 0 incongruent with alternative "greater".',
+              "parameter set to -parameter > 0 in order to compare H+: meanDiff > 0 ",
+              "against H0 : meanDiff = 0")
+      parameter <- -parameter
+    }
+
+    if (parameter > 0 && alternative=="less") {
+      warning('Minimum mean difference > 0 incongruent with alternative "less".',
+              "parameter set to -parameter < 0 in order to compare H-: meanDiff < 0 ",
+              "against H0 : meanDiff = 0")
+      parameter <- -parameter
+    }
   }
 
-  if (meanDiffMin > 0 && alternative=="less") {
-    warning('Minimum mean difference > 0 incongruent with alternative "less".',
-            "meanDiffMin set to -meanDiffMin < 0 in order to compare H-: meanDiff < 0 ",
-            "against H0 : meanDiff = 0")
-    meanDiffMin <- -meanDiffMin
+  if (!is.null(meanDiffMin)) {
+    if (meanDiffMin < 0 && alternative=="greater") {
+      warning('Minimum mean difference < 0 incongruent with alternative "greater".',
+              "meanDiffMin set to -meanDiffMin > 0 in order to compare H+: meanDiff > 0 ",
+              "against H0 : meanDiff = 0")
+      meanDiffMin <- -meanDiffMin
+    }
+
+    if (meanDiffMin > 0 && alternative=="less") {
+      warning('Minimum mean difference > 0 incongruent with alternative "less".',
+              "meanDiffMin set to -meanDiffMin < 0 in order to compare H-: meanDiff < 0 ",
+              "against H0 : meanDiff = 0")
+      meanDiffMin <- -meanDiffMin
+    }
   }
 
   paired <- if (testType=="paired") TRUE else FALSE
@@ -540,7 +572,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   tempResult <- list()
 
   if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan)) {
-    # Scenario "1a"
     designScenario <- "1a"
 
     tempResult <- computeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha,
@@ -551,7 +582,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     nPlan <- tempResult[["nPlan"]]
     phiS <- tempResult[["phiS"]]
   } else if (!is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
-    # Scenario "1b"
     designScenario <- "1b"
 
     tempResult <- computeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha,
@@ -563,13 +593,11 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     beta <- NULL
     meanDiffMin <- meanDiffMin
   } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
-    # Scenario "1c"
     designScenario <- "1c"
 
     return(designPilotSafeZ("nPlan"=nPlan, "alpha"=alpha, "alternative"=alternative,
-                            "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired))
+                            "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired, "parameter"=parameter))
   } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
-    # Scenario 2
     designScenario <- "2"
 
     beta <- tryOrFailWithNA(
@@ -580,7 +608,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     phiS <- if (is.null(parameter)) meanDiffMin else parameter
 
   } else if (is.null(meanDiffMin) && !is.null(beta) && !is.null(nPlan)) {
-    # Scenario 3
     designScenario <- "3"
 
     meanDiffMin <- tryOrFailWithNA(
@@ -618,9 +645,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   names(result[["esMin"]]) <- "mean difference"
   names(result[["h0"]]) <- "mu"
-    # switch(alternative, "two.sided"="mean differences at least abs(phi)",
-    #        "less"="mean differences smaller than phi",
-    #        "greater"="mean differences larger than phi")
 
   for (neem in c("lowN", "highN", "lowParam", "highParam", "nEffPlan")) {
     value <- tempResult[[neem]]
@@ -656,7 +680,7 @@ computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.
   if (!is.null(a) && !is.null(g)) {
     # Note(Alexander): Here normal distribution not centred at null
     if (alternative != "two.sided")
-      stop("Not implemented")
+      stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
 
     shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanStat-a)^2/(1+nEff*g))
     lowerCS <- meanStat - shift
@@ -705,6 +729,9 @@ computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.
   # }
   return(unname(c(lowerCS, upperCS)))
 }
+
+
+
 # Helpers ------
 
 

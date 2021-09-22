@@ -99,6 +99,7 @@ in the design object pertains to the population and is allowed to differ from lo
 
 \examples{
 # Example taken from survival::survdiff
+
 designObj <- designSafeLogrank(hrMin=1/2)
 
 ovData <- survival::ovarian
@@ -186,6 +187,14 @@ for (i in 1:4) {
     stop("Computation of the left-truncated logrank z-score is wrong")
 }
 
+
+sumStatResult <- safeLogrankTestStat(z=interimResult$sumStats$z,
+                                     nEvents=interimResult$sumStats$nEvents,
+                                     designObj=designObj)
+
+if (!all.equal(interimResult$confSeq, sumStatResult$confSeq))
+  stop("safeLogrankTestStat error")
+
 ###### Example switching between safe exact and safe Gaussian logrank test
 
 designObj <- designSafeLogrank(0.8, alternative="less")
@@ -202,10 +211,9 @@ resultG <- safeLogrankTest(survTime ~ dat$group,
 resultE
 resultG
 
-
 ###### Example switching between safe exact and safe Gaussian logrank test other side
 
-designObj <- designSafeLogrank(0.8, alternative="greater")
+designObj <- designSafeLogrank(1/0.8, alternative="greater")
 
 resultE <- safeLogrankTest(survTime ~ dat$group,
                            designObj = designObj)
@@ -215,4 +223,5 @@ resultG <- safeLogrankTest(survTime ~ dat$group,
 
 if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
   stop("one-sided wrong")
+
 }

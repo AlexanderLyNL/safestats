@@ -41,6 +41,7 @@
 #'
 #' @examples
 #' # Example taken from survival::survdiff
+#'
 #' designObj <- designSafeLogrank(hrMin=1/2)
 #'
 #' ovData <- survival::ovarian
@@ -128,6 +129,14 @@
 #'     stop("Computation of the left-truncated logrank z-score is wrong")
 #' }
 #'
+#'
+#' sumStatResult <- safeLogrankTestStat(z=interimResult$sumStats$z,
+#'                                      nEvents=interimResult$sumStats$nEvents,
+#'                                      designObj=designObj)
+#'
+#' if (!all.equal(interimResult$confSeq, sumStatResult$confSeq))
+#'   stop("safeLogrankTestStat error")
+#'
 #' ###### Example switching between safe exact and safe Gaussian logrank test
 #'
 #' designObj <- designSafeLogrank(0.8, alternative="less")
@@ -144,10 +153,9 @@
 #' resultE
 #' resultG
 #'
-#'
 #' ###### Example switching between safe exact and safe Gaussian logrank test other side
 #'
-#' designObj <- designSafeLogrank(0.8, alternative="greater")
+#' designObj <- designSafeLogrank(1/0.8, alternative="greater")
 #'
 #' resultE <- safeLogrankTest(survTime ~ dat$group,
 #'                            designObj = designObj)
@@ -157,6 +165,7 @@
 #'
 #' if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
 #'   stop("one-sided wrong")
+#'
 safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, survTime=NULL,
                             group=NULL, pilot=FALSE, exact=TRUE, computeZ=TRUE, ...) {
 
@@ -329,11 +338,11 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
     # but to avoid rounding erros zStat is used instead
     zStat <- zStat - sqrt(nEff)*(log(h0))
 
-    eValue <- safeZTestStat("z"=zStat, "parameter"=phiS, "n1"=nEff,
+    eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff,
                             "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
 
     tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                              "phiS"=abs(phiS), "sigma"=1,
+                                              "phiS"=phiS, "sigma"=1,
                                               "ciValue"=ciValue, "alternative"="two.sided")
 
     result[["confSeq"]] <- exp(tempConfSeq)
@@ -382,21 +391,22 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
   # Note(Alexander): Assumed the data are centred at log(hr)=0 and standardised,
   # thus, sigma = 1 data scale
   if (length(z)==1) {
-    meanStat <- sigma*z/sqrt(nEff)+log(dataNull)
+    meanStat <- sigma*z/sqrt(nEff) + log(dataNull)
+    # TODO(Alexander): For the standard version with h0 = 1 this doesn't matter at all of course
+    #                  Do check when dataNull different from population null again
     zStat <- z - sqrt(nEff)/sigma*log(designObj[["h0"]])
   } else {
     meanStat <- sum(sigma*z/sqrt(nEff)+log(dataNull))/sum(nEff)
     zStat <- sqrt(nEff)/sigma*(meanStat - log(designObj[["h0"]]))
   }
 
-  eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=nEff,
-                          "n2"=NULL, "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1)
+  phiS <- log(designObj[["parameter"]])
 
+  eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff, "n2"=NULL,
+                          "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1)
 
-  tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                            "phiS"=abs(designObj[["parameter"]]), "sigma"=1,
-                                            "ciValue"=ciValue,
-                                            "alternative"="two.sided")
+  tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat, "phiS"=phiS,
+                                            "sigma"=1, "ciValue"=ciValue, "alternative"="two.sided")
 
   result[["confSeq"]] <- exp(tempConfSeq)
 
@@ -486,16 +496,32 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
   alternative <- match.arg(alternative)
 
-  if (hrMin < 1 && alternative=="greater") {
-    warning('Minimum hazard ratio < 1 incongruent with alternative "greater".',
-            "hrMin set to 1/hrMin > 1 in order to compare H+: hazardRatio > 1 against H0: hazardRatio =1")
-    hrMin <- 1/hrMin
+  if (!is.null(hrMin)) {
+    if (hrMin < 1 && alternative=="greater") {
+      warning('Minimum hazard ratio < 1 incongruent with alternative "greater".',
+              "hrMin set to 1/hrMin > 1 in order to compare H+: hazardRatio > 1 against H0: hazardRatio =1")
+      hrMin <- 1/hrMin
+    }
+
+    if (hrMin > 1 && alternative=="less") {
+      warning('Minimum hazard ratio > 1 incongruent with alternative "less".',
+              "hrMin set to 1/hrMin < 1 in order to compare H-: hazardRatio < 1 against H0: hazardRatio =1")
+      hrMin <- 1/hrMin
+    }
   }
 
-  if (hrMin > 1 && alternative=="less") {
-    warning('Minimum hazard ratio > 1 incongruent with alternative "less".',
-            "hrMin set to 1/hrMin < 1 in order to compare H-: hazardRatio < 1 against H0: hazardRatio =1")
-    hrMin <- 1/hrMin
+  if (!is.null(parameter)) {
+    if (hrMin < 1 && alternative=="greater") {
+      warning('parameter < 1 incongruent with alternative "greater".',
+              "parameter set to 1/parameter > 1 in order to compare H+: hazardRatio > 1 against H0: hazardRatio =1")
+      parameter <- 1/parameter
+    }
+
+    if (parameter > 1 && alternative=="less") {
+      warning('parameter > 1 incongruent with alternative "less".',
+              "parameter set to 1/parameter < 1 in order to compare H-: hazardRatio < 1 against H0: hazardRatio =1")
+      parameter <- 1/parameter
+    }
   }
 
   thetaS <- if (is.null(parameter)) hrMin else parameter
@@ -515,7 +541,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     safeZObj <- designSafeZ("meanDiffMin"=meanDiffMin , "beta"=beta,
                             "alpha"=alpha, "nPlan"=nEvents,
                             "alternative"=alternative,
-                            "sigma"=1, "testType"="oneSample", "parameter"=log(thetaS))
+                            "sigma"=1, "testType"="oneSample")
 
     nEvents <- safeZObj[["nPlan"]]
     safeZObj[["nPlan"]] <- NULL
@@ -560,7 +586,6 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     bootObj <- NULL
 
     if (!is.null(hrMin) && !is.null(beta) && is.null(nEvents)) {
-      # Scenario "1a"
       designScenario <- "1a"
 
       tempResult <- computeLogrankNEvents("hrMin"=hrMin, "beta"=beta, "m0"=m0, "m1"=m1, "alpha"=alpha,
@@ -570,11 +595,9 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       nEvents <- tempResult[["nEvents"]]
       bootObj <- tempResult[["bootObj"]]
     } else if (!is.null(hrMin) && is.null(beta) && is.null(nEvents)) {
-      # Scenario "1b"
       designScenario <- "1b"
     } else if (is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
-      # Scenario "1c"
-      # designScenario <- "1c"
+      designScenario <- "1c"
 
       # TODO(Alexander):
       # - For the case with only nEvents,
@@ -586,7 +609,6 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       # return(designPilotSafeZ("nPlan"=nPlan, "alpha"=alpha, "alternative"=alternative,
       #                         "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired))
     } else if (!is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
-      # Scenario 2
       designScenario <- "2"
 
       tempResult <- computeLogrankBetaFrom("hrMin"=hrMin, "nEvents"=nEvents, "m0"=m0, "m1"=m1, "alpha"=alpha,
@@ -597,8 +619,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       beta <- tempResult[["beta"]]
       bootObj <- tempResult[["bootObj"]]
     } else if (is.null(hrMin) && !is.null(beta) && !is.null(nEvents)) {
-      # Scenario 3
-      # designScenario <- "3"
+      designScenario <- "3"
 
       warning("Designs without minimal clinically relevant hazard ratios not yet implemented")
     }
