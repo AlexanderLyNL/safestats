@@ -1151,7 +1151,7 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
   n1Plan <- NULL
   n2Plan <- NULL
 
-  nEffToN1Ratio <- if (testType=="twoSample") (1+ratio)/ratio else 1
+  n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
   if (designScenario=="1a") {
     if (grow) {
@@ -1174,8 +1174,8 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
       }
 
       if (testType == "twoSample") {
-        n1Plan <- ceiling(nEff * nEffToN1Ratio)
-        n2Plan <- ceiling(nEff * nEffToN1Ratio * ratio)
+        n1Plan <- ceiling(nEff * n1OverNEffRatio)
+        n2Plan <- ceiling(nEff * n1OverNEffRatio * ratio)
       } else {
         n1Plan <- ceiling(nEff)
         n2Plan <- if (testType == "paired") n1Plan else NULL
@@ -1200,8 +1200,8 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
         #
         #
         if (testType == "twoSample") {
-          n1Plan <- ceiling(nEffExact*nEffToN1Ratio)
-          n2Plan <- ceiling(nEffExact*nEffToN1Ratio*ratio)
+          n1Plan <- ceiling(nEffExact*n1OverNEffRatio)
+          n2Plan <- ceiling(nEffExact*n1OverNEffRatio*ratio)
           nEff <- (1/n1Plan+1/n2Plan)^(-1)
         } else {
           n1Plan <- ceiling(nEffExact)
@@ -1225,8 +1225,8 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
 
         # Note(Alexander): Translate to lower and upper bound in terms of n1
         #
-        lowN <- floor(nEffExact*nEffToN1Ratio)
-        highN <- ceiling(nEffExactUpper*nEffToN1Ratio)
+        lowN <- floor(nEffExact*n1OverNEffRatio)
+        highN <- ceiling(nEffExactUpper*n1OverNEffRatio)
 
         # This shouldn't occur
         if (is.na(highN))
@@ -1254,7 +1254,7 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
         }
 
         candidateN1 <- highN
-        candidateNEff <- candidateN1/nEffToN1Ratio
+        candidateNEff <- candidateN1/n1OverNEffRatio
 
         continueWhile <- TRUE
 
@@ -1265,14 +1265,14 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
 
           if (isTRUE(continueWhile)) {
             candidateN1 <- candidateN1 - 1
-            candidateNEff <- candidateN1/nEffToN1Ratio
+            candidateNEff <- candidateN1/n1OverNEffRatio
           } else {
             candidateN1 <- candidateN1 + 1
             break()
           }
         }
 
-        nEff <- candidateN1/nEffToN1Ratio
+        nEff <- candidateN1/n1OverNEffRatio
 
         if (testType=="twoSample") {
           n1Plan <- ceiling(candidateN1)
