@@ -16,6 +16,8 @@ knitr::opts_chunk$set(
   fig.height = 4,
   fig.width = 8
 )
+
+library(safestats)
 ```
 
 ## Introduction
@@ -254,7 +256,7 @@ optionalStoppingResultTrueDifferenceNull[["powerOptioStop"]]
 #### Classical test "Fisher's exact test" under the null with optional stopping
 Optional stopping, however, causes Fisher's exact test to overreject the null. When the null is true, the rate of incorrect null rejections exceeds the tolerable $\alpha$-level:
 ```{r}
-optionalStoppingWrongFisher <- simulateIncorrectstoppingTimesFisher(thetaA = 0.5,
+optionalStoppingWrongFisher <- simulateIncorrectStoppingTimesFisher(thetaA = 0.5,
                                      thetaB = 0.5, 
                                      alpha = 0.05, 
                                      na = balancedSafeDesign[["nPlan"]][["na"]],
@@ -337,7 +339,7 @@ graphics::plot(nullHist, xlim = c(0, max(newEValuesNull)),
 We still keep our type-I error probability guarantee: we have not rejected the null in any of the follow-up experiments.
 
 ## 4. <a name="confInt"></a>Confidence intervals
-Equivalently to how we were allowed to look at our e-value and decide to stop at any time in the experiments above, we can also use e-values to construct *always valid confidence sequences*. This means that each time a data block has come in, we can calculate a confidence interval using safe statistics. Independent of the stopping rule one wishes to use, we know that if we construct the confidence sequence with significance level $\alpha$, the probability the true value of the measure is not included in the confidence interval is bounded by that $\alpha$ .  
+Equivalently to how we were allowed to look at our e-value and decide to stop at any time in the experiments above, we can also use e-values to construct *anytime valid confidence sequences*. This means that each time a data block has come in, we can calculate a confidence interval using safe statistics. Independent of the stopping rule one wishes to use, we know that if we construct the confidence sequence with significance level $\alpha$, the probability the true value of the measure is not included in the confidence interval is bounded by that $\alpha$ .  
 
 For the two-by-two contingency tables, we have developed confidence sequences for two measures of interest: the difference between the success rates in the groups, and the logarithm of the odds ratio between the groups (similar to the relative risk ratio). The mathematical details can be found in section 7.3 of [Turner et al., 2021](https://arxiv.org/abs/2106.02693); we will here instead focus on some practical examples.
 
@@ -357,7 +359,7 @@ The above plot shows that in our confidence sequence, from time point 35 onwards
 We can check that our confidence sequence indeed offers the $1 - \alpha$ guarantee and includes the difference between the two success probabilities of $0.3$ in at least 95% of simulated scenarios:
 
 ```{r}
-simulateConfidenceDifferenceTwoProportions(successProbabilityA = 0.2,
+simulateCoverageDifferenceTwoProportions(successProbabilityA = 0.2,
                                            trueDelta = 0.3,
                                            safeDesign = balancedSafeDesign,
                                            numberForSeed = 1082021)
@@ -375,26 +377,26 @@ log(0.5/0.5 * 0.8/0.2)
 
 We can estimate a lower bound for the log of the odds ratio based on the data. We have to provide the interval to search over, and the precision to search with for this lower bound.
 ```{r}
-getOneSidedCIForOdds(ya = ya,
-                     yb = yb, 
-                     safeDesign = balancedSafeDesign,
-                     bound = "lower", 
-                     precision = 100, 
-                     deltaStart = 0.001, 
-                     deltaStop = 2)
+getConfidenceBoundForLogOddsTwoProportions(ya = ya,
+                                           yb = yb, 
+                                           safeDesign = balancedSafeDesign,
+                                           bound = "lower", 
+                                           precision = 100, 
+                                           deltaStart = 0.001, 
+                                           deltaStop = 2)
 ```
 
 We see that the true log odds ratio lies above this lower bound, and that an odds ratio of 0 is not included in the confidence interval.
 
 When the user accidentally asks for the "wrong" type of bound to be calculated, for example, for an upper bound when the ML estimate of the logarithm of the odds ratio is positive, a warning message is displayed:
 ```{r}
-getOneSidedCIForOdds(ya = ya,
-                     yb = yb, 
-                     safeDesign = balancedSafeDesign,
-                     bound = "upper", 
-                     precision = 10, 
-                     deltaStart = -0.01, 
-                     deltaStop = -2)
+getConfidenceBoundForLogOddsTwoProportions(ya = ya,
+                                           yb = yb, 
+                                           safeDesign = balancedSafeDesign,
+                                           bound = "upper", 
+                                           precision = 10, 
+                                           deltaStart = -0.01, 
+                                           deltaStop = -2)
 ```
 
 As with the difference confidence sequence, we can visualize how the confidence sequence converges over the data blocks:
@@ -410,6 +412,6 @@ plotConfidenceSequenceTwoProportions(ya = ya,
 ```
 
 ## References
-<a name = "TurnerRef"></a>1. Rosanne Turner, Alexander Ly, and Peter Grünwald. Safe tests and always-validconfidence intervals for contingency tables and beyond, 2021. [https://arxiv.org/abs/2106.02693](https://arxiv.org/abs/2106.02693)
+<a name = "TurnerRef"></a>1. Rosanne Turner, Alexander Ly, and Peter Grünwald. Two-Sample Tests that are Safe under Optional Stopping, with an Application to Contingency Tables, 2021. [https://arxiv.org/abs/2106.02693](https://arxiv.org/abs/2106.02693)
 
 <a name = "originalSafeTest"></a>2. Peter Grünwald, Rianne de Heide and Wouter Koolen. Safe testing, 2019. [https://arxiv.org/abs/1906.07801](https://arxiv.org/abs/1906.07801)

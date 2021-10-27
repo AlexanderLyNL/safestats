@@ -14,6 +14,7 @@ designSafeTwoProportions(
   alpha = 0.05,
   pilot = "FALSE",
   hyperParameterValues = NULL,
+  previousSafeTestResult = NULL,
   M = 1000
 )
 }
@@ -40,7 +41,11 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{hyperParameterValues}{named list containing numeric values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
 equivalent to \code{shape1} in \code{stats::dbeta} for groups A and B, respectively, and betaA2 and betaB2 equivalent to \code{shape2}. By default
-chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format: \code{(betaA1 = num1, betaA2 = num2, betaB1 = num3, betaB2 = num4)}.}
+chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format:
+\code{list(betaA1 = numeric1, betaA2 = numeric2, betaB1 = numeric3, betaB2 = numeric4)}.}
+
+\item{previousSafeTestResult}{optionally, a previous safe test result can be provided. The posterior
+of the hyperparameters of this test is then used for the hyperparameter settings. Default NULL.}
 
 \item{M}{number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.}
 }
