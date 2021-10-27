@@ -124,6 +124,7 @@ designSafeTwoProportions <- function(na, nb,
   }
 
   names(priorValuesForPrint) <- "Beta hyperparameters"
+  impliedTarget <- NULL
 
   #Check each possible design scenario
   if (is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && !is.null(beta)) {
@@ -138,12 +139,14 @@ designSafeTwoProportions <- function(na, nb,
     pilot <- TRUE
   } else if (!is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && is.null(beta)) {
     #scenario 2: given effect size and nPlan, calculate power
-    beta <- 1 - simulateWorstCaseQuantileTwoProportions(delta = delta,
-                                         na = na, nb = nb,
-                                         priorValues = hyperParameterValues,
-                                         alternativeRestriction = alternativeRestriction,
-                                         maxSimStoptime = nBlocksPlan,
-                                         alpha = alpha, beta = 0, M = M)[["worstCasePower"]]
+    worstCaseSimulationResult <- simulateWorstCaseQuantileTwoProportions(delta = delta,
+                                                                         na = na, nb = nb,
+                                                                         priorValues = hyperParameterValues,
+                                                                         alternativeRestriction = alternativeRestriction,
+                                                                         maxSimStoptime = nBlocksPlan,
+                                                                         alpha = alpha, beta = 0, M = M)
+    beta <- 1 - worstCaseSimulationResult[["worstCasePower"]]
+    impliedTarget <- worstCaseSimulationResult[["impliedTarget"]]
   } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && !is.null(beta)) {
     #scenario 3: given power and nPlan, calculate minimal effect size to be "detected"
     delta <- simulateWorstCaseDeltaTwoProportions(na = na, nb = nb, priorValues = hyperParameterValues,
@@ -180,6 +183,7 @@ designSafeTwoProportions <- function(na, nb,
                  "betaPriorParameterValues" = hyperParameterValues,
                  "alpha"=alpha,
                  "beta"=beta,
+                 "impliedTarget" = impliedTarget,
                  "esMin" = delta,
                  "h0"= h0,
                  "testType"=testType,
@@ -1513,8 +1517,8 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
     #if delta < 0, reparameterize + translate
     thetaAVec <- rhoGrid*(1 - abs(delta)) - ifelse(delta < 0, delta, 0)
   }
-  CurrentWorstCaseQuantile <- 0
-  CurrentWorstCasePower <- 1
+  currentWorstCaseQuantile <- 0
+  currentWorstCasePower <- currentImpliedTarget <- 1
 
   message(paste("Simulating E values and stopping times for divergence between groups of ", delta))
   pbSafe <- utils::txtProgressBar(style=1)
@@ -1550,24 +1554,27 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
 
     #get the quantile for (1-b) power
     if (expectedStopTime) {
-      CurrentQuantile <- mean(stoppingTimes)
+      currentQuantile <- mean(stoppingTimes)
     } else {
-      CurrentQuantile <- quantile(stoppingTimes, probs = 1 - beta)
+      currentQuantile <- quantile(stoppingTimes, probs = 1 - beta)
     }
-    CurrentPower <- mean(stopEs >= 1/alpha)
+    currentPower <- mean(stopEs >= 1/alpha)
 
     #we look for the worst case (1-beta)% stopping time or power: store only that one
-    if (CurrentQuantile >= CurrentWorstCaseQuantile) {
-      CurrentWorstCaseQuantile <- CurrentQuantile
+    #also store the implied target belonging to the worst case power: exp(Expected [log E-waarde])
+    if (currentQuantile >= currentWorstCaseQuantile) {
+      currentWorstCaseQuantile <- currentQuantile
     }
-    if (CurrentPower <= CurrentWorstCasePower) {
-      CurrentWorstCasePower <- CurrentPower
+    if (currentPower <= currentWorstCasePower) {
+      currentWorstCasePower <- currentPower
+      currentImpliedTarget <- exp(mean(log(stopEs)))
     }
   }
   close(pbSafe)
 
-  return(list(worstCasePower = CurrentWorstCasePower,
-              worstCaseQuantile = CurrentWorstCaseQuantile))
+  return(list(worstCasePower = currentWorstCasePower,
+              worstCaseQuantile = currentWorstCaseQuantile,
+              impliedTarget = currentImpliedTarget))
 }
 
 simulateWorstCaseDeltaTwoProportions <- function(na, nb, priorValues,
