@@ -115,6 +115,14 @@ designSafeTwoProportions <- function(na, nb,
     priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
     note <- NULL
   }
+
+  if (!is.null(previousSafeTestResult)){
+    #use posterior for hyperparameter settings
+    hyperParameterValues <- previousSafeTestResult[["posteriorHyperParameters"]]
+    priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
+    note <- NULL
+  }
+
   names(priorValuesForPrint) <- "Beta hyperparameters"
 
   #Check each possible design scenario
@@ -274,12 +282,20 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
   n <- c(length(ya)*designObj[["nPlan"]][["na"]], length(yb)*designObj[["nPlan"]][["nb"]])
   names(n) <- c("nObsA", "nObsB")
 
-  #calculate the posterior
+  #calculate the posterior: prior parameters from original design, plus successes and failures
+  #seen in this experiment
+  posteriorHyperParameters <- list(
+    betaA1 = sum(ya) + designObj[["betaPriorParameterValues"]][["betaA1"]],
+    betaB1 = length(ya)*designObj[["nPlan"]][["na"]] - sum(ya) + designObj[["betaPriorParameterValues"]][["betaA2"]],
+    betaA2 = sum(yb) + designObj[["betaPriorParameterValues"]][["betaB1"]],
+    betaB2 = length(yb)*designObj[["nPlan"]][["nb"]] - sum(yb) + designObj[["betaPriorParameterValues"]][["betaB2"]]
+  )
 
   testResult <- list(designObj = designObj,
                      eValue = eValue,
                      dataName = dataName,
-                     n = n)
+                     n = n,
+                     posteriorHyperParameters = posteriorHyperParameters)
   class(testResult) <- "safeTest"
 
   return(testResult)
