@@ -520,10 +520,10 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   testType <- match.arg(testType)
 
   if (!is.null(parameter))
-    parameter <- checkAndReturnParameterSide("paramToCheck"=parameter, "esMinName"="phiS", "alternative"=alternative)
+    parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "esMinName"="phiS", "alternative"=alternative)
 
   if (!is.null(meanDiffMin))
-    meanDiffMin <- checkAndReturnParameterSide("paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin", "alternative"=alternative)
+    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin", "alternative"=alternative)
 
   paired <- if (testType=="paired") TRUE else FALSE
 

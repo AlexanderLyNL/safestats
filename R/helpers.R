@@ -120,16 +120,21 @@ extractNameFromArgs <- function(list, name) {
 #' ### Use in the design stage
 #' # Passes by symmetry of the test
 #' meanDiffMin <- -0.4
-#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin, esMin="meanDiffMin", alternative="two.sided")
+#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
+#'                                                               esMin="meanDiffMin",
+#'                                                               alternative="two.sided")
 #' paramChecked == meanDiffMin
 #'
 #' # Invokes warnings
-#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin, esMin="meanDiffMin", alternative="greater")
+#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
+#'                                                               esMin="meanDiffMin",
+#'                                                               alternative="greater")
 #' paramChecked == meanDiffMin
 #'
 #' ### Use in the execution stage
 #' phiS <- -0.3
-#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS, alternative="greater")
+#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS,
+#'                                                               alternative="greater")
 #' paramChecked == phiS
 checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.sided", "greater", "less"),
                                               esMinName=c(NULL, "meanDiffMin", "phiS",
@@ -139,6 +144,7 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
 
   alternative <- match.arg(alternative)
   paramDomain <- match.arg(paramDomain)
+  esMinName <- match.arg(esMinName)
 
   if (alternative == "two.sided")
     return(paramToCheck)
