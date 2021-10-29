@@ -2,8 +2,8 @@
 % Please edit documentation in R/logRankTest.R
 \name{computeLogrankNEvents}
 \alias{computeLogrankNEvents}
-\title{Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta}
+\title{Helper function: Computes the planned sample size based on the minimal clinical relevant hazard ratio
+alpha and beta.}
 \usage{
 computeLogrankNEvents(
   hrMin,
@@ -42,10 +42,10 @@ When alternative = "greater", the null hypothesis is compared to the alternative
 alternative specifies that survival in population 2 is higher than in population 1.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
-safe logrank test}
+safe logrank test under continuous monitoring}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the power and
-nEvents for the exact safe logrank test}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
+power or nEvents for the exact safe logrank test under continuous monitoring}
 
 \item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
 of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
@@ -63,8 +63,8 @@ algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 a list which contains at least nEvents and an adapted bootObject of class  \code{\link[boot]{boot}}.
 }
 \description{
-Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta
+Helper function: Computes the planned sample size based on the minimal clinical relevant hazard ratio
+alpha and beta.
 }
 \examples{
 computeLogrankNEvents(0.7, 0.2, nSim=10)

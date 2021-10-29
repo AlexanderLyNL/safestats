@@ -60,10 +60,10 @@ hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then thedesig
 \item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
-safe logrank test}
+safe logrank test under continuous monitoring}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the power and
-nEvents for the exact safe logrank test}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
+power or nEvents for the exact safe logrank test under continuous monitoring}
 
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 

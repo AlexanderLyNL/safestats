@@ -452,12 +452,12 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 #' @param parameter Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
 #' algorithm, typically, this equals hrMin, which corresponds to the GROW choice.
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of events for the exact
-#' safe logrank test
+#' safe logrank test under continuous monitoring
 #' @param groupSizePerTimeFunction A function without parameters and integer output. This function provides the number
 #' of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
 #' step.
-#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of the power and
-#' nEvents for the exact safe logrank test
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
+#' power or nEvents for the exact safe logrank test under continuous monitoring
 #' @param pb logical, if \code{TRUE}, then show progress bar.
 #'
 #' @return Returns a safeDesign object that includes:
@@ -1035,7 +1035,6 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
 #' @param hazardRatio numeric that defines the data generating hazard ratio with which data are sampled.
 #' @param nMax An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
 #' crossing crossing already. Default is Inf
-#' @return A vector containing nSim number of events resulting from simulation.
 #' @author Muriel Felipe Pérez-Ortiz
 #'
 #'
@@ -1179,8 +1178,8 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 }
 
 
-#' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-#' difference, alpha and beta
+#' Helper function: Computes the planned sample size based on the minimal clinical relevant hazard ratio
+#' alpha and beta.
 #'
 #'
 #' @inheritParams designSafeLogrank

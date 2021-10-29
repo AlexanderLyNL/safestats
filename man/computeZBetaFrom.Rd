@@ -2,17 +2,21 @@
 % Please edit documentation in R/zTest.R
 \name{computeZBetaFrom}
 \alias{computeZBetaFrom}
-\title{Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.}
+\title{Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan}
 \usage{
 computeZBetaFrom(
   meanDiffMin,
   nPlan,
   alpha = 0.05,
+  alternative = c("two.sided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
-  alternative = c("two.sided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  parameter = NULL
+  ratio = 1,
+  parameter = NULL,
+  pb = TRUE,
+  nSim = 1000L,
+  nBoot = 1000L
 )
 }
 \arguments{
@@ -26,23 +30,26 @@ and beta should be set to NULL.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+"greater" or "less".}
+
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less".}
-
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
+
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 }
 \value{
-numeric that represents the type II error
+a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
 }
 \description{
-Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.
+Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
 }
 \examples{
-safestats:::computeZBetaFrom(meanDiffMin=0.9, nPlan=12)
+computeZBetaFrom(meanDiffMin=0.7, 20, nSim=10)
 }
