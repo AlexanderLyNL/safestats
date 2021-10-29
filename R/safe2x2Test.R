@@ -120,7 +120,7 @@ designSafeTwoProportions <- function(na, nb,
     #use posterior for hyperparameter settings
     hyperParameterValues <- previousSafeTestResult[["posteriorHyperParameters"]]
     priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
-    note <- NULL
+    note <- "Hyperparameters set according to posterior values from previous test result"
   }
 
   names(priorValuesForPrint) <- "Beta hyperparameters"
