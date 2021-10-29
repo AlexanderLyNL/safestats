@@ -1305,7 +1305,7 @@ calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
       thetaARIPr <- breveThetaA
     } else {
       #otherwise, the RIPr lies on the lOR line
-      thetaARIPr <- optim(0.5, fn = calculateKLTwoProportions,
+      thetaARIPr <- stats::optim(0.5, fn = calculateKLTwoProportions,
                           method = "L-BFGS-B", lower = 1e-4, upper = 1-1e-4,
                           distanceFunction = calculateThetaBFromThetaAAndLOR,
                           delta = delta,
@@ -1352,7 +1352,7 @@ calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
         thetaARIPr <- breveThetaA
       } else {
         #otherwise, the RIPr lies on the lOR line
-        thetaARIPr <- optim(0.5, fn = calculateKLTwoProportions,
+        thetaARIPr <- stats::optim(0.5, fn = calculateKLTwoProportions,
                             method = "L-BFGS-B", lower = 1e-4, upper = 1-1e-4,
                             distanceFunction = calculateThetaBFromThetaAAndLOR,
                             delta = delta,
