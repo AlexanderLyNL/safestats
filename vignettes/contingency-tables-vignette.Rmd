@@ -377,7 +377,7 @@ log(0.5/0.5 * 0.8/0.2)
 
 We can estimate a lower bound for the log of the odds ratio based on the data. We have to provide the interval to search over, and the precision to search with for this lower bound.
 ```{r}
-getConfidenceBoundForLogOddsTwoProportions(ya = ya,
+computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
                                            yb = yb, 
                                            safeDesign = balancedSafeDesign,
                                            bound = "lower", 
@@ -390,7 +390,7 @@ We see that the true log odds ratio lies above this lower bound, and that an odd
 
 When the user accidentally asks for the "wrong" type of bound to be calculated, for example, for an upper bound when the ML estimate of the logarithm of the odds ratio is positive, a warning message is displayed:
 ```{r}
-getConfidenceBoundForLogOddsTwoProportions(ya = ya,
+computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
                                            yb = yb, 
                                            safeDesign = balancedSafeDesign,
                                            bound = "upper", 

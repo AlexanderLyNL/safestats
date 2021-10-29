@@ -584,12 +584,12 @@ plot.safe2x2Sim <- function(x, ...){
 #'                                                alpha = 0.05)
 #' ya <- c(1,1,1,1,1,1,1,1,0,1)
 #' yb <- c(0,0,0,0,1,0,0,0,0,0)
-#' getConfidenceBoundsForDifferenceTwoProportions(ya = ya,
+#' computeConfidenceBoundsForDifferenceTwoProportions(ya = ya,
 #'                                                yb = yb,
 #'                                                precision = 20,
 #'                                                safeDesign = balancedSafeDesign)
 #'
-getConfidenceBoundsForDifferenceTwoProportions <- function(ya,
+computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
                                                            yb,
                                                            precision,
                                                            safeDesign){
@@ -646,7 +646,7 @@ getConfidenceBoundsForDifferenceTwoProportions <- function(ya,
 #' ya <- c(1,1,1,1,1,1,1,1,0,1)
 #' yb <- c(0,0,0,0,1,0,0,0,0,0)
 #' #one-sided CI for OR-, establish upper bound on log odds ratio
-#' getConfidenceBoundForLogOddsTwoProportions(ya = ya,
+#' computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
 #'                                            yb = yb,
 #'                                            safeDesign = balancedSafeDesign,
 #'                                            bound = "upper",
@@ -654,7 +654,7 @@ getConfidenceBoundsForDifferenceTwoProportions <- function(ya,
 #'                                            deltaStop = -4,
 #'                                            precision = 20)
 #'
-getConfidenceBoundForLogOddsTwoProportions <- function(ya,
+computeConfidenceBoundForLogOddsTwoProportions <- function(ya,
                                                        yb,
                                                        safeDesign,
                                                        bound = c("lower", "upper"),
@@ -682,25 +682,16 @@ getConfidenceBoundForLogOddsTwoProportions <- function(ya,
     return(0)
   }
 
-  if (lowerBound) {
-    deltaBound <- as.numeric(eValuesDeltaGrid %>%
-                               #lower bound: the smallest delta we did not reject
-                               dplyr::group_by(.data[["delta"]]) %>%
-                               dplyr::filter(.data[["block"]] == max(.data[["block"]])) %>%
-                               dplyr::ungroup() %>%
-                               dplyr::filter(.data[["E"]] < 1/alpha) %>%
-                               dplyr::summarise(bound = min(.data[["delta"]]))
-    )
-  } else {
-    deltaBound <- as.numeric(eValuesDeltaGrid %>%
-                               #upper bound: the biggest delta we did not reject
-                               dplyr::group_by(.data[["delta"]]) %>%
-                               dplyr::filter(.data[["block"]] == max(.data[["block"]])) %>%
-                               dplyr::ungroup() %>%
-                               dplyr::filter(.data[["E"]] < 1/alpha) %>%
-                               dplyr::summarise(bound = max(.data[["delta"]]))
-    )
-  }
+  deltaBound <- as.numeric(
+    eValuesDeltaGrid %>%
+     dplyr::group_by(.data[["delta"]]) %>%
+     dplyr::filter(.data[["block"]] == max(.data[["block"]])) %>%
+     dplyr::ungroup() %>%
+     dplyr::filter(.data[["E"]] < 1/alpha) %>%
+     #lower bound: the smallest delta we did not reject
+     #upper bound: the biggest delta we did not reject
+     dplyr::summarise(bound = ifelse(lowerBound, min(.data[["delta"]]), max(.data[["delta"]])))
+  )
 
   return(deltaBound)
 }
@@ -927,7 +918,7 @@ plotConfidenceSequenceTwoProportions <- function(ya, yb,
   if (differenceMeasure == "difference") {
     lowerBounds <- upperBounds <- numeric(length(ya))
     for (m in seq_along(ya)) {
-      confidenceInterval <- getConfidenceBoundsForDifferenceTwoProportions(
+      confidenceInterval <- computeConfidenceBoundsForDifferenceTwoProportions(
         ya = ya[1:m],
         yb = yb[1:m],
         precision = precision,
@@ -1040,7 +1031,7 @@ simulateCoverageDifferenceTwoProportions <- function(successProbabilityA,
   for (simulationNumber in 1:M) {
     yaSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityA)
     ybSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityB)
-    confidenceInterval <- getConfidenceBoundsForDifferenceTwoProportions(
+    confidenceInterval <- computeConfidenceBoundsForDifferenceTwoProportions(
       ya = yaSim,
       yb = ybSim,
       precision = precision,
@@ -1190,7 +1181,7 @@ calculateKLTwoProportions <- function(candidateThetaA, distanceFunction, delta, 
   sum(likelihoodAlternative * (log(likelihoodAlternative) - log(likelihoodNull)))
 }
 
-derivativeKLTwoProportionsLinear <- function(candidateThetaA, delta, na, nb, breveThetaA, breveThetaB, c = 1){
+calculateDerivativeKLTwoProportionsLinear <- function(candidateThetaA, delta, na, nb, breveThetaA, breveThetaB, c = 1){
   candidateThetaB <- candidateThetaA + delta
 
   na*((1 - breveThetaA)/(1 - candidateThetaA) - breveThetaA/candidateThetaA) +
@@ -1217,7 +1208,7 @@ calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
                                              priorSuccess = priorParameters[["betaB1"]],
                                              priorFail = priorParameters[["betaB2"]])
 
-    thetaARIPr <- tryOrFailWithNA(stats::uniroot(derivativeKLTwoProportionsLinear,
+    thetaARIPr <- tryOrFailWithNA(stats::uniroot(calculateDerivativeKLTwoProportionsLinear,
                                           interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
                                           delta = delta,
                                           na = na, nb = nb,
@@ -1257,7 +1248,7 @@ calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
                                                priorSuccess = priorParameters[["betaB1"]],
                                                priorFail = priorParameters[["betaB2"]])
 
-      thetaARIPr <- tryOrFailWithNA(stats::uniroot(derivativeKLTwoProportionsLinear, interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
+      thetaARIPr <- tryOrFailWithNA(stats::uniroot(calculateDerivativeKLTwoProportionsLinear, interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
                                             delta = delta,
                                             na = na, nb = nb,
                                             breveThetaA = breveThetaA,
