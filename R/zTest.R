@@ -728,9 +728,13 @@ computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silen
 #' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
 #' difference, alpha and beta
 #'
-#' @inheritParams  designSafeZ
+#' @inheritParams designSafeZ
 #' @param designScenario a character string specifying the scenario for which needs designing either
 #' "1a" or "1b"
+#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples
+#' for the safe z test under continuous monitoring
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
+#' approximation of the power or the number of samples for the safe z test under continuous monitoring
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
 #'
@@ -741,7 +745,7 @@ computeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1,
                                      alternative=c("two.sided", "greater", "less"),
                                      testType=c("oneSample", "paired", "twoSample"),
                                      tol=1e-5, highN=8e9, ratio=1, parameter=NULL,
-                                     designScenario="1a", grow=TRUE) {
+                                     designScenario="1a", grow=TRUE, nSim=1e3L, nBoot=1e3L) {
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
@@ -1025,42 +1029,6 @@ computeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=
 
   if (alternative=="less")
     result <- -result
-
-  return(result)
-}
-
-#' Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.
-#'
-#' @inheritParams designSafeZ
-#'
-#' @return numeric that represents the type II error
-#'
-#' @examples
-#' safestats:::computeZBetaFrom(meanDiffMin=0.9, nPlan=12)
-computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
-                             alternative=c("two.sided", "greater", "less"),
-                             testType=c("oneSample", "paired", "twoSample"),
-                             parameter=NULL) {
-
-  alternative <- match.arg(alternative)
-  testType <- match.arg(testType)
-
-  nEff <- computeNEff("n"=nPlan, "testType" = testType)
-
-  if (is.null(parameter))
-    parameter <- meanDiffMin
-
-  if (alternative=="two.sided") {
-    lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(parameter)) *
-      (acosh(exp(nEff*parameter^2/(2*sigma^2))/alpha))^2
-
-    result <- stats::pchisq(lowerTail, df=1, ncp=nEff*meanDiffMin^2/kappa^2, lower.tail = TRUE)
-  } else {
-    lowerTail <- sqrt(nEff)*(parameter-2*meanDiffMin)/(2*kappa) -
-      sigma^2*log(alpha)/(kappa*sqrt(nEff))*1/parameter
-
-    result <- stats::pnorm(lowerTail, lower.tail = TRUE)
-  }
 
   return(result)
 }
@@ -1404,3 +1372,175 @@ batchComputeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, k
 
   return(result)
 }
+
+# Sampling functions for design ----
+
+#' Simulate stopping times for the safe z-test
+#'
+#' @inheritParams designSafeZ
+#'
+#' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
+#' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies that in corresponding stopping
+#' time is Inf.
+#'
+#' @export
+#'
+#' @examples
+#' sampleZTestStoppingTimes(0.7, nSim=10)
+sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+                                     sigma=1, kappa=sigma, nSim=1e3L, nMax=1e3, tol=1e-5, highN=8e9,
+                                     parameter=NULL, grow=TRUE, pb=TRUE) {
+  stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
+
+  alternative <- match.arg(alternative)
+
+  ## Object that will be returned. A sample of stopping times
+  stoppingTimes <- breakVector <- integer(nSim)
+
+  if (!is.null(parameter)) {
+    phiS <- parameter
+  } else {
+    meanDiffMin <- checkAndReturnsEsMinParameterSide(meanDiffMin, "alternative"=alternative, esMinName="meanDiffMin")
+    phiS <- meanDiffMin
+  }
+
+  simData <- generateNormalData(nMax, "nSim"=nSim, "deltaTrue"=meanDiffMin/sigma)[["dataGroup1"]]
+
+  if (pb)
+    pbSafe <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
+
+  eValues <- numeric(nMax)
+
+  for (sim in seq_along(stoppingTimes)) {
+    subDat <- simData[sim, ]
+    zVector <- 1/sqrt(1:nMax)*cumsum(subDat)
+
+    for (n in 1:nMax) {
+      evidenceNow <- safeZTestStat("z"=zVector[n], "phiS"=phiS, "n1"=n, "alternative"=alternative)
+
+      if (evidenceNow > 1/alpha) {
+        stoppingTimes[sim] <- n
+        break()
+      }
+
+      if (n >= nMax) {
+        stoppingTimes[sim] <- n
+        breakVector[sim] <- 1
+        break()
+      }
+    }
+
+    if (pb)
+      utils::setTxtProgressBar(pbSafe, "value"=sim/nSim, "title"="Trials")
+  }
+
+  result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector)
+  return(result)
+}
+
+
+#' Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
+#'
+#' @inheritParams designSafeZ
+#' @inheritParams sampleZTestStoppingTimes
+#'
+#' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#' @export
+#'
+#' @examples
+#' computeZBetaFrom(meanDiffMin=0.7, 20, nSim=10)
+computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.sided", "greater", "less"),
+                             sigma=1, kappa=sigma, testType=c("oneSample", "paired", "twoSample"), ratio=1,
+                             parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L) {
+
+  alternative <- match.arg(alternative)
+  testType <- match.arg(testType)
+
+  nEff <- computeNEff("n"=nPlan, "testType" = testType)
+
+  if (!is.null(parameter)) {
+    phiS <- parameter
+  } else {
+    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "alternative"=alternative,
+                                                     "esMinName"="meanDiffMin")
+    phiS <- meanDiffMin
+  }
+
+  tempResult <- sampleZTestStoppingTimes("meanDiffMin"=meanDiffMin, "alpha"=alpha,
+                                         "alternative" = alternative, "sigma"=sigma,
+                                         "kappa"=kappa, "nSim"=nSim, "nMax"=nEff+1, "tol"=tol, "highN"=highN, "parameter"=phiS, "grow"=grow, "pb"=pb)
+
+  times <- tempResult[["stoppingTimes"]]
+
+  bootObj <- boot::boot(times,
+                        function(x, idx) {
+                          1-mean(x[idx] <= nEff)
+                        },  R = nBoot)
+
+  bootSd <- sd(bootObj[["t"]])
+  bootObj[["bootSd"]] <- bootSd
+  bootObj[["target"]] <- "beta"
+
+  result <- list("beta" = bootObj[["t0"]],
+                 "bootObj" = bootObj)
+
+  return(result)
+}
+
+
+#' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
+#' difference, alpha and beta
+#'
+#'
+#' @inheritParams designSafeZ
+#' @inheritParams sampleZTestStoppingTimes
+#'
+#' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#' @author Muriel Felipe Pérez-Ortiz
+#'
+#' @export
+#'
+#' @examples
+#' computeLogrankNEvents(0.7, 0.2, nSim=10)
+computeZTestNPlan <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+                              sigma=1, kappa=sigma, tol=1e-5, highN=8e9, ratio=1, nSim=1e3L, nBoot=1e3L,
+                              parameter=NULL, grow=TRUE, testType=c("oneSample", "paired", "twoSample"),
+                              pb=TRUE, nMax=1e8) {
+
+  alternative <- match.arg(alternative)
+
+  if (!is.null(parameter)) {
+    phiS <- parameter
+  } else {
+    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "alternative"=alternative,
+                                                     "esMinName"="meanDiffMin")
+    phiS <- meanDiffMin
+
+    tempObj <- batchComputeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "alpha"=alpha,
+                                             "beta"=beta, "sigma"=sigma, "kappa"=kappa,
+                                             "alternative"=alternative, "testType"="oneSample",
+                                             "parameter"=parameter)
+    nMax <- tempObj[["nPlan"]]
+  }
+
+  tempResult <- sampleZTestStoppingTimes("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha,
+                                         "alternative" = alternative, "sigma"=sigma, "kappa"=kappa, "nSim"=nSim,
+                                         "nMax"=nMax, "tol"=tol, "highN"=highN, "parameter"=phiS, "grow"=grow, "pb"=pb)
+
+  times <- tempResult[["stoppingTimes"]]
+
+  bootObj <- boot::boot(times,
+                        function(x, idx) {
+                          quantile(x[idx], prob=1-beta, names=FALSE)
+                        }, R = nBoot)
+
+  bootSd <- sd(bootObj[["t"]])
+  bootObj[["bootSd"]] <- bootSd
+  bootObj[["target"]] <- "n"
+
+  result <- list("n" = ceiling(bootObj[["t0"]]),
+                 "bootObj" = bootObj)
+
+  return(result)
+}
+
