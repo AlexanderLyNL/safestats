@@ -496,33 +496,11 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
   alternative <- match.arg(alternative)
 
-  if (!is.null(hrMin)) {
-    if (hrMin < 1 && alternative=="greater") {
-      warning('Minimum hazard ratio < 1 incongruent with alternative "greater".',
-              "hrMin set to 1/hrMin > 1 in order to compare H+: hazardRatio > 1 against H0: hazardRatio =1")
-      hrMin <- 1/hrMin
-    }
+  if (!is.null(hrMin))
+    hrMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=hrMin, "alternative"=alternative, "esMinName"="hrMin")
 
-    if (hrMin > 1 && alternative=="less") {
-      warning('Minimum hazard ratio > 1 incongruent with alternative "less".',
-              "hrMin set to 1/hrMin < 1 in order to compare H-: hazardRatio < 1 against H0: hazardRatio =1")
-      hrMin <- 1/hrMin
-    }
-  }
-
-  if (!is.null(parameter)) {
-    if (hrMin < 1 && alternative=="greater") {
-      warning('parameter < 1 incongruent with alternative "greater".',
-              "parameter set to 1/parameter > 1 in order to compare H+: hazardRatio > 1 against H0: hazardRatio =1")
-      parameter <- 1/parameter
-    }
-
-    if (parameter > 1 && alternative=="less") {
-      warning('parameter > 1 incongruent with alternative "less".',
-              "parameter set to 1/parameter < 1 in order to compare H-: hazardRatio < 1 against H0: hazardRatio =1")
-      parameter <- 1/parameter
-    }
-  }
+  if (!is.null(parameter))
+    parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "alternative"=alternative, "esMinName"="thetaS")
 
   thetaS <- if (is.null(parameter)) hrMin else parameter
 

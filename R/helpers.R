@@ -101,6 +101,114 @@ extractNameFromArgs <- function(list, name) {
   return(result)
 }
 
+
+# Check Consistency function --------
+
+#' Checks consistency between the sided of the hypothesis and the  minimal clinically relevant effect size
+#' or safe test defining parameter. Throws an error if the one-sided hypothesis is incongruent with the
+#'
+#' @inheritParams designSafeZ
+#' @param paramToCheck numeric. Either a named safe test defining parameter such as phiS, or thetaS, or a
+#' minimal clinically relevant effect size called with a non-null esMinName name
+#' @param esMinName provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for
+#' the t-test, or "hrMin" for the logrank test
+#' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
+#'
+#' @return paramToCheck after checking, perhaps with a change in sign
+#'
+#' @examples
+#' ### Use in the design stage
+#' # Passes by symmetry of the test
+#' meanDiffMin <- -0.4
+#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
+#'                                                               esMin="meanDiffMin",
+#'                                                               alternative="two.sided")
+#' paramChecked == meanDiffMin
+#'
+#' # Invokes warnings
+#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
+#'                                                               esMin="meanDiffMin",
+#'                                                               alternative="greater")
+#' paramChecked == meanDiffMin
+#'
+#' ### Use in the execution stage
+#' phiS <- -0.3
+#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS,
+#'                                                               alternative="greater")
+#' paramChecked == phiS
+checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.sided", "greater", "less"),
+                                              esMinName=c(NULL, "meanDiffMin", "phiS",
+                                                          "deltaMin", "deltaS",
+                                                          "hrMin", "thetaS"),
+                                              paramDomain=NULL) {
+
+  alternative <- match.arg(alternative)
+  paramDomain <- match.arg(paramDomain)
+  esMinName <- match.arg(esMinName)
+
+  if (alternative == "two.sided")
+    return(paramToCheck)
+
+  if (is.null(esMinName))
+    paramName <- names(paramToCheck)
+  else
+    paramName <- esMinName
+
+  if (is.null(paramName))
+    paramName <- "the safe test defining parameter"
+
+  if (paramName=="phiS" || esMinName=="meanDiffMin") {
+    hypParamName <- "meanDiff"
+    paramDomain <- "realNumbers"
+  } else if (paramName=="deltaS" || esMinName=="deltaMin") {
+    hypParamName <- "delta"
+    paramDomain <- "realNumbers"
+  } else if (paramName=="thetaS" || esMinName=="hrMin") {
+    hypParamName <- "theta"
+    paramDomain <- "positiveNumbers"
+  } else {
+    hypParamName <- "testRelevantParameter"
+  }
+
+  if (paramDomain=="realNumbers") {
+    nullValue <- 0
+
+    if (alternative=="greater" && paramToCheck < 0) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to -", paramName, " > 0 in order to compare H+: ",
+              hypParamName, " > 0 against H0 : ", hypParamName, " = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 0) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to -", paramName, " < 0 in order to compare H-: ",
+              hypParamName, " < 0 against H0 : ", hypParamName, " = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+  } else if (paramDomain=="positiveNumbers") {
+    if (alternative=="greater" && paramToCheck < 1) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to 1/", paramName, " > 1 in order to compare H+: ",
+              hypParamName, " > 1 against H0 : ", hypParamName, " = 1")
+
+      paramToCheck <- 1/paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 1) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to 1/", paramName, " < 1 in order to compare H-: ",
+              hypParamName, " < 1 against H0 : ", hypParamName, " = 1")
+
+      paramToCheck <- 1/paramToCheck
+    }
+  }
+
+  return(paramToCheck)
+}
+
+
 # Plot helper -----
 #' Sets 'safestats' Plot Options and Returns the Current Plot Options.
 #'

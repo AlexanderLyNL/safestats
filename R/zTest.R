@@ -33,22 +33,12 @@ safeZTestStat <- function(z, phiS, n1, n2=NULL, alternative=c("two.sided", "less
   else
     nEff <- (1/n1+1/n2)^(-1)
 
+  phiS <- checkAndReturnsEsMinParameterSide("paramToCheck"=phiS, "alternative"=alternative,
+                                            "esMinName"="phiS")
+
   if (alternative=="two.sided") { # two-sided
     result <- exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z)
   } else { # one-sided
-    if (alternative=="greater" && phiS < 0) {
-      phiS <- -phiS
-
-      warning('phiS < 0 incongruent with alternative "greater".',
-              "phiS set to -phiS > 0 in order to compare H+: meanDiff > 0 ",
-              "against H0 : meanDiff = 0")
-    } else if (alternative=="less" && phiS > 0) {
-      phiS <- -phiS
-
-      warning('phiS > 0 incongruent with alternative "less".',
-              "phiS set to -phiS < 0 in order to compare H-: meanDiff > 0 ",
-              "against H0 : meanDiff = 0")
-    }
     result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
   }
 
@@ -147,7 +137,6 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
     if (names(designObj[["parameter"]]) != "phiS")
       warning("The provided design is not constructed for the z-test,",
               "please use designSafeZ() instead. The test results might be invalid.")
-
   }
 
   if (is.null(y)) {
@@ -225,7 +214,6 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
     yLabel <- extractNameFromArgs(argumentNames, "y")
     dataName <- paste(xLabel, "and", yLabel)
   }
-
 
   result[["testType"]] <- testType
   result[["statistic"]] <- zStat
@@ -308,10 +296,8 @@ designFreqZ <- function(meanDiffMin, alternative=c("two.sided", "greater", "less
                  "h0"=h0)
   class(result) <- "freqZDesign"
 
-  if (meanDiffMin < 0 && alternative=="greater")
-    warning("meanDiffMin < 0, but in the calculations abs(meanDiffMin) is used instead.")
-
-  meanDiffMin <- abs(meanDiffMin)
+  meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "alternative"=alternative,
+                                                   "esMinName"="meanDiffMin")
 
   n1Plan <- NULL
   n2Plan <- NULL
@@ -533,37 +519,11 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
-  if (!is.null(parameter)) {
-    if (parameter < 0 && alternative=="greater") {
-      warning('Minimum mean difference < 0 incongruent with alternative "greater".',
-              "parameter set to -parameter > 0 in order to compare H+: meanDiff > 0 ",
-              "against H0 : meanDiff = 0")
-      parameter <- -parameter
-    }
+  if (!is.null(parameter))
+    parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "esMinName"="phiS", "alternative"=alternative)
 
-    if (parameter > 0 && alternative=="less") {
-      warning('Minimum mean difference > 0 incongruent with alternative "less".',
-              "parameter set to -parameter < 0 in order to compare H-: meanDiff < 0 ",
-              "against H0 : meanDiff = 0")
-      parameter <- -parameter
-    }
-  }
-
-  if (!is.null(meanDiffMin)) {
-    if (meanDiffMin < 0 && alternative=="greater") {
-      warning('Minimum mean difference < 0 incongruent with alternative "greater".',
-              "meanDiffMin set to -meanDiffMin > 0 in order to compare H+: meanDiff > 0 ",
-              "against H0 : meanDiff = 0")
-      meanDiffMin <- -meanDiffMin
-    }
-
-    if (meanDiffMin > 0 && alternative=="less") {
-      warning('Minimum mean difference > 0 incongruent with alternative "less".',
-              "meanDiffMin set to -meanDiffMin < 0 in order to compare H-: meanDiff < 0 ",
-              "against H0 : meanDiff = 0")
-      meanDiffMin <- -meanDiffMin
-    }
-  }
+  if (!is.null(meanDiffMin))
+    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin", "alternative"=alternative)
 
   paired <- if (testType=="paired") TRUE else FALSE
 
@@ -710,23 +670,6 @@ computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.
     }
   }
 
-  ### OLD confidence sequence based on point priors.
-  #
-  # if (alternative=="two.sided") {
-  #   shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
-  #   lowerCS <- meanStat - shift
-  #   upperCS <- meanStat + shift
-  # } else {
-  #   shift <- sigma^2/nEff*log(alpha)*1/phiS - phiS/2
-  #
-  #   if (alternative=="greater") {
-  #     lowerCS <- meanStat + shift
-  #     upperCS <- Inf
-  #   } else {
-  #     lowerCS <- -Inf
-  #     upperCS <- meanStat - shift
-  #   }
-  # }
   return(unname(c(lowerCS, upperCS)))
 }
 
@@ -847,7 +790,7 @@ computeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1,
         stop("Something went wrong, couldn't design based on the given input.")
 
       if (nEffExact > highN)
-        stop("More samples needed than highN, which is ", highN)
+        stop("More samples needed than highN, which is currently set to ", highN)
 
       if (alternative %in% c("greater", "less")) {
         # Note(Alexander): Here I use nEff exact, not ceiling(nEff), which should be an integer if testType != "twoSample"
