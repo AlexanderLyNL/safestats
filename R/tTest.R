@@ -1578,7 +1578,7 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
   return(result)
 }
 
-#' safeTTestStat Subtracted with 1/alpha.
+#' safeTTestStat() Subtracted with 1/alpha.
 #'
 #' This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is used for root finding for
 #' pilot designs.
