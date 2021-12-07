@@ -227,8 +227,9 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   displayList <- list()
 
   for (item in c("nPlan", "nEvents", "esMin", "alternative","alternativeRestriction", "beta", "parameter",
-                 "alpha", "decision rule")) {
+                 "alpha", "decision rule", "logImpliedTarget")) {
     itemValue <- designObj[[item]]
+    itemValueString <- format(itemValue, digits=digits)
 
     if (!is.null(itemValue)) {
       if (item == "nPlan") {
@@ -237,31 +238,52 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
         nPlanTwoSe <- designObj[["nPlanTwoSe"]]
 
         if (!is.null(nPlanTwoSe)) {
-          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <-
-            paste0(itemValue, "\U00B1", format(nPlanTwoSe, digits=digits))
+          for (i in seq_along(itemValue)) {
+            if (i==1) {
+              itemValueString <- paste0(format(itemValue[i], digits=digits), "\U00B1",
+                                        format(nPlanTwoSe[i]))
+            } else {
+              itemValueString <- paste(itemValueString,
+                                       paste0(format(itemValue[i], digits=digits), "\U00B1",
+                                              format(nPlanTwoSe[i])),
+                                       sep=", ")
+            }
+          }
+          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValueString
         } else {
           displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
         }
 
       } else if (item=="beta") {
         betaTwoSe <- designObj[["betaTwoSe"]]
+        itemValueString <- format(1-itemValue, digits=digits)
 
         if (!is.null(betaTwoSe)) {
-          displayList[["power: 1 - beta"]] <- paste0(1-itemValue, "\U00B1",
+          displayList[["power: 1 - beta"]] <- paste0(itemValueString, "\U00B1",
                                                      format(betaTwoSe, digits=digits))
         } else {
-          displayList[["power: 1 - beta"]] <- 1-itemValue
+          displayList[["power: 1 - beta"]] <- itemValueString
         }
       } else if (item=="parameter") {
-        displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValue
+        displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValueString
       } else if (item=="decision rule") {
-        displayList[["decision rule: e-value > 1/alpha"]] <- itemValue
+        displayList[["decision rule: e-value > 1/alpha"]] <- itemValueString
+      } else if (item=="logImpliedTarget") {
+
+        logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
+
+        if (!is.null(logImpliedTargetTwoSe)) {
+          displayList[["log(implied target)"]] <- paste0(itemValueString, "\U00B1",
+                                                         format(logImpliedTargetTwoSe, digits=digits))
+        } else {
+          displayList[["log(implied target)"]] <- itemValueString
+        }
       } else if (item=="esMin") {
-        displayList[[paste("minimal", names(itemValue))]] <- itemValue
+        displayList[[paste("minimal", names(itemValue))]] <- itemValueString
       } else if (item == "alternativeRestriction"){
-        displayList[["alternative restriction"]] <- itemValue
+        displayList[["alternative restriction"]] <- itemValueString
       } else {
-        displayList[[item]] <- itemValue
+        displayList[[item]] <- itemValueString
       }
     }
   }

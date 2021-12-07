@@ -562,6 +562,14 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     ratio <- m1/m0
 
     bootObj <- NULL
+    note <- NULL
+
+    nEventsBatch <- nEventsTwoSe <- NULL
+    betaTwoSe <- NULL
+    impliedTarget <- impliedTargetTwoSe <- NULL
+    bootObjNEvents <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
+
+    logImpliedTarget <- logImpliedTargetTwoSe <- NULL
 
     if (!is.null(hrMin) && !is.null(beta) && is.null(nEvents)) {
       designScenario <- "1a"
@@ -571,7 +579,13 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                                           "groupSizePerTimeFunction"=groupSizePerTimeFunction,
                                           "parameter"=parameter, "pb"=pb)
       nEvents <- tempResult[["nEvents"]]
-      bootObj <- tempResult[["bootObj"]]
+      bootObjNEvents <- tempResult[["bootObjNEvents"]]
+      nEventsBatch <- bootObjNEvents[["nEventsBatch"]]
+      nEventsTwoSe <- 2*bootObjNEvents[["bootSe"]]
+
+      if (is.finite(nEventsBatch))
+        note <- paste0("If it is only possible to look at the data once, ",
+                       "then nEvents = ", nEventsBatch, ".")
     } else if (!is.null(hrMin) && is.null(beta) && is.null(nEvents)) {
       designScenario <- "1b"
     } else if (is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
@@ -595,10 +609,17 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                                            "parameter"=thetaS, "pb"=pb)
 
       beta <- tempResult[["beta"]]
-      bootObj <- tempResult[["bootObj"]]
+      bootObjBeta <- tempResult[["bootObjBeta"]]
+      betaTwoSe <- 2*bootObjBeta[["bootSe"]]
+
+      logImpliedTarget <- tempResult[["logImpliedTarget"]]
+      bootObjLogImpliedTarget <- tempResult[["bootObjLogImpliedTarget"]]
+      logImpliedTargetTwoSe <- 2*bootObjLogImpliedTarget[["bootSe"]]
     } else if (is.null(hrMin) && !is.null(beta) && !is.null(nEvents)) {
       designScenario <- "3"
+      designScenario <- NULL
 
+      # TODO(Alexander): Normal approximation. Flag normal approximation
       warning("Designs without minimal clinically relevant hazard ratios not yet implemented")
     }
 
@@ -617,6 +638,9 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     if (!is.null(nEvents))
       names(nEvents) <- "nEvents"
 
+    if (!is.null(nEventsBatch))
+      names(nEventsBatch) <- "nEventsBatch"
+
     if (!is.null(hrMin))
       names(hrMin) <- "hazard ratio"
 
@@ -629,7 +653,10 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     result <- list("nPlan"=nEvents, "parameter"=thetaS, "esMin"=hrMin, "alpha"=alpha, "beta"=beta,
                    "alternative"=alternative, "h0"=h0, "testType"="eLogrank", "ciValue"=ciValue,
                    "exact"=exact, "ratio"=m1/m0, "pilot"=FALSE, "bootObj"=bootObj,
-                   "call"=sys.call(), "timeStamp"=Sys.time())
+                   "note"=note, "nPlanBatch"=nEventsBatch, "betaTwoSe"=betaTwoSe, "nPlanTwoSe"=nEventsTwoSe,
+                   "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
+                   "call"=sys.call(), "timeStamp"=Sys.time(), "bootObjNPlan"=bootObjNEvents,
+                   "bootObjBeta"=bootObjBeta, "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
 
     class(result) <- "safeDesign"
 
@@ -1040,7 +1067,7 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, or running out of participants, which implies
-#' that in corresponding stopping time is Inf.
+#' that the corresponding stopping time is Inf.
 #'
 #' @export
 #'
@@ -1056,6 +1083,7 @@ sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c(
 
   ## Object that will be returned. A sample of stopping times
   stoppingTimes <- breakVector <- integer(nSim)
+  eValuesAtEnd <- numeric(nSim)
 
   if (is.null(parameter))
     thetaS <- if (hazardRatio > 1) 1/hazardRatio else hazardRatio
@@ -1112,13 +1140,16 @@ sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c(
       # Note(Alexander): If exceeds 1/alpha threshold then reject normally
       #
       if (evidenceNow >= 1/alpha) {
+        eValuesAtEnd[sim] <- evidenceNow
         stoppingTimes[sim] <- nEvents
         break()
       }
 
-      # Note(Alexander): If passed maximum number of events stop
+      # Note(Alexander): If passed maximum number of events stop.
+      #   For power calculations if beyond nEvents, then set to Inf, doesn't matter for the quantile
       #
       if (nEvents >= nMax) {
+        eValuesAtEnd[sim] <- evidenceNow
         stoppingTimes[sim] <- nEvents
         breakVector[sim] <- 1
         break()
@@ -1129,7 +1160,8 @@ sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c(
       utils::setTxtProgressBar(pbSafe, value=sim/nSim, title="Trials")
   }
 
-  result <- list(stoppingTimes=stoppingTimes, breakVector=breakVector)
+  result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
+                 "eValuesAtEnd"=eValuesAtEnd)
   return(result)
 }
 
@@ -1156,23 +1188,41 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 
   alternative <- match.arg(alternative)
 
-  tempResult <- sampleLogrankStoppingTimes(hazardRatio=hrMin, alternative=alternative,alpha=alpha,
-                                           m0=m0, m1=m1, nSim=nSim, groupSizePerTimeFunction=groupSizePerTimeFunction,
-                                           nMax=nEvents+1, parameter=parameter)
+  tempResult <- sampleLogrankStoppingTimes("hazardRatio"=hrMin, "alternative"=alternative, "alpha"=alpha,
+                                           "m0"=m0, "m1"=m1, "nSim"=nSim,
+                                           "groupSizePerTimeFunction"=groupSizePerTimeFunction,
+                                           "nMax"=nEvents, "parameter"=parameter)
 
   times <- tempResult[["stoppingTimes"]]
+
+  # Note(Alexander): Break vector is 1 whenever the sample path did not stop
+  breakVector <- tempResult[["breakVector"]]
+
+  # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
+  times[as.logical(breakVector)] <- Inf
 
   bootObj <- boot::boot(times,
                         function(x, idx) {
                           1-mean(x[idx] <= nEvents)
                         },  R = nBoot)
 
-  bootSd <- sd(bootObj[["t"]])
-  bootObj[["bootSd"]] <- bootSd
-  bootObj[["target"]] <- "beta"
+  bootSe <- sd(bootObj[["t"]])
+  bootObj[["bootSe"]] <- bootSe
 
   result <- list("beta" = bootObj[["t0"]],
-                 "bootObj" = bootObj)
+                 "bootObjBeta" = bootObj)
+
+  eValuesAtEnd <- tempResult[["eValuesAtEnd"]]
+
+  bootObj <- boot::boot(eValuesAtEnd,
+                        function(x, idx) {
+                          mean(log(x[idx]))
+                        }, R = nBoot)
+
+  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
+
+  result[["logImpliedTarget"]] <- bootObj[["t0"]]
+  result[["bootObjLogImpliedTarget"]] <- bootObj
 
   return(result)
 }
@@ -1195,7 +1245,7 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
                                   alternative = c("two.sided", "greater","less"),
                                   nSim=1e3L, nBoot=1e3L, groupSizePerTimeFunction = returnOne,
-                                  nMax=Inf, parameter=NULL, pb=TRUE) {
+                                  nMax=Inf, parameter=NULL, digits = getOption("digits"), pb=TRUE) {
 
   alternative <- match.arg(alternative)
 
@@ -1212,13 +1262,15 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
                                                   "alpha"=alpha, "alternative"=alternative,
                                                   "testType"="oneSample",
                                                   "ratio"=ratio, "parameter"=logThetaS)
-      nMax <- tempResult[["nPlan"]]
+      nBatch <- tempResult[["nPlan"]]
+    } else {
+      nBatch <- nMax
     }
   }
 
   tempResult <- sampleLogrankStoppingTimes(hazardRatio=hrMin, alternative=alternative, alpha=alpha,
                                            m0=m0, m1=m1, nSim=nSim, groupSizePerTimeFunction=groupSizePerTimeFunction,
-                                           nMax=nMax)
+                                           nMax=nBatch)
 
   times <- tempResult[["stoppingTimes"]]
 
@@ -1227,12 +1279,14 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
                           quantile(x[idx], prob=1-beta, names=FALSE)
                         }, R = nBoot)
 
-  bootSd <- sd(bootObj[["t"]])
-  bootObj[["bootSd"]] <- bootSd
-  bootObj[["target"]] <- "nEvents"
+  bootSe <- sd(bootObj[["t"]])
+  bootObj[["bootSe"]] <- bootSe
+  bootObj[["nEventsBatch"]] <- nBatch
+
+  note <- writeBootNote("nEvents", bootObj[["t0"]], bootSe)
 
   result <- list("nEvents" = ceiling(bootObj[["t0"]]),
-                 "bootObj" = bootObj)
+                 "bootObjNEvents" = bootObj, "note"=note)
 
   return(result)
 }

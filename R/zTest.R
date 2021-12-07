@@ -476,6 +476,11 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 #' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
 #' @param parameter optional test defining parameter. Default set to \code{NULL}.
+#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples
+#' for the safe z test under continuous monitoring
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
+#' approximation of the power or the number of samples for the safe z test under continuous monitoring
+#' @param pb logical, if \code{TRUE}, then show progress bar.
 #' @param grow logical, defaul set to \code{TRUE} so the grow safe test is used in the design.
 #' @param ... further arguments to be passed to or from methods.
 #'
@@ -512,7 +517,8 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
                         alternative=c("two.sided", "greater", "less"),
                         sigma=1, kappa=sigma, tol=1e-5, highN=8e9,
                         testType=c("oneSample", "paired", "twoSample"),
-                        ratio=1, parameter=NULL, grow=TRUE, ...) {
+                        ratio=1, parameter=NULL, nSim=1e3L, nBoot=1e3L,
+                        pb=TRUE, grow=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
 
@@ -520,36 +526,69 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   testType <- match.arg(testType)
 
   if (!is.null(parameter))
-    parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "esMinName"="phiS", "alternative"=alternative)
+    parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "esMinName"="phiS",
+                                                   "alternative"=alternative)
 
   if (!is.null(meanDiffMin))
-    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin", "alternative"=alternative)
+    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin",
+                                                     "alternative"=alternative)
 
   paired <- if (testType=="paired") TRUE else FALSE
 
   designScenario <- NULL
+  note <- NULL
+
+  nPlanBatch <- nPlanTwoSe <- NULL
+  logImpliedTarget <- logImpliedTargetTwoSe <- NULL
+  betaTwoSe <- NULL
+
+  bootObjN1Plan <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
 
   tempResult <- list()
 
   if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan)) {
     designScenario <- "1a"
+    phiS <- meanDiffMin
 
-    tempResult <- computeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha,
-                                           "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
-                                           "testType"=testType, "tol"=tol, "highN"=highN, "ratio"=ratio,
-                                           "parameter"=parameter, "designScenario"=designScenario,
-                                           "grow"=grow)
-    nPlan <- tempResult[["nPlan"]]
-    phiS <- tempResult[["phiS"]]
+    tempResult <- computeZTestNPlan("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha, "alternative"=alternative,
+                                    "sigma"=sigma, "kappa"=kappa, "highN"=highN, "ratio"=ratio, "nSim"=nSim,
+                                    "nBoot"=nBoot, "pb"=pb, "parameter"=phiS, "testType"=testType)
+
+    nPlanBatch <- tempResult[["nPlanBatch"]]
+
+    bootObjN1Plan <- tempResult[["bootObjN1Plan"]]
+
+    if (testType=="oneSample") {
+      nPlan <- tempResult[["n1Plan"]]
+      names(nPlan) <- "nPlan"
+      nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
+      note <- paste0("If it is only possible to look at the data once, ",
+                     "then nPlan = ", nPlanBatch, ".")
+    } else if (testType=="paired") {
+      nPlan <- c(tempResult[["n1Plan"]], tempResult[["n1Plan"]])
+      names(nPlan) <- c("n1Plan", "n2Plan")
+
+      nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
+      nPlanTwoSe <- c(nPlanTwoSe, nPlanTwoSe)
+      note <- paste0("If it is only possible to look at the data once, ",
+                     "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
+                     nPlanBatch[2], ".")
+    } else if (testType=="twoSample") {
+      nPlan <- c(tempResult[["n1Plan"]], ceiling(ratio*tempResult[["n1Plan"]]))
+      names(nPlan) <- c("n1Plan", "n2Plan")
+
+      nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
+      nPlanTwoSe <- c(nPlanTwoSe, ratio*nPlanTwoSe)
+
+      note <- paste0("If it is only possible to look at the data once, ",
+                     "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
+                     nPlanBatch[2], ".")
+    }
   } else if (!is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
+    phiS <- meanDiffMin
 
-    tempResult <- computeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha,
-                                           "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
-                                           "testType"=testType, "tol"=tol, "highN"=highN, "ratio"=ratio,
-                                           "parameter"=parameter, "designScenario"=designScenario)
     nPlan <- NULL
-    phiS <- tempResult[["phiS"]]
     beta <- NULL
     meanDiffMin <- meanDiffMin
   } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
@@ -560,10 +599,28 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
     designScenario <- "2"
 
-    beta <- tryOrFailWithNA(
-      computeZBetaFrom("meanDiffMin"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha, "sigma"=sigma, "kappa"=kappa,
-                       "alternative"=alternative, "testType"=testType, "parameter"=parameter)
-    )
+    if (testType=="twoSample" && length(nPlan)==1) {
+      nPlan <- c(nPlan, ratio*nPlan)
+      warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] = ratio*nPlan[1], that is, ',
+              nPlan[2], '.')
+    } else if (testType=="paired" && length(nPlan==1)) {
+      nPlan <- c(nPlan, nPlan)
+      warning('testType=="paired" specified, but nPlan[2] not provided. nPlan[2] set to nPlan[1].')
+    } else if (testType=="oneSample" && length(nPlan)==2) {
+      nPlan <- nPlan[1]
+      warning('testType=="oneSample" specified, but two nPlan[2] provided, which is ignored.')
+    }
+
+    tempResult <- computeZBetaFrom("meanDiffMin"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha, "sigma"=sigma, "kappa"=kappa,
+                                   "alternative"=alternative, "testType"=testType, "parameter"=parameter)
+
+    beta <- tempResult[["beta"]]
+    bootObjBeta <- tempResult[["bootObjBeta"]]
+    betaTwoSe <- 2*bootObjBeta[["bootSe"]]
+
+    logImpliedTarget <- tempResult[["logImpliedTarget"]]
+    bootObjLogImpliedTarget <- tempResult[["bootObjLogImpliedTarget"]]
+    logImpliedTargetTwoSe <- 2*bootObjLogImpliedTarget[["bootSe"]]
 
     phiS <- if (is.null(parameter)) meanDiffMin else parameter
 
@@ -596,11 +653,14 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
   }
 
-  result <- list("nPlan"=nPlan, "parameter"=phiS, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
-                 "alternative"=alternative, "h0"=h0, "testType"=testType, "paired"=paired,
-                 "sigma"=sigma, "kappa"=kappa, "ciValue"=ciValue,
-                 "ratio"=ratio, "pilot"=FALSE, "lowN"=NULL, "highN"=NULL, "call"=sys.call(),
-                 "timeStamp"=Sys.time())
+  result <- list("nPlan"=nPlan, "nPlanTwoSe"=nPlanTwoSe, "parameter"=phiS, "esMin"=meanDiffMin,
+                 "alpha"=alpha, "beta"=beta, "betaTwoSe"=betaTwoSe, "alternative"=alternative,
+                 "h0"=h0, "testType"=testType, "paired"=paired, "sigma"=sigma, "kappa"=kappa,
+                 "ciValue"=ciValue, "nPlanBatch"=nPlanBatch, "ratio"=ratio, "pilot"=FALSE,
+                 "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
+                 "lowN"=NULL, "highN"=NULL, "call"=sys.call(), "timeStamp"=Sys.time(),
+                 "note"=note, "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
+                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
   class(result) <- "safeDesign"
 
   names(result[["esMin"]]) <- "mean difference"
@@ -731,10 +791,6 @@ computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silen
 #' @inheritParams designSafeZ
 #' @param designScenario a character string specifying the scenario for which needs designing either
 #' "1a" or "1b"
-#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples
-#' for the safe z test under continuous monitoring
-#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
-#' approximation of the power or the number of samples for the safe z test under continuous monitoring
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
 #'
@@ -1052,7 +1108,7 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
                                           alternative=c("two.sided", "greater", "less"),
                                           testType=c("oneSample", "paired", "twoSample"),
                                           tol=1e-5, highN=8e9, ratio=1, parameter=NULL,
-                                          designScenario="1a", grow=TRUE) {
+                                          grow=TRUE) {
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
@@ -1064,196 +1120,167 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
 
   n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
-  if (designScenario=="1a") {
-    if (grow) {
-      phiS <- abs(meanDiffMin)
+  if (grow) {
+    phiS <- abs(meanDiffMin)
 
-      if (alternative == "two.sided") {
-        criterionFunction <- function(n) {
-          lowerTail <- sigma^4/(n*kappa^2*meanDiffMin^2)*acosh(exp((n*meanDiffMin^2)/(2*sigma^2))/alpha)^2
-          stats::pchisq(q=lowerTail, df=1, ncp=n*meanDiffMin^2/kappa^2)-beta
-        }
-
-        highN <- 2*sigma^2/meanDiffMin^2*log(1e100)
-        tempResult <- stats::uniroot(criterionFunction, interval=c(1, highN))
-        nEff <- tempResult[["root"]]
-      } else {
-        qB <- qnorm(beta)
-
-        nEff <- exp(2*(log(kappa)-log(meanDiffMin))) *
-          (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))+2*kappa^2/sigma^2*log(1/alpha))
+    if (alternative == "two.sided") {
+      criterionFunction <- function(n) {
+        lowerTail <- sigma^4/(n*kappa^2*meanDiffMin^2)*acosh(exp((n*meanDiffMin^2)/(2*sigma^2))/alpha)^2
+        stats::pchisq(q=lowerTail, df=1, ncp=n*meanDiffMin^2/kappa^2)-beta
       }
 
+      highN <- 2*sigma^2/meanDiffMin^2*log(1e100)
+      tempResult <- stats::uniroot(criterionFunction, interval=c(1, highN))
+      nEff <- tempResult[["root"]]
+    } else {
+      qB <- qnorm(beta)
+
+      nEff <- exp(2*(log(kappa)-log(meanDiffMin))) *
+        (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))+2*kappa^2/sigma^2*log(1/alpha))
+    }
+
+    if (testType == "twoSample") {
+      n1Plan <- ceiling(nEff * n1OverNEffRatio)
+      n2Plan <- ceiling(nEff * n1OverNEffRatio * ratio)
+    } else {
+      n1Plan <- ceiling(nEff)
+      n2Plan <- if (testType == "paired") n1Plan else NULL
+    }
+
+    phiS <- meanDiffMin
+  } else {
+    # Note(Alexander): Compute one-sided nExact. This provides us with a lower bound on
+    # the two-sided test.
+    #
+    nEffExact <- tryOrFailWithNA(((sigma*sqrt(2*log(1/alpha))-kappa*qnorm(beta))/meanDiffMin)^2)
+
+    if (is.na(nEffExact))
+      stop("Something went wrong, couldn't design based on the given input.")
+
+    if (nEffExact > highN)
+      stop("More samples needed than highN, which is ", highN)
+
+    if (alternative %in% c("greater", "less")) {
+      # Note(Alexander): Here I use nEff exact, not ceiling(nEff), which should be an integer if testType != "twoSample"
+      # when testType == "twoSample" I do take nEff <- (1/n1Plan + 1/n2Plan), where n1Plan and n2Plan are integers
+      # This means that discriminant D is very close to 0. I tried using the exact nEff, but this performed less well
+      # for the actual sample sizes.
+      #
       if (testType == "twoSample") {
-        n1Plan <- ceiling(nEff * n1OverNEffRatio)
-        n2Plan <- ceiling(nEff * n1OverNEffRatio * ratio)
+        n1Plan <- ceiling(nEffExact*n1OverNEffRatio)
+        n2Plan <- ceiling(nEffExact*n1OverNEffRatio*ratio)
+        nEff <- (1/n1Plan+1/n2Plan)^(-1)
+      } else {
+        n1Plan <- ceiling(nEffExact)
+
+        if (testType == "paired")
+          n2Plan <- n1Plan
+
+        nEff <- ceiling(nEffExact)
+      }
+
+      qBeta <- kappa/sigma*qnorm(beta) + sqrt(nEff)*meanDiffMin/sigma
+      discriminantD <- max(qBeta^2-2*log(1/alpha), 0)
+
+      phiS <- sigma/sqrt(nEff)*(qBeta + sqrt(discriminantD))
+    } else {
+      # Two.sided
+
+      nEffExactUpper <- tryOrFailWithNA(
+        ((sigma*sqrt(2*log(2/alpha))-kappa*qnorm(beta))/meanDiffMin)^2
+      )
+
+      # Note(Alexander): Translate to lower and upper bound in terms of n1
+      #
+      lowN <- floor(nEffExact*n1OverNEffRatio)
+      highN <- ceiling(nEffExactUpper*n1OverNEffRatio)
+
+      # This shouldn't occur
+      if (is.na(highN))
+        highN <- 2*lowN
+
+      result[["lowN"]] <- lowN
+      result[["highN"]] <- highN
+
+      # Note(Alexander): This function is used to
+      #   1. Find n and creates is looped downwards, hence the  reflection ! in result
+      #   2. Given n find the parameter phiS
+      #
+      criterionFunctionExact <- function(n, parameter=NULL) {
+        if (is.null(parameter))
+          parameter <- sqrt(2*sigma^2/n*log(2/alpha))
+
+        zArg <- sigma^4/(kappa^2*n*parameter^2)*(acosh(exp(n*parameter^2/(2*sigma^2))/alpha))^2
+
+        result <- (stats::pchisq(zArg, df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta)
+
+        if (is.null(parameter))
+          result <- !result
+
+        return(result)
+      }
+
+      candidateN1 <- highN
+      candidateNEff <- candidateN1/n1OverNEffRatio
+
+      continueWhile <- TRUE
+
+      # Note(Alexander): Loop backwards to find a smaller n1Plan
+      #
+      while (continueWhile && candidateN1 > lowN) {
+        continueWhile <- criterionFunctionExact(n=candidateNEff, parameter=NULL)
+
+        if (isTRUE(continueWhile)) {
+          candidateN1 <- candidateN1 - 1
+          candidateNEff <- candidateN1/n1OverNEffRatio
+        } else {
+          candidateN1 <- candidateN1 + 1
+          break()
+        }
+      }
+
+      nEff <- candidateN1/n1OverNEffRatio
+
+      if (testType=="twoSample") {
+        n1Plan <- ceiling(candidateN1)
+        n2Plan <- ceiling(n1Plan*ratio)
+        nEff <- (1/n1Plan+1/n2Plan)^(-1)
+        result[["nEffPlan"]] <- nEff
       } else {
         n1Plan <- ceiling(nEff)
-        n2Plan <- if (testType == "paired") n1Plan else NULL
+
+        if (testType=="pairedSample")
+          n2Plan <- n1Plan
+
       }
-    } else {
-      # Note(Alexander): Compute one-sided nExact. This provides us with a lower bound on
-      # the two-sided test.
+
+      # Candidate parameters ---
+      phiUmp <- sqrt(2/(sigma^2*nEff)*log(2/alpha))
+
+      chiSqInverseBeta <- stats::qchisq(beta, df=1, ncp=nEff*meanDiffMin^2/kappa^2)
+      discriminantD <- max(chiSqInverseBeta-sigma^2/kappa^2*2*log(2/alpha), 0)
+
+      phiSApprox <-kappa/sqrt(nEff)*(sqrt(chiSqInverseBeta)+sqrt(discriminantD))
+
+      # Random lower bound for phi
+      # TODO(Alexander): Get a better bounds perhaps
       #
-      nEffExact <- tryOrFailWithNA(((sigma*sqrt(2*log(1/alpha))-kappa*qnorm(beta))/meanDiffMin)^2)
+      lowPhi <- min(phiUmp, phiSApprox, meanDiffMin/2)
+      highPhi <- if (beta < 1/2) meanDiffMin else 2*meanDiffMin
 
-      if (is.na(nEffExact))
-        stop("Something went wrong, couldn't design based on the given input.")
+      candidatePhis <- seq(lowPhi, highPhi, "by"=tol)
 
-      if (nEffExact > highN)
-        stop("More samples needed than highN, which is ", highN)
+      phiIndex <- purrr::detect_index(candidatePhis, criterionFunctionExact, "n"=nEff)
 
-      if (alternative %in% c("greater", "less")) {
-        # Note(Alexander): Here I use nEff exact, not ceiling(nEff), which should be an integer if testType != "twoSample"
-        # when testType == "twoSample" I do take nEff <- (1/n1Plan + 1/n2Plan), where n1Plan and n2Plan are integers
-        # This means that discriminant D is very close to 0. I tried using the exact nEff, but this performed less well
-        # for the actual sample sizes.
-        #
-        #
-        if (testType == "twoSample") {
-          n1Plan <- ceiling(nEffExact*n1OverNEffRatio)
-          n2Plan <- ceiling(nEffExact*n1OverNEffRatio*ratio)
-          nEff <- (1/n1Plan+1/n2Plan)^(-1)
-        } else {
-          n1Plan <- ceiling(nEffExact)
+      phiS <- if (phiIndex==0) phiSApprox else candidatePhis[phiIndex]
 
-          if (testType == "paired")
-            n2Plan <- n1Plan
+      result[["lowParam"]] <- lowPhi
+      result[["highParam"]] <- highPhi
+    } # end two.sided
 
-          nEff <- ceiling(nEffExact)
-        }
-
-        qBeta <- kappa/sigma*qnorm(beta) + sqrt(nEff)*meanDiffMin/sigma
-        discriminantD <- max(qBeta^2-2*log(1/alpha), 0)
-
-        phiS <- sigma/sqrt(nEff)*(qBeta + sqrt(discriminantD))
-      } else {
-        # Two.sided
-
-        nEffExactUpper <- tryOrFailWithNA(
-          ((sigma*sqrt(2*log(2/alpha))-kappa*qnorm(beta))/meanDiffMin)^2
-        )
-
-        # Note(Alexander): Translate to lower and upper bound in terms of n1
-        #
-        lowN <- floor(nEffExact*n1OverNEffRatio)
-        highN <- ceiling(nEffExactUpper*n1OverNEffRatio)
-
-        # This shouldn't occur
-        if (is.na(highN))
-          highN <- 2*lowN
-
-        result[["lowN"]] <- lowN
-        result[["highN"]] <- highN
-
-        # Note(Alexander): This function is used to
-        #   1. Find n and creates is looped downwards, hence the  reflection ! in result
-        #   2. Given n find the parameter phiS
-        #
-        criterionFunctionExact <- function(n, parameter=NULL) {
-          if (is.null(parameter))
-            parameter <- sqrt(2*sigma^2/n*log(2/alpha))
-
-          zArg <- sigma^4/(kappa^2*n*parameter^2)*(acosh(exp(n*parameter^2/(2*sigma^2))/alpha))^2
-
-          result <- (stats::pchisq(zArg, df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta)
-
-          if (is.null(parameter))
-            result <- !result
-
-          return(result)
-        }
-
-        candidateN1 <- highN
-        candidateNEff <- candidateN1/n1OverNEffRatio
-
-        continueWhile <- TRUE
-
-        # Note(Alexander): Loop backwards to find a smaller n1Plan
-        #
-        while (continueWhile && candidateN1 > lowN) {
-          continueWhile <- criterionFunctionExact(n=candidateNEff, parameter=NULL)
-
-          if (isTRUE(continueWhile)) {
-            candidateN1 <- candidateN1 - 1
-            candidateNEff <- candidateN1/n1OverNEffRatio
-          } else {
-            candidateN1 <- candidateN1 + 1
-            break()
-          }
-        }
-
-        nEff <- candidateN1/n1OverNEffRatio
-
-        if (testType=="twoSample") {
-          n1Plan <- ceiling(candidateN1)
-          n2Plan <- ceiling(n1Plan*ratio)
-          nEff <- (1/n1Plan+1/n2Plan)^(-1)
-          result[["nEffPlan"]] <- nEff
-        } else {
-          n1Plan <- ceiling(nEff)
-
-          if (testType=="pairedSample")
-            n2Plan <- n1Plan
-
-        }
-
-        # Candidate parameters ---
-        phiUmp <- sqrt(2/(sigma^2*nEff)*log(2/alpha))
-
-        chiSqInverseBeta <- stats::qchisq(beta, df=1, ncp=nEff*meanDiffMin^2/kappa^2)
-        discriminantD <- max(chiSqInverseBeta-sigma^2/kappa^2*2*log(2/alpha), 0)
-
-        phiSApprox <-kappa/sqrt(nEff)*(sqrt(chiSqInverseBeta)+sqrt(discriminantD))
-
-        # Random lower bound for phi
-        # TODO(Alexander): Get a better bounds perhaps
-        #
-        lowPhi <- min(phiUmp, phiSApprox, meanDiffMin/2)
-        highPhi <- if (beta < 1/2) meanDiffMin else 2*meanDiffMin
-
-        candidatePhis <- seq(lowPhi, highPhi, "by"=tol)
-
-        phiIndex <- purrr::detect_index(candidatePhis, criterionFunctionExact, "n"=nEff)
-
-        phiS <- if (phiIndex==0) phiSApprox else candidatePhis[phiIndex]
-
-        result[["lowParam"]] <- lowPhi
-        result[["highParam"]] <- highPhi
-      } # end two.sided
-    }
-  } else if (designScenario=="1b") {
-    sideConstant <- if (alternative %in% c("greater", "less")) 1 else 2
-
-    phiS <- if (!is.null(parameter)) parameter else meanDiffMin
-
-    nEffExact <- 2*sigma^2*log(sideConstant/alpha)/phiS^2
-
-    if (testType=="twoSample") {
-      n1Plan <- ceiling(nEffExact*(1+ratio)/ratio)
-      n2Plan <- ceiling(nEffExact*(1+ratio))
-      nEff <- (1/n1Plan + 1/n2Plan)^(-1)
-    } else {
-      nEff <- nEffExact
-      n1Plan <- ceiling(nEff)
-
-      if (testType=="paired")
-        n2Plan <- n1Plan
-
-    }
-    #
-    if (alternative=="two.sided") {
-      lowerTail <- sigma^4/(nEff*kappa^2*phiS^2)*(acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha))^2
-      result[["beta"]] <- stats::pchisq(q=lowerTail, df=1, ncp=nEff*meanDiffMin^2/kappa^2)
-    } else {
-      lowerTail <- sqrt(nEff)*(phiS-2*meanDiffMin)/(2*kappa) -
-        sigma^2*log(alpha)/(kappa*sqrt(nEff))*1/phiS
-      result[["beta"]] <- pnorm(lowerTail)
-    }
+    if (alternative=="less")
+      phiS <- - phiS
   }
-
-  if (alternative=="less")
-    phiS <- - phiS
 
   if (is.null(n2Plan)) {
     result[["nPlan"]] <- n1Plan
@@ -1388,44 +1415,83 @@ batchComputeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, k
 #' @examples
 #' sampleZTestStoppingTimes(0.7, nSim=10)
 sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("two.sided", "less", "greater"),
-                                     sigma=1, kappa=sigma, nSim=1e3L, nMax=1e3, tol=1e-5, highN=8e9,
-                                     parameter=NULL, grow=TRUE, pb=TRUE) {
+                                     sigma=1, kappa=sigma, nSim=1e3L, nMax=1e3, highN=8e9, ratio=1,
+                                     testType=c("oneSample", "paired", "twoSample"), parameter=NULL, pb=TRUE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
 
   alternative <- match.arg(alternative)
+  testType <- match.arg(testType)
 
   ## Object that will be returned. A sample of stopping times
   stoppingTimes <- breakVector <- integer(nSim)
+  eValuesAtEnd <- numeric(nSim)
 
   if (!is.null(parameter)) {
     phiS <- parameter
   } else {
-    meanDiffMin <- checkAndReturnsEsMinParameterSide(meanDiffMin, "alternative"=alternative, esMinName="meanDiffMin")
+    meanDiffMin <- checkAndReturnsEsMinParameterSide(meanDiffMin, "alternative"=alternative, "esMinName"="meanDiffMin")
     phiS <- meanDiffMin
   }
 
-  simData <- generateNormalData(nMax, "nSim"=nSim, "deltaTrue"=meanDiffMin/sigma)[["dataGroup1"]]
+  if (testType=="twoSample" && length(nMax)==1) {
+    nMax <- c(nMax, ceiling(ratio*nMax))
+  } else if (testType=="paired" && length(nMax)==2) {
+    nMax <- nMax[1]
+  }
+
+  if (length(nMax)==2)
+    ratio <- nMax[2]/nMax[1]
 
   if (pb)
     pbSafe <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
 
-  eValues <- numeric(nMax)
+  tempN <- defineTTestN("lowN"=1, "highN"=nMax[1], "ratio"=ratio, "testType"=testType)
+
+  n1Vector <- tempN[["n1"]]
+  n2Vector <- tempN[["n2"]]
+  nEffVector <- tempN[["candidateNEff"]]
+
+  simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "muTrue"=meanDiffMin, "sigmaTrue"=kappa,
+                                "paired"=FALSE)
 
   for (sim in seq_along(stoppingTimes)) {
-    subDat <- simData[sim, ]
-    zVector <- 1/sqrt(1:nMax)*cumsum(subDat)
+    if (testType %in% c("oneSample", "paired")) {
+      x1 <- simData[["dataGroup1"]][sim, ]
+      zVector <- 1/sqrt(n1Vector)*cumsum(x1)
+    } else {
+      x1 <- simData[["dataGroup1"]][sim, ]
+      x1BarVector <- 1/(n1Vector)*cumsum(x1)
+      x1BarVector <- x1BarVector[n1Vector]
 
-    for (n in 1:nMax) {
-      evidenceNow <- safeZTestStat("z"=zVector[n], "phiS"=phiS, "n1"=n, "alternative"=alternative)
+      x2 <- simData[["dataGroup2"]][sim, ]
+      x2BarVector <- 1/(1:length(x2))*cumsum(x2)
+      x2BarVector <- x2BarVector[n2Vector]
+
+      zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
+    }
+
+    for (j in seq_along(n1Vector)) {
+      evidenceNow <- if (testType %in% c("oneSample", "paired")) {
+        safeZTestStat("z"=zVector[j], "phiS"=phiS, "n1"=n1Vector[j], n2=NULL,
+                      "alternative"=alternative, "sigma"=sigma)
+      } else {
+        safeZTestStat("z"=zVector[j], "phiS"=phiS, "n1"=n1Vector[j], "n2"=n2Vector[j],
+                      "alternative"=alternative, "sigma"=sigma)
+      }
 
       if (evidenceNow > 1/alpha) {
-        stoppingTimes[sim] <- n
+        stoppingTimes[sim] <- n1Vector[j]
+        eValuesAtEnd[sim] <- evidenceNow
         break()
       }
 
-      if (n >= nMax) {
-        stoppingTimes[sim] <- n
+      # Note(Alexander): If passed maximum nPlan[1] stop.
+      #   For power calculations if beyond nPlan[1], then set to Inf, doesn't matter for the quantile
+      #
+      if (n1Vector[j] >= nMax[1]) {
+        stoppingTimes[sim] <- n1Vector[j]
         breakVector[sim] <- 1
+        eValuesAtEnd[sim] <- evidenceNow
         break()
       }
     }
@@ -1434,7 +1500,7 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
       utils::setTxtProgressBar(pbSafe, "value"=sim/nSim, "title"="Trials")
   }
 
-  result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector)
+  result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector, "eValuesAtEnd"=eValuesAtEnd)
   return(result)
 }
 
@@ -1450,13 +1516,19 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
 #' @examples
 #' computeZBetaFrom(meanDiffMin=0.7, 20, nSim=10)
 computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.sided", "greater", "less"),
-                             sigma=1, kappa=sigma, testType=c("oneSample", "paired", "twoSample"), ratio=1,
+                             sigma=1, kappa=sigma, testType=c("oneSample", "paired", "twoSample"),
                              parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L) {
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
-  nEff <- computeNEff("n"=nPlan, "testType" = testType)
+  ratio <- if (length(nPlan) == 2) nPlan[2]/nPlan[1] else 1
+
+  if (testType=="twoSample" && length(nPlan)==1) {
+    nPlan <- c(nPlan, nPlan)
+    warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] is set to ratio = ', ratio,
+            'times nPlan[1] = ', nPlan[2])
+  }
 
   if (!is.null(parameter)) {
     phiS <- parameter
@@ -1468,21 +1540,40 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
 
   tempResult <- sampleZTestStoppingTimes("meanDiffMin"=meanDiffMin, "alpha"=alpha,
                                          "alternative" = alternative, "sigma"=sigma,
-                                         "kappa"=kappa, "nSim"=nSim, "nMax"=nEff+1, "tol"=tol, "highN"=highN, "parameter"=phiS, "grow"=grow, "pb"=pb)
+                                         "kappa"=kappa, "nSim"=nSim, "nMax"=nPlan,
+                                         "ratio"=ratio, "testType"=testType, "highN"=highN,
+                                         "parameter"=phiS, "pb"=pb)
 
   times <- tempResult[["stoppingTimes"]]
 
+  # Note(Alexander): Break vector is 1 whenever the sample path did not stop
+  breakVector <- tempResult[["breakVector"]]
+
+  # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
+  times[as.logical(breakVector)] <- Inf
+
   bootObj <- boot::boot(times,
                         function(x, idx) {
-                          1-mean(x[idx] <= nEff)
+                          1-mean(x[idx] <= nPlan[1])
                         },  R = nBoot)
 
-  bootSd <- sd(bootObj[["t"]])
-  bootObj[["bootSd"]] <- bootSd
-  bootObj[["target"]] <- "beta"
+  bootSe <- sd(bootObj[["t"]])
+  bootObj[["bootSe"]] <- bootSe
 
   result <- list("beta" = bootObj[["t0"]],
-                 "bootObj" = bootObj)
+                 "bootObjBeta" = bootObj)
+
+  eValuesAtEnd <- tempResult[["eValuesAtEnd"]]
+
+  bootObj <- boot::boot(eValuesAtEnd,
+                        function(x, idx) {
+                          mean(log(x[idx]))
+                        }, R = nBoot)
+
+  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
+
+  result[["logImpliedTarget"]] <- bootObj[["t0"]]
+  result[["bootObjLogImpliedTarget"]] <- bootObj
 
   return(result)
 }
@@ -1496,18 +1587,17 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
 #' @inheritParams sampleZTestStoppingTimes
 #'
 #' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
-#' @author Muriel Felipe Pérez-Ortiz
 #'
 #' @export
 #'
 #' @examples
-#' computeLogrankNEvents(0.7, 0.2, nSim=10)
+#' computeZTestNPlan(0.7, 0.2, nSim=10)
 computeZTestNPlan <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c("two.sided", "less", "greater"),
-                              sigma=1, kappa=sigma, tol=1e-5, highN=8e9, ratio=1, nSim=1e3L, nBoot=1e3L,
-                              parameter=NULL, grow=TRUE, testType=c("oneSample", "paired", "twoSample"),
-                              pb=TRUE, nMax=1e8) {
+                              testType=c("oneSample", "paired", "twoSample"), sigma=1, kappa=sigma, highN=8e9,
+                              ratio=1, nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE, nMax=1e8) {
 
   alternative <- match.arg(alternative)
+  testType <- match.arg(testType)
 
   if (!is.null(parameter)) {
     phiS <- parameter
@@ -1515,31 +1605,33 @@ computeZTestNPlan <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
     meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "alternative"=alternative,
                                                      "esMinName"="meanDiffMin")
     phiS <- meanDiffMin
-
-    tempObj <- batchComputeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "alpha"=alpha,
-                                             "beta"=beta, "sigma"=sigma, "kappa"=kappa,
-                                             "alternative"=alternative, "testType"="oneSample",
-                                             "parameter"=parameter)
-    nMax <- tempObj[["nPlan"]]
   }
 
-  tempResult <- sampleZTestStoppingTimes("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha,
-                                         "alternative" = alternative, "sigma"=sigma, "kappa"=kappa, "nSim"=nSim,
-                                         "nMax"=nMax, "tol"=tol, "highN"=highN, "parameter"=phiS, "grow"=grow, "pb"=pb)
+  tempObj <- batchComputeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "alpha"=alpha,
+                                           "beta"=beta, "sigma"=sigma, "kappa"=kappa,
+                                           "alternative"=alternative, "testType"=testType,
+                                           "parameter"=parameter, "ratio"=ratio)
+  nPlanBatch <- tempObj[["nPlan"]]
 
-  times <- tempResult[["stoppingTimes"]]
+  samplingResults <- sampleZTestStoppingTimes("meanDiffMin"=meanDiffMin, "alpha"=alpha, "alternative" = alternative,
+                                              "sigma"=sigma, "kappa"=kappa, "nSim"=nSim, "testType"=testType,
+                                              "ratio"=ratio, "nMax"=nPlanBatch, "highN"=highN, "parameter"=phiS,
+                                              "pb"=pb)
+
+  times <- samplingResults[["stoppingTimes"]]
 
   bootObj <- boot::boot(times,
                         function(x, idx) {
                           quantile(x[idx], prob=1-beta, names=FALSE)
                         }, R = nBoot)
 
-  bootSd <- sd(bootObj[["t"]])
-  bootObj[["bootSd"]] <- bootSd
-  bootObj[["target"]] <- "n"
+  bootSe <- sd(bootObj[["t"]])
+  bootObj[["bootSe"]] <- bootSe
 
-  result <- list("n" = ceiling(bootObj[["t0"]]),
-                 "bootObj" = bootObj)
+  # note <- writeBootNote("nPlan", bootObj[["t0"]], bootSe)
+
+  result <- list("n1Plan" = ceiling(bootObj[["t0"]]),
+                 "bootObjN1Plan" = bootObj, "nPlanBatch"=nPlanBatch)
 
   return(result)
 }

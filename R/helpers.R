@@ -43,24 +43,6 @@ isTryError <- function(...) {
   return(result)
 }
 
-
-
-#' Rounds a Numeric to At Most 5 Significant Figures
-#'
-#' Helper function to round a numeric to 5 significant figures.
-#'
-#' @param num numeric
-#'
-#' @return number rounded up to 5 decimal places.
-#'
-#' @examples
-#' safestats:::round5(pi)
-round5 <- function(num) {
-  stopifnot(is.numeric(num))
-  round(num, 5)
-}
-
-
 #' Helper function: Get all arguments as entered by the user
 #'
 #' @return a list of variable names of class "call" that can be changed into names
@@ -137,7 +119,7 @@ extractNameFromArgs <- function(list, name) {
 #'                                                               alternative="greater")
 #' paramChecked == phiS
 checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.sided", "greater", "less"),
-                                              esMinName=c(NULL, "meanDiffMin", "phiS",
+                                              esMinName=c("noName", "meanDiffMin", "phiS",
                                                           "deltaMin", "deltaS",
                                                           "hrMin", "thetaS"),
                                               paramDomain=NULL) {
@@ -146,18 +128,23 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
   paramDomain <- match.arg(paramDomain)
   esMinName <- match.arg(esMinName)
 
-  if (alternative == "two.sided")
-    return(paramToCheck)
+  if (alternative == "two.sided") {
+    if (esMinName %in% c("meanDiffMin", "deltaMin"))
+      return(abs(paramToCheck))
 
-  if (is.null(esMinName))
-    paramName <- names(paramToCheck)
+    return(paramToCheck)
+  }
+
+  if (esMinName=="noName")
+    paramName <- NULL
   else
     paramName <- esMinName
 
-  if (is.null(paramName))
+  if (is.null(paramName)) {
     paramName <- "the safe test defining parameter"
-
-  if (paramName=="phiS" || esMinName=="meanDiffMin") {
+    hypParamName <- "test relevant parameter"
+    paramDomain <- "unknown"
+  } else if (paramName=="phiS" || esMinName=="meanDiffMin") {
     hypParamName <- "meanDiff"
     paramDomain <- "realNumbers"
   } else if (paramName=="deltaS" || esMinName=="deltaMin") {
@@ -170,7 +157,25 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
     hypParamName <- "testRelevantParameter"
   }
 
-  if (paramDomain=="realNumbers") {
+
+  if (paramDomain=="unknown") {
+    nullValue <- "nullValue"
+
+    if (alternative=="greater" && paramToCheck < 0) {
+      warning('The safe test defining parameter is incongruent with alternative "greater". ',
+              "This safe test parameter is made positive to compare H+: ",
+              "test-relevant parameter > 0 against H0 : test-relevant parameter = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 0) {
+      warning('The safe test defining parameter is incongruent with alternative "less". ',
+              "This safe test parameter is made positive to compare H-: ",
+              "test-relevant parameter < 0 against H0 : test-relevant parameter = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+  } else if (paramDomain=="realNumbers") {
     nullValue <- 0
 
     if (alternative=="greater" && paramToCheck < 0) {
@@ -186,7 +191,6 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
               hypParamName, " < 0 against H0 : ", hypParamName, " = 0")
       paramToCheck <- -paramToCheck
     }
-
   } else if (paramDomain=="positiveNumbers") {
     if (alternative=="greater" && paramToCheck < 1) {
       warning(paramName, ' incongruent with alternative "greater". ',
@@ -562,3 +566,28 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 
   }
 }
+
+
+
+#' #' Helper function to produce notes based on bootstrap results
+#' #'
+#' #' @param targetName character string representing the target of estimation, e.g., nPlan, or beta
+#' #' @param estimate numeric bootstrap estimate
+#' #' @param sdEstimate numeric > 0 representing the standard error
+#' #' @param digits integer >= 0. Default taken from options
+#' #'
+#' #' @return character string with bootstrap note.
+#' #'
+#' #' @examples
+#' #' safestats:::writeBootNote("nPlan", 18, 4)
+#' writeBootNote <- function(targetName, estimate, sdEstimate, digits = getOption("digits")) {
+#'   note <- paste0(targetName, " is estimated with bootstrap standard error ",
+#'                  format(sdEstimate, digits = digits))
+#'
+#'   # note <- paste0(targetName, " is estimated with bootstrap standard error ",
+#'   #                format(sdEstimate, digits = digits), ". \n",
+#'   #                "Thus, with a relative approximation error of ",
+#'   #                format(sdEstimate/estimate*100, digits=digits), "%.")
+#'                  # "\n Increase nSim for a more accurate estimate.")
+#'   return(note)
+#' }
