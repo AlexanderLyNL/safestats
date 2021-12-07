@@ -180,7 +180,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
 
     if (!is.null(esMin)) {
       out <- paste0("minimal relevant ", names(esMin), " = ", format(esMin, digits = max(1L, digits - 2L)),
-                      " (", designObj[["alternative"]], ")")
+                    " (", designObj[["alternative"]], ")")
       cat("for", out, "\n")
     }
 
@@ -210,7 +210,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
 #' designSafeZ(meanDiffMin=0.5)
 #' designSafeT(deltaMin=0.5)
 #' designSafeLogrank(hrMin=0.7)
-print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
+print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
   testType <- designObj[["testType"]]
   parameterName <- names(designObj[["parameter"]])
@@ -233,8 +233,25 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
     if (!is.null(itemValue)) {
       if (item == "nPlan") {
         displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
+
+        nPlanTwoSe <- designObj[["nPlanTwoSe"]]
+
+        if (!is.null(nPlanTwoSe)) {
+          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <-
+            paste0(itemValue, "\U00B1", format(nPlanTwoSe, digits=digits))
+        } else {
+          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
+        }
+
       } else if (item=="beta") {
-        displayList[["power: 1 - beta"]] <- 1-itemValue
+        betaTwoSe <- designObj[["betaTwoSe"]]
+
+        if (!is.null(betaTwoSe)) {
+          displayList[["power: 1 - beta"]] <- paste0(1-itemValue, "\U00B1",
+                                                     format(betaTwoSe, digits=digits))
+        } else {
+          displayList[["power: 1 - beta"]] <- 1-itemValue
+        }
       } else if (item=="parameter") {
         displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValue
       } else if (item=="decision rule") {
@@ -259,19 +276,18 @@ print.safeDesign <- function (x, digits = getOption("digits"), prefix = "\t", ..
     cat(paste("Timestamp:", format(someTime, usetz = TRUE)))
   }
 
-  bootObj <- designObj[["bootObj"]]
-
-  if (!is.null(bootObj))
-    note <- paste0(bootObj[["target"]], " is estimated with bootstrap standard error ",
-                   format(bootObj[["bootSd"]], digits = digits), ". \n",
-                   "Thus, with a relative approximate error of ",
-                   format(bootObj[["bootSd"]]/bootObj[["t0"]]*100, digits=digits),
-                   "%. \n", "For a more accurate estimate nSim can be increased.")
-
-  if (!is.null(note))
-    cat("\n\n", "Note: ", note, "\n\n", sep = "")
-  else
+  if (!is.null(note)) {
     cat("\n")
+    nNotes <- length(note)
+    if (nNotes == 1) {
+      cat("\n", "Note: ", note, "\n", sep = "")
+    } else {
+      for (i in 1:nNotes) {
+        cat("\n", "Note ", i, ": ", note[i], "\n", sep = "")
+      }
+    }
+  }
+  # cat("\n")
 }
 
 #' Prints a safeTSim Object
