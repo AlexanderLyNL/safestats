@@ -124,16 +124,18 @@ designSafeTwoProportions <- function(na, nb,
   }
 
   names(priorValuesForPrint) <- "Beta hyperparameters"
-  impliedTarget <- NULL
+  impliedTarget <- nPlanTwoSe <- betaTwoSe <- NULL
 
   #Check each possible design scenario
   if (is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && !is.null(beta)) {
     #scenario 1a: delta + power known, calculate nPlan
-    nBlocksPlan <- simulateWorstCaseQuantileTwoProportions(delta = delta,
-                                            na = na, nb = nb,
-                                            priorValues = hyperParameterValues,
-                                            alternativeRestriction = alternativeRestriction,
-                                            alpha = alpha, beta = beta, M = M)[["worstCaseQuantile"]]
+    nSimulationResult <- simulateWorstCaseQuantileTwoProportions(delta = delta,
+                                                                 na = na, nb = nb,
+                                                                 priorValues = hyperParameterValues,
+                                                                 alternativeRestriction = alternativeRestriction,
+                                                                 alpha = alpha, beta = beta, M = M)
+    nBlocksPlan <- nSimulationResult[["worstCaseQuantile"]]
+    nPlanTwoSe <- c(0, 0, 2*nSimulationResult[["worstCaseQuantileTwoSe"]])
   } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && is.null(beta)) {
     #scenario 1c: only nPlan known, can perform a pilot (no warning though)
     pilot <- TRUE
@@ -146,6 +148,7 @@ designSafeTwoProportions <- function(na, nb,
                                                                          maxSimStoptime = nBlocksPlan,
                                                                          alpha = alpha, beta = 0, M = M)
     beta <- 1 - worstCaseSimulationResult[["worstCasePower"]]
+    betaTwoSe <- 2*worstCaseSimulationResult[["worstCasePowerTwoSe"]]
     impliedTarget <- worstCaseSimulationResult[["impliedTarget"]]
   } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && !is.null(beta)) {
     #scenario 3: given power and nPlan, calculate minimal effect size to be "detected"
@@ -179,10 +182,12 @@ designSafeTwoProportions <- function(na, nb,
   h0 <- 0
 
   result <- list("nPlan"=nPlan,
+                 "nPlanTwoSe" = nPlanTwoSe,
                  "parameter"= priorValuesForPrint,
                  "betaPriorParameterValues" = hyperParameterValues,
                  "alpha"=alpha,
                  "beta"=beta,
+                 "betaTwoSe" = betaTwoSe,
                  "impliedTarget" = impliedTarget,
                  "esMin" = delta,
                  "h0"= h0,
@@ -1494,7 +1499,8 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
                                       deltaDesign = NULL,
                                       maxSimStoptime = 1e4,
                                       gridSize = 8,
-                                      expectedStopTime = FALSE){
+                                      expectedStopTime = FALSE,
+                                      bootN = 1e3){
 
   restriction <- match.arg(alternativeRestriction)
 
@@ -1550,19 +1556,50 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
     currentPower <- mean(stopEs >= 1/alpha)
 
     #we look for the worst case (1-beta)% stopping time or power: store only that one
+    #also store the standard deviation, obtained through bootstrapping
+    #note that we do this only if we have found a new worst case: omit bootstrapping for every
+    #distribution.
     #also store the implied target belonging to the worst case power: exp(Expected [log E-waarde])
     if (currentQuantile >= currentWorstCaseQuantile) {
       currentWorstCaseQuantile <- currentQuantile
+      if (expectedStopTime) {
+        bootResult <- boot::boot(
+          data = stoppingTimes,
+          statistic = function(x, idx) {
+            mean(x[idx])
+          },
+          R = bootN
+        )
+      } else {
+        bootResult <- boot::boot(
+          data = stoppingTimes,
+          statistic = function(x, idx) {
+            quantile(x[idx], 1 - beta)
+          },
+          R = bootN
+        )
+      }
+      worstCaseQuantileTwoSe <- sd(bootResult[["t"]])
     }
     if (currentPower <= currentWorstCasePower) {
       currentWorstCasePower <- currentPower
+      bootResultPower <- boot::boot(
+        data = stopEs,
+        statistic = function(x, idx) {
+          mean(x[idx] >= 1/alpha)
+        },
+        R = bootN
+      )
+      powerTwoSe <- sd(bootResultPower[["t"]])
       currentImpliedTarget <- exp(mean(log(stopEs)))
     }
   }
   close(pbSafe)
 
   return(list(worstCasePower = currentWorstCasePower,
+              worstCasePowerTwoSe = powerTwoSe,
               worstCaseQuantile = currentWorstCaseQuantile,
+              worstCaseQuantileTwoSe = worstCaseQuantileTwoSe,
               impliedTarget = currentImpliedTarget))
 }
 
