@@ -149,6 +149,7 @@ designSafeTwoProportions <- function(na, nb,
                                                                          alpha = alpha, beta = 0, M = M)
     beta <- 1 - worstCaseSimulationResult[["worstCasePower"]]
     betaTwoSe <- 2*worstCaseSimulationResult[["worstCasePowerTwoSe"]]
+    # TODO (Alexander and Rosanne) add impliedTargetTwoSe when bootstrap helper function has been created
     impliedTarget <- worstCaseSimulationResult[["impliedTarget"]]
   } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && !is.null(beta)) {
     #scenario 3: given power and nPlan, calculate minimal effect size to be "detected"
@@ -1555,6 +1556,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
     }
     currentPower <- mean(stopEs >= 1/alpha)
 
+    # TODO (Alexander and Rosanne) beautify and add impliedTargetTwoSe when bootstrap helper function has been created
     #we look for the worst case (1-beta)% stopping time or power: store only that one
     #also store the standard deviation, obtained through bootstrapping
     #note that we do this only if we have found a new worst case: omit bootstrapping for every
