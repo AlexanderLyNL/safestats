@@ -135,7 +135,7 @@ designSafeTwoProportions <- function(na, nb,
                                                                  alternativeRestriction = alternativeRestriction,
                                                                  alpha = alpha, beta = beta, M = M)
     nBlocksPlan <- nSimulationResult[["worstCaseQuantile"]]
-    nPlanTwoSe <- c(0, 0, 2*nSimulationResult[["worstCaseQuantileTwoSe"]])
+    nPlanTwoSe <- c(0, 0, nSimulationResult[["worstCaseQuantileTwoSe"]])
   } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && is.null(beta)) {
     #scenario 1c: only nPlan known, can perform a pilot (no warning though)
     pilot <- TRUE
@@ -148,7 +148,7 @@ designSafeTwoProportions <- function(na, nb,
                                                                          maxSimStoptime = nBlocksPlan,
                                                                          alpha = alpha, beta = 0, M = M)
     beta <- 1 - worstCaseSimulationResult[["worstCasePower"]]
-    betaTwoSe <- 2*worstCaseSimulationResult[["worstCasePowerTwoSe"]]
+    betaTwoSe <- worstCaseSimulationResult[["worstCasePowerTwoSe"]]
     # TODO (Alexander and Rosanne) add impliedTargetTwoSe when bootstrap helper function has been created
     impliedTarget <- worstCaseSimulationResult[["impliedTarget"]]
   } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && !is.null(beta)) {
@@ -1581,7 +1581,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
           R = bootN
         )
       }
-      worstCaseQuantileTwoSe <- sd(bootResult[["t"]])
+      worstCaseQuantileTwoSe <- 2*sd(bootResult[["t"]])
     }
     if (currentPower <= currentWorstCasePower) {
       currentWorstCasePower <- currentPower
@@ -1592,7 +1592,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
         },
         R = bootN
       )
-      powerTwoSe <- sd(bootResultPower[["t"]])
+      powerTwoSe <- 2*sd(bootResultPower[["t"]])
       currentImpliedTarget <- exp(mean(log(stopEs)))
     }
   }
