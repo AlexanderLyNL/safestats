@@ -1557,6 +1557,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
     currentPower <- mean(stopEs >= 1/alpha)
 
     # TODO (Alexander and Rosanne) beautify and add impliedTargetTwoSe when bootstrap helper function has been created
+    # TODO (Rosanne) review if bootstrapping can be placed outside the loop by storing worst case stop Es
     #we look for the worst case (1-beta)% stopping time or power: store only that one
     #also store the standard deviation, obtained through bootstrapping
     #note that we do this only if we have found a new worst case: omit bootstrapping for every
