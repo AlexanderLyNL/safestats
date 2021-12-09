@@ -567,7 +567,74 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
   }
 }
 
+# ---------- Boot helpers --------
 
+#' Computes the bootObj for the log implied target
+#'
+#' @param eValues numeric vector of eValues used to compute the log implied target
+#' @param nBoot integer > 0
+#'
+#' @return bootObj
+#' @export
+#'
+#' @examples
+computeBootObjLogImpliedTarget <- function(eValues, nBoot=1e3L) {
+  bootObj <- boot::boot(eValues,
+                        function(x, idx) {
+                          mean(log(x[idx]))
+                        }, R = nBoot)
+
+  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
+  return(bootObj)
+}
+
+#' Computes the bootObj for the log implied target
+#'
+#' @param values numeric vector. If objType equals "nPlan" or "beta" then values represent stopping times,
+#' if objType equals "logImpliedTarget" then values represent eValues
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
+#' approximation of the power, the number of samples for the safe z test under continuous monitoring,
+#' @param nPlan integer > 0 representing the number of planned samples (for the first group)
+#'
+#' @return bootObj
+#' @export
+#'
+#' @examples
+computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L,
+                           objType=c("nPlan", "beta", "logImpliedTarget")) {
+  objType <- match.arg(objType)
+
+  if (objType=="beta") {
+    if (is.null(nPlan) || nPlan <= 0) stop("Please provide an nPlan > 0")
+
+    times <- values
+    stopifnot(nPlan > 0)
+
+    bootObj <- boot::boot(times,
+                          function(x, idx) {
+                            1-mean(x[idx] <= nPlan)
+                          },  R = nBoot)
+  } else if (objType=="nPlan") {
+    if (is.null(beta) || beta <= 0 || beta >= 1) stop("Please provide a beta in (0, 1)")
+
+    times <- values
+    bootObj <- boot::boot(times,
+                          function(x, idx) {
+                            quantile(x[idx], prob=1-beta, names=FALSE)
+                          }, R = nBoot)
+  } else if (objType=="logImpliedTarget") {
+    eValues <- values
+    stopifnot(eValues > 0)
+
+    bootObj <- boot::boot(eValues,
+                          function(x, idx) {
+                            mean(log(x[idx]))
+                          }, R = nBoot)
+  }
+
+  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
+  return(bootObj)
+}
 
 #' #' Helper function to produce notes based on bootstrap results
 #' #'
@@ -591,3 +658,5 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 #'                  # "\n Increase nSim for a more accurate estimate.")
 #'   return(note)
 #' }
+
+

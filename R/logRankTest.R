@@ -504,6 +504,14 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
   thetaS <- if (is.null(parameter)) hrMin else parameter
 
+  nEventsBatch <- nEventsTwoSe <- NULL
+  betaTwoSe <- NULL
+  impliedTarget <- impliedTargetTwoSe <- NULL
+  bootObjNEvents <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
+  note <- NULL
+
+  logImpliedTarget <- logImpliedTargetTwoSe <- NULL
+
   if (!exact) {
     if (!is.null(hrMin)) {
       logHazardRatio <- if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
@@ -524,6 +532,21 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     nEvents <- safeZObj[["nPlan"]]
     safeZObj[["nPlan"]] <- NULL
     safeZObj[["nEvents"]] <- nEvents
+
+    nEventsBatch <- safeZObj[["nPlanBatch"]]
+    safeZObj[["nPlanBatch"]] <- NULL
+    safeZObj[["nEventsBatch"]] <- safeZObj
+
+    nEventsTwoSe <- safeZObj[["nPlanTwoSe"]]
+    safeZObj[["nPlanTwoSe"]] <- NULL
+    safeZObj[["nEventsTwoSe"]] <- nEventsTwoSe
+
+    if (!is.null(nEventsBatch)) {
+      note <- paste0("If it is only possible to look at the data once, ",
+                     "then nEvents = ", nEventsBatch, ".")
+    }
+
+    safeZObj[["note"]] <- note
 
     if (!is.null(nEvents))
       names(safeZObj[["nEvents"]]) <- "nEvents"
@@ -561,16 +584,6 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
     ratio <- m1/m0
 
-    bootObj <- NULL
-    note <- NULL
-
-    nEventsBatch <- nEventsTwoSe <- NULL
-    betaTwoSe <- NULL
-    impliedTarget <- impliedTargetTwoSe <- NULL
-    bootObjNEvents <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
-
-    logImpliedTarget <- logImpliedTargetTwoSe <- NULL
-
     if (!is.null(hrMin) && !is.null(beta) && is.null(nEvents)) {
       designScenario <- "1a"
 
@@ -583,9 +596,13 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       nEventsBatch <- bootObjNEvents[["nEventsBatch"]]
       nEventsTwoSe <- 2*bootObjNEvents[["bootSe"]]
 
-      if (is.finite(nEventsBatch))
+      browser()
+
+      if (!is.null(nEventsBatch) && is.finite(nEventsBatch)) {
         note <- paste0("If it is only possible to look at the data once, ",
                        "then nEvents = ", nEventsBatch, ".")
+      }
+
     } else if (!is.null(hrMin) && is.null(beta) && is.null(nEvents)) {
       designScenario <- "1b"
     } else if (is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
@@ -652,8 +669,8 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
     result <- list("nPlan"=nEvents, "parameter"=thetaS, "esMin"=hrMin, "alpha"=alpha, "beta"=beta,
                    "alternative"=alternative, "h0"=h0, "testType"="eLogrank", "ciValue"=ciValue,
-                   "exact"=exact, "ratio"=m1/m0, "pilot"=FALSE, "bootObj"=bootObj,
-                   "note"=note, "nPlanBatch"=nEventsBatch, "betaTwoSe"=betaTwoSe, "nPlanTwoSe"=nEventsTwoSe,
+                   "exact"=exact, "ratio"=m1/m0, "pilot"=FALSE, "note"=note,
+                   "nPlanBatch"=nEventsBatch, "betaTwoSe"=betaTwoSe, "nPlanTwoSe"=nEventsTwoSe,
                    "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
                    "call"=sys.call(), "timeStamp"=Sys.time(), "bootObjNPlan"=bootObjNEvents,
                    "bootObjBeta"=bootObjBeta, "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
@@ -1201,28 +1218,20 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
   # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
   times[as.logical(breakVector)] <- Inf
 
-  bootObj <- boot::boot(times,
-                        function(x, idx) {
-                          1-mean(x[idx] <= nEvents)
-                        },  R = nBoot)
+  bootObjBeta <- computeBootObj("values"=times, "objType"="beta", "nPlan"=nEvents, "nBoot"=nBoot)
 
-  bootSe <- sd(bootObj[["t"]])
-  bootObj[["bootSe"]] <- bootSe
+  result <- list("beta" = bootObjBeta[["t0"]],
+                 "bootObjBeta" = bootObjBeta)
 
-  result <- list("beta" = bootObj[["t0"]],
-                 "bootObjBeta" = bootObj)
-
+  # TODO(Alexander): Batch version here
+  #
   eValuesAtEnd <- tempResult[["eValuesAtEnd"]]
 
-  bootObj <- boot::boot(eValuesAtEnd,
-                        function(x, idx) {
-                          mean(log(x[idx]))
-                        }, R = nBoot)
+  bootObjLogImpliedTarget <- computeBootObj("values"=eValuesAtEnd, "objType"="logImpliedTarget",
+                                            "nBoot"=nBoot)
 
-  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
-
-  result[["logImpliedTarget"]] <- bootObj[["t0"]]
-  result[["bootObjLogImpliedTarget"]] <- bootObj
+  result[["logImpliedTarget"]] <- bootObjLogImpliedTarget[["t0"]]
+  result[["bootObjLogImpliedTarget"]] <- bootObjLogImpliedTarget
 
   return(result)
 }
@@ -1274,19 +1283,10 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
   times <- tempResult[["stoppingTimes"]]
 
-  bootObj <- boot::boot(times,
-                        function(x, idx) {
-                          quantile(x[idx], prob=1-beta, names=FALSE)
-                        }, R = nBoot)
+  bootObjNEvents  <- computeBootObj("values"=times, "beta"=beta, "objType"="nPlan", "nBoot"=nBoot)
 
-  bootSe <- sd(bootObj[["t"]])
-  bootObj[["bootSe"]] <- bootSe
-  bootObj[["nEventsBatch"]] <- nBatch
-
-  note <- writeBootNote("nEvents", bootObj[["t0"]], bootSe)
-
-  result <- list("nEvents" = ceiling(bootObj[["t0"]]),
-                 "bootObjNEvents" = bootObj, "note"=note)
+  result <- list("nEvents" = ceiling(bootObjNEvents[["t0"]]),
+                 "bootObjNEvents" = bootObjNEvents, "nEventsBatch"=nBatch)
 
   return(result)
 }

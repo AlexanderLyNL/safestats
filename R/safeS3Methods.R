@@ -233,11 +233,11 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
     if (!is.null(itemValue)) {
       if (item == "nPlan") {
-        displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
-
         nPlanTwoSe <- designObj[["nPlanTwoSe"]]
 
         if (!is.null(nPlanTwoSe)) {
+          tempNeem <- names(designObj[["nPlan"]])
+
           for (i in seq_along(itemValue)) {
             if (i==1) {
               itemValueString <- paste0(format(itemValue[i], digits=digits), "\U00B1",
@@ -249,18 +249,32 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
                                        sep=", ")
             }
           }
-          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValueString
+          tempNeem <- paste0(names(designObj[["nPlan"]]), "\U00B1", "2se")
+          displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
         } else {
-          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
+          tempNeem <- names(designObj[["nPlan"]])
+          displayList[[paste(tempNeem, collapse=", ")]] <- itemValue
         }
+      } else if (item == "nEvents") {
+        nEventsTwoSe <- designObj[["nEventsTwoSe"]]
+        tempNeem <- names(designObj[["nEvents"]])
 
+        if (!is.null(nEventsTwoSe)) {
+          tempNeem <- paste0(tempNeem, "\U00B1", "2se")
+
+          itemValueString <- paste0(format(itemValue, digits=digits), "\U00B1",
+                                        format(nEventsTwoSe))
+        } else {
+          itemValueString <- paste0(format(itemValue, digits=digits))
+        }
+        displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
       } else if (item=="beta") {
         betaTwoSe <- designObj[["betaTwoSe"]]
         itemValueString <- format(1-itemValue, digits=digits)
 
         if (!is.null(betaTwoSe)) {
-          displayList[["power: 1 - beta"]] <- paste0(itemValueString, "\U00B1",
-                                                     format(betaTwoSe, digits=digits))
+          displayList[[paste0("power: (1 - beta)", "\U00B1", "2se")]] <-
+            paste0(itemValueString, "\U00B1",format(betaTwoSe, digits=digits))
         } else {
           displayList[["power: 1 - beta"]] <- itemValueString
         }
@@ -269,15 +283,16 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
       } else if (item=="decision rule") {
         displayList[["decision rule: e-value > 1/alpha"]] <- itemValueString
       } else if (item=="logImpliedTarget") {
-
+        tempNeem <- "log(implied target)"
         logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
 
         if (!is.null(logImpliedTargetTwoSe)) {
-          displayList[["log(implied target)"]] <- paste0(itemValueString, "\U00B1",
-                                                         format(logImpliedTargetTwoSe, digits=digits))
-        } else {
-          displayList[["log(implied target)"]] <- itemValueString
+          tempNeem <- paste0(tempNeem, "\U00B1", "2se")
+          itemValueString <- paste0(itemValueString, "\U00B1",
+                                    format(logImpliedTargetTwoSe, digits=digits))
         }
+
+        displayList[[tempNeem]] <- itemValueString
       } else if (item=="esMin") {
         displayList[[paste("minimal", names(itemValue))]] <- itemValueString
       } else if (item == "alternativeRestriction"){

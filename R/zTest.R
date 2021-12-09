@@ -476,10 +476,11 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 #' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
 #' @param parameter optional test defining parameter. Default set to \code{NULL}.
-#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples
-#' for the safe z test under continuous monitoring
+#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
+#' for the safe z test under continuous monitoring.
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
-#' approximation of the power or the number of samples for the safe z test under continuous monitoring
+#' approximation of the power, the number of samples for the safe z test under continuous monitoring,
+#' or for the computation of the logarithm of the implied target.
 #' @param pb logical, if \code{TRUE}, then show progress bar.
 #' @param grow logical, defaul set to \code{TRUE} so the grow safe test is used in the design.
 #' @param ... further arguments to be passed to or from methods.
@@ -1552,28 +1553,19 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
   # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
   times[as.logical(breakVector)] <- Inf
 
-  bootObj <- boot::boot(times,
-                        function(x, idx) {
-                          1-mean(x[idx] <= nPlan[1])
-                        },  R = nBoot)
+  bootObjBeta <- computeBootObj("values"=times, "objType"="beta", "nPlan"=nPlan[1], "nBoot"=nBoot)
 
-  bootSe <- sd(bootObj[["t"]])
-  bootObj[["bootSe"]] <- bootSe
-
-  result <- list("beta" = bootObj[["t0"]],
-                 "bootObjBeta" = bootObj)
-
+  # TODO(Alexander): Batch version here
+  #
   eValuesAtEnd <- tempResult[["eValuesAtEnd"]]
 
-  bootObj <- boot::boot(eValuesAtEnd,
-                        function(x, idx) {
-                          mean(log(x[idx]))
-                        }, R = nBoot)
+  bootObjLogImpliedTarget <- computeBootObj("values"=eValuesAtEnd, "objType"="logImpliedTarget",
+                                            "nBoot"=nBoot)
 
-  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
-
-  result[["logImpliedTarget"]] <- bootObj[["t0"]]
-  result[["bootObjLogImpliedTarget"]] <- bootObj
+  result <- list("beta" = bootObjBeta[["t0"]],
+                 "bootObjBeta" = bootObjBeta,
+                 "logImpliedTarget"=bootObjLogImpliedTarget[["t0"]],
+                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
 
   return(result)
 }
@@ -1620,18 +1612,10 @@ computeZTestNPlan <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
 
   times <- samplingResults[["stoppingTimes"]]
 
-  bootObj <- boot::boot(times,
-                        function(x, idx) {
-                          quantile(x[idx], prob=1-beta, names=FALSE)
-                        }, R = nBoot)
+  bootObjN1Plan <- computeBootObj("values"=times, "objType"="nPlan", "beta"=beta, "nBoot"=nBoot)
 
-  bootSe <- sd(bootObj[["t"]])
-  bootObj[["bootSe"]] <- bootSe
-
-  # note <- writeBootNote("nPlan", bootObj[["t0"]], bootSe)
-
-  result <- list("n1Plan" = ceiling(bootObj[["t0"]]),
-                 "bootObjN1Plan" = bootObj, "nPlanBatch"=nPlanBatch)
+  result <- list("n1Plan" = ceiling(bootObjN1Plan[["t0"]]),
+                 "bootObjN1Plan" = bootObjN1Plan, "nPlanBatch"=nPlanBatch)
 
   return(result)
 }
