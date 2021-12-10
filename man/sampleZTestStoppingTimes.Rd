@@ -12,10 +12,10 @@ sampleZTestStoppingTimes(
   kappa = sigma,
   nSim = 1000L,
   nMax = 1000,
-  tol = 1e-05,
   highN = 8e+09,
+  ratio = 1,
+  testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  grow = TRUE,
   pb = TRUE
 )
 }
@@ -33,14 +33,20 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
 
 \item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
 number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
+
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
-\item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping

@@ -569,37 +569,19 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 
 # ---------- Boot helpers --------
 
-#' Computes the bootObj for the log implied target
+#' Computes the bootObj for sequential sampling procedures regarding nPlan, beta, the implied target
 #'
-#' @param eValues numeric vector of eValues used to compute the log implied target
-#' @param nBoot integer > 0
-#'
-#' @return bootObj
-#' @export
-#'
-#' @examples
-computeBootObjLogImpliedTarget <- function(eValues, nBoot=1e3L) {
-  bootObj <- boot::boot(eValues,
-                        function(x, idx) {
-                          mean(log(x[idx]))
-                        }, R = nBoot)
-
-  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
-  return(bootObj)
-}
-
-#' Computes the bootObj for the log implied target
-#'
-#' @param values numeric vector. If objType equals "nPlan" or "beta" then values represent stopping times,
-#' if objType equals "logImpliedTarget" then values represent eValues
+#' @param values numeric vector. If objType equals "nPlan" or "beta" then values should be stopping times,
+#' if objType equals "logImpliedTarget" then values should be eValues.
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
-#' approximation of the power, the number of samples for the safe z test under continuous monitoring,
-#' @param nPlan integer > 0 representing the number of planned samples (for the first group)
+#' approximation of the power, the planned sample size(s) of the safe test under continuous monitoring.
+#' @param nPlan integer > 0 representing the number of planned samples (for the first group).
 #'
 #' @return bootObj
 #' @export
 #'
 #' @examples
+#' computeBootObj(1:100, objType="nPlan", beta=0.3)
 computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L,
                            objType=c("nPlan", "beta", "logImpliedTarget")) {
   objType <- match.arg(objType)

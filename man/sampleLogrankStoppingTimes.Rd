@@ -52,7 +52,7 @@ crossing crossing already. Default is Inf}
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 due to exceeding nMax, and 0 due to 1/alpha threshold crossing, or running out of participants, which implies
-that in corresponding stopping time is Inf.
+that the corresponding stopping time is Inf.
 }
 \description{
 Simulate stopping times for the exact safe logrank test

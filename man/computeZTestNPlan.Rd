@@ -10,16 +10,14 @@ computeZTestNPlan(
   beta = 0.2,
   alpha = 0.05,
   alternative = c("two.sided", "less", "greater"),
+  testType = c("oneSample", "paired", "twoSample"),
   sigma = 1,
   kappa = sigma,
-  tol = 1e-05,
   highN = 8e+09,
   ratio = 1,
   nSim = 1000L,
   nBoot = 1000L,
   parameter = NULL,
-  grow = TRUE,
-  testType = c("oneSample", "paired", "twoSample"),
   pb = TRUE,
   nMax = 1e+08
 )
@@ -37,11 +35,11 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
+
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
-
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
 \item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
 number. Default highN is set 8e9 to correspond to the current population of the earth.}
@@ -49,11 +47,16 @@ number. Default highN is set 8e9 to correspond to the current population of the 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
+
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
-\item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
-
-\item{testType}{either one of "oneSample", "paired", "twoSample".}
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
@@ -63,8 +66,5 @@ Helper function: Computes the planned sample size based on the minimal clinical 
 difference, alpha and beta
 }
 \examples{
-computeLogrankNEvents(0.7, 0.2, nSim=10)
-}
-\author{
-Muriel Felipe Pérez-Ortiz
+computeZTestNPlan(0.7, 0.2, nSim=10)
 }

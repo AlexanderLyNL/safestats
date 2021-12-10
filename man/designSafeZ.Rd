@@ -19,6 +19,9 @@ designSafeZ(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
+  nSim = 1000L,
+  nBoot = 1000L,
+  pb = TRUE,
   grow = TRUE,
   ...
 )
@@ -60,6 +63,15 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
 \item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
 
 \item{...}{further arguments to be passed to or from methods.}
@@ -99,4 +111,7 @@ designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="gr
 #nPlan known:
 designObj <- designSafeZ(nPlan = 100, alpha=0.05)
 
+}
+\references{
+Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
 }

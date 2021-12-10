@@ -12,7 +12,6 @@ computeZBetaFrom(
   sigma = 1,
   kappa = sigma,
   testType = c("oneSample", "paired", "twoSample"),
-  ratio = 1,
   parameter = NULL,
   pb = TRUE,
   nSim = 1000L,
@@ -39,10 +38,16 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
-
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
 }
 \value{
 a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.

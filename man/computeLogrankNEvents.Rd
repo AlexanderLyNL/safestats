@@ -17,6 +17,7 @@ computeLogrankNEvents(
   groupSizePerTimeFunction = returnOne,
   nMax = Inf,
   parameter = NULL,
+  digits = getOption("digits"),
   pb = TRUE
 )
 }
