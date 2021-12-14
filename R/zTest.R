@@ -1481,8 +1481,8 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
       x1BarVector <- x1BarVector[n1Vector]
 
       x2 <- simData[["dataGroup2"]][sim, ]
-      x2BarVector <- 1/(1:length(x2))*cumsum(x2)
-      x2BarVector <- x2BarVector[n2Vector]
+      x2Cumsum <- cumsum(x2)[n2Vector]
+      x2BarVector <- 1/n2Vector*x2Cumsum
 
       zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
 
