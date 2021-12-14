@@ -1413,7 +1413,8 @@ batchComputeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, k
 #' Simulate stopping times for the safe z-test
 #'
 #' @inheritParams designSafeZ
-#' @param nMax integer > 0, maximum length of the sample path
+#' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
+#' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies that in corresponding stopping
@@ -1425,7 +1426,8 @@ batchComputeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, k
 #' sampleZTestStoppingTimes(0.7, nSim=10)
 sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("two.sided", "less", "greater"),
                                      sigma=1, kappa=sigma, nSim=1e3L, nMax=1e3, highN=8e9, ratio=1,
-                                     testType=c("oneSample", "paired", "twoSample"), parameter=NULL, pb=TRUE) {
+                                     testType=c("oneSample", "paired", "twoSample"), parameter=NULL,
+                                     wantEValuesAtNMax=FALSE, pb=TRUE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
 
   alternative <- match.arg(alternative)
@@ -1433,7 +1435,7 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
 
   ## Object that will be returned. A sample of stopping times
   stoppingTimes <- breakVector <- integer(nSim)
-  eValuesAtEnd <- numeric(nSim)
+  eValuesStopped <- eValuesAtNMax <- numeric(nSim)
 
   if (!is.null(parameter)) {
     phiS <- parameter
@@ -1463,10 +1465,19 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "muTrue"=meanDiffMin, "sigmaTrue"=kappa,
                                 "paired"=FALSE)
 
+  n1PlanMax <- n1Vector[length(n1Vector)]
+  n2PlanMax <- n2Vector[length(n2Vector)]
+
   for (sim in seq_along(stoppingTimes)) {
     if (testType %in% c("oneSample", "paired")) {
       x1 <- simData[["dataGroup1"]][sim, ]
       zVector <- 1/sqrt(n1Vector)*cumsum(x1)
+
+      if (wantEValuesAtNMax) {
+        eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)], "phiS"=phiS,
+                                            "n1"=n1PlanMax, n2=NULL,
+                                            "alternative"=alternative, "sigma"=sigma)
+      }
     } else {
       x1 <- simData[["dataGroup1"]][sim, ]
       x1BarVector <- 1/(n1Vector)*cumsum(x1)
@@ -1477,6 +1488,12 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
       x2BarVector <- x2BarVector[n2Vector]
 
       zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
+
+      if (wantEValuesAtNMax) {
+        eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)], "phiS"=phiS,
+                                            "n1"=n1PlanMax, n2=n2PlanMax,
+                                            "alternative"=alternative, "sigma"=sigma)
+      }
     }
 
     for (j in seq_along(n1Vector)) {
@@ -1490,7 +1507,7 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
 
       if (evidenceNow > 1/alpha) {
         stoppingTimes[sim] <- n1Vector[j]
-        eValuesAtEnd[sim] <- evidenceNow
+        eValuesStopped[sim] <- evidenceNow
         break()
       }
 
@@ -1500,7 +1517,7 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
       if (n1Vector[j] >= nMax[1]) {
         stoppingTimes[sim] <- n1Vector[j]
         breakVector[sim] <- 1
-        eValuesAtEnd[sim] <- evidenceNow
+        eValuesStopped[sim] <- evidenceNow
         break()
       }
     }
@@ -1509,7 +1526,8 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
       utils::setTxtProgressBar(pbSafe, "value"=sim/nSim, "title"="Trials")
   }
 
-  result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector, "eValuesAtEnd"=eValuesAtEnd)
+  result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
+                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax)
   return(result)
 }
 
@@ -1551,7 +1569,7 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
                                          "alternative" = alternative, "sigma"=sigma,
                                          "kappa"=kappa, "nSim"=nSim, "nMax"=nPlan,
                                          "ratio"=ratio, "testType"=testType,
-                                         "parameter"=phiS, "pb"=pb)
+                                         "parameter"=phiS, "pb"=pb, "wantEValuesAtNMax"=TRUE)
 
   times <- tempResult[["stoppingTimes"]]
 
@@ -1563,11 +1581,9 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
 
   bootObjBeta <- computeBootObj("values"=times, "objType"="beta", "nPlan"=nPlan[1], "nBoot"=nBoot)
 
-  # TODO(Alexander): Batch version here
-  #
-  eValuesAtEnd <- tempResult[["eValuesAtEnd"]]
+  eValuesAtNMax <- tempResult[["eValuesAtNMax"]]
 
-  bootObjLogImpliedTarget <- computeBootObj("values"=eValuesAtEnd, "objType"="logImpliedTarget",
+  bootObjLogImpliedTarget <- computeBootObj("values"=eValuesAtNMax, "objType"="logImpliedTarget",
                                             "nBoot"=nBoot)
 
   result <- list("beta" = bootObjBeta[["t0"]],

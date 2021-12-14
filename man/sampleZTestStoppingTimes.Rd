@@ -16,6 +16,7 @@ sampleZTestStoppingTimes(
   ratio = 1,
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
+  wantEValuesAtNMax = FALSE,
   pb = TRUE
 )
 }
@@ -36,7 +37,7 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the safe z test under continuous monitoring.}
 
-\item{nMax}{integer > 0, maximum length of the sample path}
+\item{nMax}{integer > 0, maximum sample size of the (first) sample in each sample path.}
 
 \item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
 number. Default highN is set 8e9 to correspond to the current population of the earth.}
@@ -47,6 +48,8 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+
+\item{wantEValuesAtNMax}{logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 }

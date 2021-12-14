@@ -58,7 +58,7 @@ or for the computation of the logarithm of the implied target.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
-\item{nMax}{integer > 0, maximum length of the sample path}
+\item{nMax}{integer > 0, maximum sample size of the (first) sample in each sample path.}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
