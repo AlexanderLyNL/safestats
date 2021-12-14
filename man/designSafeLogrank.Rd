@@ -18,7 +18,6 @@ designSafeLogrank(
   m1 = 50000L,
   nSim = 1000L,
   nBoot = 10000L,
-  ciValue = 0.95,
   parameter = NULL,
   groupSizePerTimeFunction = returnOne,
   pb = TRUE,
@@ -64,8 +63,6 @@ safe logrank test under continuous monitoring}
 
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
 power or nEvents for the exact safe logrank test under continuous monitoring}
-
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 
 \item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}

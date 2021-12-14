@@ -50,9 +50,6 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
 \item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
-
-\item{designScenario}{a character string specifying the scenario for which needs designing either
-"1a" or "1b"}
 }
 \value{
 a list which contains at least nPlan and the phiS the parameter that defines the safe test

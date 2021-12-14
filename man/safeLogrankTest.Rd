@@ -8,7 +8,7 @@
 safeLogrankTest(
   formula,
   designObj = NULL,
-  ciValue = 0.95,
+  ciValue = NULL,
   data = NULL,
   survTime = NULL,
   group = NULL,
@@ -22,7 +22,7 @@ safeLogrankTestStat(
   z,
   nEvents,
   designObj,
-  ciValue = 0.95,
+  ciValue = NULL,
   dataNull = 1,
   sigma = 1
 )
@@ -33,7 +33,7 @@ see \code{\link[survival]{Surv}} for more details.}
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
 
 \item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
 

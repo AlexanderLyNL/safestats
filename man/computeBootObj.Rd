@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{computeBootObj}
 \alias{computeBootObj}
-\title{Computes the bootObj for the log implied target}
+\title{Computes the bootObj for sequential sampling procedures regarding nPlan, beta, the implied target}
 \usage{
 computeBootObj(
   values,
@@ -13,17 +13,25 @@ computeBootObj(
 )
 }
 \arguments{
-\item{values}{numeric vector. If objType equals "nPlan" or "beta" then values represent stopping times,
-if objType equals "logImpliedTarget" then values represent eValues}
+\item{values}{numeric vector. If objType equals "nPlan" or "beta" then values should be stopping times,
+if objType equals "logImpliedTarget" then values should be eValues.}
 
-\item{nPlan}{integer > 0 representing the number of planned samples (for the first group)}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+and "phiS". Note that 1-beta defines the power.}
+
+\item{nPlan}{integer > 0 representing the number of planned samples (for the first group).}
 
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
-approximation of the power, the number of samples for the safe z test under continuous monitoring,}
+approximation of the power, the planned sample size(s) of the safe test under continuous monitoring.}
+
+\item{objType}{character string either "nPlan", "beta", or "logImpliedTarget".}
 }
 \value{
 bootObj
 }
 \description{
-Computes the bootObj for the log implied target
+Computes the bootObj for sequential sampling procedures regarding nPlan, beta, the implied target
+}
+\examples{
+computeBootObj(1:100, objType="nPlan", beta=0.3)
 }

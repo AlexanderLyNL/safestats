@@ -36,6 +36,8 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the safe z test under continuous monitoring.}
 
+\item{nMax}{integer > 0, maximum length of the sample path}
+
 \item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
 number. Default highN is set 8e9 to correspond to the current population of the earth.}
 

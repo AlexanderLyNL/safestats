@@ -10,7 +10,6 @@ designSafeZ(
   nPlan = NULL,
   alpha = 0.05,
   h0 = 0,
-  ciValue = 0.95,
   alternative = c("two.sided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
@@ -41,8 +40,6 @@ and beta should be set to NULL.}
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
 \item{h0}{numeric, represents the null hypothesis, default h0=0.}
-
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}

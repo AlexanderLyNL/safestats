@@ -111,7 +111,26 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
     out <- c(out, paste(names(estimate), "=", format(estimate, digits = max(1L, digits - 2L))))
     cat(paste0("estimates: ", paste(out, collapse = ", "), sep="\n"))
   }
+
+  ciValue <- x[["ciValue"]]
+  confSeq <- x[["confSeq"]]
+
+  if (!is.null(confSeq) && !is.null(ciValue)) {
+    out <- character()
+    out <- c(out, paste(names(estimate), "=", format(estimate, digits = max(1L, digits - 2L))))
+
+    cat(format(100 * ciValue), "% confidence sequence: ",
+        " ", paste0(format(confSeq[1:2], digits = digits),
+                   collapse = " "), "\n", sep = "")
+  }
   cat("\n")
+
+  # if (!is.null(ciValue) && !is.null(confSeq)) {
+  #   out <- character()
+  #   out <- c(out, paste(names(estimate), "=", format(estimate, digits = max(1L, digits - 2L))))
+  #   cat(paste0("estimates: ", paste(out, collapse = ", "), sep="\n"))
+  # }
+  # cat("\n")
 
   statValue <- x[["statistic"]]
   parameter <- designObj[["parameter"]]

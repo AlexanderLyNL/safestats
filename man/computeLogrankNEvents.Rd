@@ -58,6 +58,8 @@ crossing crossing already. Default is Inf}
 \item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
+\item{digits}{number of significant digits to be used.}
+
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 }
 \value{

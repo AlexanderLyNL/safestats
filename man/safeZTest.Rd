@@ -39,8 +39,7 @@ safe.z.test(
 samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
 To change these default values, please use \code{\link{designSafeZ}()}.}
 
-\item{ciValue}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the ciValue of
-the design object is used to derive the level of the confidence sequence.}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
 
 \item{tol}{numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
 defining parameter to construct a pilot design object.}
@@ -72,8 +71,10 @@ following components:
 Safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
 }
 \examples{
-designObj <- designSafeZ(meanDiffMin=0.6, alpha=0.008, beta=0.2,
-alternative="greater", testType="twoSample", ratio=1.2)
+
+designObj <- designSafeZ(meanDiffMin=0.6, alpha=0.008,
+                         alternative="greater", testType="twoSample",
+                         ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)

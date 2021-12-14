@@ -16,7 +16,7 @@
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
 #' To change these default values, please use \code{\link{designSafeLogrank}}.
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha
 #' @param exact a logical indicating whether the exact safe logrank test needs to be performed based on
 #' the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the safe z-test (for Gaussian data)
 #' applied to the logrank z-statistic is used instead.
@@ -166,7 +166,7 @@
 #' if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
 #'   stop("one-sided wrong")
 #'
-safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, survTime=NULL,
+safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, survTime=NULL,
                             group=NULL, pilot=FALSE, exact=TRUE, computeZ=TRUE, ...) {
 
   # Check inputs  ----
@@ -341,6 +341,9 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
     eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff,
                             "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
 
+    if (is.null(ciValue))
+      ciValue <- 1 - designObj[["alpha"]]
+
     tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                               "phiS"=phiS, "sigma"=1,
                                               "ciValue"=ciValue, "alternative"="two.sided")
@@ -375,7 +378,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=0.95, data=NULL, su
 #'
 #' @return
 #' @export
-safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
+safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
                                 dataNull=1, sigma=1) {
 
   if (length(z) != length(nEvents))
@@ -385,6 +388,9 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 
   result <- list("statistic"=z, "n"=nEvents, "estimate"=NULL, "eValue"=NULL,
                  "confSeq"=NULL, "testType"="logrank", "dataName"="Logrank z")
+
+  if (is.null(ciValue))
+    ciValue <- 1 - designObj[["alpha"]]
 
   nEff <- designObj[["ratio"]]/(1+designObj[["ratio"]])^2*nEvents
 
@@ -487,7 +493,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=0.95,
 designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                               alternative=c("two.sided", "greater", "less"),
                               alpha=0.05, ratio=1, exact=TRUE, tol=1e-5,
-                              m0=50000L, m1=50000L, nSim=1e3L, nBoot=1e4L, ciValue=0.95,
+                              m0=50000L, m1=50000L, nSim=1e3L, nBoot=1e4L,
                               parameter=NULL, groupSizePerTimeFunction=returnOne,
                               pb=TRUE, ...) {
   stopifnot(0 < alpha, alpha < 1)
@@ -668,7 +674,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       names(h0) <- "theta"
 
     result <- list("nPlan"=nEvents, "parameter"=thetaS, "esMin"=hrMin, "alpha"=alpha, "beta"=beta,
-                   "alternative"=alternative, "h0"=h0, "testType"="eLogrank", "ciValue"=ciValue,
+                   "alternative"=alternative, "h0"=h0, "testType"="eLogrank",
                    "exact"=exact, "ratio"=m1/m0, "pilot"=FALSE, "note"=note,
                    "nPlanBatch"=nEventsBatch, "betaTwoSe"=betaTwoSe, "nPlanTwoSe"=nEventsTwoSe,
                    "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
@@ -1243,6 +1249,7 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 #'
 #' @inheritParams designSafeLogrank
 #' @inheritParams sampleLogrankStoppingTimes
+#' @param digits number of significant digits to be used.
 #'
 #' @return a list which contains at least nEvents and an adapted bootObject of class  \code{\link[boot]{boot}}.
 #' @author Muriel Felipe Pérez-Ortiz

@@ -57,6 +57,8 @@ or for the computation of the logarithm of the implied target.}
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{nMax}{integer > 0, maximum length of the sample path}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.

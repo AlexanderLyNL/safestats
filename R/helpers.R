@@ -571,11 +571,13 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 
 #' Computes the bootObj for sequential sampling procedures regarding nPlan, beta, the implied target
 #'
+#' @inheritParams designSafeZ
 #' @param values numeric vector. If objType equals "nPlan" or "beta" then values should be stopping times,
 #' if objType equals "logImpliedTarget" then values should be eValues.
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
 #' approximation of the power, the planned sample size(s) of the safe test under continuous monitoring.
 #' @param nPlan integer > 0 representing the number of planned samples (for the first group).
+#' @param objType character string either "nPlan", "beta", or "logImpliedTarget".
 #'
 #' @return bootObj
 #' @export
