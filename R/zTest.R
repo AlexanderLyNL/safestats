@@ -1462,9 +1462,6 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "muTrue"=meanDiffMin, "sigmaTrue"=kappa,
                                 "paired"=FALSE)
 
-  n1PlanMax <- n1Vector[length(n1Vector)]
-  n2PlanMax <- n2Vector[length(n2Vector)]
-
   for (sim in seq_along(stoppingTimes)) {
     if (testType %in% c("oneSample", "paired")) {
       x1 <- simData[["dataGroup1"]][sim, ]
@@ -1472,7 +1469,7 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
 
       if (wantEValuesAtNMax) {
         eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)], "phiS"=phiS,
-                                            "n1"=n1PlanMax, n2=NULL,
+                                            "n1"=nMax[1], n2=NULL,
                                             "alternative"=alternative, "sigma"=sigma)
       }
     } else {
@@ -1488,7 +1485,7 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
 
       if (wantEValuesAtNMax) {
         eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)], "phiS"=phiS,
-                                            "n1"=n1PlanMax, n2=n2PlanMax,
+                                            "n1"=nMax[1], n2=nMax[2],
                                             "alternative"=alternative, "sigma"=sigma)
       }
     }
