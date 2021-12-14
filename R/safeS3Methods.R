@@ -68,8 +68,6 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 #' @param x a safeTest object.
 #' @param digits number of significant digits to be used.
 #' @param prefix string, passed to strwrap for displaying the method components.
-#' @param printConfSeq logical, if \code{TRUE} prints also confidence sequence.
-#' Default \code{FALSE}
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return No returned value, called for side effects.
@@ -78,8 +76,7 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 #' @examples
 #' safeTTest(rnorm(19), pilot=TRUE)
 #' safeZTest(rnorm(19), pilot=TRUE)
-print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
-                            printConfSeq=FALSE, ...) {
+print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x[["designObj"]]
 
   if (!is.null(x[["testType"]]) && x[["testType"]] != designObj[["testType"]])
@@ -116,11 +113,8 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
   confSeq <- x[["confSeq"]]
 
   if (!is.null(confSeq) && !is.null(ciValue)) {
-    out <- character()
-    out <- c(out, paste(names(estimate), "=", format(estimate, digits = max(1L, digits - 2L))))
-
-    cat(format(100 * ciValue), "% confidence sequence: ",
-        " ", paste0(format(confSeq[1:2], digits = digits),
+    cat(format(100*(ciValue)), " percent confidence sequence:\n",
+        " ", paste(format(x[["confSeq"]][1:2], digits = digits),
                    collapse = " "), "\n", sep = "")
   }
   cat("\n")
@@ -151,14 +145,6 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
       eValue > 1/designObj[["alpha"]])
   cat("\n")
   cat("alternative hypothesis:", alternativeName, "\n")
-
-  if (printConfSeq) {
-    if (!is.null(x[["confSeq"]])) {
-      cat(format(100*(1-designObj[["alpha"]])), " percent confidence sequence:\n",
-          " ", paste(format(x[["confSeq"]][1:2], digits = digits),
-                     collapse = " "), "\n", sep = "")
-    }
-  }
 
   # if (!is.null(x$conf.int)) {
   #   cat(format(100 * attr(x$conf.int, "conf.level")), " percent confidence interval:\n",

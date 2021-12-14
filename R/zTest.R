@@ -216,24 +216,21 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
     dataName <- paste(xLabel, "and", yLabel)
   }
 
+  if (is.null(ciValue))
+    ciValue <- 1-designObj[["alpha"]]
+
   result[["testType"]] <- testType
   result[["statistic"]] <- zStat
   result[["estimate"]] <- estimate
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
+  result[["ciValue"]] <- ciValue
 
-  if (is.null(ciValue)) {
-    result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                                      "phiS"=designObj[["parameter"]],
-                                                      "sigma"=sigma, "ciValue"=1-designObj[["alpha"]],
-                                                      "alternative"="two.sided")
-  } else if (0 < ciValue && ciValue < 1) {
+  if (ciValue > 0 && ciValue < 1) {
     result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
                                                       "phiS"=designObj[["parameter"]],
                                                       "sigma"=sigma, "ciValue"=ciValue,
                                                       "alternative"="two.sided")
-  } else {
-    stop("Provided ciValue cannot be processed. Please set ciValue > 0 and ciValue < 1.")
   }
 
   if (is.null(n2)) {
