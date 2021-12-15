@@ -68,8 +68,6 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 #' @param x a safeTest object.
 #' @param digits number of significant digits to be used.
 #' @param prefix string, passed to strwrap for displaying the method components.
-#' @param printConfSeq logical, if \code{TRUE} prints also confidence sequence.
-#' Default \code{FALSE}
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return No returned value, called for side effects.
@@ -78,8 +76,7 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
 #' @examples
 #' safeTTest(rnorm(19), pilot=TRUE)
 #' safeZTest(rnorm(19), pilot=TRUE)
-print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
-                            printConfSeq=FALSE, ...) {
+print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x[["designObj"]]
 
   if (!is.null(x[["testType"]]) && x[["testType"]] != designObj[["testType"]])
@@ -111,7 +108,23 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
     out <- c(out, paste(names(estimate), "=", format(estimate, digits = max(1L, digits - 2L))))
     cat(paste0("estimates: ", paste(out, collapse = ", "), sep="\n"))
   }
+
+  ciValue <- x[["ciValue"]]
+  confSeq <- x[["confSeq"]]
+
+  if (!is.null(confSeq) && !is.null(ciValue)) {
+    cat(format(100*(ciValue)), " percent confidence sequence:\n",
+        " ", paste(format(x[["confSeq"]][1:2], digits = digits),
+                   collapse = " "), "\n", sep = "")
+  }
   cat("\n")
+
+  # if (!is.null(ciValue) && !is.null(confSeq)) {
+  #   out <- character()
+  #   out <- c(out, paste(names(estimate), "=", format(estimate, digits = max(1L, digits - 2L))))
+  #   cat(paste0("estimates: ", paste(out, collapse = ", "), sep="\n"))
+  # }
+  # cat("\n")
 
   statValue <- x[["statistic"]]
   parameter <- designObj[["parameter"]]
@@ -132,14 +145,6 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t",
       eValue > 1/designObj[["alpha"]])
   cat("\n")
   cat("alternative hypothesis:", alternativeName, "\n")
-
-  if (printConfSeq) {
-    if (!is.null(x[["confSeq"]])) {
-      cat(format(100*(1-designObj[["alpha"]])), " percent confidence sequence:\n",
-          " ", paste(format(x[["confSeq"]][1:2], digits = digits),
-                     collapse = " "), "\n", sep = "")
-    }
-  }
 
   # if (!is.null(x$conf.int)) {
   #   cat(format(100 * attr(x$conf.int, "conf.level")), " percent confidence interval:\n",
@@ -227,41 +232,78 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   displayList <- list()
 
   for (item in c("nPlan", "nEvents", "esMin", "alternative","alternativeRestriction", "beta", "parameter",
-                 "alpha", "decision rule")) {
+                 "alpha", "decision rule", "logImpliedTarget")) {
     itemValue <- designObj[[item]]
+    itemValueString <- format(itemValue, digits=digits)
 
     if (!is.null(itemValue)) {
       if (item == "nPlan") {
-        displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
-
         nPlanTwoSe <- designObj[["nPlanTwoSe"]]
 
         if (!is.null(nPlanTwoSe)) {
-          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <-
-            paste0(itemValue, "\U00B1", format(nPlanTwoSe, digits=digits))
-        } else {
-          displayList[[paste(names(designObj[["nPlan"]]), collapse=", ")]] <- itemValue
-        }
+          tempNeem <- names(designObj[["nPlan"]])
 
+          for (i in seq_along(itemValue)) {
+            if (i==1) {
+              itemValueString <- paste0(format(itemValue[i], digits=digits), "\U00B1",
+                                        format(nPlanTwoSe[i]))
+            } else {
+              itemValueString <- paste(itemValueString,
+                                       paste0(format(itemValue[i], digits=digits), "\U00B1",
+                                              format(nPlanTwoSe[i])),
+                                       sep=", ")
+            }
+          }
+          tempNeem <- paste0(names(designObj[["nPlan"]]), "\U00B1", "2se")
+          displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
+        } else {
+          tempNeem <- names(designObj[["nPlan"]])
+          displayList[[paste(tempNeem, collapse=", ")]] <- itemValue
+        }
+      } else if (item == "nEvents") {
+        nEventsTwoSe <- designObj[["nEventsTwoSe"]]
+        tempNeem <- names(designObj[["nEvents"]])
+
+        if (!is.null(nEventsTwoSe)) {
+          tempNeem <- paste0(tempNeem, "\U00B1", "2se")
+
+          itemValueString <- paste0(format(itemValue, digits=digits), "\U00B1",
+                                        format(nEventsTwoSe))
+        } else {
+          itemValueString <- paste0(format(itemValue, digits=digits))
+        }
+        displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
       } else if (item=="beta") {
         betaTwoSe <- designObj[["betaTwoSe"]]
+        itemValueString <- format(1-itemValue, digits=digits)
 
         if (!is.null(betaTwoSe)) {
-          displayList[["power: 1 - beta"]] <- paste0(1-itemValue, "\U00B1",
-                                                     format(betaTwoSe, digits=digits))
+          displayList[[paste0("power: (1 - beta)", "\U00B1", "2se")]] <-
+            paste0(itemValueString, "\U00B1",format(betaTwoSe, digits=digits))
         } else {
-          displayList[["power: 1 - beta"]] <- 1-itemValue
+          displayList[["power: 1 - beta"]] <- itemValueString
         }
       } else if (item=="parameter") {
-        displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValue
+        displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValueString
       } else if (item=="decision rule") {
-        displayList[["decision rule: e-value > 1/alpha"]] <- itemValue
+        displayList[["decision rule: e-value > 1/alpha"]] <- itemValueString
+      } else if (item=="logImpliedTarget") {
+        tempNeem <- "log(implied target)"
+        logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
+
+        if (!is.null(logImpliedTargetTwoSe)) {
+          tempNeem <- paste0(tempNeem, "\U00B1", "2se")
+          itemValueString <- paste0(itemValueString, "\U00B1",
+                                    format(logImpliedTargetTwoSe, digits=digits))
+        }
+
+        displayList[[tempNeem]] <- itemValueString
       } else if (item=="esMin") {
-        displayList[[paste("minimal", names(itemValue))]] <- itemValue
+        displayList[[paste("minimal", names(itemValue))]] <- itemValueString
       } else if (item == "alternativeRestriction"){
-        displayList[["alternative restriction"]] <- itemValue
+        displayList[["alternative restriction"]] <- itemValueString
       } else {
-        displayList[[item]] <- itemValue
+        displayList[[item]] <- itemValueString
       }
     }
   }

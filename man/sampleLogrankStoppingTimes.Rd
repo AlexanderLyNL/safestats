@@ -35,7 +35,7 @@ alternative specifies that survival in population 2 is higher than in population
 \item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
-safe logrank test}
+safe logrank test under continuous monitoring}
 
 \item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
 of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
@@ -50,11 +50,9 @@ crossing crossing already. Default is Inf}
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 }
 \value{
-A vector containing nSim number of events resulting from simulation.
-
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 due to exceeding nMax, and 0 due to 1/alpha threshold crossing, or running out of participants, which implies
-that in corresponding stopping time is Inf.
+that the corresponding stopping time is Inf.
 }
 \description{
 Simulate stopping times for the exact safe logrank test

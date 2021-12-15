@@ -10,7 +10,6 @@ designSafeZ(
   nPlan = NULL,
   alpha = 0.05,
   h0 = 0,
-  ciValue = 0.95,
   alternative = c("two.sided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
@@ -19,6 +18,9 @@ designSafeZ(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
+  nSim = 1000L,
+  nBoot = 1000L,
+  pb = TRUE,
   grow = TRUE,
   ...
 )
@@ -39,8 +41,6 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{h0}{numeric, represents the null hypothesis, default h0=0.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95}
-
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
@@ -59,6 +59,15 @@ number. Default highN is set 8e9 to correspond to the current population of the 
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
 
@@ -99,4 +108,7 @@ designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="gr
 #nPlan known:
 designObj <- designSafeZ(nPlan = 100, alpha=0.05)
 
+}
+\references{
+Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
 }

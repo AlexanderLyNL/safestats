@@ -18,7 +18,9 @@ computeZSafeTestAndNFrom(
   ratio = 1,
   parameter = NULL,
   designScenario = "1a",
-  grow = TRUE
+  grow = TRUE,
+  nSim = 1000L,
+  nBoot = 1000L
 )
 }
 \arguments{
@@ -54,6 +56,13 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 "1a" or "1b"}
 
 \item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
+
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
 }
 \value{
 a list which contains at least nPlan and the phiS the parameter that defines the safe test

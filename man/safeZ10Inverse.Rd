@@ -7,10 +7,7 @@
 safeZ10Inverse(parameter, nEff, sigma = 1, alpha = 0.05)
 }
 \arguments{
-\item{parameter}{numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average likelihood defined by
-the likelihood at the parameter value. For the two sided case 1/2 at the parameter value and 1/2 at minus the
-parameter value.}
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
 \item{nEff}{numeric > 0, the effective sample size.}
 
