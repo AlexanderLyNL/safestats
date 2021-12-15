@@ -13,7 +13,6 @@ computeZTestNPlan(
   testType = c("oneSample", "paired", "twoSample"),
   sigma = 1,
   kappa = sigma,
-  highN = 8e+09,
   ratio = 1,
   nSim = 1000L,
   nBoot = 1000L,
@@ -40,9 +39,6 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
-
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}

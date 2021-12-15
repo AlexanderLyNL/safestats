@@ -12,7 +12,6 @@ sampleZTestStoppingTimes(
   kappa = sigma,
   nSim = 1000L,
   nMax = 1000,
-  highN = 8e+09,
   ratio = 1,
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
@@ -38,9 +37,6 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 for the safe z test under continuous monitoring.}
 
 \item{nMax}{integer > 0, maximum sample size of the (first) sample in each sample path.}
-
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}

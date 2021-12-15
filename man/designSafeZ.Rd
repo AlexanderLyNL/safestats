@@ -14,7 +14,6 @@ designSafeZ(
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
-  highN = 8e+09,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
@@ -50,9 +49,6 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
-
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
@@ -72,6 +68,9 @@ or for the computation of the logarithm of the implied target.}
 \item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
+number. Default highN is set 8e9 to correspond to the current population of the earth.}
 }
 \value{
 Returns a safeDesign object that includes:
