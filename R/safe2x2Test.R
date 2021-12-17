@@ -229,6 +229,14 @@ designSafeTwoProportions <- function(na, nb,
 #' @param yb positive observations/ events per data block in group b: a numeric with integer values
 #' between (and including) 0 and \code{nb}, the number of observations in group b per block.
 #' @param designObj a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
+#' @param wantConfidenceSequence logical that can be set to true when the user wants a safe confidence
+#' sequence to be estimated.
+#' @param ciValue coverage of the safe confidence sequence; default \code{NULL}, if NULL
+#' calculated as \code{1 - designObj[["alpha"]]}.
+#' @param confidenceBoundGridPrecision integer specifying the grid precision used to search for the confidence
+#' bounds. Default 20.
+#' @param logOddsConfidenceSearchBounds vector of to positive doubles specifying the upper and lower bound of the grid
+#' to search over for finding the confidence bound for the logOddsRatio restriction. Default \code{(0.01, 5)}.
 #' @param pilot logical that can be set to true when performing an exploratory analysis
 #' without a \code{designObj}; only allows for \code{na = nb = 1}.
 #'
@@ -270,7 +278,8 @@ designSafeTwoProportions <- function(na, nb,
 #'                                        M = 1e1)
 #' safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
 #'
-safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
+safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+                                   confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
   if (is.null(designObj) & !pilot) {
     stop("Please provide a safe 2x2 design object, or run the function with pilot=TRUE.",
          "A design object can be obtained by running designSafeTwoProportions().")
@@ -297,6 +306,51 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
                                     na = designObj[["nPlan"]][["na"]],
                                     nb = designObj[["nPlan"]][["nb"]])
 
+  confInt <- NULL
+  if (wantConfidenceSequence) {
+    ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
+    originalAlpha <- designObj[["alpha"]]
+    ciAlpha <- 1 - ciValue
+
+    #for the confidence calculation, set design alpha to the ci alpha
+    #as this could differ in an exploratory setting
+    designObj[["alpha"]] <- ciAlpha
+
+    if (designObj[["alternativeRestriction"]] == "logOddsRatio") {
+      #we can only give a lower OR an upper bound
+      #if delta > 0, we hypothesize thetaB > thetaA and can estimate a lower bound
+      boundDirection <- ifelse(designObj[["esMin"]] > 0, "lower", "upper")
+      gridBounds <- sign(designObj[["esMin"]]) * logOddsConfidenceSearchBounds
+      confidenceBound <- computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
+                                                     yb = yb,
+                                                     safeDesign = designObj,
+                                                     bound = boundDirection,
+                                                     deltaStart = gridBounds[1],
+                                                     deltaStop = gridBounds[2],
+                                                     precision = confidenceBoundGridPrecision)
+      #fill in the bound we could not estimate (due to non-convexity of H0 in that direction)
+      #with infinity
+      if (confidenceBound == 0) {
+        confInt <- c(-Inf, Inf)
+      } else if (confidenceBound > 0) {
+        confInt <- c(confidenceBound, Inf)
+      } else {
+        confInt <- c(-Inf, confidenceBound)
+      }
+    } else {
+      confidenceBounds <- computeConfidenceBoundsForDifferenceTwoProportions(
+         ya = ya,
+         yb = yb,
+         precision = confidenceBoundGridPrecision,
+         safeDesign = designObj
+       )
+      confInt <- c(confidenceBounds[["lowerBound"]], confidenceBounds[["upperBound"]])
+    }
+
+    #return the original alpha after calculating with the ciAlpha design
+    designObj[["alpha"]] <- originalAlpha
+  }
+
   argumentNames <- getArgs()
   xLabel <- extractNameFromArgs(argumentNames, "ya")
   yLabel <- extractNameFromArgs(argumentNames, "yb")
@@ -317,7 +371,9 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
                      eValue = eValue,
                      dataName = dataName,
                      n = n,
-                     posteriorHyperParameters = posteriorHyperParameters)
+                     posteriorHyperParameters = posteriorHyperParameters,
+                     ciValue = ciValue,
+                     confSeq = confInt)
   class(testResult) <- "safeTest"
 
   return(testResult)
@@ -328,8 +384,12 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, pilot = FALSE) {
 #' @rdname safeTwoProportionsTest
 #'
 #' @export
-safe.prop.test <- function(ya, yb, designObj = NULL, pilot = FALSE) {
-  safeTestResult <- tryCatch(safeTwoProportionsTest(ya = ya, yb = yb, designObj = designObj, pilot = pilot),
+safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+                           confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
+  safeTestResult <- tryCatch(safeTwoProportionsTest(ya = ya, yb = yb, designObj = designObj,
+                                                    wantConfidenceSequence = wantConfidenceSequence, ciValue = ciValue,
+                                                    confidenceBoundGridPrecision = confidenceBoundGridPrecision,
+                                                    logOddsConfidenceSearchBounds = logOddsConfidenceSearchBounds, pilot = pilot),
                   error = function(e){e})
 
   if (!is.null(safeTestResult[["message"]])) {

@@ -5,9 +5,27 @@
 \alias{safe.prop.test}
 \title{Perform a Safe Test for Two Proportions with Stream Data}
 \usage{
-safeTwoProportionsTest(ya, yb, designObj = NULL, pilot = FALSE)
+safeTwoProportionsTest(
+  ya,
+  yb,
+  designObj = NULL,
+  wantConfidenceSequence = FALSE,
+  ciValue = NULL,
+  confidenceBoundGridPrecision = 20,
+  logOddsConfidenceSearchBounds = c(0.01, 5),
+  pilot = FALSE
+)
 
-safe.prop.test(ya, yb, designObj = NULL, pilot = FALSE)
+safe.prop.test(
+  ya,
+  yb,
+  designObj = NULL,
+  wantConfidenceSequence = FALSE,
+  ciValue = NULL,
+  confidenceBoundGridPrecision = 20,
+  logOddsConfidenceSearchBounds = c(0.01, 5),
+  pilot = FALSE
+)
 }
 \arguments{
 \item{ya}{positive observations/ events per data block in group a: a numeric with integer values
@@ -17,6 +35,18 @@ between (and including) 0 and \code{na}, the number of observations in group a p
 between (and including) 0 and \code{nb}, the number of observations in group b per block.}
 
 \item{designObj}{a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.}
+
+\item{wantConfidenceSequence}{logical that can be set to true when the user wants a safe confidence
+sequence to be estimated.}
+
+\item{ciValue}{coverage of the safe confidence sequence; default \code{NULL}, if NULL
+calculated as \code{1 - designObj[["alpha"]]}.}
+
+\item{confidenceBoundGridPrecision}{integer specifying the grid precision used to search for the confidence
+bounds. Default 20.}
+
+\item{logOddsConfidenceSearchBounds}{vector of to positive doubles specifying the upper and lower bound of the grid
+to search over for finding the confidence bound for the logOddsRatio restriction. Default \code{(0.01, 5)}.}
 
 \item{pilot}{logical that can be set to true when performing an exploratory analysis
 without a \code{designObj}; only allows for \code{na = nb = 1}.}
