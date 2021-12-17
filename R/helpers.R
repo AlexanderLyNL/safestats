@@ -577,15 +577,15 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
 #' approximation of the power, the planned sample size(s) of the safe test under continuous monitoring.
 #' @param nPlan integer > 0 representing the number of planned samples (for the first group).
-#' @param objType character string either "nPlan", "beta", or "logImpliedTarget".
+#' @param objType character string either "nPlan", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".
 #'
 #' @return bootObj
 #' @export
 #'
 #' @examples
 #' computeBootObj(1:100, objType="nPlan", beta=0.3)
-computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L,
-                           objType=c("nPlan", "beta", "logImpliedTarget")) {
+computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L, alpha=NULL,
+                           objType=c("nPlan", "beta", "betaFromEValues", "logImpliedTarget", "expectedStopTime")) {
   objType <- match.arg(objType)
 
   if (objType=="beta") {
@@ -598,6 +598,18 @@ computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L,
                           function(x, idx) {
                             1-mean(x[idx] <= nPlan)
                           },  R = nBoot)
+  } else if (objType =="betaFromEValues") {
+    if (is.null(alpha) || alpha <= 0 || alpha >= 1) stop("Please provide an alpha in (0, 1)")
+    eValues <- values
+
+    bootObj <- boot::boot(
+      data = eValues,
+      statistic = function(x, idx) {
+        mean(x[idx] >= 1/alpha)
+      },
+      R = nBoot
+    )
+
   } else if (objType=="nPlan") {
     if (is.null(beta) || beta <= 0 || beta >= 1) stop("Please provide a beta in (0, 1)")
 
@@ -613,6 +625,12 @@ computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L,
     bootObj <- boot::boot(eValues,
                           function(x, idx) {
                             mean(log(x[idx]))
+                          }, R = nBoot)
+  } else if (objType=="expectedStopTime") {
+    times <- values
+    bootObj <- boot::boot(times,
+                          function(x, idx) {
+                            mean(x[idx])
                           }, R = nBoot)
   }
 

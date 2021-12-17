@@ -15,7 +15,9 @@ designSafeTwoProportions(
   pilot = "FALSE",
   hyperParameterValues = NULL,
   previousSafeTestResult = NULL,
-  M = 1000
+  M = 1000,
+  simThetaAMin = NULL,
+  simThetaAMax = NULL
 )
 }
 \arguments{
@@ -48,6 +50,12 @@ chosen to optimize evidence collected over subsequent experiments (REGRET). Pass
 of the hyperparameters of this test is then used for the hyperparameter settings. Default NULL.}
 
 \item{M}{number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.}
+
+\item{simThetaAMin}{minimal event rate in control group to simulate NPlan or power for.
+Can be specified when specifically interested in planning studies for specific event rates.
+Default \code{NULL}, then the entire parameter space (possibly restricted by delta) is used for simulation.}
+
+\item{simThetaAMax}{maximal event rate in control group to simulate NPlan or power for. Default \code{NULL}.}
 }
 \value{
 Returns a 'safeDesign' object that includes:

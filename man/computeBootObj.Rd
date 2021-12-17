@@ -9,7 +9,9 @@ computeBootObj(
   beta = NULL,
   nPlan = NULL,
   nBoot = 1000L,
-  objType = c("nPlan", "beta", "logImpliedTarget")
+  alpha = NULL,
+  objType = c("nPlan", "beta", "betaFromEValues", "logImpliedTarget",
+    "expectedStopTime")
 )
 }
 \arguments{
@@ -24,7 +26,10 @@ and "phiS". Note that 1-beta defines the power.}
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
 approximation of the power, the planned sample size(s) of the safe test under continuous monitoring.}
 
-\item{objType}{character string either "nPlan", "beta", or "logImpliedTarget".}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+
+\item{objType}{character string either "nPlan", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".}
 }
 \value{
 bootObj
