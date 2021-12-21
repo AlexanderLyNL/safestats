@@ -84,6 +84,14 @@
 #'                          alternativeRestriction = "none",
 #'                          M = 1e2)
 #'
+#' #restrict range of proportions for estimating nPlan in the control group
+#' designSafeTwoProportions(na = 1,
+#'                          nb = 1,
+#'                          beta = 0.20,
+#'                          delta = 0.3,
+#'                          alternativeRestriction = "none",
+#'                          M = 1e2,
+#'                          simThetaAMin = 0.1, simThetaAMax = 0.2)
 #'
 designSafeTwoProportions <- function(na, nb,
                                      nBlocksPlan = NULL,
@@ -115,7 +123,7 @@ designSafeTwoProportions <- function(na, nb,
     hyperParameterValues <- list(betaA1 = 0.18, betaB1 = (nb/na)*0.18,
                         betaA2 = 0.18, betaB2 = (nb/na)*0.18)
     priorValuesForPrint <- "standard, REGRET optimal"
-    note <- c(note,"Optimality of hyperparameters only verified for equal group sizes (na = nb = 1)")
+    note <- c(note, "Optimality of hyperparameters only verified for equal group sizes (na = nb = 1)")
   } else {
     #user provided manually: perform checks
     if (!all(c("betaA1", "betaA2", "betaB1", "betaB2") %in% names(hyperParameterValues))) {
@@ -1713,6 +1721,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
     nBoot = nBoot,
     objType = "betaFromEValues"
   )
+  worstCasePowerTwoSe <- 2 * bootResultPower[["bootSe"]]
 
   if (estimateImpliedTarget) {
     logImpliedTarget <- mean(log(finalEsWorstCase))
@@ -1729,7 +1738,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
   return(
     list(
       worstCasePower = currentWorstCasePower,
-      worstCasePowerTwoSe = 2 * bootResultPower[["bootSe"]],
+      worstCasePowerTwoSe = worstCasePowerTwoSe,
       worstCaseQuantile = currentWorstCaseQuantile,
       worstCaseQuantileTwoSe = worstCaseQuantileTwoSe,
       logImpliedTarget = logImpliedTarget,

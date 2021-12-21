@@ -116,5 +116,13 @@ designSafeTwoProportions(na = 1,
                          alternativeRestriction = "none",
                          M = 1e2)
 
+#restrict range of proportions for estimating nPlan in the control group
+designSafeTwoProportions(na = 1,
+                         nb = 1,
+                         beta = 0.20,
+                         delta = 0.3,
+                         alternativeRestriction = "none",
+                         M = 1e2,
+                         simThetaAMin = 0.1, simThetaAMax = 0.2)
 
 }
