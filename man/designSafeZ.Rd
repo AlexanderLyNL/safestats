@@ -65,12 +65,9 @@ or for the computation of the logarithm of the implied target.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
-\item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
+\item{grow}{logical, default set to \code{TRUE} so the grow safe test is used in the design.}
 
 \item{...}{further arguments to be passed to or from methods.}
-
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
 }
 \value{
 Returns a safeDesign object that includes:

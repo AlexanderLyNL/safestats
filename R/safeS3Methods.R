@@ -345,12 +345,12 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' designObj <- designSafeT(1)
 #'
 #' # Data under deltaTrue=deltaMin
-#' simObj <- simulate(designObj, nsim=100)
-#' simObj
+#' #simObj <- simulate(designObj, nsim=100)
+#' #simObj
 #'
 #' # Data under the null deltaTrue=0
-#' simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
-#' simObj
+#' #simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
+#' #simObj
 print.safeTSim <- function(x, ...) {
   analysisName <- getNameTestType("testType" = x[["testType"]], "parameterName"=names(x[["parameter"]]))
 

@@ -1274,10 +1274,10 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
       logThetaS <- if (!is.null(parameter)) log(parameter) else NULL
 
-      tempResult <- batchComputeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "beta"=beta,
-                                                  "alpha"=alpha, "alternative"=alternative,
-                                                  "testType"="oneSample",
-                                                  "ratio"=ratio, "parameter"=logThetaS)
+      tempResult <- computeNPlanBatchSafeZ("meanDiffMin"=meanDiffMin, "beta"=beta,
+                                           "alpha"=alpha, "alternative"=alternative,
+                                           "testType"="oneSample",
+                                           "ratio"=ratio, "parameter"=logThetaS)
       nBatch <- tempResult[["nPlan"]]
     } else {
       nBatch <- nMax

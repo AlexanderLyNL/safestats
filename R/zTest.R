@@ -1,3 +1,5 @@
+# Testing fnts ---------
+
 #' Computes E-Values Based on the Z-Statistic
 #'
 #' Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
@@ -194,6 +196,12 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   alternative <- designObj[["alternative"]]
   h0 <- designObj[["h0"]]
 
+  if (is.null(ciValue))
+    ciValue <- 1-alpha
+
+  if (ciValue < 0 || ciValue > 1)
+    stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
+
   zStat <- tryOrFailWithNA(sqrt(nEff)*(meanStat - h0)/sigma)
 
   if (is.na(zStat))
@@ -216,9 +224,6 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
     dataName <- paste(xLabel, "and", yLabel)
   }
 
-  if (is.null(ciValue))
-    ciValue <- 1-designObj[["alpha"]]
-
   result[["testType"]] <- testType
   result[["statistic"]] <- zStat
   result[["estimate"]] <- estimate
@@ -226,12 +231,10 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   result[["designObj"]] <- designObj
   result[["ciValue"]] <- ciValue
 
-  if (ciValue > 0 && ciValue < 1) {
-    result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
-                                                      "phiS"=designObj[["parameter"]],
-                                                      "sigma"=sigma, "ciValue"=ciValue,
-                                                      "alternative"="two.sided")
-  }
+  result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+                                                    "phiS"=designObj[["parameter"]],
+                                                    "sigma"=sigma, "ciValue"=ciValue,
+                                                    "alternative"="two.sided")
 
   if (is.null(n2)) {
     result[["n"]] <- n1
@@ -273,13 +276,74 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   return(result)
 }
 
+#' Helper function: Computes the safe confidence sequence for a z-test
+#'
+#' @inheritParams safeZTest
+#' @inheritParams designSafeZ
+#' @param nEff numeric > 0, the effective sample size
+#' @param meanStat numeric, the mean statistic, this could be the differences of means as well
+#' @param phiS numeric > 0, the safe test defining parameter
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
+#' @param a numeric, the centre of the normal prior on population mean (of the normal data). Default
+#' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis
+#' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
+#' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2
+#'
+#' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
+#' @export
+#'
+#' @examples
+#' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
+computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.95,
+                                       alternative="two.sided", a=NULL, g=NULL) {
+  if (!is.null(a) && !is.null(g)) {
+    # Note(Alexander): Here normal distribution not centred at null
+    if (alternative != "two.sided")
+      stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
+
+    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanStat-a)^2/(1+nEff*g))
+    lowerCS <- meanStat - shift
+    upperCS <- meanStat + shift
+  } else {
+    # Note(Alexander): Here normal distribution centred at the null
+    # Here use GROW
+    if (is.null(g)) {
+      meanDiffMin <- phiS
+      g <- meanDiffMin^2/sigma^2
+    }
+
+    if (alternative=="two.sided") {
+      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+      lowerCS <- meanStat - shift
+      upperCS <- meanStat + shift
+    } else {
+      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+
+      if (alternative=="greater") {
+        lowerCS <- meanStat + shift
+        upperCS <- Inf
+      } else {
+        lowerCS <- -Inf
+        upperCS <- meanStat - shift
+      }
+    }
+  }
+
+  return(unname(c(lowerCS, upperCS)))
+}
+
+
+# Design fnts ---------
+
 #' Design a Frequentist Z-Test
 #'
 #' Computes the number of samples necessary to reach a tolerable type I and type II error for the
 #' frequentist z-test.
 #'
 #' @inheritParams designSafeZ
-#' @param lowN the smallest number of samples (first group) at which monitoring of the tests begins.
+#' @param lowN integer that defines the smallest n of our search space for n.
+#' @param highN integer that defines the largest n of our search space for n. This might be the
+#' largest n that we are able to fund.
 #'
 #' @return returns a 'freqZDesign' object.
 #' @export
@@ -476,8 +540,6 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' @param h0 numeric, represents the null hypothesis, default h0=0.
 #' @param kappa the true population standard deviation. Default kappa=sigma.
 #' @param tol a number that defines the stepsizes between the lowParam and highParam.
-#' @param highN integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-#' number. Default highN is set 8e9 to correspond to the current population of the earth.
 #' @param testType either one of "oneSample", "paired", "twoSample".
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 #' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
@@ -488,7 +550,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' approximation of the power, the number of samples for the safe z test under continuous monitoring,
 #' or for the computation of the logarithm of the implied target.
 #' @param pb logical, if \code{TRUE}, then show progress bar.
-#' @param grow logical, defaul set to \code{TRUE} so the grow safe test is used in the design.
+#' @param grow logical, default set to \code{TRUE} so the grow safe test is used in the design.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a safeDesign object that includes:
@@ -554,10 +616,11 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   tempResult <- list()
 
   if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan)) {
+    #scenario 1a: delta + power known, calculate nPlan
     designScenario <- "1a"
     phiS <- meanDiffMin
 
-    tempResult <- computeZTestNPlan("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha, "alternative"=alternative,
+    tempResult <- computeNPlanSafeZ("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha, "alternative"=alternative,
                                     "sigma"=sigma, "kappa"=kappa, "ratio"=ratio, "nSim"=nSim,
                                     "nBoot"=nBoot, "pb"=pb, "parameter"=phiS, "testType"=testType)
 
@@ -599,26 +662,18 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     beta <- NULL
     meanDiffMin <- meanDiffMin
   } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
+    #scenario 1c: only nPlan known, can perform a pilot (no warning though)
     designScenario <- "1c"
 
     return(designPilotSafeZ("nPlan"=nPlan, "alpha"=alpha, "alternative"=alternative,
                             "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired, "parameter"=parameter))
   } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
+    # scenario 2: given effect size and nPlan, calculate power and implied target
     designScenario <- "2"
 
-    if (testType=="twoSample" && length(nPlan)==1) {
-      nPlan <- c(nPlan, ratio*nPlan)
-      warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] = ratio*nPlan[1], that is, ',
-              nPlan[2], '.')
-    } else if (testType=="paired" && length(nPlan==1)) {
-      nPlan <- c(nPlan, nPlan)
-      warning('testType=="paired" specified, but nPlan[2] not provided. nPlan[2] set to nPlan[1].')
-    } else if (testType=="oneSample" && length(nPlan)==2) {
-      nPlan <- nPlan[1]
-      warning('testType=="oneSample" specified, but two nPlan[2] provided, which is ignored.')
-    }
+    nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
-    tempResult <- computeZBetaFrom("meanDiffMin"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha, "sigma"=sigma, "kappa"=kappa,
+    tempResult <- computeBetaSafeZ("meanDiffMin"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha, "sigma"=sigma, "kappa"=kappa,
                                    "alternative"=alternative, "testType"=testType, "parameter"=parameter)
 
     beta <- tempResult[["beta"]]
@@ -635,11 +690,16 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     designScenario <- "3"
 
     meanDiffMin <- tryOrFailWithNA(
-      batchComputeZMeanDiffMinFrom("nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "sigma"=sigma,
-                                   "kappa"=kappa, "alternative"=alternative, "testType"=testType,
-                                   "parameter"=parameter)
+      computeMinEsBatchSafeZ("nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "sigma"=sigma,
+                             "kappa"=kappa, "alternative"=alternative, "testType"=testType,
+                             "parameter"=parameter)
     )
     phiS <- if (is.null(parameter)) meanDiffMin else parameter
+
+    if (is.na(meanDiffMin))
+      note <- "No meanDiffMin found for the provided beta and nPlan"
+    else
+      note <- "The reported meanDiffMin is based on the batch analysis."
   }
 
   if (is.null(designScenario)) {
@@ -653,6 +713,9 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   if (is.na(meanDiffMin))
     meanDiffMin <- NULL
+
+  if (!is.null(meanDiffMin))
+    names(meanDiffMin) <- "mean difference"
 
   if (designScenario %in% 2:3) {
     n2Plan <- nPlan[2]
@@ -670,117 +733,12 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
                  "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
   class(result) <- "safeDesign"
 
-  names(result[["esMin"]]) <- "mean difference"
   names(result[["h0"]]) <- "mu"
   names(result[["parameter"]]) <- "phiS"
   return(result)
 }
 
-#' Helper function: Computes the safe confidence sequence for a z-test
-#'
-#' @inheritParams safeZTest
-#' @inheritParams designSafeZ
-#' @param nEff numeric > 0, the effective sample size
-#' @param meanStat numeric, the mean statistic, this could be the differences of means as well
-#' @param phiS numeric > 0, the safe test defining parameter
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
-#' @param a numeric, the centre of the normal prior on population mean (of the normal data). Default
-#' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis
-#' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
-#' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2
-#'
-#' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
-#' @export
-#'
-#' @examples
-#' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
-computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.95,
-                                       alternative="two.sided", a=NULL, g=NULL) {
-  if (!is.null(a) && !is.null(g)) {
-    # Note(Alexander): Here normal distribution not centred at null
-    if (alternative != "two.sided")
-      stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
 
-    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanStat-a)^2/(1+nEff*g))
-    lowerCS <- meanStat - shift
-    upperCS <- meanStat + shift
-  } else {
-    # Note(Alexander): Here normal distribution centred at the null
-    # Here use GROW
-    if (is.null(g)) {
-      meanDiffMin <- phiS
-      g <- meanDiffMin^2/sigma^2
-    }
-
-    if (alternative=="two.sided") {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
-      lowerCS <- meanStat - shift
-      upperCS <- meanStat + shift
-    } else {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
-
-      if (alternative=="greater") {
-        lowerCS <- meanStat + shift
-        upperCS <- Inf
-      } else {
-        lowerCS <- -Inf
-        upperCS <- meanStat - shift
-      }
-    }
-  }
-
-  return(unname(c(lowerCS, upperCS)))
-}
-
-
-
-# Helpers ------
-
-
-#' Help function to compute the effecitve sample size based on a length 2 vector of samples
-#'
-#' @inheritParams designSafeZ
-#' @param n vector of length at most 2 representing the sample sizes of the first and second group
-#' @param silent logical, if true, then turn off warnings
-#'
-#' @return a numeric that represents the effective sample size.
-#'
-#' @examples
-#' safestats:::computeNEff(c(3, 4), testType="twoSample")
-computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silent=TRUE) {
-  testType <- match.arg(testType)
-
-  stopifnot(all(n > 0))
-
-  if (testType=="oneSample") {
-    if (length(n) > 1)
-      if (!silent)
-        warning("One sample test wanted, but n is longer. Only first element used")
-
-    nEff <- n[1]
-  } else if (testType=="paired") {
-    nEff <- n[1]
-
-    if (!silent) {
-      if (length(n)==1)
-        warning("Paired sample design wanted, but n is of length 1. Copied n")
-
-      if (length(n) > 1) {
-        n2 <- n[2]
-        if (nEff != n2)
-          warning("Paired sample design wanted, but n[1] != n[2]. Copied n[2] ignored and n[1] copied")
-      }
-    }
-  } else if (testType=="twoSample") {
-    if (length(n) == 1)
-      stop("Two sample design specified, but only one sample size provided")
-
-    n1 <- n[1]
-    n2 <- n[2]
-    nEff <- (1/n1+1/n2)^(-1)
-  }
-  return(nEff)
-}
 
 # Batch design fnts ------
 
@@ -788,17 +746,19 @@ computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silen
 #' difference, alpha and beta
 #'
 #' @inheritParams  designSafeZ
+#' @param highN integer that defines the largest n of our search space for n. This might be the
+#' largest n that we are able to fund.
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
 #'
 #' @examples
-#' safestats:::batchComputeZSafeTestAndNFrom(0.4)
-#' safestats:::batchComputeZSafeTestAndNFrom(0.4, grow=FALSE)
-batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
-                                          alternative=c("two.sided", "greater", "less"),
-                                          testType=c("oneSample", "paired", "twoSample"),
-                                          tol=1e-5, highN=8e9, ratio=1, parameter=NULL,
-                                          grow=TRUE) {
+#' safestats:::computeNPlanBatchSafeZ(0.4)
+#' safestats:::computeNPlanBatchSafeZ(0.4, grow=FALSE)
+computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+                                   alternative=c("two.sided", "greater", "less"),
+                                   testType=c("oneSample", "paired", "twoSample"),
+                                   tol=1e-5, highN=1e6, ratio=1, parameter=NULL,
+                                   grow=TRUE) {
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
@@ -992,11 +952,11 @@ batchComputeZSafeTestAndNFrom <- function(meanDiffMin, alpha=0.05, beta=0.2, sig
 #' @return numeric that represents the type II error
 #'
 #' @examples
-#' safestats:::batchComputeZBetaFrom(meanDiffMin=0.9, nPlan=12)
-batchComputeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
-                                  alternative=c("two.sided", "greater", "less"),
-                                  testType=c("oneSample", "paired", "twoSample"),
-                                  parameter=NULL) {
+#' safestats:::computeBetaBatchSafeZ(meanDiffMin=0.9, nPlan=12)
+computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
+                              alternative=c("two.sided", "greater", "less"),
+                              testType=c("oneSample", "paired", "twoSample"),
+                              parameter=NULL) {
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
@@ -1030,11 +990,11 @@ batchComputeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa
 #' @return numeric > 0 that represents the minimal detectable mean difference
 #'
 #' @examples
-#' safestats:::batchComputeZMeanDiffMinFrom(nPlan=78)
-batchComputeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
-                                         alternative=c("two.sided", "greater", "less"),
-                                         testType=c("oneSample", "paired", "twoSample"),
-                                         parameter=NULL, maxIter=10) {
+#' safestats:::computeMinEsBatchSafeZ(nPlan=78)
+computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+                                    alternative=c("two.sided", "greater", "less"),
+                                    testType=c("oneSample", "paired", "twoSample"),
+                                    parameter=NULL, maxIter=10) {
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
@@ -1105,8 +1065,8 @@ batchComputeZMeanDiffMinFrom <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, k
 #' @export
 #'
 #' @examples
-#' sampleZTestStoppingTimes(0.7, nSim=10)
-sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+#' sampleStoppingTimesSafeZ(0.7, nSim=10)
+sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("two.sided", "less", "greater"),
                                      sigma=1, kappa=sigma, nSim=1e3L, nMax=1e3, ratio=1,
                                      testType=c("oneSample", "paired", "twoSample"), parameter=NULL,
                                      wantEValuesAtNMax=FALSE, pb=TRUE) {
@@ -1142,7 +1102,7 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
 
   n1Vector <- tempN[["n1"]]
   n2Vector <- tempN[["n2"]]
-  nEffVector <- tempN[["candidateNEff"]]
+  nEffVector <- tempN[["nEff"]]
 
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "muTrue"=meanDiffMin, "sigmaTrue"=kappa,
                                 "paired"=FALSE)
@@ -1214,14 +1174,14 @@ sampleZTestStoppingTimes <- function(meanDiffMin, alpha=0.05, alternative = c("t
 #' Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
 #'
 #' @inheritParams designSafeZ
-#' @inheritParams sampleZTestStoppingTimes
+#' @inheritParams sampleStoppingTimesSafeZ
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
 #' @export
 #'
 #' @examples
-#' computeZBetaFrom(meanDiffMin=0.7, 20, nSim=10)
-computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.sided", "greater", "less"),
+#' computeBetaSafeZ(meanDiffMin=0.7, 20, nSim=10)
+computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.sided", "greater", "less"),
                              sigma=1, kappa=sigma, testType=c("oneSample", "paired", "twoSample"),
                              parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L) {
 
@@ -1244,7 +1204,7 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
     phiS <- meanDiffMin
   }
 
-  tempResult <- sampleZTestStoppingTimes("meanDiffMin"=meanDiffMin, "alpha"=alpha,
+  tempResult <- sampleStoppingTimesSafeZ("meanDiffMin"=meanDiffMin, "alpha"=alpha,
                                          "alternative" = alternative, "sigma"=sigma,
                                          "kappa"=kappa, "nSim"=nSim, "nMax"=nPlan,
                                          "ratio"=ratio, "testType"=testType,
@@ -1279,15 +1239,15 @@ computeZBetaFrom <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
 #'
 #'
 #' @inheritParams designSafeZ
-#' @inheritParams sampleZTestStoppingTimes
+#' @inheritParams sampleStoppingTimesSafeZ
 #'
 #' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
 #'
 #' @export
 #'
 #' @examples
-#' computeZTestNPlan(0.7, 0.2, nSim=10)
-computeZTestNPlan <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+#' computeNPlanSafeZ(0.7, 0.2, nSim=10)
+computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c("two.sided", "less", "greater"),
                               testType=c("oneSample", "paired", "twoSample"), sigma=1, kappa=sigma,
                               ratio=1, nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE, nMax=1e8) {
 
@@ -1302,13 +1262,13 @@ computeZTestNPlan <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
     phiS <- meanDiffMin
   }
 
-  tempObj <- batchComputeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "alpha"=alpha,
+  tempObj <- computeNPlanBatchSafeZ("meanDiffMin"=meanDiffMin, "alpha"=alpha,
                                            "beta"=beta, "sigma"=sigma, "kappa"=kappa,
                                            "alternative"=alternative, "testType"=testType,
                                            "parameter"=parameter, "ratio"=ratio)
   nPlanBatch <- tempObj[["nPlan"]]
 
-  samplingResults <- sampleZTestStoppingTimes("meanDiffMin"=meanDiffMin, "alpha"=alpha, "alternative" = alternative,
+  samplingResults <- sampleStoppingTimesSafeZ("meanDiffMin"=meanDiffMin, "alpha"=alpha, "alternative" = alternative,
                                               "sigma"=sigma, "kappa"=kappa, "nSim"=nSim, "testType"=testType,
                                               "ratio"=ratio, "nMax"=nPlanBatch, "parameter"=phiS,
                                               "pb"=pb)
@@ -1323,3 +1283,50 @@ computeZTestNPlan <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
   return(result)
 }
 
+# Helpers ------
+
+
+#' Help function to compute the effecitve sample size based on a length 2 vector of samples
+#'
+#' @inheritParams designSafeZ
+#' @param n vector of length at most 2 representing the sample sizes of the first and second group
+#' @param silent logical, if true, then turn off warnings
+#'
+#' @return a numeric that represents the effective sample size.
+#'
+#' @examples
+#' safestats:::computeNEff(c(3, 4), testType="twoSample")
+computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silent=TRUE) {
+  testType <- match.arg(testType)
+
+  stopifnot(all(n > 0))
+
+  if (testType=="oneSample") {
+    if (length(n) > 1)
+      if (!silent)
+        warning("One sample test wanted, but n is longer. Only first element used")
+
+    nEff <- n[1]
+  } else if (testType=="paired") {
+    nEff <- n[1]
+
+    if (!silent) {
+      if (length(n)==1)
+        warning("Paired sample design wanted, but n is of length 1. Copied n")
+
+      if (length(n) > 1) {
+        n2 <- n[2]
+        if (nEff != n2)
+          warning("Paired sample design wanted, but n[1] != n[2]. Copied n[2] ignored and n[1] copied")
+      }
+    }
+  } else if (testType=="twoSample") {
+    if (length(n) == 1)
+      stop("Two sample design specified, but only one sample size provided")
+
+    n1 <- n[1]
+    n2 <- n[2]
+    nEff <- (1/n1+1/n2)^(-1)
+  }
+  return(nEff)
+}

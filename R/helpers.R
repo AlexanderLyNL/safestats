@@ -121,7 +121,7 @@ extractNameFromArgs <- function(list, name) {
 checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.sided", "greater", "less"),
                                               esMinName=c("noName", "meanDiffMin", "phiS",
                                                           "deltaMin", "deltaS",
-                                                          "hrMin", "thetaS"),
+                                                          "hrMin", "thetaS", "deltaTrue"),
                                               paramDomain=NULL) {
 
   alternative <- match.arg(alternative)
@@ -129,7 +129,7 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
   esMinName <- match.arg(esMinName)
 
   if (alternative == "two.sided") {
-    if (esMinName %in% c("meanDiffMin", "deltaMin"))
+    if (esMinName %in% c("meanDiffMin", "deltaMin", "deltaTrue"))
       return(abs(paramToCheck))
 
     return(paramToCheck)
@@ -147,7 +147,7 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
   } else if (paramName=="phiS" || esMinName=="meanDiffMin") {
     hypParamName <- "meanDiff"
     paramDomain <- "realNumbers"
-  } else if (paramName=="deltaS" || esMinName=="deltaMin") {
+  } else if (paramName=="deltaS" || esMinName=="deltaMin"  || esMinName=="deltaTrue") {
     hypParamName <- "delta"
     paramDomain <- "realNumbers"
   } else if (paramName=="thetaS" || esMinName=="hrMin") {
@@ -210,6 +210,29 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
   }
 
   return(paramToCheck)
+}
+
+#' Check consistency between nPlan and the testType for one and two-sample z and t-tests
+#'
+#' @inheritParams designSafeZ
+#'
+#' @return nPlan a vector of sample sizes of length 1 or 2
+#'
+#' @examples
+#' safestats:::checkAndReturnsNPlan(nPlan=5, testType="oneSample")
+checkAndReturnsNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired", "twoSample")) {
+  if (testType=="twoSample" && length(nPlan)==1) {
+    nPlan <- c(nPlan, ratio*nPlan)
+    warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] = ratio*nPlan[1], that is, ',
+            nPlan[2], '.')
+  } else if (testType=="paired" && length(nPlan==1)) {
+    nPlan <- c(nPlan, nPlan)
+    warning('testType=="paired" specified, but nPlan[2] not provided. nPlan[2] set to nPlan[1].')
+  } else if (testType=="oneSample" && length(nPlan)==2) {
+    nPlan <- nPlan[1]
+    warning('testType=="oneSample" specified, but two nPlan[2] provided, which is ignored.')
+  }
+  return(nPlan)
 }
 
 
@@ -279,7 +302,7 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 
   maxLength <- ceiling(nPlan/nStep)
 
-  mainTitle <- bquote(~"Spread of stopping times when true difference " == .(round(deltaTrue,2)))
+  mainTitle <- bquote(~"Spread of stopping times when true delta " == .(round(deltaTrue,2)))
   oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
   on.exit(graphics::par(oldPar))
   graphics::hist(dataToPlot,
@@ -315,7 +338,7 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' alpha <- 0.05
 #' mIter <- 1000L
 #'
-#' designObj <- designSafeT(deltaMin=1, alpha=alpha)
+#' designObj <- designSafeT(deltaMin=1, alpha=alpha, beta=0.2, nSim=100)
 #' oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nSim=mIter, seed=1)
 #'
 #' eValues <- vector("numeric", length=mIter)
@@ -323,26 +346,24 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' for (i in seq_along(eValues)) {
 #'   eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
 #' }
-#' # First run: 7 false null rejections
+#'
+#' # First run: 8 false null rejections
 #' sum(eValues > 1/alpha)
 #'
 #' continuedSafe <- selectivelyContinueTTestCombineData(
 #'   oldValues=eValues, designObj=designObj, oldData=oldData,
 #'   deltaTrue=0, seed=2)
 #'
-#' # Second run: 8 false null rejections
+#' # Second run: 1 false null rejections
 #' sum(continuedSafe$newValues > 1/alpha)
 #'
-#' for (i in 1:3) {
-#'   eValues <- continuedSafe$newValues
-#'   oldData <- continuedSafe$combinedData
-#'   continuedSafe <- selectivelyContinueTTestCombineData(
-#'    oldValues=eValues, designObj=designObj, oldData=oldData,
-#'    deltaTrue=0, seed=i+2)
-#'   print(paste("Iteration", i+2))
-#'   print("Number of false null rejections")
-#'   print(sum(continuedSafe$newValues > 1/alpha))
-#' }
+#' # Third run: 0 false null rejections
+#' eValues <- continuedSafe$newValues
+#' oldData <- continuedSafe$combinedData
+#' continuedSafe <- selectivelyContinueTTestCombineData(
+#'   oldValues=eValues, designObj=designObj, oldData=oldData,
+#'   deltaTrue=0, seed=3)
+#' sum(continuedSafe$newValues > 1/alpha)
 selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues", "pValues"), designObj=NULL,
                                                 alternative=c("two.sided", "greater", "less"),
                                                 oldData, deltaTrue, alpha=NULL,
