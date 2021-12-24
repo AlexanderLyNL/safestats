@@ -29,7 +29,7 @@ simulateIncorrectStoppingTimesFisher(
 
 \item{maxSimStoptime}{maximal number of blocks to sample in each experiment}
 
-\item{M}{Number of simulations to carry out, deafult 1e3.}
+\item{M}{Number of simulations to carry out, default 1e3.}
 
 \item{numberForSeed}{number for seed to set, default NULL.}
 }

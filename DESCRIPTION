@@ -11,7 +11,7 @@ Authors@R: c(
   role = c("ctb")),
   person("Judith", "ter Schure", email = "Judith.ter.Schure@cwi.nl",
   role = c("ctb")),
-  person("Peter", "Grunwald", email = "Peter.Grunwald@cwi.nl",
+  person("Peter", "Grünwald", email = "Peter.Grunwald@cwi.nl",
   role = c("ctb"))
   )
 Maintainer: Alexander Ly <a.ly@jasp-stats.org>
@@ -21,10 +21,10 @@ Description: Functions to design and apply tests that are anytime valid. The
   resulting tests remain valid under both optional stopping and optional
   continuation. The current version includes safe t-tests and safe tests of
   two proportions. For details on the theory of safe tests, see
-  Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>, 
-  for details on safe logrank tests see ter Schure, Perez-Ortiz, Ly and Grunwald
+  Grünwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>, 
+  for details on safe logrank tests see ter Schure, Pérez-Ortiz, Ly and Grünwald
   (2020) "The Safe Logrank Test: Error Control under Continuous Monitoring with 
-  Unlimited Horizon" <arXiv:2011.06931v3> and Turner, Ly and Grunwald (2021)
+  Unlimited Horizon" <arXiv:2011.06931v3> and Turner, Ly and Grünwald (2021)
   "Safe Tests and Always-Valid Confidence Intervals for contingency tables and 
   beyond" <arXiv:2106.02693> for details on safe contingency table tests.
 License: LGPL (>= 3)
@@ -35,7 +35,7 @@ Depends:
 Imports:
   stats (>= 3.6),
   hypergeo (>= 1.2-13),
-  survival (>= 3.1-11),
+  survival (>= 3.2-13),
   BiasedUrn (>= 1.07),
   boot (>= 1.3-28),
   dplyr (>= 1.0.6),

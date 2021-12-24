@@ -576,7 +576,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' }
 #' @export
 #'
-#' @references Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
+#' @references Grünwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
 #' @examples
 #' designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
 #'
@@ -1287,7 +1287,7 @@ computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
 # Helpers ------
 
 
-#' Help function to compute the effecitve sample size based on a length 2 vector of samples
+#' Help function to compute the effective sample size based on a length 2 vector of samples
 #'
 #' @inheritParams designSafeZ
 #' @param n vector of length at most 2 representing the sample sizes of the first and second group
