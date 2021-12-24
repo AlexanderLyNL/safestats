@@ -43,10 +43,10 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
+\item{highN}{integer that defines the largest n of our search space for n. This might be the
+largest n that we are able to fund.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

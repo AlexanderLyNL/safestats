@@ -12,10 +12,11 @@ defineTTestN(
 )
 }
 \arguments{
-\item{lowN}{integer that defines the smallest n of our search space for n.}
+\item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
+optional stopping. Default lowN is set 1.}
 
-\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
-are able to fund.}
+\item{highN}{integer minimal sample size of the (first) sample when computing the power due to
+optional stopping. Default highN is set 1e6.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}

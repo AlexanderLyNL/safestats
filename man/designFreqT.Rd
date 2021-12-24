@@ -10,10 +10,7 @@ designFreqT(
   beta = 0.2,
   alternative = c("two.sided", "greater", "less"),
   h0 = 0,
-  lowN = 3L,
-  highN = 100L,
   testType = c("oneSample", "paired", "twoSample"),
-  ratio = 1,
   ...
 )
 }
@@ -32,15 +29,7 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
-\item{lowN}{integer that defines the smallest n of our search space for n.}
-
-\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
-are able to fund.}
-
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
-
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }

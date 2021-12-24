@@ -7,22 +7,18 @@
 plotSafeTDesignSampleSizeProfile(
   alpha = 0.05,
   beta = 0.2,
-  maxN = 200,
-  lowParam = 0.01,
-  highParam = 1,
-  tol = 0.1,
+  nMax = 100,
+  lowDeltaMin = 0.1,
+  highDeltaMin = 1,
+  stepDeltaMin = 0.1,
   testType = c("oneSample", "paired", "twoSample"),
-  nSim = 1000L,
   alternative = c("two.sided", "greater", "less"),
   ratio = 1,
-  deltaFactor = 0.5,
-  nFactor = 2,
-  simulateSafeOptioStop = FALSE,
-  logging = FALSE,
-  backTest = FALSE,
+  nSim = 1000L,
+  nBoot = 1000L,
   seed = NULL,
-  freqPlot = FALSE,
   pb = TRUE,
+  freqPlot = FALSE,
   ...
 )
 }
@@ -33,17 +29,15 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
-\item{maxN}{numeric, the maximum number of samples one has budget for to collect data.}
+\item{nMax}{numeric, the maximum number of samples one has budget for to collect data.}
 
-\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS.}
+\item{lowDeltaMin}{numeric, lowest value for deltaMin of interest}
 
-\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS.}
+\item{highDeltaMin}{numeric, largest value for deltaMin of interest}
 
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
+\item{stepDeltaMin}{numeric, step size between lowDeltaMin and highDeltaMin}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
-
-\item{nSim}{the number of replications, that is, experiments with max samples nPlan.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
@@ -51,25 +45,18 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{deltaFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
-deltaTrue = 0.8) of lowParam.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
 
-\item{nFactor}{numeric, a factor to robustify the sequential determination (e.g., from deltaTrue = 0.9, to
-deltaTrue = 0.8) of highN.}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
 
-\item{simulateSafeOptioStop}{logical, if \code{TRUE} then provides the simulation for safe tests.}
-
-\item{logging}{logical, if \code{TRUE} then output all the safe designs objects including mean n stop if
-simulateSafeOptioStop equal \code{TRUE}.}
-
-\item{backTest}{logical, if \code{TRUE} it provides the frequentist sample size necessary to attain the power
-that the safe test attains due to optional stopping.}
-
-\item{seed}{To set the seed for the simulated data.}
-
-\item{freqPlot}{logical, if \code{TRUE} plot frequentist sample size profiles.}
+\item{seed}{integer, seed number.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{freqPlot}{logical, if \code{TRUE} plot frequentist sample size profiles.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
@@ -95,5 +82,5 @@ frequentist test, and (3) the average sample size necessary due to optional stop
 as a  function of the minimal clinically relevant standardised effect size deltaMin.
 }
 \examples{
-plotSafeTDesignSampleSizeProfile(freqPlot=TRUE, backTest=TRUE)
+plotSafeTDesignSampleSizeProfile(nSim=1e2L)
 }

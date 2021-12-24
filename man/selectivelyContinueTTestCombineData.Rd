@@ -68,7 +68,7 @@ Helper function used in the vignette.
 alpha <- 0.05
 mIter <- 1000L
 
-designObj <- designSafeT(deltaMin=1, alpha=alpha)
+designObj <- designSafeT(deltaMin=1, alpha=alpha, beta=0.2, nSim=100)
 oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nSim=mIter, seed=1)
 
 eValues <- vector("numeric", length=mIter)
@@ -76,24 +76,22 @@ eValues <- vector("numeric", length=mIter)
 for (i in seq_along(eValues)) {
   eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
 }
-# First run: 7 false null rejections
+
+# First run: 8 false null rejections
 sum(eValues > 1/alpha)
 
 continuedSafe <- selectivelyContinueTTestCombineData(
   oldValues=eValues, designObj=designObj, oldData=oldData,
   deltaTrue=0, seed=2)
 
-# Second run: 8 false null rejections
+# Second run: 1 false null rejections
 sum(continuedSafe$newValues > 1/alpha)
 
-for (i in 1:3) {
-  eValues <- continuedSafe$newValues
-  oldData <- continuedSafe$combinedData
-  continuedSafe <- selectivelyContinueTTestCombineData(
-   oldValues=eValues, designObj=designObj, oldData=oldData,
-   deltaTrue=0, seed=i+2)
-  print(paste("Iteration", i+2))
-  print("Number of false null rejections")
-  print(sum(continuedSafe$newValues > 1/alpha))
-}
+# Third run: 0 false null rejections
+eValues <- continuedSafe$newValues
+oldData <- continuedSafe$combinedData
+continuedSafe <- selectivelyContinueTTestCombineData(
+  oldValues=eValues, designObj=designObj, oldData=oldData,
+  deltaTrue=0, seed=3)
+sum(continuedSafe$newValues > 1/alpha)
 }

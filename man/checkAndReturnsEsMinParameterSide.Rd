@@ -9,7 +9,7 @@ checkAndReturnsEsMinParameterSide(
   paramToCheck,
   alternative = c("two.sided", "greater", "less"),
   esMinName = c("noName", "meanDiffMin", "phiS", "deltaMin", "deltaS", "hrMin",
-    "thetaS"),
+    "thetaS", "deltaTrue"),
   paramDomain = NULL
 )
 }

@@ -41,7 +41,7 @@ for the test.This parameter treated is treated as a nuisance.}
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
 \item{nSim}{the number of replications, that is, experiments with max samples nPlan.}
 

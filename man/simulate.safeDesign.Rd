@@ -26,7 +26,7 @@
 
 \item{nsim}{integer, formally the number of iterations, but by default nsim=nSim}
 
-\item{seed}{numeric, seed number.}
+\item{seed}{integer, seed number.}
 
 \item{deltaTrue}{numeric, if NULL, then the minimally clinically relevant standardised effect size is used
 as the true data generating effect size deltaTrue.}
@@ -37,7 +37,7 @@ matter for the test. This parameter is treated as a nuisance.}
 \item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
 for the test.This parameter treated is treated as a nuisance.}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
 \item{safeOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
 the safe test.}
@@ -88,7 +88,7 @@ optional stopping.
 alpha <- 0.05
 beta <- 0.20
 deltaMin <- 1
-designObj <- designSafeT(deltaMin, alpha=alpha, beta=beta)
+designObj <- designSafeT(deltaMin, alpha=alpha, beta=beta, nSim=100)
 
 # Design frequentist test
 freqObj <- designFreqT(deltaMin, alpha=alpha, beta=beta)

@@ -29,9 +29,11 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
-\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS.}
+\item{lowParam}{numeric defining the smallest delta of the search space for the test-defining deltaS
+for scenario 3. Currently not yet in use.}
 
-\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS.}
+\item{highParam}{numeric defining the largest delta of the search space for the test-defining deltaS
+for scenario 3. Currently not yet in use.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 

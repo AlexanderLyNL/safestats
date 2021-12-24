@@ -324,16 +324,16 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     nEff <- ratio/(1+ratio)^2*nEvents
 
     zStat <- sumStats[["z"]]
-    meanStat <- zStat/sqrt(nEff)
+    meanObs <- zStat/sqrt(nEff)
 
-    result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanStat), "eValue"=NULL,
+    result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanObs), "eValue"=NULL,
                    "confSeq"=NULL, "testType"="gLogrank", "dataName"=dataName)
     class(result) <- "safeTest"
 
     names(result[["estimate"]]) <-"hazard ratio"
 
     # Note(Alexander): This is the same as
-    #     zStat <- sqrt(nEff)*(meanStat - meanSlog(h0))
+    #     zStat <- sqrt(nEff)*(meanObs - meanSlog(h0))
     #
     # but to avoid rounding erros zStat is used instead
     zStat <- zStat - sqrt(nEff)*(log(h0))
@@ -344,7 +344,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     if (is.null(ciValue))
       ciValue <- 1 - designObj[["alpha"]]
 
-    tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+    tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
                                               "phiS"=phiS, "sigma"=1,
                                               "ciValue"=ciValue, "alternative"="two.sided")
 
@@ -397,13 +397,13 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
   # Note(Alexander): Assumed the data are centred at log(hr)=0 and standardised,
   # thus, sigma = 1 data scale
   if (length(z)==1) {
-    meanStat <- sigma*z/sqrt(nEff) + log(dataNull)
+    meanObs <- sigma*z/sqrt(nEff) + log(dataNull)
     # TODO(Alexander): For the standard version with h0 = 1 this doesn't matter at all of course
     #                  Do check when dataNull different from population null again
     zStat <- z - sqrt(nEff)/sigma*log(designObj[["h0"]])
   } else {
-    meanStat <- sum(sigma*z/sqrt(nEff)+log(dataNull))/sum(nEff)
-    zStat <- sqrt(nEff)/sigma*(meanStat - log(designObj[["h0"]]))
+    meanObs <- sum(sigma*z/sqrt(nEff)+log(dataNull))/sum(nEff)
+    zStat <- sqrt(nEff)/sigma*(meanObs - log(designObj[["h0"]]))
   }
 
   phiS <- log(designObj[["parameter"]])
@@ -411,7 +411,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
   eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff, "n2"=NULL,
                           "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1)
 
-  tempConfSeq <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat, "phiS"=phiS,
+  tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs, "phiS"=phiS,
                                             "sigma"=1, "ciValue"=ciValue, "alternative"="two.sided")
 
   result[["confSeq"]] <- exp(tempConfSeq)
@@ -1274,10 +1274,10 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
       logThetaS <- if (!is.null(parameter)) log(parameter) else NULL
 
-      tempResult <- batchComputeZSafeTestAndNFrom("meanDiffMin"=meanDiffMin, "beta"=beta,
-                                                  "alpha"=alpha, "alternative"=alternative,
-                                                  "testType"="oneSample",
-                                                  "ratio"=ratio, "parameter"=logThetaS)
+      tempResult <- computeNPlanBatchSafeZ("meanDiffMin"=meanDiffMin, "beta"=beta,
+                                           "alpha"=alpha, "alternative"=alternative,
+                                           "testType"="oneSample",
+                                           "ratio"=ratio, "parameter"=logThetaS)
       nBatch <- tempResult[["nPlan"]]
     } else {
       nBatch <- nMax
