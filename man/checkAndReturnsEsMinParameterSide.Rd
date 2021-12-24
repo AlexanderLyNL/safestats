@@ -34,22 +34,22 @@ or safe test defining parameter. Throws an error if the one-sided hypothesis is 
 }
 \examples{
 ### Use in the design stage
-# Passes by symmetry of the test
-meanDiffMin <- -0.4
+meanDiffMin <- 0.4
 paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
                                                               esMin="meanDiffMin",
                                                               alternative="two.sided")
-paramChecked == meanDiffMin
+# Returns absolute value of meanDiffMin
+paramChecked
 
 # Invokes warnings
-paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
-                                                              esMin="meanDiffMin",
-                                                              alternative="greater")
-paramChecked == meanDiffMin
-
-### Use in the execution stage
-phiS <- -0.3
-paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS,
-                                                              alternative="greater")
-paramChecked == phiS
+# paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
+#                                                               esMin="meanDiffMin",
+#                                                               alternative="greater")
+# paramChecked == meanDiffMin
+#
+# ### Use in the execution stage
+# phiS <- -0.3
+# paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS,
+#                                                               alternative="greater")
+# paramChecked == phiS
 }
