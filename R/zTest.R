@@ -90,6 +90,8 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha
 #' @param tol numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
 #' defining parameter to construct a pilot design object.
+#' @param na.rm a logical value indicating whether \code{NA} values should be stripped before
+#' the computation proceeds.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
@@ -126,7 +128,7 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'
 #' safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 7.7543e+20 > 1/alpha
 safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
-                      pilot=FALSE, ciValue=NULL, tol=1e-05, ...) {
+                      pilot=FALSE, ciValue=NULL, tol=1e-05, na.rm=FALSE, ...) {
 
   result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "testType"=NULL, "dataName"=NULL, "h0"=NULL, "sigma"=NULL, "call"=sys.call())
@@ -144,14 +146,16 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 
   if (is.null(y)) {
     testType <- "oneSample"
-    nEff <- n1 <- length(x)
+    n <- nEff <- n1 <- length(x)
     n2 <- NULL
 
     if (paired)
       stop("Data error: Paired analysis requested without specifying the second variable")
 
-    meanStat <- estimate <- mean(x)
+    meanObs <- estimate <- mean(x, "na.rm"=na.rm)
+
     names(estimate) <- "mean of x"
+    names(n) <- "n1"
   } else {
     nEff <- n1 <- length(x)
     n2 <- length(y)
@@ -163,16 +167,19 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 
       testType <- "paired"
 
-      meanStat <- estimate <- mean(x-y)
+      meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
       names(estimate) <- "mean of the differences"
     } else {
       testType <- "twoSample"
 
       nEff <- (1/n1+1/n2)^(-1)
-      estimate <- c(mean(x), mean(y))
+      estimate <- c(mean(x, "na.rm"=na.rm), mean(y, "na.rm"=na.rm))
       names(estimate) <- c("mean of x", "mean of y")
-      meanStat <- estimate[1]-estimate[2]
+      meanObs <- estimate[1]-estimate[2]
     }
+
+    n <- c(n1, n2)
+    names(n) <- c("n1", "n2")
   }
 
   if (pilot) {
@@ -202,10 +209,12 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   if (ciValue < 0 || ciValue > 1)
     stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
 
-  zStat <- tryOrFailWithNA(sqrt(nEff)*(meanStat - h0)/sigma)
+  zStat <- tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sigma)
 
   if (is.na(zStat))
     stop("Could not compute the z-statistic")
+
+  names(zStat) <- "z"
 
   if (designObj[["testType"]] != testType)
     warning('The test type of designObj is "', designObj[["testType"]],
@@ -230,20 +239,12 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
   result[["ciValue"]] <- ciValue
+  result[["n"]] <- n
 
-  result[["confSeq"]] <- computeZConfidenceSequence("nEff"=nEff, "meanStat"=meanStat,
+  result[["confSeq"]] <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
                                                     "phiS"=designObj[["parameter"]],
                                                     "sigma"=sigma, "ciValue"=ciValue,
                                                     "alternative"="two.sided")
-
-  if (is.null(n2)) {
-    result[["n"]] <- n1
-    names(result[["n"]]) <- "n1"
-  } else {
-    result[["n"]] <- c(n1, n2)
-    names(result[["n"]]) <- c("n1", "n2")
-  }
-
   result[["eValue"]] <- eValue
 
   names(result[["statistic"]]) <- "z"
@@ -280,30 +281,30 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #'
 #' @inheritParams safeZTest
 #' @inheritParams designSafeZ
-#' @param nEff numeric > 0, the effective sample size
-#' @param meanStat numeric, the mean statistic, this could be the differences of means as well
-#' @param phiS numeric > 0, the safe test defining parameter
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95
+#' @param nEff numeric > 0, the effective sample size.
+#' @param meanObs numeric, the observed mean. For two sample tests this is difference of the means.
+#' @param phiS numeric > 0, the safe test defining parameter.
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95.
 #' @param a numeric, the centre of the normal prior on population mean (of the normal data). Default
-#' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis
+#' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis.
 #' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
-#' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2
+#' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2.
 #'
 #' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
 #' @export
 #'
 #' @examples
-#' safestats:::computeZConfidenceSequence(nEff=15, meanStat=0.3, phiS=0.2)
-computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.95,
+#' safestats:::computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
+computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
                                        alternative="two.sided", a=NULL, g=NULL) {
   if (!is.null(a) && !is.null(g)) {
     # Note(Alexander): Here normal distribution not centred at null
     if (alternative != "two.sided")
       stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
 
-    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanStat-a)^2/(1+nEff*g))
-    lowerCS <- meanStat - shift
-    upperCS <- meanStat + shift
+    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
+    lowerCS <- meanObs - shift
+    upperCS <- meanObs + shift
   } else {
     # Note(Alexander): Here normal distribution centred at the null
     # Here use GROW
@@ -314,17 +315,17 @@ computeZConfidenceSequence <- function(nEff, meanStat, phiS, sigma=1, ciValue=0.
 
     if (alternative=="two.sided") {
       shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
-      lowerCS <- meanStat - shift
-      upperCS <- meanStat + shift
+      lowerCS <- meanObs - shift
+      upperCS <- meanObs + shift
     } else {
       shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
 
       if (alternative=="greater") {
-        lowerCS <- meanStat + shift
+        lowerCS <- meanObs + shift
         upperCS <- Inf
       } else {
         lowerCS <- -Inf
-        upperCS <- meanStat - shift
+        upperCS <- meanObs - shift
       }
     }
   }

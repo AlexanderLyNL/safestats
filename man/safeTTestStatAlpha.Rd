@@ -28,11 +28,11 @@ this specifies the size of the first sample for a two-sample test.}
 \item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 \code{NULL} it implies that the t-statistic is based on one-sample.}
 
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then
+the alpha of the design object is used instead in constructing the decision rule S > 1/alpha.}
 
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
+then the alternative specified by the design object is used instead.}
 
 \item{tDensity}{Uses the the representation of the safe t-test as the likelihood ratio of t densities.}
 }

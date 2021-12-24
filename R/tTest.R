@@ -163,17 +163,21 @@ safeT2TestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="t
 #'
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
-#' @param designObj an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot equals \code{TRUE}..
-#' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0
+#' @param designObj an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot
+#' equals  \code{TRUE}.
 #' @param paired a logical indicating whether you want a paired t-test.
-#' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For the moment,
-#' this is always \code{TRUE}.
-#' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-#' samples is exactly as planned.
-#' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-#' the design object is used instead in constructing the decision rule S > 1/alpha.
-#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-#' alternative specified by the design object is used instead.
+#' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For
+#' the moment, this is always \code{TRUE}.
+#' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that
+#' the number of samples is exactly as planned.
+#' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then
+#' the alpha of the design object is used instead in constructing the decision rule S > 1/alpha.
+#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
+#' then the alternative specified by the design object is used instead.
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
+#' and ciValue = 1 - alpha
+#' @param na.rm a logical value indicating whether \code{NA} values should be stripped before
+#' the computation proceeds.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -183,12 +187,10 @@ safeT2TestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="t
 #'   \item{statistic}{the value of the t-statistic.}
 #'   \item{n}{The realised sample size(s).}
 #'   \item{eValue}{the realised e-value from the safe test.}
-#'   \item{confSeq}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
+#'   \item{confSeq}{A safe confidence interval for the mean appropriate to the specific alternative
 #'   hypothesis.}
-#'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-#'   sample test or a two-sample test.}
-#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-#'   or a two-sample test.}
+#'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it a one-
+#'   sample test or a two-sample test was conducted.}
 #'   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
@@ -208,11 +210,11 @@ safeT2TestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="t
 #'
 #' safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
 safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
-                      h0=0, pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
-  # TODO(Alexander): Generalise h0 = 0 to other h0
+                      pilot=FALSE, alpha=NULL, alternative=NULL, ciValue=NULL,
+                      na.rm=FALSE, ...) {
 
   result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
-                 "alternative"=NULL, "testType"=NULL, "dataName"=NULL, "h0"=h0, "stderr"=NULL,
+                 "alternative"=NULL, "testType"=NULL, "dataName"=NULL, "stderr"=NULL,
                  "call"=sys.call())
   class(result) <- "safeTest"
 
@@ -232,20 +234,53 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
   n1 <- length(x)
 
   if (is.null(y)) {
-    n <- n1
-    names(n) <- "n1"
     testType <- "oneSample"
-  } else {
-    n2 <- length(y)
-    n <- c(n1, n2)
-    names(n) <- c("n1", "n2")
+    n <- nEff <- n1
+    n2 <- NULL
+    nu <- n-1
 
     if (paired)
-      testType <- "paired"
-    else
-      testType <- "twoSample"
-  }
+      stop("Data error: Paired analysis requested without specifying the second variable")
 
+    meanObs <- estimate <- mean(x, "na.rm"=na.rm)
+    sdObs <- sd(x, "na.rm"=na.rm)
+
+    names(estimate) <- "mean of x"
+    names(n) <- "n1"
+  } else {
+    n2 <- length(y)
+
+    if (paired) {
+      if (n1 != n2)
+        stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
+             "but the two samples are not of the same size.")
+
+      testType <- "paired"
+
+      nEff <- n1
+      nu <- n1-1
+
+      meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
+      sdObs <- sd(x-y, "na.rm"=na.rm)
+      names(estimate) <- "mean of the differences"
+    } else {
+      testType <- "twoSample"
+
+      nu <- n1+n2-2
+      nEff <- (1/n1+1/n2)^(-1)
+
+      sPooledSquared <- ((n1-1)*var(x, "na.rm"=na.rm)+(n2-1)*var(y, "na.rm"=na.rm))/nu
+
+      sdObs <- sqrt(sPooledSquared)
+
+      estimate <- c(mean(x, "na.rm"=na.rm), mean(y, "na.rm"=na.rm))
+      names(estimate) <- c("mean of x", "mean of y")
+      meanObs <- estimate[1]-estimate[2]
+    }
+
+    n <- c(n1, n2)
+    names(n) <- c("n1", "n2")
+  }
 
   if (pilot) {
     if (is.null(alternative))
@@ -266,36 +301,46 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
             '", whereas the data correspond to a testType "', testType, '"')
 
   alternative <- designObj[["alternative"]]
+  h0 <- designObj[["h0"]]
   alpha <- designObj[["alpha"]]
 
-  freqObject <- try(stats::t.test("x"=x, "y"=y, "alternative"=alternative, "mu"=h0,
-                                  "paired"=paired, "var.equal"=varEqual))
-  t <- freqObject[["statistic"]]
+  if (is.null(ciValue))
+    ciValue <- 1-alpha
 
-  if (isTryError(freqObject))
-    stop("Data error: could not compute the t-statistic with t.test: ", freqObject[1])
+  if (ciValue < 0 || ciValue > 1)
+    stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
 
-  # TODO(Alexander): Save result, perhaps save freqObject
-  #
-  eValue <- safeTTestStat("t"=t, "parameter"=designObj[["parameter"]], "n1"=n[1], "n2"=n[2],
-                          "alternative"=alternative, "paired"=paired)
+  tStat <- tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+
+  if (is.na(tStat))
+    stop("Data error: Could not compute the t-statistic")
+
+  names(tStat) <- "t"
+
+  eValue <- safeTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
+                          "n2"=n2, "alternative"=alternative, "paired"=paired)
 
   if (is.null(y))
     dataName <- as.character(sys.call())[2]
   else
     dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
 
-  result[["statistic"]] <- t
-  result[["parameter"]] <- designObj[["deltaS"]]
-  result[["estimate"]] <- freqObject[["estimate"]]
-  result[["stderr"]] <- freqObject[["stderr"]]
+  result[["statistic"]] <- tStat
+  # result[["parameter"]] <- designObj[["deltaS"]]
+  result[["estimate"]] <- estimate
+  result[["stderr"]] <- sdObs/nEff
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
-  result[["freqObject"]] <- freqObject
   result[["testType"]] <- testType
   result[["n"]] <- n
+  result[["ciValue"]] <- ciValue
+
+  result[["confSeq"]] <- computeConfidenceIntervalT("meanObs"=meanObs-h0, "sdObs"=sdObs,
+                                                    "nEff"=nEff, "nu"=nu,
+                                                    "deltaS"=designObj[["parameter"]],
+                                                    "ciValue"=ciValue)
+
   result[["eValue"]] <- eValue
-  # result[["h0"]] <- "mu"
 
   return(result)
 }
@@ -320,9 +365,9 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
 #' safe.t.test(x, y, alternative="greater", designObj=designObj)      #0.2959334
 #'
 #' safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
-safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE, h0=0,
+safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE,
                         pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
-  result <- safeTTest("x"=x, "y"=y, "designObj"=designObj, "h0"=h0, "paired"=paired, "varEqual"=var.equal,
+  result <- safeTTest("x"=x, "y"=y, "designObj"=designObj, "paired"=paired, "varEqual"=var.equal,
                       "pilot"=pilot, "alpha"=alpha, "alternative"=alternative, ...)
   if (is.null(y))
     dataName <- as.character(sys.call())[2]
@@ -332,6 +377,51 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE,
   result[["dataName"]] <- dataName
   return(result)
 }
+
+
+#' Helper function: Computes the safe confidence sequence for the mean in a t-test
+#'
+#' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
+#' @param nu numeric > 0, the degrees of freedom.
+#' @param meanObs numeric, the observed mean. For two sample tests this is difference of the means.
+#' @param sdObs numeric, the observed standard deviation. For a two-sample test this is the root
+#' of the pooled variance.
+#' @param deltaS numeric > 0, the safe test defining parameter.
+#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95.
+#' @param g numeric > 0, used as the variance of the normal prior on the population delta
+#' Default is \code{NULL} in which case g=delta^2.
+#'
+#' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
+#' @export
+#'
+#' @examples
+#' safestats:::computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, deltaS=0.4)
+computeConfidenceIntervalT <- function(meanObs, sdObs, nEff, nu, deltaS,
+                                       ciValue=0.95, g=NULL) {
+  if (is.null(g)) g <- deltaS^2
+
+  trivialConfInt <- c(-Inf, Inf)
+
+  if (nu <= 0) return(trivialConfInt)
+
+  alpha <- 1-ciValue
+
+  numeratorW <- nu*(((1+nEff*g)/alpha^2)^(1/(nu+1))-1)
+  denominatorW <- 1-((1+nEff*g)/alpha^2)^(1/(nu+1))/(1+nEff*g)
+
+  W <- numeratorW/denominatorW
+
+  if (W < 0) return(trivialConfInt)
+
+  shift <- sdObs/sqrt(nEff)*sqrt(W)
+
+  lowerCs <- meanObs - shift
+  upperCs <- meanObs + shift
+
+  return(unname(c(lowerCs, upperCs)))
+}
+
+
 # Design fnts -------
 
 #' Design a Frequentist T-Test

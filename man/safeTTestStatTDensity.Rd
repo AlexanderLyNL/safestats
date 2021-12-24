@@ -27,8 +27,8 @@ the non-centrality parameter -sqrt(nEff)*parameter.}
 \item{nEff}{numeric > 0 representing the effective sample size in a two-sample problem. For one-sample
 problems this is equal to the sample size.}
 
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
+then the alternative specified by the design object is used instead.}
 
 \item{paired}{a logical indicating whether you want a paired t-test.}
 

@@ -13,6 +13,7 @@ safeZTest(
   pilot = FALSE,
   ciValue = NULL,
   tol = 1e-05,
+  na.rm = FALSE,
   ...
 )
 
@@ -43,6 +44,9 @@ To change these default values, please use \code{\link{designSafeZ}()}.}
 
 \item{tol}{numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
 defining parameter to construct a pilot design object.}
+
+\item{na.rm}{a logical value indicating whether \code{NA} values should be stripped before
+the computation proceeds.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
