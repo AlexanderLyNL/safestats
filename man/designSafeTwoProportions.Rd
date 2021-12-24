@@ -51,11 +51,11 @@ of the hyperparameters of this test is then used for the hyperparameter settings
 
 \item{M}{number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.}
 
-\item{simThetaAMin}{minimal event rate in control group to simulate NPlan or power for.
+\item{simThetaAMin}{minimal event rate in control group to simulate nPlan or power for.
 Can be specified when specifically interested in planning studies for specific event rates.
 Default \code{NULL}, then the entire parameter space (possibly restricted by delta) is used for simulation.}
 
-\item{simThetaAMax}{maximal event rate in control group to simulate NPlan or power for. Default \code{NULL}.}
+\item{simThetaAMax}{maximal event rate in control group to simulate nPlan or power for. Default \code{NULL}.}
 }
 \value{
 Returns a 'safeDesign' object that includes:
@@ -75,9 +75,9 @@ Returns a 'safeDesign' object that includes:
 }
 \description{
 The design requires the number of observations one expects to collect in each group in each data block.
-I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyze
+I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyse
 the data stream each time a new observation in both groups has come in. The best results in terms of power
-are achieved when the data blocks are chosen as small as possible, as this allows for analyzing and updating
+are achieved when the data blocks are chosen as small as possible, as this allows for analysing and updating
 the safe test as often as possible, to fit the data best.
 Further, the design requires two out of the following three parameters to be known:
 \itemize{
@@ -97,7 +97,7 @@ designSafeTwoProportions(na = 1,
                          beta = 0.20,
                          delta = 0.6,
                          alternativeRestriction = "none",
-                         M = 1e2)
+                         M = 75)
 
 #safe analysis of a pilot: number of samples already known
 designSafeTwoProportions(na = 1,
@@ -114,7 +114,7 @@ designSafeTwoProportions(na = 1,
                          delta = 0.6,
                          hyperParameterValues = hyperParameterValues,
                          alternativeRestriction = "none",
-                         M = 1e2)
+                         M = 75)
 
 #restrict range of proportions for estimating nPlan in the control group
 designSafeTwoProportions(na = 1,
@@ -122,7 +122,7 @@ designSafeTwoProportions(na = 1,
                          beta = 0.20,
                          delta = 0.3,
                          alternativeRestriction = "none",
-                         M = 1e2,
+                         M = 75,
                          simThetaAMin = 0.1, simThetaAMax = 0.2)
 
 }

@@ -2,9 +2,9 @@
 #' Designs a Safe Experiment to Test Two Proportions in Stream Data
 #'
 #' The design requires the number of observations one expects to collect in each group in each data block.
-#' I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyze
+#' I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyse
 #' the data stream each time a new observation in both groups has come in. The best results in terms of power
-#' are achieved when the data blocks are chosen as small as possible, as this allows for analyzing and updating
+#' are achieved when the data blocks are chosen as small as possible, as this allows for analysing and updating
 #' the safe test as often as possible, to fit the data best.
 #' Further, the design requires two out of the following three parameters to be known:
 #' \itemize{
@@ -35,10 +35,10 @@
 #' @param previousSafeTestResult optionally, a previous safe test result can be provided. The posterior
 #' of the hyperparameters of this test is then used for the hyperparameter settings. Default NULL.
 #' @param M number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.
-#' @param simThetaAMin minimal event rate in control group to simulate NPlan or power for.
+#' @param simThetaAMin minimal event rate in control group to simulate nPlan or power for.
 #' Can be specified when specifically interested in planning studies for specific event rates.
 #' Default \code{NULL}, then the entire parameter space (possibly restricted by delta) is used for simulation.
-#' @param simThetaAMax maximal event rate in control group to simulate NPlan or power for. Default \code{NULL}.
+#' @param simThetaAMax maximal event rate in control group to simulate nPlan or power for. Default \code{NULL}.
 #'
 #' @return Returns a 'safeDesign' object that includes:
 #'
@@ -65,7 +65,7 @@
 #'                          beta = 0.20,
 #'                          delta = 0.6,
 #'                          alternativeRestriction = "none",
-#'                          M = 1e2)
+#'                          M = 75)
 #'
 #' #safe analysis of a pilot: number of samples already known
 #' designSafeTwoProportions(na = 1,
@@ -82,7 +82,7 @@
 #'                          delta = 0.6,
 #'                          hyperParameterValues = hyperParameterValues,
 #'                          alternativeRestriction = "none",
-#'                          M = 1e2)
+#'                          M = 75)
 #'
 #' #restrict range of proportions for estimating nPlan in the control group
 #' designSafeTwoProportions(na = 1,
@@ -90,7 +90,7 @@
 #'                          beta = 0.20,
 #'                          delta = 0.3,
 #'                          alternativeRestriction = "none",
-#'                          M = 1e2,
+#'                          M = 75,
 #'                          simThetaAMin = 0.1, simThetaAMax = 0.2)
 #'
 designSafeTwoProportions <- function(na, nb,
@@ -782,7 +782,7 @@ computeConfidenceBoundForLogOddsTwoProportions <- function(ya,
   return(deltaBound)
 }
 
-#vignette-----------------------------------------------------------------------
+### vignette fnts-----------------------------------------------------------------------
 #' Simulate an optional stopping scenario according to a safe design for two proportions
 #'
 #' @param safeDesign a 'safeDesign' object obtained through \code{\link{designSafeTwoProportions}()}.
@@ -872,7 +872,7 @@ simulateOptionalStoppingScenarioTwoProportions <- function(safeDesign,
 #' @param na number of observations in group a per data block
 #' @param nb number of observations in group b per data block
 #' @param maxSimStoptime maximal number of blocks to sample in each experiment
-#' @param M Number of simulations to carry out, deafult 1e3.
+#' @param M Number of simulations to carry out, default 1e3.
 #' @param numberForSeed number for seed to set, default NULL.
 #'
 #' @return list with stopping times and rejection decisions.
@@ -971,7 +971,7 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
 #'                                      yb = yb,
 #'                                      safeDesign = balancedSafeDesign,
 #'                                      differenceMeasure = "difference",
-#'                                      precision = 25,
+#'                                      precision = 15,
 #'                                      trueDifference = 0.7)
 #'
 #' #log odds ratio difference measure
@@ -979,7 +979,7 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
 #'                                      yb = yb,
 #'                                      safeDesign = balancedSafeDesign,
 #'                                      differenceMeasure = "odds",
-#'                                      precision = 25,
+#'                                      precision = 15,
 #'                                      deltaStop = 5,
 #'                                      trueDifference = log(36))
 #'
@@ -988,7 +988,7 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
 #'                                      yb = ya,
 #'                                      safeDesign = balancedSafeDesign,
 #'                                      differenceMeasure = "odds",
-#'                                      precision = 25,
+#'                                      precision = 15,
 #'                                      deltaStop = 5,
 #'                                      trueDifference = -log(36))
 #'
@@ -1099,7 +1099,7 @@ plotConfidenceSequenceTwoProportions <- function(ya, yb,
 #'                                          trueDelta = 0,
 #'                                          safeDesign = balancedSafeDesign,
 #'                                          M = 100,
-#'                                          precision = 25,
+#'                                          precision = 20,
 #'                                          numberForSeed = 1082021)
 simulateCoverageDifferenceTwoProportions <- function(successProbabilityA,
                                                         trueDelta,

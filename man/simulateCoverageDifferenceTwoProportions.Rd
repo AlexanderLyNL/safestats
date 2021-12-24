@@ -42,6 +42,6 @@ simulateCoverageDifferenceTwoProportions(successProbabilityA = 0.2,
                                          trueDelta = 0,
                                          safeDesign = balancedSafeDesign,
                                          M = 100,
-                                         precision = 25,
+                                         precision = 20,
                                          numberForSeed = 1082021)
 }

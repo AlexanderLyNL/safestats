@@ -56,7 +56,7 @@ plotConfidenceSequenceTwoProportions(ya = ya,
                                      yb = yb,
                                      safeDesign = balancedSafeDesign,
                                      differenceMeasure = "difference",
-                                     precision = 25,
+                                     precision = 15,
                                      trueDifference = 0.7)
 
 #log odds ratio difference measure
@@ -64,7 +64,7 @@ plotConfidenceSequenceTwoProportions(ya = ya,
                                      yb = yb,
                                      safeDesign = balancedSafeDesign,
                                      differenceMeasure = "odds",
-                                     precision = 25,
+                                     precision = 15,
                                      deltaStop = 5,
                                      trueDifference = log(36))
 
@@ -73,7 +73,7 @@ plotConfidenceSequenceTwoProportions(ya = yb,
                                      yb = ya,
                                      safeDesign = balancedSafeDesign,
                                      differenceMeasure = "odds",
-                                     precision = 25,
+                                     precision = 15,
                                      deltaStop = 5,
                                      trueDifference = -log(36))
 

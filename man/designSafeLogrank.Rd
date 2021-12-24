@@ -50,7 +50,7 @@ thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only us
 ignores m1 and m0.}
 
 \item{exact}{a logical indicating whether the design should be based on the exact safe logrank test based on the
-hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then thedesign is based on a  safe z-test.}
+hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the design is based on a  safe z-test.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
@@ -100,7 +100,7 @@ provided, then only the safe test defining parameter log(thetaS) needs to determ
 leads to an (approximately) most powerful safe test. Typically, nEvents is unknown and the user has to specify
 (i) a tolerable type II error beta, and (b) a clinically relevant minimal hazard ratio hrMin. The procedure finds
 the smallest nEvents for which hrMin is found with power of at least 1 - beta. The computations exploit the
-asymptotic normal chracterisation of the sampling distribution of the logrank test derived by Schoenfeld (1981).
+asymptotic normal characterisation of the sampling distribution of the logrank test derived by Schoenfeld (1981).
 }
 \examples{
 designSafeLogrank(hrMin=0.7)
