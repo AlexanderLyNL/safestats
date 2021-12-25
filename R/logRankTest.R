@@ -170,6 +170,7 @@
 #'
 safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, survTime=NULL,
                             group=NULL, pilot=FALSE, exact=TRUE, computeZ=TRUE, ...) {
+  return()
 
   # Check inputs  ----
   #
