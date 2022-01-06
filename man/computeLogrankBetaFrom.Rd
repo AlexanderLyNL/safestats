@@ -67,5 +67,5 @@ ratio and the maximum number of nEvents.
 computeLogrankBetaFrom(hrMin=0.7, 300, nSim=10)
 }
 \author{
-Muriel Felipe Pérez-Ortiz
+Muriel Felipe Perez-Ortiz and Alexander Ly
 }

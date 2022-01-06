@@ -63,5 +63,5 @@ Simulate stopping times for the exact safe logrank test
 sampleLogrankStoppingTimes(0.7, nSim=10)
 }
 \author{
-Muriel Felipe Pérez-Ortiz
+Muriel Felipe Perez-Ortiz and Alexander Ly
 }

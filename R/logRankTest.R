@@ -87,76 +87,6 @@
 #' eValueTwoSided
 #' result$eValue
 #'
-#' # Example with left trunctation due to Judith ter Schure
-#'
-#' enrollment <- 10     # 5 treatment, 5 placebo
-#' lambdaC <- 0.03943723
-#' hr1 <- 0.5           # hazard ratio between treatment en placebo group
-#' fup <- 40            # folow up of 40 days
-#' data <- generateSurvData(nP = 5,
-#'                          nT = 5,
-#'                          lambdaP = lambdaC,
-#'                          lambdaT = hr1*lambdaC,
-#'                          endTime = fup,
-#'                          seed = 2006)
-#'
-#' # Add different time of randomisation
-#' dateRandStart <- as.Date("2020-05-04")
-#' dateRandEnd <- as.Date("2020-05-15")
-#'
-#' set.seed(2005)
-#' data$"dateRand" <- sample(seq.Date(from = dateRandStart, to = dateRandEnd, by = "day"),
-#'                           size = enrollment, replace = TRUE)
-#' data$"dateEvent/LastFup" <- as.Date(data$dateRand + data$time)
-#' data$"dateLastFup" <- as.Date("2020-06-15")
-#' data$"participantID" <- 1:nrow(data)
-#' data$"participantID"[order(data$"dateRand")] <- 1:nrow(data)
-#' data <- data[order(data$"dateRand"), ]
-#' data$time <- data$"dateEvent/LastFup" - dateRandStart
-#'
-#' # Add additional complication with multiple events at the same time
-#' data$"dateEvent/LastFup"[data$participantID == 3] <-
-#'   data$"dateEvent/LastFup"[data$participantID == 5]
-#' data$time[data$participantID == 3] <-
-#'   data$"dateEvent/LastFup"[data$participantID == 3] - dateRandStart
-#' data$dateRand[data$participantID == 3] <-
-#'   data$"dateEvent/LastFup"[data$participantID == 3] -
-#'   data$time[data$participantID == 3]
-#'
-#' # Interim analyses events 1 to 4
-#'
-#' handResult <- c(-0.8164966, -1.4882057, -0.772088, -0.7502141)
-#' #'
-#' for (i in 1:4) {
-#'   calDate <- sort(data$"dateEvent/LastFup")[i]
-#'
-#'   dataSoFar <- data[data$dateRand < calDate, ]
-#'   dataSoFar$dateLastFup <- calDate
-#'   dataSoFar$time <- pmin(dataSoFar$time, calDate - dateRandStart)
-#'   dataSoFar$status[dataSoFar$"dateEvent/LastFup" > calDate] <- 1
-#'   survObj <- survival::Surv(time = dataSoFar$dateRand - dateRandStart,
-#'                             time2 = dataSoFar$time,
-#'                             event = dataSoFar$status,
-#'                             type = "counting")
-#'
-#'   interimResult <- safeLogrankTest(survObj ~ dataSoFar$group,
-#'                                    designObj = designObj, exact=FALSE)
-#'
-#'   # Compare logrank score to calculations by hand
-#'   localTest <- round(interimResult$statistic - handResult[i], 7) == 0
-#'
-#'   if (!localTest)
-#'     stop("Computation of the left-truncated logrank z-score is wrong")
-#' }
-#'
-#'
-#' sumStatResult <- safeLogrankTestStat(z=interimResult$sumStats$z,
-#'                                      nEvents=interimResult$sumStats$nEvents,
-#'                                      designObj=designObj)
-#'
-#' if (!all.equal(interimResult$confSeq, sumStatResult$confSeq))
-#'   stop("safeLogrankTestStat error")
-#'
 #' ###### Example switching between safe exact and safe Gaussian logrank test
 #'
 #' designObj <- designSafeLogrank(0.8, alternative="less")
@@ -1113,7 +1043,7 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
 #' @param hazardRatio numeric that defines the data generating hazard ratio with which data are sampled.
 #' @param nMax An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
 #' crossing crossing already. Default set to Inf.
-#' @author Muriel Felipe Pérez-Ortiz
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #'
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
@@ -1228,7 +1158,7 @@ sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c(
 #' @inheritParams sampleLogrankStoppingTimes
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
-#' @author Muriel Felipe Pérez-Ortiz
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #' @export
 #'
 #' @examples
@@ -1281,7 +1211,7 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 #' @param digits number of significant digits to be used.
 #'
 #' @return a list which contains at least nEvents and an adapted bootObject of class  \code{\link[boot]{boot}}.
-#' @author Muriel Felipe Pérez-Ortiz
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #'
 #' @export
 #'
@@ -1345,7 +1275,7 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 #'
 #' @export
 #'
-#' @author Muriel Felipe Pérez-Ortiz
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #'
 #' @examples
 #' rLogrank(y0=360, y1=89, obsTotal=12, theta=3.14)

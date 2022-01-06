@@ -575,7 +575,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' }
 #' @export
 #'
-#' @references Grünwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
+#' @references Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
 #' @examples
 #' designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
 #'

@@ -75,5 +75,5 @@ alpha and beta under optional stopping.
 computeLogrankNEvents(0.7, 0.2, nSim=10)
 }
 \author{
-Muriel Felipe Pérez-Ortiz
+Muriel Felipe Perez-Ortiz and Alexander Ly
 }

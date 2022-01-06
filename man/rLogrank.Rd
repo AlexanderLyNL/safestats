@@ -30,5 +30,5 @@ rLogrank(y0=360, y1=89, obsTotal=12, theta=3.14)
 
 }
 \author{
-Muriel Felipe Pérez-Ortiz
+Muriel Felipe Perez-Ortiz and Alexander Ly
 }
