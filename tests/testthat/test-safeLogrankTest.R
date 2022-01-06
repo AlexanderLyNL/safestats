@@ -65,3 +65,17 @@ test_that("Computation logrank z statistic left truncation works", {
 
   expect_equal("object"=interimResult$confSeq, "expected"=sumStatResult$confSeq)
 })
+
+test_that("Test that theta = lambda2/lambda1 and that less implies lambda2 < lambda1, thus, treatment is benificial", {
+  dat <- generateSurvData(1000, 1000, lambdaP=0.0003/8, lambdaT=0.00001/8, seed=1)
+  dat$group <- dplyr::recode_factor(dat$group, "P"=1, "T"=2)
+  dat$survTime <- survival::Surv(dat$time, event=dat$status)
+
+  designObj <- designSafeLogrank(1/3, alternative="less")
+  result <- safeLogrankTest(survTime~group, designObj, data=dat)
+
+  referenceResult <- 17.1761195
+  names(referenceResult) <- "e"
+  expect_equal("object"=result$eValue, "expected"=referenceResult)
+})
+

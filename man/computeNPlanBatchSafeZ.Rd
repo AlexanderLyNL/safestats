@@ -3,7 +3,7 @@
 \name{computeNPlanBatchSafeZ}
 \alias{computeNPlanBatchSafeZ}
 \title{Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta}
+difference, alpha and beta.}
 \usage{
 computeNPlanBatchSafeZ(
   meanDiffMin,
@@ -52,11 +52,12 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 \item{grow}{logical, default set to \code{TRUE} so the grow safe test is used in the design.}
 }
 \value{
-a list which contains at least nPlan and the phiS the parameter that defines the safe test
+a list which contains at least nPlan and the phiS, that is, the parameter that defines
+the safe test.
 }
 \description{
 Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta
+difference, alpha and beta.
 }
 \examples{
 safestats:::computeNPlanBatchSafeZ(0.4)

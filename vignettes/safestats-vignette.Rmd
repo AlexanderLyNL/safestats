@@ -1,6 +1,6 @@
 ---
 title: "Safe Flexible Hypothesis Tests for Practical Scenarios"
-author: "Rosanne Turner and Alexander Ly"
+author: "Alexander Ly and Rosanne Turner"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{safestats-vignette}
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-_Safe tests_ is a collective name for a new form of hypothesis tests that are based on _e-values_ (instead of _p-values_). The original paper on e-values by Grünwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide safe tests for the z-test, t-test, Fisher's exact test, the chi-squared test (the safe test of 2 proportions), and the logrank test for survival data. In this vignette, we will illustrate the concepts of safe testing and e-values through the t-test as an example. This safe test is designed to be _GROW_; It is designed to, on average, detect the effect as quickly as possible, if the effect actually exists. 
+_Safe tests_ is a collective name for a new form of hypothesis tests that are based on _e-values_ (instead of _p-values_). The original paper on e-values by Grunwald, de Heide and Koolen can be found [here](https://arxiv.org/abs/1906.07801). For each hypothesis testing setting where one would normally use a $p$-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package provide safe tests for the z-test, t-test, Fisher's exact test, the chi-squared test (the safe test of 2 proportions), and the logrank test for survival data. In this vignette, we will illustrate the concepts of safe testing and e-values through the t-test as an example. This safe test is designed to be _GROW_; It is designed to, on average, detect the effect as quickly as possible, if the effect actually exists. 
 
 >Technically, $E$-variables, are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The $E$-variable can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns $E$\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed $e$-value, the larger the incentive to reject the null (see the [original paper](https://arxiv.org/abs/1906.07801)). 
 

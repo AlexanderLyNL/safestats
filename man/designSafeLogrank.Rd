@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{designSafeLogrank}
 \alias{designSafeLogrank}
-\title{Designs a Safe Logrank Test}
+\title{Designs a Safe Logrank Test Experiment}
 \usage{
 designSafeLogrank(
   hrMin = NULL,
@@ -35,12 +35,14 @@ and "phiS". Note that 1-beta defines the power.}
 
 \item{h0}{numeric > 0, represents the null hypothesis, default h0=1.}
 
-\item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
-tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the
-hazard ratio, and compared to theta != h0. If alternative = "less", the null hypothesis is compared to
-theta <= h0. For h0=1 the alternative specifies that survival in population 1 is higher than in population 2.
-When alternative = "greater", the null hypothesis is compared to the alternative theta >= h0. For h0=1 the
-alternative specifies that survival in population 2 is higher than in population 1.}
+\item{alternative}{a character string specifying the alternative hypothesis, which must be one of
+"two.sided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
+of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
+lambda2 the hazard ratio of group 2 (i.e., treatment), then the null hypothesis states that the hazard ratio
+theta = lambda2/lambda1 = 1. If alternative = "less", the null hypothesis is compared to theta < 1, thus,
+lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than that of group 1 (i.e., placebo),
+hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
+thus, lambda2 > lambda1, hence, harm.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
@@ -95,16 +97,20 @@ Returns a safeDesign object that includes:
 }
 \description{
 A designed experiment requires (1) an anticipated number of events nEvents, or even better nPlan, the number of
-recruited participants of the study, and (2) the parameter of the safe test, i.e., log(thetaS). If nEvents is
-provided, then only the safe test defining parameter log(thetaS) needs to determined. That resulting log(thetaS)
-leads to an (approximately) most powerful safe test. Typically, nEvents is unknown and the user has to specify
-(i) a tolerable type II error beta, and (b) a clinically relevant minimal hazard ratio hrMin. The procedure finds
-the smallest nEvents for which hrMin is found with power of at least 1 - beta. The computations exploit the
-asymptotic normal characterisation of the sampling distribution of the logrank test derived by Schoenfeld (1981).
+participants to be recruited in the study, and (2) the parameter of the safe test, i.e., thetaS. Provided with a
+clinically relevant minimal hazard ratio hrMin, this function outputs thetaS = hrMin as the safe test defining
+parameter in accordance to the GROW criterion. If a tolerable type II error beta is provided then nEvents can be
+sampled. The sampled nEvents is then the smallest nEvents for which hrMin is found with power of at least 1 - beta
+under optional stopping. If exact equal \code{FALSE}, then the computations exploit the local asymptotic normal
+approximation to sampling distribution of the logrank test derived by Schoenfeld (1981).
 }
 \examples{
 designSafeLogrank(hrMin=0.7)
 designSafeLogrank(hrMin=0.7, zApprox=TRUE)
 designSafeLogrank(hrMin=0.7, beta=0.3, nSim=10)
 designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
+}
+\references{
+Schoenfeld, D. (1981). The asymptotic properties of nonparametric tests
+for comparing survival distributions. Biometrika, 68(1), 316-319.
 }

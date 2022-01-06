@@ -9,7 +9,7 @@
 #' @param formula a formula expression as for other survival models, of the form Surv(time, status) ~ groupingVariable,
 #' see \code{\link[survival]{Surv}} for more details.
 #' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
-#' @param data an optional data frame in which to interpret the variables occurring in survTime and group
+#' @param data an optional data frame in which to interpret the variables occurring in survTime and group.
 #' @param survTime an optional survival time object of class 'Surv' created with \code{\link[survival]{Surv}}, or
 #' a name of a column in the data set of class 'Surv'. Does not need specifying if a formula is provided, therefore
 #' set to \code{NULL} by default.
@@ -18,7 +18,8 @@
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
 #' To change these default values, please use \code{\link{designSafeLogrank}}.
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha
+#' @param ciValue numeric, represents the ciValue-level of the confidence sequence. Default ciValue=NULL, and
+#' ciValue = 1 - alpha, where alpha is taken from the design object.
 #' @param exact a logical indicating whether the exact safe logrank test needs to be performed based on
 #' the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the safe z-test (for Gaussian data)
 #' applied to the logrank z-statistic is used instead.
@@ -69,75 +70,22 @@
 #' safeLogrankTest(survTime=survival::Surv(callaert$time),
 #'                 group=callaert$group, designObj = designObj)
 #'
-#' # Example with left trunctation due to Judith ter Schure
+#' result <- safeLogrankTest(survTime=survival::Surv(callaert$time),
+#'                 group=callaert$group, designObj = designObj)
 #'
-#' enrollment <- 10     # 5 treatment, 5 placebo
-#' lambdaC <- 0.03943723
-#' hr1 <- 0.5           # hazard ratio between treatment en placebo group
-#' fup <- 40            # folow up of 40 days
-#' data <- generateSurvData(nP = 5,
-#'                          nT = 5,
-#'                          lambdaP = lambdaC,
-#'                          lambdaT = hr1*lambdaC,
-#'                          endTime = fup,
-#'                          seed = 2006)
+#' result
 #'
-#' # Add different time of randomisation
-#' dateRandStart <- as.Date("2020-05-04")
-#' dateRandEnd <- as.Date("2020-05-15")
+#' ##  Sequentially
+#' # Greater
+#' eValueGreater <- exp(cumsum(result$sumStats$logEValueGreater))
+#' # Less
+#' eValueLess <- exp(cumsum(result$sumStats$logEValueLess))
 #'
-#' set.seed(2005)
-#' data$"dateRand" <- sample(seq.Date(from = dateRandStart, to = dateRandEnd, by = "day"),
-#'                           size = enrollment, replace = TRUE)
-#' data$"dateEvent/LastFup" <- as.Date(data$dateRand + data$time)
-#' data$"dateLastFup" <- as.Date("2020-06-15")
-#' data$"participantID" <- 1:nrow(data)
-#' data$"participantID"[order(data$"dateRand")] <- 1:nrow(data)
-#' data <- data[order(data$"dateRand"), ]
-#' data$time <- data$"dateEvent/LastFup" - dateRandStart
+#' # two.sided
+#' eValueTwoSided <- 1/2*eValueGreater+1/2*eValueLess
 #'
-#' # Add additional complication with multiple events at the same time
-#' data$"dateEvent/LastFup"[data$participantID == 3] <-
-#'   data$"dateEvent/LastFup"[data$participantID == 5]
-#' data$time[data$participantID == 3] <-
-#'   data$"dateEvent/LastFup"[data$participantID == 3] - dateRandStart
-#' data$dateRand[data$participantID == 3] <-
-#'   data$"dateEvent/LastFup"[data$participantID == 3] -
-#'   data$time[data$participantID == 3]
-#'
-#' # Interim analyses events 1 to 4
-#'
-#' handResult <- c(-0.8164966, -1.4882057, -0.772088, -0.7502141)
-#' #'
-#' for (i in 1:4) {
-#'   calDate <- sort(data$"dateEvent/LastFup")[i]
-#'
-#'   dataSoFar <- data[data$dateRand < calDate, ]
-#'   dataSoFar$dateLastFup <- calDate
-#'   dataSoFar$time <- pmin(dataSoFar$time, calDate - dateRandStart)
-#'   dataSoFar$status[dataSoFar$"dateEvent/LastFup" > calDate] <- 1
-#'   survObj <- survival::Surv(time = dataSoFar$dateRand - dateRandStart,
-#'                             time2 = dataSoFar$time,
-#'                             event = dataSoFar$status,
-#'                             type = "counting")
-#'
-#'   interimResult <- safeLogrankTest(survObj ~ dataSoFar$group,
-#'                                    designObj = designObj, exact=FALSE)
-#'
-#'   # Compare logrank score to calculations by hand
-#'   localTest <- round(interimResult$statistic - handResult[i], 7) == 0
-#'
-#'   if (!localTest)
-#'     stop("Computation of the left-truncated logrank z-score is wrong")
-#' }
-#'
-#'
-#' sumStatResult <- safeLogrankTestStat(z=interimResult$sumStats$z,
-#'                                      nEvents=interimResult$sumStats$nEvents,
-#'                                      designObj=designObj)
-#'
-#' if (!all.equal(interimResult$confSeq, sumStatResult$confSeq))
-#'   stop("safeLogrankTestStat error")
+#' eValueTwoSided
+#' result$eValue
 #'
 #' ###### Example switching between safe exact and safe Gaussian logrank test
 #'
@@ -350,6 +298,8 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
                                               "phiS"=phiS, "sigma"=1,
                                               "ciValue"=ciValue, "alternative"="two.sided")
 
+    result[["ciValue"]] <- ciValue
+
     result[["confSeq"]] <- exp(tempConfSeq)
 
     result[["eValue"]] <- eValue
@@ -372,11 +322,11 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 #' and the proper (e.g., hypergeometric) scaling is applied to the data, so sigma = 1. The null hypothesis
 #' in the design object pertains to the population and is allowed to differ from log(theta) = 0.
 #'
-#' @param z numeric representing the observed z statistic.
+#' @param z numeric representing the observed logrank z statistic.
 #' @param nEvents numeric > 0, observed number of events.
 #' @param dataNull numeric > 0, the null hypothesis corresponding to the z statistics.
-#' By default dataNull = 1 representing
-#' @param sigma numeric > 0, scaling in the data
+#' By default dataNull = 1 representing equality of the hazard ratio.
+#' @param sigma numeric > 0, scaling in the data.
 #'
 #' @return
 #' @export
@@ -427,15 +377,16 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 }
 
 
-#' Designs a Safe Logrank Test
+#' Designs a Safe Logrank Test Experiment
 #'
 #' A designed experiment requires (1) an anticipated number of events nEvents, or even better nPlan, the number of
-#' recruited participants of the study, and (2) the parameter of the safe test, i.e., log(thetaS). If nEvents is
-#' provided, then only the safe test defining parameter log(thetaS) needs to determined. That resulting log(thetaS)
-#' leads to an (approximately) most powerful safe test. Typically, nEvents is unknown and the user has to specify
-#' (i) a tolerable type II error beta, and (b) a clinically relevant minimal hazard ratio hrMin. The procedure finds
-#' the smallest nEvents for which hrMin is found with power of at least 1 - beta. The computations exploit the
-#' asymptotic normal characterisation of the sampling distribution of the logrank test derived by Schoenfeld (1981).
+#' participants to be recruited in the study, and (2) the parameter of the safe test, i.e., thetaS. Provided with a
+#' clinically relevant minimal hazard ratio hrMin, this function outputs thetaS = hrMin as the safe test defining
+#' parameter in accordance to the GROW criterion. If a tolerable type II error beta is provided then nEvents can be
+#' sampled. The sampled nEvents is then the smallest nEvents for which hrMin is found with power of at least 1 - beta
+#' under optional stopping. If exact equal \code{FALSE}, then the computations exploit the local asymptotic normal
+#' approximation to sampling distribution of the logrank test derived by Schoenfeld (1981).
+#'
 #'
 #' @inheritParams designSafeZ
 #' @param nEvents numeric > 0, targetted number of events.
@@ -449,12 +400,14 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' ignores m1 and m0.
 #' @param parameter numeric > 0 representing the test defining thetaS. Default is NULL, then GROW the choice is used,
 #' that is, parameter equals the data generating hazardRatio.
-#' @param alternative The null hypothesis of equality of the survival distribution of y in the groups defined by x is
-#' tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the
-#' hazard ratio, and compared to theta != h0. If alternative = "less", the null hypothesis is compared to
-#' theta <= h0. For h0=1 the alternative specifies that survival in population 1 is higher than in population 2.
-#' When alternative = "greater", the null hypothesis is compared to the alternative theta >= h0. For h0=1 the
-#' alternative specifies that survival in population 2 is higher than in population 1.
+#' @param alternative a character string specifying the alternative hypothesis, which must be one of
+#' "two.sided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
+#' of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
+#' lambda2 the hazard ratio of group 2 (i.e., treatment), then the null hypothesis states that the hazard ratio
+#' theta = lambda2/lambda1 = 1. If alternative = "less", the null hypothesis is compared to theta < 1, thus,
+#' lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than that of group 1 (i.e., placebo),
+#' hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
+#' thus, lambda2 > lambda1, hence, harm.
 #' @param m0 Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].
 #' @param m1 Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].
 #' @param parameter Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
@@ -486,6 +439,9 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' }
 #'
 #' @export
+#'
+#' @references Schoenfeld, D. (1981). The asymptotic properties of nonparametric tests
+#' for comparing survival distributions. Biometrika, 68(1), 316-319.
 #'
 #' @examples
 #' designSafeLogrank(hrMin=0.7)
@@ -1086,8 +1042,8 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
 #'
 #' @param hazardRatio numeric that defines the data generating hazard ratio with which data are sampled.
 #' @param nMax An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
-#' crossing crossing already. Default is Inf
-#' @author Muriel Felipe Pérez-Ortiz
+#' crossing crossing already. Default set to Inf.
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #'
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
@@ -1195,13 +1151,14 @@ sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c(
 
 
 
-#' Helper function: Computes the type II error based on the minimal clinically relevant hazard ratio and nEvents
+#' Helper function: Computes the type II error under optional stopping based on the minimal clinically relevant hazard
+#' ratio and the maximum number of nEvents.
 #'
 #' @inheritParams designSafeLogrank
 #' @inheritParams sampleLogrankStoppingTimes
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
-#' @author Muriel Felipe Pérez-Ortiz
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #' @export
 #'
 #' @examples
@@ -1245,8 +1202,8 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 }
 
 
-#' Helper function: Computes the planned sample size based on the minimal clinical relevant hazard ratio
-#' alpha and beta.
+#' Helper function: Computes the planned sample size based on the minimal clinical relevant hazard ratio,
+#' alpha and beta under optional stopping.
 #'
 #'
 #' @inheritParams designSafeLogrank
@@ -1254,7 +1211,7 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 #' @param digits number of significant digits to be used.
 #'
 #' @return a list which contains at least nEvents and an adapted bootObject of class  \code{\link[boot]{boot}}.
-#' @author Muriel Felipe Pérez-Ortiz
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #'
 #' @export
 #'
@@ -1318,7 +1275,7 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 #'
 #' @export
 #'
-#' @author Muriel Felipe Pérez-Ortiz
+#' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #'
 #' @examples
 #' rLogrank(y0=360, y1=89, obsTotal=12, theta=3.14)
@@ -1332,7 +1289,7 @@ rLogrank <- function(n=1, y0, y1, obsTotal, theta) {
 }
 
 
-#' Auxiliary function for sampling of the logrank simulations to return the integer 1 event per time
+#' Auxiliary function for sampling of the logrank simulations to return the integer 1 event per time.
 #'
 #' @return 1
 #' @export
