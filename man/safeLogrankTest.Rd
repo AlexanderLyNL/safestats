@@ -33,9 +33,10 @@ see \code{\link[survival]{Surv}} for more details.}
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
+\item{ciValue}{numeric, represents the ciValue-level of the confidence sequence. Default ciValue=NULL, and
+ciValue = 1 - alpha, where alpha is taken from the design object.}
 
-\item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
+\item{data}{an optional data frame in which to interpret the variables occurring in survTime and group.}
 
 \item{survTime}{an optional survival time object of class 'Surv' created with \code{\link[survival]{Surv}}, or
 a name of a column in the data set of class 'Surv'. Does not need specifying if a formula is provided, therefore
@@ -57,14 +58,14 @@ Default is \code{TRUE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
-\item{z}{numeric representing the observed z statistic.}
+\item{z}{numeric representing the observed logrank z statistic.}
 
 \item{nEvents}{numeric > 0, observed number of events.}
 
 \item{dataNull}{numeric > 0, the null hypothesis corresponding to the z statistics.
-By default dataNull = 1 representing}
+By default dataNull = 1 representing equality of the hazard ratio.}
 
-\item{sigma}{numeric > 0, scaling in the data}
+\item{sigma}{numeric > 0, scaling in the data.}
 }
 \value{
 Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
@@ -124,6 +125,23 @@ safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
 
 safeLogrankTest(survTime=survival::Surv(callaert$time),
                 group=callaert$group, designObj = designObj)
+
+result <- safeLogrankTest(survTime=survival::Surv(callaert$time),
+                group=callaert$group, designObj = designObj)
+
+result
+
+##  Sequentially
+# Greater
+eValueGreater <- exp(cumsum(result$sumStats$logEValueGreater))
+# Less
+eValueLess <- exp(cumsum(result$sumStats$logEValueLess))
+
+# two.sided
+eValueTwoSided <- 1/2*eValueGreater+1/2*eValueLess
+
+eValueTwoSided
+result$eValue
 
 # Example with left trunctation due to Judith ter Schure
 

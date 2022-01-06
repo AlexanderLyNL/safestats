@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{returnOne}
 \alias{returnOne}
-\title{Auxiliary function for sampling of the logrank simulations to return the integer 1 event per time}
+\title{Auxiliary function for sampling of the logrank simulations to return the integer 1 event per time.}
 \usage{
 returnOne()
 }
@@ -10,7 +10,7 @@ returnOne()
 1
 }
 \description{
-Auxiliary function for sampling of the logrank simulations to return the integer 1 event per time
+Auxiliary function for sampling of the logrank simulations to return the integer 1 event per time.
 }
 \examples{
 returnOne()

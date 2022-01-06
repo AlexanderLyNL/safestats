@@ -23,12 +23,14 @@ sampleLogrankStoppingTimes(
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
-tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the
-hazard ratio, and compared to theta != h0. If alternative = "less", the null hypothesis is compared to
-theta <= h0. For h0=1 the alternative specifies that survival in population 1 is higher than in population 2.
-When alternative = "greater", the null hypothesis is compared to the alternative theta >= h0. For h0=1 the
-alternative specifies that survival in population 2 is higher than in population 1.}
+\item{alternative}{a character string specifying the alternative hypothesis, which must be one of
+"two.sided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
+of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
+lambda2 the hazard ratio of group 2 (i.e., treatment), then the null hypothesis states that the hazard ratio
+theta = lambda2/lambda1 = 1. If alternative = "less", the null hypothesis is compared to theta < 1, thus,
+lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than that of group 1 (i.e., placebo),
+hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
+thus, lambda2 > lambda1, hence, harm.}
 
 \item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
 
@@ -45,7 +47,7 @@ step.}
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
 \item{nMax}{An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
-crossing crossing already. Default is Inf}
+crossing crossing already. Default set to Inf.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 }

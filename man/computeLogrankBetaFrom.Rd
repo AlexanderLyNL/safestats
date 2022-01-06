@@ -2,7 +2,8 @@
 % Please edit documentation in R/logRankTest.R
 \name{computeLogrankBetaFrom}
 \alias{computeLogrankBetaFrom}
-\title{Helper function: Computes the type II error based on the minimal clinically relevant hazard ratio and nEvents}
+\title{Helper function: Computes the type II error under optional stopping based on the minimal clinically relevant hazard
+ratio and the maximum number of nEvents.}
 \usage{
 computeLogrankBetaFrom(
   hrMin,
@@ -31,12 +32,14 @@ detect.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{The null hypothesis of equality of the survival distribution of y in the groups defined by x is
-tested. When alternative is "two.sided" the null hypothesis theta = h0, where theta = lambda2/lambda1 is the
-hazard ratio, and compared to theta != h0. If alternative = "less", the null hypothesis is compared to
-theta <= h0. For h0=1 the alternative specifies that survival in population 1 is higher than in population 2.
-When alternative = "greater", the null hypothesis is compared to the alternative theta >= h0. For h0=1 the
-alternative specifies that survival in population 2 is higher than in population 1.}
+\item{alternative}{a character string specifying the alternative hypothesis, which must be one of
+"two.sided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
+of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
+lambda2 the hazard ratio of group 2 (i.e., treatment), then the null hypothesis states that the hazard ratio
+theta = lambda2/lambda1 = 1. If alternative = "less", the null hypothesis is compared to theta < 1, thus,
+lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than that of group 1 (i.e., placebo),
+hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
+thus, lambda2 > lambda1, hence, harm.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
 safe logrank test under continuous monitoring}
@@ -57,7 +60,8 @@ algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
 }
 \description{
-Helper function: Computes the type II error based on the minimal clinically relevant hazard ratio and nEvents
+Helper function: Computes the type II error under optional stopping based on the minimal clinically relevant hazard
+ratio and the maximum number of nEvents.
 }
 \examples{
 computeLogrankBetaFrom(hrMin=0.7, 300, nSim=10)

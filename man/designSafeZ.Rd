@@ -93,10 +93,10 @@ Returns a safeDesign object that includes:
 }
 \description{
 A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
-phiS. If nPlan is provided, then only the safe test defining parameter phiS needs to be determined. That resulting
-phiS leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
-(i) a tolerable type II error beta, and (b) a clinically relevant minimal population mean difference meanDiffMin.
-The procedure finds the smallest nPlan for which meanDiffMin is found with power of at least 1 - beta.
+phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
+phiS = meanDiffMin as the safe test defining parameter in accordance to the GROW criterion.
+If a tolerable type II error, i.e., beta, is provided then nPlan can be sampled. The sampled nPlan is then
+the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
 }
 \examples{
 designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")

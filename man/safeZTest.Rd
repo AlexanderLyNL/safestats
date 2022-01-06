@@ -54,7 +54,6 @@ the computation proceeds.}
 Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 following components:
 
-
 \describe{
   \item{statistic}{the value of the test statistic. Here the z-statistic.}
   \item{n}{The realised sample size(s).}
