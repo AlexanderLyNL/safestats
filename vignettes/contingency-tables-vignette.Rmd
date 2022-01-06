@@ -350,19 +350,19 @@ plotConfidenceSequenceTwoProportions(ya = ya,
                                      yb = yb,
                                      safeDesign = balancedSafeDesign, 
                                      differenceMeasure = "difference",
-                                     precision = 100, 
+                                     precision = 20, 
                                      trueDifference = 0.3)
 ```
 
-The above plot shows that in our confidence sequence, from time point 35 onwards, $0$ is not included in the confidence interval (grey dashed line). 
+The above plot shows that in our confidence sequence, from time point 19 onwards, $0$ is not included in the confidence interval (grey dashed line). The precision indicates how many difference values between -1 and 1 are checked while building the confidence sequence. To decrease vignette building time, a low precision was chosen here, but it is recommended to set this value to 100 (default).
 
-We can check that our confidence sequence indeed offers the $1 - \alpha$ guarantee and includes the difference between the two success probabilities of $0.3$ in at least 95% of simulated scenarios:
+The code below can be used to check that our confidence sequence indeed offers the $1 - \alpha$ guarantee and includes the difference between the two success probabilities of $0.3$ in at least 95% of simulated scenarios:
 
 ```{r}
-simulateCoverageDifferenceTwoProportions(successProbabilityA = 0.2,
-                                           trueDelta = 0.3,
-                                           safeDesign = balancedSafeDesign,
-                                           numberForSeed = 1082021)
+# simulateCoverageDifferenceTwoProportions(successProbabilityA = 0.2,
+#                                            trueDelta = 0.3,
+#                                            safeDesign = balancedSafeDesign,
+#                                            numberForSeed = 1082021)
 ```
 
 Our confidence interval is even a bit conservative: the true difference (delta) is included in 97% of the confidence intervals in 1000 simulations.
@@ -381,7 +381,7 @@ computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
                                            yb = yb, 
                                            safeDesign = balancedSafeDesign,
                                            bound = "lower", 
-                                           precision = 100, 
+                                           precision = 20, 
                                            deltaStart = 0.001, 
                                            deltaStop = 2)
 ```
@@ -405,7 +405,7 @@ plotConfidenceSequenceTwoProportions(ya = ya,
                                      yb = yb,
                                      safeDesign = balancedSafeDesign, 
                                      differenceMeasure = "odds",
-                                     precision = 100, 
+                                     precision = 20, 
                                      trueDifference = log(0.5/0.5 * 0.8/0.2),
                                      deltaStart = 0.001,
                                      deltaStop = 2)
