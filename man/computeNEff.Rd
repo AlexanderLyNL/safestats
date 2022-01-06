@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{computeNEff}
 \alias{computeNEff}
-\title{Help function to compute the effecitve sample size based on a length 2 vector of samples}
+\title{Help function to compute the effective sample size based on a length 2 vector of samples}
 \usage{
 computeNEff(n, testType = c("oneSample", "paired", "twoSample"), silent = TRUE)
 }
@@ -17,7 +17,7 @@ computeNEff(n, testType = c("oneSample", "paired", "twoSample"), silent = TRUE)
 a numeric that represents the effective sample size.
 }
 \description{
-Help function to compute the effecitve sample size based on a length 2 vector of samples
+Help function to compute the effective sample size based on a length 2 vector of samples
 }
 \examples{
 safestats:::computeNEff(c(3, 4), testType="twoSample")

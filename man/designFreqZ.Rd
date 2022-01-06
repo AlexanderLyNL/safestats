@@ -12,6 +12,7 @@ designFreqZ(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   sigma = 1,
+  h0 = 0,
   kappa = sigma,
   lowN = 3L,
   highN = 100L,
@@ -38,17 +39,19 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
+\item{h0}{numeric, represents the null hypothesis, default h0=0.}
+
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
+\item{highN}{integer that defines the largest n of our search space for n. This might be the
+largest n that we are able to fund.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-returns a freqZDesign object.
+returns a 'freqZDesign' object.
 }
 \description{
 Computes the number of samples necessary to reach a tolerable type I and type II error for the

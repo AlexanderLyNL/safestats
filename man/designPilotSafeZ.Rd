@@ -9,9 +9,11 @@ designPilotSafeZ(
   alternative = c("two.sided", "greater", "less"),
   alpha = 0.05,
   sigma = 1,
+  h0 = 0,
   kappa = sigma,
   tol = 1e-05,
-  paired = FALSE
+  paired = FALSE,
+  parameter = NULL
 )
 }
 \arguments{
@@ -27,14 +29,18 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
+\item{h0}{numeric, represents the null hypothesis, default h0=0.}
+
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
 \item{paired}{logical, if \code{TRUE} then paired z-test.}
+
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 }
 \value{
-Returns a safeDesign object
+Returns a 'safeDesign' object
 \describe{
   \item{nPlan}{the sample size(s) to plan for. Provided by the user.}
   \item{parameter}{the safe test defining parameter. Here phiS.}

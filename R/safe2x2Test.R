@@ -1,1151 +1,1771 @@
-create_empty_safe_2x2_design <- function() {
-  new_safe_2x2_design <- list(
-    'delta.star' = NA,
-    'na' = NA,
-    'nb' = NA,
-    'point_h0' = 0.5,
-    'H1set' = NA,
-    'w1' = c(0.5, 0.5),
-    'call' = NA,
-    'pilot' = NA
-  )
+#EXPORT --------------------------------------------------------------------
+#' Designs a Safe Experiment to Test Two Proportions in Stream Data
+#'
+#' The design requires the number of observations one expects to collect in each group in each data block.
+#' I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyse
+#' the data stream each time a new observation in both groups has come in. The best results in terms of power
+#' are achieved when the data blocks are chosen as small as possible, as this allows for analysing and updating
+#' the safe test as often as possible, to fit the data best.
+#' Further, the design requires two out of the following three parameters to be known:
+#' \itemize{
+#'  \item the power one aims to achieve (\code{1 - beta}),
+#'  \item the minimal relevant difference between the groups (\code{delta})
+#'  \item the number of blocks planned (\code{nBlocksPlan}),
+#' }
+#' where the unknown out of the three will be estimated. In the case of an exploratory "pilot" analysis,
+#' one can also only provide the number of blocks planned.
 
-  class(new_safe_2x2_design) <- "safe2x2_result"
-  return(new_safe_2x2_design)
-}
+#'
+#' @param na number of observations in group a per data block
+#' @param nb number of observations in group b per data block
+#' @param nBlocksPlan planned number of data blocks collected
+#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "nBlocksPlan"
+#' and "delta". Note that 1-beta defines the power.
+#' @param delta a priori minimal relevant divergence between group means b and a, either a numeric between -1 and 1 for
+#' no alternative restriction or a restriction on difference, or a real for a restriction on the log odds ratio.
+#' @param alternativeRestriction a character string specifying an optional restriction on the alternative hypothesis; must be one of "none" (default),
+#' "difference" (difference group mean b minus group b) or "logOddsRatio" (the log odds ratio between group means b and a).
+#' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+#' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
+#' @param pilot logical, specifying whether it's a pilot design.
+#' @param hyperParameterValues named list containing numeric values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
+#' equivalent to \code{shape1} in \code{stats::dbeta} for groups A and B, respectively, and betaA2 and betaB2 equivalent to \code{shape2}. By default
+#' chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format:
+#' \code{list(betaA1 = numeric1, betaA2 = numeric2, betaB1 = numeric3, betaB2 = numeric4)}.
+#' @param previousSafeTestResult optionally, a previous safe test result can be provided. The posterior
+#' of the hyperparameters of this test is then used for the hyperparameter settings. Default NULL.
+#' @param M number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.
+#' @param simThetaAMin minimal event rate in control group to simulate nPlan or power for.
+#' Can be specified when specifically interested in planning studies for specific event rates.
+#' Default \code{NULL}, then the entire parameter space (possibly restricted by delta) is used for simulation.
+#' @param simThetaAMax maximal event rate in control group to simulate nPlan or power for. Default \code{NULL}.
+#'
+#' @return Returns a 'safeDesign' object that includes:
+#'
+#' \describe{
+#'   \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
+#'   if known.}
+#'   \item{parameter}{the safe test defining parameter: here the hyperparameters.}
+#'   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{beta}{the tolerable type II error specified by the user.}
+#'   \item{alternative}{any of "two.sided", "greater", "less" based on the \code{alternativeRestriction} provided by the user.}
+#'   \item{testType}{here 2x2}
+#'   \item{pilot}{logical, specifying whether it's a pilot design.}
+#'   \item{call}{the expression with which this function is called.}
+#' }
+#' @export
+#'
+#' @examples
+#' #plan for an experiment to detect minimal difference of 0.6 with a balanced design
+#' set.seed(3152021)
+#' designSafeTwoProportions(na = 1,
+#'                          nb = 1,
+#'                          alpha = 0.1,
+#'                          beta = 0.20,
+#'                          delta = 0.6,
+#'                          alternativeRestriction = "none",
+#'                          M = 75)
+#'
+#' #safe analysis of a pilot: number of samples already known
+#' designSafeTwoProportions(na = 1,
+#'                           nb = 1,
+#'                           nBlocksPlan = 20,
+#'                           pilot = TRUE)
+#'
+#' #specify own hyperparameters
+#' hyperParameterValues <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+#' designSafeTwoProportions(na = 1,
+#'                          nb = 1,
+#'                          alpha = 0.1,
+#'                          beta = 0.20,
+#'                          delta = 0.6,
+#'                          hyperParameterValues = hyperParameterValues,
+#'                          alternativeRestriction = "none",
+#'                          M = 75)
+#'
+#' #restrict range of proportions for estimating nPlan in the control group
+#' designSafeTwoProportions(na = 1,
+#'                          nb = 1,
+#'                          beta = 0.20,
+#'                          delta = 0.3,
+#'                          alternativeRestriction = "none",
+#'                          M = 75,
+#'                          simThetaAMin = 0.1, simThetaAMax = 0.2)
+#'
+designSafeTwoProportions <- function(na, nb,
+                                     nBlocksPlan = NULL,
+                                     beta = NULL,
+                                     delta = NULL,
+                                     alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                     alpha = 0.05,
+                                     pilot = "FALSE",
+                                     hyperParameterValues = NULL,
+                                     previousSafeTestResult = NULL,
+                                     M = 1e3,
+                                     simThetaAMin = NULL,
+                                     simThetaAMax = NULL){
+  alternativeRestriction <- match.arg(alternativeRestriction)
 
-add_attributes <- function(object, attributes_defined) {
-  object[names(attributes_defined)] <- attributes_defined
-  return(object)
-}
-
-create_safe_2x2_design <- function(attributes_defined) {
-  stopifnot(is.list(attributes_defined))
-  safe_2x2_design <- create_empty_safe_2x2_design()
-  safe_2x2_design <- add_attributes(safe_2x2_design, attributes_defined)
-  return(safe_2x2_design)
-}
-
-#finds the greatest common divisor of two integers a and b
-#returns this as 'n.iter'
-#together with a/n.iter and b/n.iter
-# findGreatestCommonDivisor <- function(a, b) {
-#   imax <- 100
-#
-#   for (i in 1:imax) {
-#     ratio <- i * a / b
-#     if (abs(round(ratio) - ratio) < 1e-8) {
-#       a.iter <- ratio
-#       b.iter <- i
-#       n.iter <- a / ratio
-#       break
-#     }
-#   }
-#
-#   if (!exists("a.iter")) {
-#     #no greatest common divisor has been found
-#     a.iter <- a
-#     b.iter <- b
-#     n.iter <- 1
-#   }
-#
-#   return(
-#     list(
-#       'a.iter' = a.iter,
-#       'b.iter' = b.iter,
-#       'n.iter' = n.iter
-#     )
-#   )
-# }
-
-#helper function for finding adjustment phi to simple S
-#for case of unequal group sizes
-#calculates the expected capital growth of a simple S value adjusted with
-#value 'transl'
-GetExpectedCapitalGrowthSimpleSWithAdjustment <- function(transl, H1set.neutral, n.grid, na,
-                                                          nb, binom.coef, pbar0) {
-  H1set.transl <-
-    H1set.neutral + rbind(rep(transl, 2), rep(-transl, 2))
-
-  # TODO(Rosanne): Zou je dit kunnen controleren en een betere naam kunnen geven?
-  helpFunc <- function(h) {
-    result <- exp((n.grid[, 1]) * log(h[1]) + (na - n.grid[, 1]) * log(1 - h[1]) +
-                    (n.grid[, 2]) * log(h[2]) + (nb - n.grid[, 2]) * log(1 - h[2])
-    )
-    return(result)
+  if (alternativeRestriction %in% c("difference", "logOddsRatio") & !is.numeric(delta)) {
+    stop("Provide numeric value for divergence measure when testing with restriction: a difference or log Odds ratio")
   }
 
-  pbar1 <- c(0.5, 0.5) %*% t(apply(H1set.transl, 1, helpFunc))
-  return(sum(binom.coef * pbar1 * log(pbar1 / pbar0)))
+  note <- NULL
+  #First, check for given hyperParameters or set them
+  if (!is.null(previousSafeTestResult)) {
+    #use posterior for hyperparameter settings
+    hyperParameterValues <- previousSafeTestResult[["posteriorHyperParameters"]]
+    priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
+    note <- c(note, "Hyperparameters set according to posterior values from previous test result")
+  } else if (is.null(hyperParameterValues)) {
+    #use the default
+    hyperParameterValues <- list(betaA1 = 0.18, betaB1 = (nb/na)*0.18,
+                        betaA2 = 0.18, betaB2 = (nb/na)*0.18)
+    priorValuesForPrint <- "standard, REGRET optimal"
+    note <- c(note, "Optimality of hyperparameters only verified for equal group sizes (na = nb = 1)")
+  } else {
+    #user provided manually: perform checks
+    if (!all(c("betaA1", "betaA2", "betaB1", "betaB2") %in% names(hyperParameterValues))) {
+      stop("Provide hyperparameters as a named list for betaA1, betaA2, betaB1 and betaB2, see help file.")
+    }
+
+    if (any(hyperParameterValues <= 0)) {
+      stop("Provide Beta prior hyperparameter values that yield a proper prior: parameters should be > 0.")
+    }
+    priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
+  }
+
+  names(priorValuesForPrint) <- "Beta hyperparameters"
+  logImpliedTarget <- nPlanTwoSe <- betaTwoSe <- logImpliedTargetTwoSe <- NULL
+
+  if (!is.null(simThetaAMin) & !is.null(simThetaAMax)) {
+    note <- c(note, paste0("Estimations and standard deviations calculated for worst case control event rate in range from ",
+                           simThetaAMin, " to ", simThetaAMax))
+  }
+
+  #Check each possible design scenario
+  if (is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && !is.null(beta)) {
+    #scenario 1a: delta + power known, calculate nPlan
+    nSimulationResult <- simulateWorstCaseQuantileTwoProportions(delta = delta,
+                                                                 na = na, nb = nb,
+                                                                 priorValues = hyperParameterValues,
+                                                                 alternativeRestriction = alternativeRestriction,
+                                                                 alpha = alpha, beta = beta, M = M,
+                                                                 thetaAMin = simThetaAMin, thetaAMax = simThetaAMax)
+    nBlocksPlan <- nSimulationResult[["worstCaseQuantile"]]
+    nPlanTwoSe <- c(0, 0, nSimulationResult[["worstCaseQuantileTwoSe"]])
+  } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && is.null(beta)) {
+    #scenario 1c: only nPlan known, can perform a pilot (no warning though)
+    pilot <- TRUE
+  } else if (!is.null(nBlocksPlan) && (is.numeric(delta) && delta != 0) && is.null(beta)) {
+    #scenario 2: given effect size and nPlan, calculate power and implied target
+    worstCaseSimulationResult <- simulateWorstCaseQuantileTwoProportions(delta = delta,
+                                                                         na = na, nb = nb,
+                                                                         priorValues = hyperParameterValues,
+                                                                         alternativeRestriction = alternativeRestriction,
+                                                                         maxSimStoptime = nBlocksPlan,
+                                                                         alpha = alpha, beta = 0, M = M,
+                                                                         estimateImpliedTarget = TRUE,
+                                                                         thetaAMin = simThetaAMin, thetaAMax = simThetaAMax)
+    beta <- 1 - worstCaseSimulationResult[["worstCasePower"]]
+    betaTwoSe <- worstCaseSimulationResult[["worstCasePowerTwoSe"]]
+    logImpliedTarget <- worstCaseSimulationResult[["logImpliedTarget"]]
+    logImpliedTargetTwoSe <- worstCaseSimulationResult[["logImpliedTargetTwoSe"]]
+  } else if (!is.null(nBlocksPlan) && !(is.numeric(delta) && delta != 0) && !is.null(beta)) {
+    #scenario 3: given power and nPlan, calculate minimal effect size to be "detected"
+    delta <- simulateWorstCaseDeltaTwoProportions(na = na, nb = nb, priorValues = hyperParameterValues,
+                                    alternativeRestriction = alternativeRestriction,
+                                    alpha = alpha, beta = beta, M = M, maxSimStoptime = nBlocksPlan)
+    if (length(delta) == 0) {
+      stop("For this sample size and power, no effect size below deltamax yielded the desired power")
+    }
+  } else {
+    #also includes scenario 1b: only delta known, raise error
+    stop("Provide two of nBlocksPlan, delta and power, or only nBlocksPlan for a pilot with default settings.")
+  }
+
+  #in the scenario's we accept now, there always is an nBlocksPlan not null
+  nPlan <- c(na, nb, nBlocksPlan)
+  names(nPlan) <- c("na", "nb", "nBlocksPlan")
+
+  alternative <- switch(alternativeRestriction,
+                        "none" = "two.sided",
+                        "difference" = ifelse(delta < 0, "less", "greater"),
+                        "logOddsRatio" = ifelse(delta < 0, "less", "greater"))
+
+  if (!is.null(delta)) {
+    names(delta) <- ifelse(alternativeRestriction == "logOddsRatio", "log odds ratio", "difference")
+  }
+
+  testType <- "2x2"
+  h0 <- 0
+
+  result <- list("nPlan"=nPlan,
+                 "nPlanTwoSe" = nPlanTwoSe,
+                 "parameter"= priorValuesForPrint,
+                 "betaPriorParameterValues" = hyperParameterValues,
+                 "alpha"=alpha,
+                 "beta"=beta,
+                 "betaTwoSe" = betaTwoSe,
+                 "logImpliedTarget" = logImpliedTarget,
+                 "logImpliedTargetTwoSe" = logImpliedTargetTwoSe,
+                 "esMin" = delta,
+                 "h0"= h0,
+                 "testType"=testType,
+                 "alternativeRestriction" = alternativeRestriction,
+                 "alternative" = alternative,
+                 "pilot" = pilot,
+                 "lowN"=NULL,
+                 "highN"=NULL,
+                 "call"=sys.call(),
+                 "timeStamp"=Sys.time(),
+                 "note" = note)
+  class(result) <- "safeDesign"
+
+  return(result)
 }
 
-#helper function to find derivative of the inverse of S: T -> 1/alpha
-calculate_derivative_wrt_delta_for_S_inverse <- function(d, a, n) {
-  # TODO(Rosanne): Denk je dat we dit kunnen simplificeren?
-  (1 / (1 / ((1 - d ^ 2) ^ (0.5 * n) * a) + sqrt(1 / ((
-    1 - d ^ 2
-  ) ^ n * a ^ 2) - 1)) * n * d * (a ^ (-1)) * (1 / ((1 - d ^ 2) ^ (0.5 * n + 1)) + (1 /
-                                                                                      a) * ((1 / a ^ 2) * (1 / ((1 - d ^ 2) ^ n
-                                                                                      )) - 1) ^ (-0.5) *
-                                                 (1 - d ^ 2) ^ (-n - 1)) * log((1 + d) / (1 - d)) -
-    2 / (1 - d ^ 2) * log(1 / ((1 - d ^ 2) ^ (0.5 * n) * a) + sqrt(1 /
-                                                                     ((
-                                                                       1 - d ^ 2
-                                                                     ) ^ n * a ^ 2) - 1))) / (log((1 + d) / (1 - d))) ^ 2
-}
+#' Perform a Safe Test for Two Proportions with Stream Data
+#'
+#' Perform a safe test for two proportions (a 2x2 contingency table test) with a
+#' result object retrieved through the design function for planning an experiment to compare
+#' two proportions in this package, \code{\link{designSafeTwoProportions}()}.
+#'
+#' @param ya positive observations/ events per data block in group a: a numeric with integer values
+#' between (and including) 0 and \code{na}, the number of observations in group a per block.
+#' @param yb positive observations/ events per data block in group b: a numeric with integer values
+#' between (and including) 0 and \code{nb}, the number of observations in group b per block.
+#' @param designObj a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
+#' @param wantConfidenceSequence logical that can be set to true when the user wants a safe confidence
+#' sequence to be estimated.
+#' @param ciValue coverage of the safe confidence sequence; default \code{NULL}, if NULL
+#' calculated as \code{1 - designObj[["alpha"]]}.
+#' @param confidenceBoundGridPrecision integer specifying the grid precision used to search for the confidence
+#' bounds. Default 20.
+#' @param logOddsConfidenceSearchBounds vector of to positive doubles specifying the upper and lower bound of the grid
+#' to search over for finding the confidence bound for the logOddsRatio restriction. Default \code{(0.01, 5)}.
+#' @param pilot logical that can be set to true when performing an exploratory analysis
+#' without a \code{designObj}; only allows for \code{na = nb = 1}.
+#'
+#' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
+#' following components:
+#'
+#' \describe{
+#'   \item{n}{The realised sample size(s).}
+#'   \item{eValue}{the e-value of the safe test.}
+#'   \item{dataName}{a character string giving the name(s) of the data.}
+#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}()}.}
+#' }
+#'
+#' @export
+#'
+#' @examples
+#' #balanced design
+#' yb <- c(1,0,1,1,1,0,1)
+#' ya <- c(1,0,1,0,0,0,1)
+#' safeDesign <- designSafeTwoProportions(na = 1,
+#'                                        nb = 1,
+#'                                        beta = 0.20,
+#'                                        delta = 0.6,
+#'                                        alternativeRestriction = "none",
+#'                                        M = 1e1)
+#' safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
+#'
+#' #pilot
+#' safeTwoProportionsTest(ya = ya, yb = yb, pilot = TRUE)
+#'
+#' #unbalanced design
+#' yb <- c(1,0,1,1,1,0,1)
+#' ya <- c(2,2,1,2,0,2,2)
+#' safeDesign <- designSafeTwoProportions(na = 2,
+#'                                        nb = 1,
+#'                                        beta = 0.20,
+#'                                        delta = 0.6,
+#'                                        alternativeRestriction = "none",
+#'                                        M = 1e1)
+#' safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
+#'
+safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+                                   confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
+  if (is.null(designObj) & !pilot) {
+    stop("Please provide a safe 2x2 design object, or run the function with pilot=TRUE.",
+         "A design object can be obtained by running designSafeTwoProportions().")
+  }
 
-#helper function to find a delta ump in the case of na == nb
-#throws error if uniroot fails
-#returns numeric lenght 1 if success
-get_delta_ump_analytically <- function(n, alpha, lower = 0.01, upper = 0.9) {
-  # TODO(Rosanne): Denk je dat je tryOrFailWithNA() hiervoor helpt?
-  delta.ump <-
-    tryCatch(
-      stats::uniroot(
-        f = calculate_derivative_wrt_delta_for_S_inverse,
-        interval = c(lower, upper),
-        a = alpha,
-        n = n
-      )$root,
-      error = function(e) {
-        NA
+  if (length(ya) != length(yb)) {
+    stop("Can only process complete data blocks: provide vectors with numbers of positive observations per timepoint,",
+         "see example in helpfile.")
+  }
+
+  if (pilot) {
+    designObj <- designSafeTwoProportions(na = 1, nb = 1, nBlocksPlan = length(ya),
+                                          alternativeRestriction = "none", pilot = TRUE)
+  }
+
+  if (any(ya > designObj[["nPlan"]][["na"]] | ya < 0) | any(yb > designObj[["nPlan"]][["nb"]] | yb < 0)) {
+    stop("Provided sample sizes within blocks, na and nb, do not match provided ya and yb.")
+  }
+
+  eValue <- calculateSequential2x2E(aSample = ya, bSample = yb,
+                                    priorValues = designObj[["betaPriorParameterValues"]],
+                                    restriction = designObj[["alternativeRestriction"]],
+                                    delta = designObj[["esMin"]],
+                                    na = designObj[["nPlan"]][["na"]],
+                                    nb = designObj[["nPlan"]][["nb"]])
+
+  confInt <- NULL
+  if (wantConfidenceSequence) {
+    ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
+    originalAlpha <- designObj[["alpha"]]
+    ciAlpha <- 1 - ciValue
+
+    #for the confidence calculation, set design alpha to the ci alpha
+    #as this could differ in an exploratory setting
+    designObj[["alpha"]] <- ciAlpha
+
+    if (designObj[["alternativeRestriction"]] == "logOddsRatio") {
+      #we can only give a lower OR an upper bound
+      #if delta > 0, we hypothesize thetaB > thetaA and can estimate a lower bound
+      boundDirection <- ifelse(designObj[["esMin"]] > 0, "lower", "upper")
+      gridBounds <- sign(designObj[["esMin"]]) * logOddsConfidenceSearchBounds
+      confidenceBound <- computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
+                                                     yb = yb,
+                                                     safeDesign = designObj,
+                                                     bound = boundDirection,
+                                                     deltaStart = gridBounds[1],
+                                                     deltaStop = gridBounds[2],
+                                                     precision = confidenceBoundGridPrecision)
+      #fill in the bound we could not estimate (due to non-convexity of H0 in that direction)
+      #with infinity
+      if (confidenceBound == 0) {
+        confInt <- c(-Inf, Inf)
+      } else if (confidenceBound > 0) {
+        confInt <- c(confidenceBound, Inf)
+      } else {
+        confInt <- c(-Inf, confidenceBound)
       }
+    } else {
+      confidenceBounds <- computeConfidenceBoundsForDifferenceTwoProportions(
+         ya = ya,
+         yb = yb,
+         precision = confidenceBoundGridPrecision,
+         safeDesign = designObj
+       )
+      confInt <- c(confidenceBounds[["lowerBound"]], confidenceBounds[["upperBound"]])
+    }
+
+    #return the original alpha after calculating with the ciAlpha design
+    designObj[["alpha"]] <- originalAlpha
+  }
+
+  argumentNames <- getArgs()
+  xLabel <- extractNameFromArgs(argumentNames, "ya")
+  yLabel <- extractNameFromArgs(argumentNames, "yb")
+  dataName <- paste(xLabel, "and", yLabel)
+  n <- c(length(ya)*designObj[["nPlan"]][["na"]], length(yb)*designObj[["nPlan"]][["nb"]])
+  names(n) <- c("nObsA", "nObsB")
+
+  #calculate the posterior: prior parameters from original design, plus successes and failures
+  #seen in this experiment
+  posteriorHyperParameters <- list(
+    betaA1 = sum(ya) + designObj[["betaPriorParameterValues"]][["betaA1"]],
+    betaB1 = length(ya)*designObj[["nPlan"]][["na"]] - sum(ya) + designObj[["betaPriorParameterValues"]][["betaA2"]],
+    betaA2 = sum(yb) + designObj[["betaPriorParameterValues"]][["betaB1"]],
+    betaB2 = length(yb)*designObj[["nPlan"]][["nb"]] - sum(yb) + designObj[["betaPriorParameterValues"]][["betaB2"]]
+  )
+
+  testResult <- list(designObj = designObj,
+                     eValue = eValue,
+                     dataName = dataName,
+                     n = n,
+                     posteriorHyperParameters = posteriorHyperParameters,
+                     ciValue = ciValue,
+                     confSeq = confInt)
+  class(testResult) <- "safeTest"
+
+  return(testResult)
+}
+
+#' Alias for \code{\link{safeTwoProportionsTest}()}
+#'
+#' @rdname safeTwoProportionsTest
+#'
+#' @export
+safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+                           confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
+  safeTestResult <- tryCatch(safeTwoProportionsTest(ya = ya, yb = yb, designObj = designObj,
+                                                    wantConfidenceSequence = wantConfidenceSequence, ciValue = ciValue,
+                                                    confidenceBoundGridPrecision = confidenceBoundGridPrecision,
+                                                    logOddsConfidenceSearchBounds = logOddsConfidenceSearchBounds, pilot = pilot),
+                  error = function(e){e})
+
+  if (!is.null(safeTestResult[["message"]])) {
+    #safeTwoProportionsTest has thrown an error - return neatly, as from this call
+    stop(safeTestResult[["message"]])
+  } else {
+    return(safeTestResult)
+  }
+}
+
+#' Compare Different Hyperparameter Settings for Safe Tests of Two Proportions.
+#'
+#' Simulates for a range of divergence parameter values (differences or log odds ratios) the worst-case stopping times
+#' (i.e., number of data blocks collected) and expected stopping times needed to achieve the desired power for each hyperparameter setting provided.
+#'
+#' @inheritParams designSafeTwoProportions
+#' @param hyperparameterList list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}()}.
+#' @param deltaDesign optional; when using a restricted alternative, the value of the divergence measure used.
+#' Either a numeric between -1 and 1 for a restriction on difference, or a real for a restriction on the log odds ratio.
+#' @param beta numeric in (0, 1) that specifies the tolerable type II error control in the study. Necessary to calculate the
+#' worst case stopping time.
+#' @param deltamax maximal effect size to calculate power for; between -1 and 1 for designs without restriction or a restriction on difference;
+#' real number for a restriction on the log odds ratio. Default \code{0.9}.
+#' @param deltamin minimal effect size to calculate power for; between -1 and 1 for designs without restriction or a restriction on difference;
+#' real number for a restriction on the log odds ratio. Default \code{0.1}.
+#' @param deltaGridSize numeric, positive integer: size of grid of delta values worst case and expected sample sizes are simulated for.
+#' @param M number of simulations used to estimate sample sizes. Default \code{100}.
+#' @param maxSimStoptime maximal stream length in simulations; when the e value does not reach the rejection threshold before the end of the stream,
+#' the maximal stream length is returned as the stopping time. Default \code{1e4}.
+#' @param thetaAgridSize numeric, positive integer: size of the grid of probability distributions examined for each delta value to find the
+#' worst case sample size over.
+#'
+#' @return Returns an object of class "safe2x2Sim". An object of class "safe2x2Sim" is a list containing at least the
+#' following components:
+#'
+#' \describe{
+#'   \item{simData}{A data frame containing simulation results with worst case and expected stopping times for each
+#'   hyperparameter setting, for the specified or default range of effect sizes.}
+#'   \item{alpha}{the significance threshold used in the simulations}
+#'   \item{beta}{the type-II error control used in the simulations}
+#'   \item{deltaDesign}{the value of restriction on the alternative hypothesis parameter space used for the E variables in the simulations}
+#'   \item{restriction}{the type of restriction used for the E variables in the simulation}
+#'   \item{hyperparameters}{list of the hyperparameters tested in the simulation}
+#' }
+#'
+#' @export
+#'
+#' @examples
+#' priorList1 <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+#' priorList2 <- list(betaA1 = 0.18, betaA2 = 0.18, betaB1 = 0.18, betaB2 = 0.18)
+#' priorList3 <- list(betaA1 = 1, betaA2 = 1, betaB1 = 1, betaB2 = 1)
+#'
+#' simResult <- simulateTwoProportions(
+#'   hyperparameterList = list(priorList1, priorList2, priorList3),
+#'   alternativeRestriction = "none",
+#'   alpha = 0.1, beta = 0.2, na = 1, nb = 1,
+#'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
+#'   M = 10
+#'   )
+#'
+#' print(simResult)
+#' plot(simResult)
+simulateTwoProportions <- function(hyperparameterList,
+                                   alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                   deltaDesign = NULL,
+                                   alpha,
+                                   beta,
+                                   na, nb,
+                                   deltamax = 0.9,
+                                   deltamin = 0.1,
+                                   deltaGridSize = 8,
+                                   M = 1e2,
+                                   maxSimStoptime = 1e4,
+                                   thetaAgridSize = 8){
+
+  deltaVec <- seq(deltamax, deltamin, length.out = deltaGridSize)
+  resultDataFrame <- data.frame()
+
+  #use list names to index and return the result
+  if (is.null(names(hyperparameterList))) {
+    names(hyperparameterList) <- paste("setting", 1:length(hyperparameterList), sep = "")
+  }
+
+  #for every prior, simulate the worst-case 1 - beta stopping times
+  #for a grid of delta values
+  for (hyperparameterSet in names(hyperparameterList)) {
+    message(paste("Retrieving worst case stopping times for hyperparameter set ", hyperparameterSet))
+    for (deltaGenerating in deltaVec) {
+      worstCase <- simulateWorstCaseQuantileTwoProportions(na = na, nb = nb,
+                                 priorValues = hyperparameterList[[hyperparameterSet]],
+                                 alternativeRestriction = alternativeRestriction,
+                                 alpha = alpha, beta = beta,
+                                 delta = deltaGenerating,
+                                 deltaDesign = deltaDesign,
+                                 M = M,
+                                 maxSimStoptime = maxSimStoptime,
+                                 gridSize = thetaAgridSize)[["worstCaseQuantile"]]
+      resultDataFrame <- rbind(resultDataFrame,
+                               data.frame(hyperparameters = hyperparameterSet,
+                                          delta = deltaGenerating,
+                                          worstCaseQuantile = worstCase)
+                               )
+    }
+  }
+
+  #now we know the worst case quantiles, retrieve expected stopping times
+  message(paste("Retrieving all expected stopping times given the worst case stopping times"))
+  for (i in 1:nrow(resultDataFrame)) {
+    resultDataFrame[i,"expected"] <- simulateWorstCaseQuantileTwoProportions(na = na, nb = nb,
+                                          priorValues = hyperparameterList[[resultDataFrame[i, "hyperparameters"]]],
+                                          alternativeRestriction = alternativeRestriction,
+                                          alpha = alpha, beta = 0,
+                                          delta = resultDataFrame[i, "delta"],
+                                          deltaDesign = deltaDesign,
+                                          M = M,
+                                          #now we stop, each experiment,
+                                          #maximally at the worst case stoptime for 80% power
+                                          maxSimStoptime = ceiling(resultDataFrame[i,"worstCaseQuantile"]),
+                                          gridSize = thetaAgridSize,
+                                          #and we calculate the expectation instead of a (1-b) quantile
+                                          expectedStopTime = TRUE)[["worstCaseQuantile"]]
+  }
+
+  simResult <- list(simdata = resultDataFrame,
+                    alpha = alpha,
+                    beta = beta,
+                    deltaDesign = deltaDesign,
+                    restriction = alternativeRestriction,
+                    hyperparameters = hyperparameterList
+                    )
+  class(simResult) <- "safe2x2Sim"
+  return(simResult)
+}
+
+#' Prints Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
+#'
+#' @param x a result object obtained through \code{\link{simulateTwoProportions}()}.
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return The data frame with simulation results, called for side effects to pretty print the simulation results.
+#'
+#' @export
+#'
+#' @examples
+#' priorList1 <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+#' priorList2 <- list(betaA1 = 0.18, betaA2 = 0.18, betaB1 = 0.18, betaB2 = 0.18)
+#' priorList3 <- list(betaA1 = 1, betaA2 = 1, betaB1 = 1, betaB2 = 1)
+#'
+#' simResult <- simulateTwoProportions(
+#'   hyperparameterList = list(priorList1, priorList2, priorList3),
+#'   alternativeRestriction = "none",
+#'   alpha = 0.1, beta = 0.2, na = 1, nb = 1,
+#'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
+#'   M = 10
+#'   )
+print.safe2x2Sim <- function(x, ...){
+  cat("Simulation results for test of two proportions")
+  cat("\n\n")
+
+  cat("Simulations ran with alpha =", x[["alpha"]], "and beta =", x[["beta"]], ".\n")
+  if (!is.null(x[["deltaDesign"]])) {
+    cat("The alternative hypothesis was restricted based on a",
+        x[["restriction"]], "of", x[["deltaDesign"]], ".\n")
+  }
+
+  cat("The following hyperparameter settings were evaluated:\n")
+  displayList <- list()
+  for (i in 1:length(x[["hyperparameters"]])) {
+    displaytext <- paste(names(x[["hyperparameters"]][[i]]), unlist(x[["hyperparameters"]][[i]]), sep = " = ",
+                         collapse = "; ")
+    displayList[[names(x[["hyperparameters"]])[i]]] <- displaytext
+  }
+  cat(paste(format(names(displayList), width = 20L, justify = "right"),
+            format(displayList), sep = ": "), sep = "\n")
+  cat("and yielded the following results:\n")
+  print(x[["simdata"]], justify = "right")
+}
+
+#' Plots Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
+#'
+#' @param x a result object obtained through \code{\link{simulateTwoProportions}()}.
+#' @param ... further arguments to be passed to or from methods.
+#'
+#' @return Plot data, mainly called for side effects, the plot of simulation results.
+#'
+#' @export
+#'
+#' @examples
+#' priorList1 <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+#' priorList2 <- list(betaA1 = 0.18, betaA2 = 0.18, betaB1 = 0.18, betaB2 = 0.18)
+#' priorList3 <- list(betaA1 = 1, betaA2 = 1, betaB1 = 1, betaB2 = 1)
+#'
+#' simResult <- simulateTwoProportions(
+#'   hyperparameterList = list(priorList1, priorList2, priorList3),
+#'   alternativeRestriction = "none",
+#'   alpha = 0.1, beta = 0.2, na = 1, nb = 1,
+#'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
+#'   M = 10
+#'   )
+#'
+#' plot(simResult)
+#'
+plot.safe2x2Sim <- function(x, ...){
+  if (is.null(x[["deltaDesign"]])) {
+    mainTitle <- "Worst case and expected stopping times without restriction on H1"
+  } else {
+    mainTitle <- paste("Worst case and expected stopping times with a restriction on the",
+                               x[["restriction"]], "of", round(x[["deltaDesign"]],2))
+  }
+  subTitle <- bquote(alpha == .(x[["alpha"]]) ~"," ~ beta == .(x[["beta"]]))
+
+  xmin <- min(x[["simdata"]][,"delta"])
+  xmax <- max(x[["simdata"]][,"delta"])
+  ymin <- 0
+  ymax <- ceiling(max(x[["simdata"]][,c("worstCaseQuantile", "expected")]))
+
+  xlab <- paste("divergence value:", ifelse(x[["restriction"]] == "logOddsRatio", "log odds ratio", "difference"))
+
+  graphics::plot(x = 1, type = "n",
+                 xlim = c(xmin, xmax),
+                 ylim = c(ymin, ymax),
+                 xlab = xlab,
+                 ylab = "stopping time (m collected)",
+                 main = mainTitle,
+                 sub = subTitle,
+                 col = "lightgrey")
+
+  priorcolors <- grDevices::rainbow(length(unique(x[["simdata"]][,"hyperparameters"])))
+  names(priorcolors) <- unique(x[["simdata"]][,"hyperparameters"])
+
+  #first, add the worst case stopping times
+  for (hyperparameters in unique(x[["simdata"]][,"hyperparameters"])) {
+    plotData <- x[["simdata"]][x[["simdata"]]$hyperparameters == hyperparameters,]
+    linecolor <- priorcolors[hyperparameters]
+    graphics::lines(x = plotData[,"delta"], y = plotData[,"worstCaseQuantile"], col = linecolor, lty = 2, lwd = 2)
+  }
+
+  #then, add the expected stopping times
+  for (hyperparameters in unique(x[["simdata"]][,"hyperparameters"])) {
+    plotData <- x[["simdata"]][x[["simdata"]]$hyperparameters == hyperparameters,]
+    linecolor <- priorcolors[hyperparameters]
+    graphics::lines(x = plotData[,"delta"], y = plotData[,"expected"], col = linecolor, lty = 1, lwd = 2)
+  }
+
+  graphics::legend(x = "topright", legend = c(names(priorcolors), "worst case", "expected"),
+                   col = c(priorcolors, "grey", "grey"),
+                   lty = c(rep(2, length(priorcolors)), 2, 1), lwd = 2)
+}
+
+#' Estimate Lower and Upper Bounds on the Confidence Sequence (Interval)
+#' for the Difference Divergence Measure for Two Proportions
+#'
+#' @param ya positive observations/ events per data block in group a: a numeric with integer values
+#' between (and including) 0 and \code{na}, the number of observations in group a per block.
+#' @param yb positive observations/ events per data block in group b: a numeric with integer values
+#' between (and including) 0 and \code{nb}, the number of observations in group b per block.
+#' @param precision precision of the grid of differences to search over for the lower and upper bounds.
+#' @param safeDesign a 'safeDesign' object obtained through
+#' \code{\link{designSafeTwoProportions}}
+#'
+#' @return list with found lower and upper bound.
+#' @export
+#' @importFrom purrr %>%
+#' @importFrom rlang .data
+#'
+#' @examples
+#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#'                                                nb = 1,
+#'                                                nBlocksPlan = 10,
+#'                                                alpha = 0.05)
+#' ya <- c(1,1,1,1,1,1,1,1,0,1)
+#' yb <- c(0,0,0,0,1,0,0,0,0,0)
+#' computeConfidenceBoundsForDifferenceTwoProportions(ya = ya,
+#'                                                yb = yb,
+#'                                                precision = 20,
+#'                                                safeDesign = balancedSafeDesign)
+#'
+computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
+                                                           yb,
+                                                           precision,
+                                                           safeDesign){
+  na <- safeDesign[["nPlan"]][["na"]]
+  nb <- safeDesign[["nPlan"]][["nb"]]
+  alpha <- safeDesign[["alpha"]]
+
+  eValuesDeltaGrid <- calculateEValuesForLinearDeltaGrid(ya = ya, yb = yb,
+                                                         na = na, nb = nb,
+                                                         priorParameters = safeDesign[["betaPriorParameterValues"]],
+                                                         precision = precision,
+                                                         alpha = alpha,
+                                                         runningIntersection = TRUE)
+  #include in the CS: not rejected delta values
+  ciSummary <- eValuesDeltaGrid %>%
+    dplyr::filter(.data[["E"]] < 1/alpha) %>%
+    dplyr::summarise(lowerBound = min(.data[["delta"]]), upperBound = max(.data[["delta"]]))
+
+  return(as.list(ciSummary))
+}
+
+#' Estimate an upper or lower bound for a safe confidence sequence on the
+#' logarithm of the odds ratio for two proportions.
+#'
+#' @param ya positive observations/ events per data block in group a: a numeric with integer values
+#' between (and including) 0 and \code{na}, the number of observations in group a per block.
+#' @param yb positive observations/ events per data block in group b: a numeric with integer values
+#' between (and including) 0 and \code{nb}, the number of observations in group b per block.
+#' @param safeDesign a 'safeDesign' object obtained through
+#' \code{\link{designSafeTwoProportions}}
+#' @param bound type of bound to calculate; "lower" to get a lower bound on positive delta,
+#' "upper" to get an upper bound on negative delta.
+#' @param deltaStart starting value of the grid to search over for the bound on the confidence
+#' sequence (in practice: the interval). Numeric >0 when searching for a lower bound, numeric < 0
+#' when searching for an upper bound.
+#' @param deltaStop end value of the grid to search over for the bound on the confidence
+#' sequence (in practice: the interval). Numeric >0 when searching for a lower bound, numeric < 0
+#' when searching for an upper bound.
+#' @param precision precision of the grid between deltaStart and deltaStop.
+#'
+#' @return numeric: the established lower- or upper bound on the logarithm of the odds
+#' ratio between the groups
+#'
+#' @export
+#' @importFrom purrr %>%
+#' @importFrom rlang .data
+#'
+#' @examples
+#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#'                                                nb = 1,
+#'                                                nBlocksPlan = 10,
+#'                                                alpha = 0.05)
+#' #hypothesize OR < 1 (i.e., log OR < 0)
+#' ya <- c(1,1,1,1,1,1,1,1,0,1)
+#' yb <- c(0,0,0,0,1,0,0,0,0,0)
+#' #one-sided CI for OR-, establish upper bound on log odds ratio
+#' computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
+#'                                            yb = yb,
+#'                                            safeDesign = balancedSafeDesign,
+#'                                            bound = "upper",
+#'                                            deltaStart = -0.01,
+#'                                            deltaStop = -4,
+#'                                            precision = 20)
+#'
+computeConfidenceBoundForLogOddsTwoProportions <- function(ya,
+                                                       yb,
+                                                       safeDesign,
+                                                       bound = c("lower", "upper"),
+                                                       deltaStart,
+                                                       deltaStop,
+                                                       precision){
+  na <- safeDesign[["nPlan"]][["na"]]
+  nb <- safeDesign[["nPlan"]][["nb"]]
+  priorParameters <- safeDesign[["betaPriorParameterValues"]]
+  alpha <- safeDesign[["alpha"]]
+  bound = match.arg(bound)
+  lowerBound = ifelse(bound == "lower", TRUE, FALSE)
+
+  eValuesDeltaGrid <- calculateEValuesForOddsDeltaGrid(ya = ya, yb = yb,
+                                                       na = na, nb = nb,
+                                                       lowerBound = lowerBound,
+                                                       priorParameters = priorParameters,
+                                                       precision = precision,
+                                                       deltaStart = deltaStart,
+                                                       deltaStop = deltaStop,
+                                                       alpha = alpha)
+
+  if (all(eValuesDeltaGrid$E < 1/alpha)) {
+    warning(paste("No", bound, "bound could be established; try different bound or smaller deltaStart"))
+    return(0)
+  }
+
+  deltaBound <- as.numeric(
+    eValuesDeltaGrid %>%
+     dplyr::group_by(.data[["delta"]]) %>%
+     dplyr::filter(.data[["block"]] == max(.data[["block"]])) %>%
+     dplyr::ungroup() %>%
+     dplyr::filter(.data[["E"]] < 1/alpha) %>%
+     #lower bound: the smallest delta we did not reject
+     #upper bound: the biggest delta we did not reject
+     dplyr::summarise(bound = ifelse(lowerBound, min(.data[["delta"]]), max(.data[["delta"]])))
+  )
+
+  return(deltaBound)
+}
+
+### vignette fnts-----------------------------------------------------------------------
+#' Simulate an optional stopping scenario according to a safe design for two proportions
+#'
+#' @param safeDesign a 'safeDesign' object obtained through \code{\link{designSafeTwoProportions}()}.
+#' @param M integer, the number of data streams to sample.
+#' @param thetaA Bernoulli distribution parameter in group A
+#' @param thetaB Bernoulli distribution parameter in group B
+#'
+#' @return list with the simulation results of the safe test under optional stopping with the following
+#' components:
+#'
+#' \describe{
+#'   \item{powerOptioStop}{Proportion of sequences where H0 was rejected}
+#'   \item{nMean}{Mean stopping time}
+#'   \item{probLessNDesign}{Proportion of experiments stopped before nBlocksPlan was reached}
+#'   \item{lowN}{Minimum stopping time}
+#'   \item{eValues}{All achieved E values}
+#'   \item{allN}{All stopping times}
+#'   \item{allSafeDecisions}{Decisions on rejecting H0 for each M}
+#'   \item{allRejectedN}{Stopping times of experiments where H0 was rejected}
+#' }
+#'
+#' @export
+#'
+#' @examples
+#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#'                                                nb = 1,
+#'                                                nBlocksPlan = 30)
+#' optionalStoppingSimulationResult <- simulateOptionalStoppingScenarioTwoProportions(
+#'   safeDesign = balancedSafeDesign,
+#'   M = 1e2,
+#'   thetaA = 0.2,
+#'   thetaB = 0.5
+#' )
+simulateOptionalStoppingScenarioTwoProportions <- function(safeDesign,
+                                                           M,
+                                                           thetaA,
+                                                           thetaB){
+
+  stoppingTimes <- stopEs <- numeric(M)
+
+  for (i in 1:M) {
+    #For every m, draw a sample of max streamlength and record the time
+    #at which we would have stopped
+    ya <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
+                 size = safeDesign[["nPlan"]]["na"],
+                 prob = thetaA
     )
-  #if ( is.na( delta.ump)) { stop("Choose different range for delta.stars")}
-  return(delta.ump)
+    yb <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
+                 size = safeDesign[["nPlan"]]["nb"],
+                 prob = thetaB
+    )
+    simResult <- calculateSequential2x2E(aSample = ya, bSample = yb,
+                                         priorValues = safeDesign[["betaPriorParameterValues"]],
+                                         restriction = safeDesign[["alternativeRestriction"]],
+                                         #if explicitly passsed deltaDesign (neq delta), use that one for test
+                                         #e.g. when studying effect of overestimated/ underestimated effect size
+                                         delta = safeDesign[["esMin"]],
+                                         na = safeDesign[["nPlan"]]["na"],
+                                         nb = safeDesign[["nPlan"]]["nb"],
+                                         simSetting = TRUE,
+                                         alphaSim = safeDesign[["alpha"]])
+    stoppingTimes[i] <- simResult[["stopTime"]]
+    stopEs[i] <- simResult[["stopE"]]
+  }
+
+  allSafeDecisions <- stopEs >= (1/safeDesign[["alpha"]])
+  safeSim <- list("powerOptioStop"= mean(allSafeDecisions),
+                  "nMean"= mean(stoppingTimes),
+                  "probLessNDesign"= mean(stoppingTimes < safeDesign[["nPlan"]]["nBlocksPlan"]),
+                  "lowN"= min(stoppingTimes),
+                  "eValues"=stopEs
+  )
+
+  safeSim[["allN"]] <- stoppingTimes
+  safeSim[["allSafeDecisions"]] <- allSafeDecisions
+  safeSim[["allRejectedN"]] <- stoppingTimes[allSafeDecisions]
+
+  return(safeSim)
 }
 
-calculate_derivative_wrt_theta_a_for_exp_log_S <- function(theta_a, na, nb, delta) {
-  na * log((theta_a * (1 - theta_a - (nb / (na + nb)) * delta)) /
-             ((theta_a +  (nb / (na + nb)) * delta) * (1 - theta_a))) +
-    nb * log(((theta_a + delta) * (1 - theta_a - (nb / (na + nb)) * delta)) /
-               ((theta_a +  (nb / (na + nb)) * delta) * (1 - theta_a  - delta)))
+#' Simulate incorrect optional stopping with fisher's exact test's p-value as the
+#' stopping rule.
+#'
+#' @param thetaA Bernoulli distribution parameter in group A
+#' @param thetaB Bernoulli distribution parameter in group B
+#' @param alpha Significance level
+#' @param na number of observations in group a per data block
+#' @param nb number of observations in group b per data block
+#' @param maxSimStoptime maximal number of blocks to sample in each experiment
+#' @param M Number of simulations to carry out, default 1e3.
+#' @param numberForSeed number for seed to set, default NULL.
+#'
+#' @return list with stopping times and rejection decisions.
+#' @export
+#'
+#' @examples
+#' simulateIncorrectStoppingTimesFisher(thetaA = 0.3,
+#'                                      thetaB = 0.3,
+#'                                      alpha = 0.05,
+#'                                      na = 1,
+#'                                      nb = 1,
+#'                                      M = 10,
+#'                                      maxSimStoptime = 100,
+#'                                      numberForSeed = 251)
+simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
+                                                 na, nb,
+                                                 maxSimStoptime = 1e4,
+                                                 M = 1e3, numberForSeed = NULL){
+
+  #setup
+  stoppingTimes <- rejections <- numeric(M)
+  numberForSeed <- ifelse(is.null(numberForSeed), Sys.time(), numberForSeed)
+  set.seed(numberForSeed)
+
+  groupSizeVecA <- (1:maxSimStoptime)*na
+  groupSizeVecB <- (1:maxSimStoptime)*nb
+
+  for (m in 1:M) {
+
+    #simulate data
+    ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaA)
+    yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
+
+    successAVec <- cumsum(ya)
+    successBVec <- cumsum(yb)
+
+    failAVec <- groupSizeVecA - successAVec
+    failBVec <- groupSizeVecB - successBVec
+    for (i in 5:maxSimStoptime) {
+      #new data come in
+      successA <- successAVec[i]
+      failA <- failAVec[i]
+      successB <- successBVec[i]
+      failB <- failBVec[i]
+
+      #Fisher's exact test with all data seen so far
+      pVal <- tryCatch(fisher.test(matrix(data = c(successA, failA, successB, failB), nrow = 2, byrow = TRUE))$p.value,
+                       error = function(e){return(1)})
+
+      #if first significant result, record stopping time
+      if (pVal <= alpha) {
+        stoppingTimes[m] <- i
+        rejections[m] <- 1
+        break()
+      }
+      #if we have reached last iteration, we have not stopped; register max stopping time
+      if (i == maxSimStoptime) {
+        stoppingTimes[m] <- maxSimStoptime
+        rejections[m] <- 0
+      }
+    }
+  }
+  return(list(stoppingTimes = stoppingTimes, rejections = rejections))
 }
 
-get_GROW_theta_tilde_one_sided <- function(delta, na, nb) {
-  #theta_a can take on values between 0 and 1-delta in the less case
-  #and between delta and 1 in the greater case
+#' Plot bounds of a safe confidence sequence of the difference or log odds ratio for two proportions
+#' against the number of data blocks in two data streams ya and yb.
+#'
+#' @param ya positive observations/ events per data block in group a: a numeric with integer values
+#' between (and including) 0 and \code{na}, the number of observations in group a per block.
+#' @param yb positive observations/ events per data block in group b: a numeric with integer values
+#' between (and including) 0 and \code{nb}, the number of observations in group b per block.
+#' @param safeDesign a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
+#' @param differenceMeasure the difference measure to construct the confidence interval for:
+#' one of "difference" and "odds".
+#' @param precision precision of the grid to search over for the confidence sequence bounds.
+#' @param deltaStart for the odds difference measure: the (absolute value of the) smallest
+#' log odds ratio to assess for in- or exclusion in the confidence sequence. Default 0.001.
+#' @param deltaStop for the odds difference measure: the (absolute value of the) highest
+#' log odds ratio to assess for in- or exclusion in the confidence sequence. Default 3.
+#' @param trueDifference true difference or log odds ratio in groups A and B: added to the plot.
+#'
+#' @return no return value; called for its side effects, a plot of the confidence sequence.
+#' @export
+#' @importFrom purrr %>%
+#' @importFrom rlang .data
+#'
+#' @examples
+#' set.seed(39413)
+#' ya <- rbinom(n = 30, size = 1, prob = 0.1)
+#' yb <- rbinom(n = 30, size = 1, prob = 0.8)
+#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#'                                                nb = 1,
+#'                                                nBlocksPlan = 30)
+#' plotConfidenceSequenceTwoProportions(ya = ya,
+#'                                      yb = yb,
+#'                                      safeDesign = balancedSafeDesign,
+#'                                      differenceMeasure = "difference",
+#'                                      precision = 15,
+#'                                      trueDifference = 0.7)
+#'
+#' #log odds ratio difference measure
+#' plotConfidenceSequenceTwoProportions(ya = ya,
+#'                                      yb = yb,
+#'                                      safeDesign = balancedSafeDesign,
+#'                                      differenceMeasure = "odds",
+#'                                      precision = 15,
+#'                                      deltaStop = 5,
+#'                                      trueDifference = log(36))
+#'
+#' #switch ya and yb: observe negative log odds ratio in the data, plot mirrored in x-axis
+#' plotConfidenceSequenceTwoProportions(ya = yb,
+#'                                      yb = ya,
+#'                                      safeDesign = balancedSafeDesign,
+#'                                      differenceMeasure = "odds",
+#'                                      precision = 15,
+#'                                      deltaStop = 5,
+#'                                      trueDifference = -log(36))
+#'
+plotConfidenceSequenceTwoProportions <- function(ya, yb,
+                                                 safeDesign,
+                                                 differenceMeasure = c("difference", "odds"),
+                                                 precision = 100,
+                                                 deltaStart = 0.001,
+                                                 deltaStop = 3,
+                                                 trueDifference = NA){
+  differenceMeasure <- match.arg(differenceMeasure)
 
-  # TODO(Rosanne): Denk je dat je tryOrFailWithNA() hiervoor helpt?
-  derivative_root <-
-    tryCatch(
-      stats::uniroot(
-        f = calculate_derivative_wrt_theta_a_for_exp_log_S,
-        interval = c(max(-delta, 0), min(1 - delta, 1)),
+  if (differenceMeasure == "difference") {
+    lowerBounds <- upperBounds <- numeric(length(ya))
+    for (m in seq_along(ya)) {
+      confidenceInterval <- computeConfidenceBoundsForDifferenceTwoProportions(
+        ya = ya[1:m],
+        yb = yb[1:m],
+        precision = precision,
+        safeDesign = safeDesign
+      )
+      lowerBounds[m] <- confidenceInterval[["lowerBound"]]
+      upperBounds[m] <- confidenceInterval[["upperBound"]]
+    }
+    graphics::plot(x = 1:length(ya), y = lowerBounds, ylim = c(-1, 1), col = "blue", type = "l",
+                   xlab = "data block number", ylab = "difference",
+                   main = "Upper and lower bound confidence sequence for difference")
+    graphics::lines(x = 1:length(yb), y = upperBounds, col = "red")
+    graphics::abline(h = 0, lty = 2, col = "grey")
+    if (!is.na(trueDifference)) {
+      graphics::abline(h = trueDifference, lty = 4, col = "black")
+    }
+  } else {
+    positiveLOREstimate <- (sum(yb)/length(yb) - sum(ya)/length(ya)) > 0
+    #delta in [0, -infty], we are estimating an upper bound
+    if (!positiveLOREstimate) {
+      deltaStart <- -1 * deltaStart
+      deltaStop <- -1 * deltaStop
+    }
+    ciValues <- calculateEValuesForOddsDeltaGrid(ya = ya, yb = yb,
+                                                 na = safeDesign[["nPlan"]][["na"]],
+                                                 nb = safeDesign[["nPlan"]][["nb"]],
+                                                 lowerBound = positiveLOREstimate,
+                                                 priorParameters = safeDesign[["betaPriorParameterValues"]],
+                                                 precision = precision,
+                                                 deltaStart = deltaStart,
+                                                 deltaStop = deltaStop,
+                                                 alpha = safeDesign[["alpha"]])
+    if (positiveLOREstimate) {
+      plotdfstep <- ciValues %>%
+        dplyr::filter(.data[["E"]] < 1/safeDesign[["alpha"]]) %>%
+        dplyr::group_by(.data[["block"]]) %>%
+        dplyr::summarise(delta = min(.data[["delta"]]))
+      #make sure the step function walks until the end of the x axis
+      plotdfstepextra <- rbind(plotdfstep,
+                               data.frame(
+                                 block = length(ya),
+                                 delta = max(plotdfstep$delta)
+                               )
+      )
+    } else {
+      plotdfstep <- ciValues %>%
+        dplyr::filter(.data[["E"]] < 1/safeDesign[["alpha"]]) %>%
+        dplyr::group_by(.data[["block"]]) %>%
+        dplyr::summarise(delta = max(.data[["delta"]]))
+      #make sure the step function walks until the end of the x axis
+      plotdfstepextra <- rbind(plotdfstep,
+                               data.frame(
+                                 block = length(ya),
+                                 delta = min(plotdfstep$delta)
+                               )
+      )
+    }
+
+    if (positiveLOREstimate) {
+      yLimits <- c(0, max(plotdfstepextra$delta, trueDifference) + 0.1)
+    } else {
+      yLimits <- c(min(plotdfstepextra$delta, trueDifference) - 0.1, 0)
+    }
+    graphics::plot(x = plotdfstepextra$block, y = plotdfstepextra$delta,
+                   ylim = yLimits, col = "blue", type = "l",
+                   xlab = "data block number", ylab = "difference",
+                   main = "Confidence sequence for log odds ratio")
+    if (!is.na(trueDifference)) {
+      graphics::abline(h = trueDifference, lty = 2, col = "grey")
+    }
+  }
+}
+
+#' Simulate the coverage of a safe confidence sequence for differences between proportions
+#' for a given distribution and safe design.
+#'
+#' @param successProbabilityA probability of observing a success in group A.
+#' @param trueDelta difference in probability between group A and B.
+#' @param safeDesign a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
+#' @param precision precision of the grid to search over for the confidence sequence bounds. Default 100.
+#' @param M number of simulations to carry out. Default 1000.
+#' @param numberForSeed number for seed to set, default NA.
+#'
+#' @return the proportion of simulations where the trueDelta was included in the confidence sequence.
+#' @export
+#'
+#' @examples
+#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#'                                                nb = 1,
+#'                                                nBlocksPlan = 20)
+#' simulateCoverageDifferenceTwoProportions(successProbabilityA = 0.2,
+#'                                          trueDelta = 0,
+#'                                          safeDesign = balancedSafeDesign,
+#'                                          M = 100,
+#'                                          precision = 20,
+#'                                          numberForSeed = 1082021)
+simulateCoverageDifferenceTwoProportions <- function(successProbabilityA,
+                                                        trueDelta,
+                                                        safeDesign,
+                                                        precision = 100,
+                                                        M = 1000,
+                                                        numberForSeed = NA){
+  if (!is.na(numberForSeed)) {
+    set.seed(numberForSeed)
+  }
+
+  successProbabilityB <- successProbabilityA + trueDelta
+  trueDeltaIncluded <- logical(M)
+
+  for (simulationNumber in 1:M) {
+    yaSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityA)
+    ybSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityB)
+    confidenceInterval <- computeConfidenceBoundsForDifferenceTwoProportions(
+      ya = yaSim,
+      yb = ybSim,
+      precision = precision,
+      safeDesign = safeDesign
+    )
+    trueDeltaIncluded[simulationNumber] <- (trueDelta >= confidenceInterval[["lowerBound"]]) &
+      (trueDelta <= confidenceInterval[["upperBound"]])
+  }
+
+  return(mean(trueDeltaIncluded))
+}
+
+#NON-EXPORT --------------------------------------------------------------------
+#basics ------------------------------------------------------------------------
+calculateETwoProportions <- function(na1, na, nb1, nb, thetaA, thetaB, theta0){
+  exp(
+    na1*log(thetaA) + (na - na1)*log(1-thetaA) + nb1*log(thetaB) + (nb-nb1)*log(1 - thetaB) -
+      (na1 + nb1) * log(theta0) - (na + nb - na1 - nb1) * log(1 - theta0)
+  )
+}
+
+calculateThetaBFromThetaAAndLOR <- function(thetaA, lOR){
+  c <- exp(lOR)*thetaA/(1-thetaA)
+  return(c/(1+c))
+}
+
+logOddsRatio <- function(thetaA, thetaB){
+  log(thetaB/(1 - thetaB) * (1 - thetaA)/thetaA)
+}
+
+likelihoodTwoProportions<- function(na1, na, nb1, nb, thetaA, thetaB){
+  exp(
+    na1*log(thetaA) + (na - na1)*log(1-thetaA) + nb1*log(thetaB) + (nb-nb1)*log(1 - thetaB)
+  )
+}
+
+#No restrictions fncs ---------------------------------------------------------
+#NOTE THAT FOR THESE FUNCTIONS TOTALS ARE USED
+bernoulliMLTwoProportions <- function(totalSuccess, totalFail, priorSuccess, priorFail){
+  (totalSuccess + priorSuccess)/(totalSuccess + totalFail + priorSuccess + priorFail)
+}
+
+updateETwoProportions <- function(totalSuccessA, totalFailA, totalSuccessB, totalFailB, na, nb,
+                    betaA1, betaA2, betaB1, betaB2){
+
+  thetaA <- bernoulliMLTwoProportions(totalSuccess = totalSuccessA,
+                        totalFail = totalFailA,
+                        priorSuccess = betaA1,
+                        priorFail = betaA2)
+  thetaB <- bernoulliMLTwoProportions(totalSuccess = totalSuccessB,
+                        totalFail = totalFailB,
+                        priorSuccess = betaB1,
+                        priorFail = betaB2)
+
+  theta0 <- (na*thetaA + nb*thetaB)/(na+nb)
+
+  return(
+    list(
+      thetaA = thetaA,
+      thetaB = thetaB,
+      theta0 = theta0
+    )
+  )
+}
+
+#Restriction on H1 variant fncs ------------------------------------------------
+createStartEWithRestrictionTwoProportions <- function(na, nb,
+                                        delta,
+                                        logOdds,
+                                        betaA1,
+                                        betaA2,
+                                        gridSize = 1e3
+                                        ){
+  #do not start at 0/ end at 1, because using log/ exp trick on calcualtions
+  #later for precision and log(0) raises error
+  rhoGrid <- seq(1/gridSize, 1 - 1/gridSize, length.out = gridSize)
+  rhoGridDensity <- dbeta(x = rhoGrid, shape1 = betaA1, shape2 = betaA2)
+  densityStart <- rhoGridDensity/sum(rhoGridDensity)
+
+  #calculate marginal pred. prob
+  if (logOdds) {
+    #log odds: theta A in (0,1), no reparameterization needed
+    thetaAgrid <- rhoGrid
+    thetaBgrid <- sapply(thetaAgrid, calculateThetaBFromThetaAAndLOR, lOR = delta)
+
+    thetaA <- as.numeric(thetaAgrid %*% densityStart)
+    thetaB <- calculateThetaBFromThetaAAndLOR(thetaA = thetaA, lOR = delta)
+  } else {
+    #if delta < 0, add term to reparameterization
+    thetaAgrid <- rhoGrid*(1 - abs(delta)) - ifelse(delta < 0, delta, 0)
+    thetaBgrid <- thetaAgrid + delta
+
+    thetaA <- as.numeric(thetaAgrid %*% densityStart)
+    thetaB <- thetaA + delta
+  }
+
+  return(list(posteriorDensity = densityStart,
+              thetaAgrid = thetaAgrid,
+              thetaBgrid = thetaBgrid,
+              thetaA = thetaA,
+              thetaB = thetaB,
+              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
+}
+
+updateEWithRestrictionTwoProportions <- function(na1, nb1, na, nb, delta, logOdds,
+                                   priorDensity, thetaAgrid, thetaBgrid){
+  likelihoodTimesPrior <- exp(na1*log(thetaAgrid) + (na - na1)*log(1-thetaAgrid) +
+                           nb1*log(thetaBgrid) + (nb - nb1)*log(1-thetaBgrid) +
+                           log(priorDensity))
+
+  #normalize
+  posteriorDensity <- likelihoodTimesPrior/sum(likelihoodTimesPrior)
+
+  #calculate new marginal pred. probs
+  thetaA <- as.numeric(thetaAgrid %*% posteriorDensity)
+  if (logOdds) {
+    thetaB <- calculateThetaBFromThetaAAndLOR(thetaA = thetaA, lOR = delta)
+  } else {
+    thetaB <- thetaA + delta
+  }
+
+  return(list(posteriorDensity = posteriorDensity,
+              thetaAgrid = thetaAgrid,
+              thetaBgrid = thetaBgrid,
+              thetaA = thetaA,
+              thetaB = thetaB,
+              theta0 = (na*thetaA + nb*thetaB)/(na+nb)))
+}
+
+#Confidence functions ---------------------------------------------------------
+calculateKLTwoProportions <- function(candidateThetaA, distanceFunction, delta, na, nb, breveThetaA,breveThetaB){
+  candidateThetaB <- distanceFunction(candidateThetaA, delta)
+
+  na1vec <- 0:na
+  nb1vec <- 0:nb
+  outcomeSpace <- expand.grid(na1vec, nb1vec)
+
+  likelihoodAlternative <- likelihoodTwoProportions(na1 = outcomeSpace[,1], na = na,
+                                                    nb1 = outcomeSpace[,2], nb = nb,
+                                                    thetaA = breveThetaA, thetaB = breveThetaB
+  )
+  likelihoodNull <- likelihoodTwoProportions(na1 = outcomeSpace[,1], na = na,
+                                             nb1 = outcomeSpace[,2], nb = nb,
+                                             thetaA = candidateThetaA, thetaB = candidateThetaB
+  )
+
+  sum(likelihoodAlternative * (log(likelihoodAlternative) - log(likelihoodNull)))
+}
+
+calculateDerivativeKLTwoProportionsLinear <- function(candidateThetaA, delta, na, nb, breveThetaA, breveThetaB, c = 1){
+  candidateThetaB <- candidateThetaA + delta
+
+  na*((1 - breveThetaA)/(1 - candidateThetaA) - breveThetaA/candidateThetaA) +
+    nb*c*((1 - breveThetaB)/(1 - candidateThetaB) - breveThetaB/candidateThetaB)
+}
+
+calculateEValuesForLinearDeltaGrid <- function(ya, yb, na, nb,
+                                               priorParameters,
+                                               precision = 10,
+                                               alpha = 0.05,
+                                               runningIntersection = TRUE){
+  deltaVec <- seq(-0.99, 0.99, length.out = precision)
+  ciEValues <- data.frame()
+
+  for (delta in deltaVec) {
+    currentE <- 1
+    breveThetaA <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorSuccess = priorParameters[["betaA1"]],
+                                             priorFail = priorParameters[["betaA2"]])
+
+    breveThetaB <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorSuccess = priorParameters[["betaB1"]],
+                                             priorFail = priorParameters[["betaB2"]])
+
+    thetaARIPr <- tryOrFailWithNA(stats::uniroot(calculateDerivativeKLTwoProportionsLinear,
+                                          interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
+                                          delta = delta,
+                                          na = na, nb = nb,
+                                          breveThetaA = breveThetaA,
+                                          breveThetaB = breveThetaB)$root)
+
+    #loop over all observed data
+    for (i in seq_along(ya)) {
+      #if RIPr could not be determined, skip this iteration. E-value stays 1
+      if (!is.na(thetaARIPr)) {
+        likelihoodAlternative <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                          nb1 = yb[i], nb = nb,
+                                                          thetaA = breveThetaA, thetaB = breveThetaB
+        )
+        likelihoodRIPr <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                   nb1 = yb[i], nb = nb,
+                                                   thetaA = thetaARIPr, thetaB = thetaARIPr + delta
+        )
+        currentE <- currentE * likelihoodAlternative/likelihoodRIPr
+      }
+
+
+      #if we reject, we reject this delta FOR EVER in the running intersection
+      #do not need to loop over the rest of the data
+      if ((currentE >= 1/alpha) & runningIntersection) {
+        break()
+      }
+
+      #update the E variable for the next data block
+      breveThetaA <- bernoulliMLTwoProportions(totalSuccess = sum(ya[1:i]),
+                                               totalFail = i*na - sum(ya[1:i]),
+                                               priorSuccess = priorParameters[["betaA1"]],
+                                               priorFail = priorParameters[["betaA2"]])
+
+      breveThetaB <- bernoulliMLTwoProportions(totalSuccess = sum(yb[1:i]),
+                                               totalFail = i*nb - sum(yb[1:i]),
+                                               priorSuccess = priorParameters[["betaB1"]],
+                                               priorFail = priorParameters[["betaB2"]])
+
+      thetaARIPr <- tryOrFailWithNA(stats::uniroot(calculateDerivativeKLTwoProportionsLinear, interval = c(max(c(0, -delta)) + 1e-3, min(c(1,1 - delta))-1e-3),
+                                            delta = delta,
+                                            na = na, nb = nb,
+                                            breveThetaA = breveThetaA,
+                                            breveThetaB = breveThetaB)$root)
+    }
+    ciEValues <- rbind(ciEValues, data.frame(delta = delta, E = currentE))
+  }
+  return(ciEValues)
+}
+
+calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
+                                             lowerBound = TRUE,
+                                             priorParameters,
+                                             precision = 10,
+                                             deltaStart = 0,
+                                             deltaStop = 10,
+                                             alpha = 0.05,
+                                             runningIntersection = TRUE,
+                                             stopAfterBoundHasBeenFound = FALSE){
+  if (lowerBound & any(c(deltaStart, deltaStop) < 0)) {
+    stop("Cannot check for negative bound values when assessing lower bound.")
+  }
+
+  if (!lowerBound & any(c(deltaStart, deltaStop) > 0)) {
+    stop("Cannot check for positive bound values when assessing upper bound.")
+  }
+
+  deltaVector <- seq(deltaStart, deltaStop, length.out = precision)
+  ciEValues <- data.frame()
+
+  for (delta in deltaVector) {
+    currentE <- 1
+    breveThetaA <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorSuccess = priorParameters[["betaA1"]],
+                                             priorFail = priorParameters[["betaA2"]])
+
+    breveThetaB <- bernoulliMLTwoProportions(totalSuccess = 0,
+                                             totalFail = 0,
+                                             priorSuccess = priorParameters[["betaB1"]],
+                                             priorFail = priorParameters[["betaB2"]])
+
+    #if the point alternative lies within H0(delta), the RIPr and the point alternative should coincide
+    if (sign(delta)*logOddsRatio(breveThetaA, breveThetaB) <= sign(delta)*delta) {
+      thetaARIPr <- breveThetaA
+    } else {
+      #otherwise, the RIPr lies on the lOR line
+      thetaARIPr <- stats::optim(0.5, fn = calculateKLTwoProportions,
+                          method = "L-BFGS-B", lower = 1e-4, upper = 1-1e-4,
+                          distanceFunction = calculateThetaBFromThetaAAndLOR,
+                          delta = delta,
+                          na = na, nb = nb,
+                          breveThetaA = breveThetaA, breveThetaB = breveThetaB)$par
+    }
+
+    for (i in seq_along(ya)) {
+      #if point alternative coincides with H0(delta), E value for this block equals 1
+      #i.e., the E value remains the same
+      if (breveThetaA != thetaARIPr) {
+        likelihoodAlternative <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                          nb1 = yb[i], nb = nb,
+                                                          thetaA = breveThetaA, thetaB = breveThetaB
+        )
+
+        likelihoodRIPr <- likelihoodTwoProportions(na1 = ya[i], na = na,
+                                                   nb1 = yb[i], nb = nb,
+                                                   thetaA = thetaARIPr, thetaB = calculateThetaBFromThetaAAndLOR(thetaARIPr, delta)
+        )
+        currentE <- currentE * likelihoodAlternative/likelihoodRIPr
+      }
+
+      ciEValues <- rbind(ciEValues, data.frame(delta = delta, block = i, E = currentE))
+
+      #if we reject, we reject this delta FOR EVER (running intersection)
+      if ((currentE >= 1/alpha) & runningIntersection) {
+        break()
+      }
+
+      #update the E variable
+      breveThetaA <- bernoulliMLTwoProportions(totalSuccess = sum(ya[1:i]),
+                                               totalFail = i*na - sum(ya[1:i]),
+                                               priorSuccess = priorParameters[["betaA1"]],
+                                               priorFail = priorParameters[["betaA2"]])
+
+      breveThetaB <- bernoulliMLTwoProportions(totalSuccess = sum(yb[1:i]),
+                                               totalFail = i*nb - sum(yb[1:i]),
+                                               priorSuccess = priorParameters[["betaA1"]],
+                                               priorFail = priorParameters[["betaA2"]])
+
+      #if the point alternative lies within H0(delta), the RIPr and the point alternative should coincide
+      if (sign(delta)*logOddsRatio(breveThetaA, breveThetaB) <= sign(delta)*delta) {
+        thetaARIPr <- breveThetaA
+      } else {
+        #otherwise, the RIPr lies on the lOR line
+        thetaARIPr <- stats::optim(0.5, fn = calculateKLTwoProportions,
+                            method = "L-BFGS-B", lower = 1e-4, upper = 1-1e-4,
+                            distanceFunction = calculateThetaBFromThetaAAndLOR,
+                            delta = delta,
+                            na = na, nb = nb,
+                            breveThetaA = breveThetaA, breveThetaB = breveThetaB)$par
+      }
+    }
+    #if we want to be fast, we can stop the first time the OR is not significant,
+    #if we search in the direction from not extreme -> extreme.
+    #Then we have found the bound, where we switch from not include to include
+    if (stopAfterBoundHasBeenFound & (currentE <= 1/alpha)) {
+        break()
+    }
+  }
+  return(ciEValues)
+}
+
+#Main functions ---------------------------------------------------------------
+calculateSequential2x2E <- function(aSample, bSample,
+                                 restriction = c("none", "difference", "logOddsRatio"),
+                                 priorValues,
+                                 delta = NULL,
+                                 na = 1,
+                                 nb = 1,
+                                 gridSize = 1e3,
+                                 simSetting = FALSE,
+                                 impliedTargetSetting = FALSE,
+                                 alphaSim = 0.05){
+  restriction <- match.arg(restriction)
+
+  #these errors should all be caught in the export level function
+  #but remain here now for testing purposes
+  if (restriction %in% c("difference", "logOddsRatio") & !is.numeric(delta)) {
+    stop("Provide numeric value for divergence measure: a difference or log Odds ratio")
+  }
+
+  if (length(aSample) != length(bSample)) {
+    stop("Can only process complete data blocks: provide vectors with numbers of positive observations per timepoint,",
+         "see example in helpfile.")
+  }
+
+  if (any(aSample > na | aSample < 0) | any(bSample > nb | bSample < 0)) {
+    stop("Provided sample sizes within blocks, na and nb, do not match provided aSample and bSample.")
+  }
+
+  #unpack the prior values
+  betaA1 <- priorValues[["betaA1"]]
+  betaA2 <- priorValues[["betaA2"]]
+  betaB1 <- priorValues[["betaB1"]]
+  betaB2 <- priorValues[["betaB2"]]
+
+  #set starting E variable
+  if (restriction == "difference") {
+    eVariable <- createStartEWithRestrictionTwoProportions(na = na, nb = nb,
+                                             delta = delta,
+                                             logOdds = FALSE,
+                                             betaA1 = betaA1, betaA2 = betaA2,
+                                             gridSize = gridSize
+                                             )
+
+  } else if (restriction == "logOddsRatio") {
+    eVariable <- createStartEWithRestrictionTwoProportions(na = na, nb = nb,
+                                             delta = delta,
+                                             logOdds = TRUE,
+                                             betaA1 = betaA1, betaA2 = betaA2,
+                                             gridSize = gridSize
+                                             )
+  } else if (restriction == "none") {
+    eVariable <- updateETwoProportions(totalSuccessA = 0, totalFailA = 0,
+                         totalSuccessB = 0, totalFailB = 0,
+                         na = na, nb = nb,
+                         betaA1 = betaA1, betaA2 = betaA2,
+                         betaB1 = betaB1, betaB2 = betaB2)
+
+    #for updating without restriction, use totals: store them here
+    totalSuccessA <- cumsum(aSample)
+    totalSuccessB <- cumsum(bSample)
+    groupSizeVecA <- seq_along(totalSuccessA)*na
+    groupSizeVecB <- seq_along(totalSuccessB)*nb
+    totalFailA <- groupSizeVecA - totalSuccessA
+    totalFailB <- groupSizeVecB - totalSuccessB
+  }
+
+  currentE <- 1
+  stopTime <- stopE <- NULL
+  for (i in seq_along(aSample)) {
+    #use only new data to calculate the new E variable
+    newE <- calculateETwoProportions(na1 = aSample[i],
+                       na = na,
+                       nb1 = bSample[i],
+                       nb = nb,
+                       thetaA = eVariable[["thetaA"]],
+                       thetaB = eVariable[["thetaB"]],
+                       theta0 = eVariable[["theta0"]])
+    currentE <- newE * currentE
+
+    #in simulation setting, only interested in the stopping time
+    if (simSetting & currentE >= (1/alphaSim) & is.null(stopTime)) {
+      if (impliedTargetSetting) {
+        #we save the time and E-value where we would have stopped, but continue collecting
+        #untill we reach nPlan for calculating impliedTarget
+        stopTime <- i
+        stopE <- currentE
+      } else {
+        stopTime <- i
+        stopE <- currentE
+        break()
+      }
+    }
+
+    #after observing the data, also update the E variable
+    if (restriction == "none") {
+      #updating the E variable without restrictions:
+      #using all data seen so far + priorSuccess at the start, new Bernoulli ML
+      eVariable <- updateETwoProportions(totalSuccessA = totalSuccessA[i],
+                           totalFailA = totalFailA[i],
+                           totalSuccessB = totalSuccessB[i],
+                           totalFailB = totalFailB[i],
+                           na = na, nb = nb,
+                           betaA1 = betaA1, betaA2 = betaA2,
+                           betaB1 = betaB1, betaB2 = betaB2)
+    } else if (restriction == "difference") {
+      #updating the E variable with restriction on H1:
+      #take product of previous posterior and posterior of NEW data
+      eVariable <- updateEWithRestrictionTwoProportions(na1 = aSample[i], nb1 = bSample[i],
+                                          na = na, nb = nb,
+                                          priorDensity = eVariable[["posteriorDensity"]],
+                                          thetaAgrid = eVariable[["thetaAgrid"]],
+                                          thetaBgrid = eVariable[["thetaBgrid"]],
+                                          delta = delta,
+                                          logOdds = FALSE
+                                          )
+    } else if (restriction == "logOddsRatio") {
+      eVariable <- updateEWithRestrictionTwoProportions(na1 = aSample[i], nb1 = bSample[i],
+                                          na = na, nb = nb,
+                                          priorDensity = eVariable[["posteriorDensity"]],
+                                          thetaAgrid = eVariable[["thetaAgrid"]],
+                                          thetaBgrid = eVariable[["thetaBgrid"]],
+                                          delta = delta,
+                                          logOdds = TRUE
+                                          )
+    }
+
+  }
+
+  if (!simSetting) {
+    #we have looped over the entire stream: return the E value
+    return(currentE)
+  } else {
+    #If we have never rejected, store final stoptime and stopE
+    if (is.null(stopTime)){
+      stopTime <- length(aSample)
+    }
+    if (is.null(stopE)) {
+      stopE <- currentE
+    }
+    return(list(stopTime = stopTime, stopE = stopE, finalE = currentE))
+  }
+
+}
+
+simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
+                                      alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                      alpha,
+                                      delta, beta = 0, M = 1e3,
+                                      deltaDesign = NULL,
+                                      maxSimStoptime = 1e4,
+                                      gridSize = 8,
+                                      thetaAMin = NULL,
+                                      thetaAMax = NULL,
+                                      expectedStopTime = FALSE,
+                                      estimateImpliedTarget = FALSE,
+                                      nBoot = 1e3){
+
+  restriction <- match.arg(alternativeRestriction)
+
+  if (!is.null(thetaAMin) & !is.null(thetaAMax)) {
+    #check if provided thetaAMin and thetaAMax both comply with delta
+    if (restriction %in% c("none", "difference") &
+        !all(c(thetaAMin, thetaAMax) + delta < 1 & c(thetaAMin, thetaAMax) + delta > 0)) {
+      stop("Prior knowledge on proportion in control group does not comply with expected difference",
+           " in proportions between groups: proportions >1 or <0.")
+    }
+
+    if (thetaAMin == thetaAMax) {
+      thetaAVec <- seq(thetaAMin, thetaAMax, length.out = gridSize)
+    } else {
+      thetaAVec <- thetaAMin
+    }
+
+  } else {
+    rhoGrid <- seq(1/gridSize, 1 - 1/gridSize, length.out = gridSize)
+    if (restriction == "logOddsRatio") {
+      #log odds: theta A in (0,1), no reparameterization needed
+      thetaAVec <- rhoGrid
+    } else {
+      #if delta < 0, reparameterize + translate
+      thetaAVec <- rhoGrid*(1 - abs(delta)) - ifelse(delta < 0, delta, 0)
+    }
+  }
+
+  currentWorstCaseQuantile <- 0
+  currentWorstCasePower <- 1
+  stoppingTimesWorstCase <- stopEsWorstCase <- finalEsWorstCase <- numeric(M)
+
+  message(paste("Simulating E values and stopping times for divergence between groups of ", delta))
+  pbSafe <- utils::txtProgressBar(style=1)
+  for (t in seq_along(thetaAVec)) {
+    stoppingTimes <- stopEs <- finalEs <- numeric(M)
+
+    thetaA <- thetaAVec[t]
+    if (restriction == "logOddsRatio") {
+      thetaB <- calculateThetaBFromThetaAAndLOR(thetaA, delta)
+    } else {
+      thetaB <- thetaA + delta
+    }
+
+    for (i in 1:M) {
+      #For every m, draw a sample of max streamlength and record the time
+      #at which we would have stopped
+      ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaA)
+      yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
+      simResult <- calculateSequential2x2E(
+        aSample = ya, bSample = yb,
+        priorValues = priorValues,
+        restriction = restriction,
+        #if explicitly passsed deltaDesign (neq delta), use that one for test
+        #e.g. when studying effect of overestimated/ underestimated effect size
+        delta = ifelse(is.null(deltaDesign), delta, deltaDesign),
         na = na,
         nb = nb,
-        delta = delta
-      )$root,
-      error = function(e) {
-        return(NA)
-      }
+        simSetting = TRUE,
+        impliedTargetSetting = estimateImpliedTarget,
+        alphaSim = alpha
+      )
+      stoppingTimes[i] <- simResult [["stopTime"]]
+      stopEs[i] <- simResult[["stopE"]]
+      finalEs[i] <- simResult[["finalE"]]
+      utils::setTxtProgressBar(pbSafe, value=((t-1)*M+i)/(length(thetaAVec)*M))
+    }
+
+    #get the quantile for (1-b) power
+    if (expectedStopTime) {
+      currentQuantile <- mean(stoppingTimes)
+    } else {
+      currentQuantile <- quantile(stoppingTimes, probs = 1 - beta)
+    }
+    currentPower <- mean(stopEs >= 1/alpha)
+
+    #we look for the worst case (1-beta)% stopping time or power: store only that one
+    if (currentQuantile >= currentWorstCaseQuantile) {
+      currentWorstCaseQuantile <- currentQuantile
+      #store obtained stopping times for bootstrapping later
+      stoppingTimesWorstCase <- stoppingTimes
+
+    }
+    if (currentPower <= currentWorstCasePower) {
+      currentWorstCasePower <- currentPower
+      stopEsWorstCase <- stopEs
+      finalEsWorstCase <- finalEs
+    }
+  }
+  close(pbSafe)
+
+  #bootstrapping to estimate standard deviation of metrics
+  if (expectedStopTime) {
+    bootResultNPlan <- computeBootObj(
+      values = stoppingTimesWorstCase,
+      nBoot = nBoot,
+      objType = "expectedStopTime"
     )
-
-  if (is.na(derivative_root))
-    return(NA)
-
-  theta_tilde <- derivative_root + (nb / (na + nb)) * delta
-  return(theta_tilde)
-}
-
-create_point_h1_and_h0_one_sided <- function(delta, na, nb) {
-  if (na == nb) {
-    theta_tilde <- 0.5
-    theta_a <- 0.5 - 0.5 * delta
-    theta_b <- 0.5 + 0.5 * delta
+    worstCaseQuantileTwoSe <- 2 * bootResultNPlan[["bootSe"]]
+  } else if (beta != 0){
+    #beta is set to 0 if NPlan is already given, then do not estimate SE
+    bootResultNPlan <- computeBootObj(
+      values = stoppingTimesWorstCase,
+      beta = beta,
+      nBoot = nBoot,
+      objType = "nPlan"
+    )
+    worstCaseQuantileTwoSe <- 2 * bootResultNPlan[["bootSe"]]
   } else {
-    theta_tilde <-
-      suppressWarnings(get_GROW_theta_tilde_one_sided(delta = delta, na = na, nb = nb))
-
-    if (is.na(theta_tilde))
-      return(NA)
-
-    theta_a <- theta_tilde - delta / (1 + na / nb)
-    theta_b <- theta_a + delta
+    worstCaseQuantileTwoSe <- NULL
   }
 
-  if (any(c(theta_a, theta_b) < 0))
-    return(NA)
-
-  result <- list('H1set' = matrix(c(theta_a, theta_b), nrow = 1, byrow = TRUE),
-                 'point_h0' = theta_tilde)
-
-  return(result)
-}
-
-
-create_h1_set_equal_group_sizes <- function(delta.ump) {
-  result <- matrix(1/2*c(1 - delta.ump, 1 + delta.ump,
-                         1 + delta.ump, 1- delta.ump),
-                   byrow = TRUE, nrow = 2)
-  return(result)
-}
-
-create_h1_set_unequal_group_sizes <- function(delta_ump, na, nb) {
-  pbar0 <- 0.5 ^ (na + nb)
-  n.grid <- expand.grid(0:na, 0:nb)
-
-  # TODO(Rosanne): Misschien is het robuster als je lchoose gebruikt en de twee termen optelt.
-  binom.coef <- apply(n.grid, 1, function(nc) {
-    return(choose(na, nc[1]) * choose(nb, nc[2]))
-  })
-
-  H1set.neutral <- create_h1_set_equal_group_sizes(delta_ump)
-
-  # TODO(Rosanne): Heeft optimize ook een error? Dat kunnen we dan ook rapporteren als het nodig is
-  transl <- stats::optimize(
-    GetExpectedCapitalGrowthSimpleSWithAdjustment,
-    lower = -H1set.neutral[1, 1],
-    upper = H1set.neutral[1, 1],
-    H1set.neutral = H1set.neutral,
-    n.grid = n.grid,
-    na = na,
-    nb = nb,
-    binom.coef = binom.coef,
-    pbar0 = pbar0
-  )$minimum
-  H1set <- H1set.neutral + rbind(rep(transl, 2), rep(-transl, 2))
-  return(H1set)
-}
-
-create_data_generating_distributions <- function(deltaDesign, alternative, length.out) {
-  data_generating_distributions <- rbind(
-    cbind(seq(deltaDesign, 1, length.out = length.out),
-          seq(0, 1 - deltaDesign, length.out = length.out)),
-    cbind(seq(0, 1 - deltaDesign, length.out = length.out),
-          seq(deltaDesign, 1, length.out = length.out))
+  bootResultPower <- computeBootObj(
+    values = stopEsWorstCase,
+    alpha = alpha,
+    nBoot = nBoot,
+    objType = "betaFromEValues"
   )
+  worstCasePowerTwoSe <- 2 * bootResultPower[["bootSe"]]
 
-  if (alternative == "greater") {
-    data_generating_distributions <-
-      data_generating_distributions[data_generating_distributions[, 1] > data_generating_distributions[, 2], ]
-  }
-
-  if (alternative == "less") {
-    data_generating_distributions <-
-      data_generating_distributions[data_generating_distributions[, 1] < data_generating_distributions[, 2], ]
-  }
-
-  return(data_generating_distributions)
-}
-
-perform_MC_simulations_for_each_data_generating_distribution <- function(H1.deltamin, na, nb, seed.time, M,
-                                                                         H1set, w1, point_h0, alpha) {
-  # reserve memory space for the current delta star results
-  percent.reject.S <- numeric(nrow(H1.deltamin))
-  set.seed(seed.time)
-
-  n <- na + nb
-
-  #start sampling
-  for (i in 1:nrow(H1.deltamin)) {
-    mu.a <- H1.deltamin[i, 1]
-    mu.b <- H1.deltamin[i, 2]
-    reject.S <- numeric(M)
-
-    for (m in 1:M) {
-      na1 <- sum(stats::rbinom(na, 1, mu.a))
-      nb1 <- sum(stats::rbinom(nb, 1, mu.b))
-      n1 <- na1 + nb1
-
-      #perform the S-test
-      s_value <- sum(exp(
-        #Bayes marginal alternative
-        na1 * log(H1set[, 1]) + (na - na1) * log(1 - H1set[, 1]) +
-          nb1 * log(H1set[, 2]) + (nb - nb1) * log(1 - H1set[, 2]) + log(w1) -
-          #Bayes marginal null
-          (n1 * log(point_h0) + (n - n1) * log(1 - point_h0))
-      ))
-
-      reject.S[m] <- s_value >= (1 / alpha)
-    }
-    percent.reject.S[i] <- mean(reject.S)
-  }
-  return(percent.reject.S)
-}
-
-simulate_maximin_delta_and_power <- function(delta.min, na, nb, delta.stars, seed.time, M, alpha, alternative) {
-  H1.deltamin <- create_data_generating_distributions(deltaDesign = delta.min, alternative = alternative,
-                                                      length.out = 5)
-
-  #reserve memory space for the current delta.min results
-  all.powers <- matrix(nrow = length(delta.stars), ncol = nrow(H1.deltamin))
-
-  #try out different delta star candidates for this delta min
-  for (j in 1:length(delta.stars)) {
-    delta <- delta.stars[j]
-
-    #construct thetas in de alternative of the simple S-value
-    if (alternative == "two.sided") {
-      H1set <- create_h1_set_unequal_group_sizes(delta_ump = delta, na =  na, nb =  nb)
-      w1 <- c(0.5, 0.5)
-      point_h0 <- 0.5
-    } else {
-      #if alternative is greater, feed negative delta to create point h1 and h0
-      delta_design <- ifelse(alternative == "greater", -delta, delta)
-      point_H1_and_H0 <- create_point_h1_and_h0_one_sided(delta = delta_design, na = na, nb = nb)
-      # TODO(Rosanne): Misschien is het beter om in functies [["H1set"]] te gebruiken
-      H1set <- point_H1_and_H0[["H1set"]]
-      w1 <- 1
-      point_h0 <- point_H1_and_H0[["point_h0"]]
-    }
-
-    if (any(is.na(c(H1set, point_h0)))) {
-      next
-    }
-
-    percent.reject.S <-
-      perform_MC_simulations_for_each_data_generating_distribution(H1.deltamin = H1.deltamin, na = na, nb = nb,
-                                                                   seed.time = seed.time, M = M, H1set = H1set,
-                                                                   w1 = w1, point_h0 = point_h0, alpha = alpha)
-
-    all.powers[j,] <- percent.reject.S
-  }
-
-  #which delta star provided the best power in the worst case for this delta min?
-  best.delta <- delta.stars[which.max(apply(all.powers, 1, min))]
-  supinf.power <- max(apply(all.powers, 1, min))
-
-  return(list('bestDelta' = best.delta, 'supinfPower' = supinf.power))
-}
-
-#-----------------------------------------------------------------------------
-#' Design a the best S-value for a test of two proportions in terms of power for
-#' fixed group sizes and a given significance level.
-#'
-#' \code{designPilotSafeTwoProportions} finds for given sample size and significance level the
-#' 'most powerful' simple S-value formula: the S-value formula that provides the best
-#' power in the worst case for all distributions in the alternative hypothesis.
-#' In case of equal group sizes and two-sided testing, the best S-value can be found
-#' analytically (working paper by Grunwald, Ly and Turner).
-#' Otherwise, power simulations are used to find the S-value formula with the
-#' most power in the worst case for a set of data generating distributions in the
-#' alternative hypothesis.
-#'
-#' @param na Group size a
-#' @param nb Group size b
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less"
-#' @param alpha significance level that will be used for testing.
-#' Default \code{0.05}.
-#' @param M number of iterations used in the power simulations.
-#' Default \code{1000}.
-#' @param deltaMins vector of effect size values between 0 and 1 to find the S-value formula with the best
-#' worst-case power for. For each value of delta.min, the power of several S-values defined by
-#' the test deltas is simulated for several data generating distributions where the group mean
-#' in group a differs \code{delta.min} with group mean b. It is advised to choose a wide range.
-#' Default \code{seq(0.1, 0.9, 0.1)}.
-#' @param lowDelta numeric that defines the smallest delta of our search space for the test-defining deltaS
-#' @param highDelta numeric that defines the largest delta of our search space for the test-defining deltaS
-#' @param tol a number that defines the stepsizes between the lowDelta and highDelta
-#' @param numberForSeed Optionally provide your own seed for the simulations.
-#' Default \code{NA}.
-#'
-#' @return Safe design object that can be used within \code{\link{safeTwoProportionsTest}}
-#' @export
-#'
-#' @examples
-#' safeDesign <- designPilotSafeTwoProportions(na = 10, nb = 10, alpha = 0.05)
-#' \dontrun{
-#' safeDesign <- designPilotSafeTwoProportions(na = 15, nb = 10, alpha = 0.05)
-#' }
-#'
-designPilotSafeTwoProportions <- function(na, nb, alternative = c("two.sided", "greater", "less"),
-                                          alpha = 0.05, M = 100, deltaMins = seq(0.1, 0.9, 0.1),
-                                          lowDelta = 0.1, highDelta = 0.8, tol = 0.1,
-                                          numberForSeed = NA) {
-  alternative <- match.arg(alternative)
-  safe_2x2_design <- create_safe_2x2_design(list('na' = na, 'nb' = nb, 'pilot' = TRUE))
-
-  delta.stars <- seq(lowDelta, highDelta, by = tol)
-
-  #check if delta ump can be found analytically
-  if (na == nb & alternative == "two.sided") {
-    delta.ump <- get_delta_ump_analytically(n = na + nb, alpha = alpha, lower = min(delta.stars),
-                                            upper = max(delta.stars))
-
-    safe_2x2_design <- add_attributes(safe_2x2_design, list('delta.star' = delta.ump,
-                                                            'H1set' = create_h1_set_equal_group_sizes(delta.ump),
-                                                            'call' = sys.call())
+  if (estimateImpliedTarget) {
+    logImpliedTarget <- mean(log(finalEsWorstCase))
+    bootResultImpliedTarget <- computeBootObj(
+      values = finalEsWorstCase,
+      nBoot = nBoot,
+      objType = "logImpliedTarget"
     )
-    return(safe_2x2_design)
-  }
-
-  #--------------------------------------
-  #na not nb case or one-sided: MC simulations
-
-  #determine the way the seed is set for the MC simulations
-  seed.time <-
-    ifelse(is.na(numberForSeed), Sys.time(), numberForSeed)
-
-  #reserve memory space for results
-  best.delta <- supinf.power <- numeric(length(deltaMins))
-
-  #start simulations for determining power
-  for (d in 1:length(deltaMins)) {
-    #define the grid of data-generating parameters to investigate power for
-    delta.min <- deltaMins[d]
-    simulation_result <- simulate_maximin_delta_and_power(delta.min = delta.min, na = na, nb = nb,
-                                                          delta.stars = delta.stars, seed.time = seed.time,
-                                                          M = M, alpha = alpha, alternative = alternative
-    )
-    best.delta[d] <- simulation_result[['bestDelta']]
-    supinf.power[d] <- simulation_result[['supinfPower']]
-  }
-
-  # retrieve the mode in the table
-  # as there is a 'most powerful region', due to simulation error,
-  # different values might be found
-  # we take the most prevalent value as a solution
-  delta.ump <- as.numeric(names(sort(table(best.delta), decreasing = TRUE)[1]))
-
-  if (alternative == "two.sided") {
-    if (na == nb) {
-      H1set <- create_h1_set_equal_group_sizes(delta.ump)
-      w1 <- c(0.5, 0.5)
-      point_h0 <- 0.5
-    } else {
-      H1set <- create_h1_set_unequal_group_sizes(delta_ump = delta.ump, na =  na, nb =  nb)
-      w1 <- c(0.5, 0.5)
-      point_h0 <- 0.5
-    }
+    logImpliedTargetTwoSe <- 2 * bootResultImpliedTarget[["bootSe"]]
   } else {
-    #if alternative is greater, feed negative delta to create point h1 and h0
-    delta_design <- ifelse(alternative == "greater", -delta.ump, delta.ump)
-    point_H1_and_H0 <- create_point_h1_and_h0_one_sided(delta = delta_design, na = na, nb = nb)
-    H1set <- point_H1_and_H0[["H1set"]]
-    w1 <- 1
-    point_h0 <- point_H1_and_H0[["point_h0"]]
+    logImpliedTarget <- logImpliedTargetTwoSe <- NULL
   }
 
-  safe_2x2_design <- add_attributes(safe_2x2_design, list('delta.star' = delta.ump, 'H1set' = H1set,
-                                                          'call' = sys.call(), 'w1' = w1,'point_h0' = point_h0,
-                                                          'alpha' = alpha, 'alternative' = alternative))
-  return(safe_2x2_design)
-}
-
-
-#-----------------------------------------------------------------------------
-
-#' Design an S-value for a test of two proportions with a certain minimal power
-#' for detecting at least a certain difference delta.min in proportions between
-#' group a and b.
-#'
-#' \code{designSafeTwoProportions} finds for a given delta.min indicating the minimal
-#' mean difference one wants to detect between group a and b, and a given significance level alpha
-#' and desired type II error guarantee beta the smallest sample size that is needed to detect
-#' that difference. For this sample size, the S-value formula achieving the desired power is
-#' found as well and can be used for performing the a safe test.
-#'
-#' As a side effect, prints each sample size being tried.
-#'
-#'
-#' @param deltaMin numeric that defines the minimal absolute difference between the group means the
-#' safe test should be designed for, i.e. the minimal relevant difference we want to be able to detect.
-#' @param alpha numeric in (0, 1) that specifies the target type 1 error control --independent on n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha. Default
-#' \code{0.05}.
-#' @param beta numeric in (0, 1) that specifies the target type II error control necessary to calculate both "n"
-#' and "deltaS". Note that 1-beta defines the power. Default \code{0.20}.
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-#' "greater" or "less"
-#' @param M M Number of simulations used per sample size, per possible S-value, per
-#' data-generating distribution. Default \code{100}.
-#' @param lowN integer that defines the smallest n of our search space for n. Default 20.
-#' @param highN integer that defines the largest n of our search space for n. This might be the largest n that we
-#' are able to fund. Default 200.
-#' @param sampleSizeRatio numeric representing nb/na. Default 1.
-#' @param lowDelta numeric that defines the smallest delta of our search space for the test-defining deltaS
-#' @param highDelta numeric that defines the largest delta of our search space for the test-defining deltaS
-#' @param tol a number that defines the stepsizes between the lowDelta and highDelta
-#' @param numberForSeed Optionally provide your own seed for the simulations.
-#' Default \code{NA}.
-#'
-#' @return Result object that can be used within \code{\link{safeTwoProportionsTest}}
-#' @export
-#'
-#' @examples
-#' designSafeTwoProportions(deltaMin = 0.7)
-#' designSafeTwoProportions(deltaMin = 0.7, sampleSizeRatio = 2, lowN = 30)
-designSafeTwoProportions <- function(deltaMin, alpha = 0.05, beta = 0.20,
-                                     alternative = c("two.sided", "greater", "less"), M = 100,
-                                     lowN = 20, highN = 200, sampleSizeRatio = 1,
-                                     lowDelta = 0.1, highDelta = 0.8, tol = 0.1, numberForSeed = NA) {
-
-  alternative <- match.arg(alternative)
-
-  #initialize starting parameters
-  deltas <- seq(lowDelta, highDelta, by = tol)
-
-  #calculate the number of complete groups a and b collected at low N
-  #for example lowN = 20, sampleSizeRatio = 1, then we start with 10 groups
-  #that have been collected
-  nGroups <- lowN/(sampleSizeRatio+1)
-  if (abs(round(nGroups) - nGroups) > 1e-8)
-    stop("lowN should be multiple of a.iter + b.iter")
-
-  #in the iteration we start directly with incrementing nGroups,
-  #so now subtract 1
-  nGroups <- nGroups - 1
-  nb <- sampleSizeRatio*(nGroups)
-  na <- nGroups
-  n <- na + nb
-
-  #for H1_delta.min, we want to test the power:
-  H1DeltaMin <- create_data_generating_distributions(deltaDesign = deltaMin, alternative = alternative,
-                                                     length.out = 5)
-
-  notreached <- TRUE
-
-  #save the start time to use as a seed inside the sampling process
-  #so the same set of samples from H1 delta.circ will be presented
-  #to each S-test constructed with delta.star
-
-  seedTime <- ifelse(is.na(numberForSeed), Sys.time(), numberForSeed)
-
-  cat("Trying n = ")
-
-  while (notreached & (n < highN)) {
-    #increment the group sizes
-    nGroups <- nGroups + 1
-    na <- nGroups
-    nb <- sampleSizeRatio*nGroups
-    if(nb %%1 != 0){
-      #no whole group
-      next
-    }
-
-    n <- na + nb
-    cat(paste0(n, " "))
-
-    #if na = nb and we are testing twosided we only need to test the delta ump,
-    #since this is then known analytically
-
-    if (na == nb & alternative == "two.sided") {
-      delta.ump <- get_delta_ump_analytically(n = na + nb, alpha = alpha,
-                                              lower = 0.1, upper = 0.9)
-
-      if (!is.na(delta.ump)) {
-        deltas <- delta.ump
-      }
-    }
-
-    #start iterating over possible delta stars at this n
-    for (j in 1:length(deltas)) {
-      delta <- deltas[j]
-
-      #construct parameters to use in the S-test
-      if (alternative == "two.sided") {
-        if (na == nb) {
-          H1set <- create_h1_set_equal_group_sizes(delta)
-          w1 <- c(0.5, 0.5)
-          point_h0 <- 0.5
-        } else {
-          H1set <- create_h1_set_unequal_group_sizes(delta, na = na, nb = nb)
-          w1 <- c(0.5, 0.5)
-          point_h0 <- 0.5
-        }
-      } else {
-        #if alternative is greater, feed negative delta to create point h1 and h0
-        delta_design <- ifelse(alternative == "greater", -delta, delta)
-        point_H1_and_H0 <- create_point_h1_and_h0_one_sided(delta = delta_design, na = na, nb = nb)
-
-        if (any(is.na(point_H1_and_H0))) {
-          next
-        }
-
-        H1set <- point_H1_and_H0$H1set
-        w1 <- 1
-        point_h0 <- point_H1_and_H0$point_h0
-      }
-
-      percent.reject.S <-
-        perform_MC_simulations_for_each_data_generating_distribution(H1.deltamin = H1DeltaMin, na = na, nb = nb,
-                                                                     seed.time = seedTime, M = M, H1set = H1set,
-                                                                     w1 = w1, point_h0 = point_h0, alpha = alpha)
-
-      #check if desired power has been reached at desired precision
-      if (min(percent.reject.S) >= (1 - beta)) {
-        notreached <- FALSE
-
-        cat("\nFor all p1, power above desired level. Worst case: ")
-        cat(min(percent.reject.S))
-        cat(" with data generated from: ")
-        cat(H1DeltaMin[which.min(percent.reject.S),]); cat(".\n")
-        break
-      }
-    }
-  }
-
-  if (notreached)
-    stop("Desired power for this alternative hypothesis not reached below maximal n value")
-
-  safe_design <- create_safe_2x2_design(list('n.star' = n, 'delta.star' = delta, 'na' = na,
-                                             'nb' = nb, 'w1' = w1, 'point_h0' = point_h0,
-                                             'H1set' = H1set, 'call' = sys.call(), 'alpha' = alpha,
-                                             'beta' = beta, 'pilot' = FALSE, 'alternative' = alternative,
-                                             'deltaMin' = deltaMin))
-
-  return(safe_design)
-}
-
-#------------------------------------------------------------------------------
-# frequentist experiment: when will we stop?
-
-#' Simulate the spread of realized sample sizes during an optional stopping design setup.
-#'
-#' In simulations, data are collected in groups of 2 (1 from group a, and 1 from group b)
-#' and s-values are evaluated after each group of 2 is collected. When an S-value
-#' exceeds the critical value as defined by the alpha specified in the design,
-#' that simulation is stopped, the null hypothesis is recorded to be rejected,
-#' and the realized sample size is saved. One can then calculate the expected
-#' sample size collected in the optional stopping setting, and the power of the S-value
-#' in the optional stopping setting (see examples).
-#'
-#' Side effects: plots a histogram of realized sample sizes in the optional
-#' stopping setting.
-#'
-#' @param safeDesign a safe design for a test of two proportions retrieved
-#' through \code{\link{designSafeTwoProportions}}
-#' @param M number of simulations to carry out
-#' @param parametersDataGeneratingDistribution group means a and b in the data
-#' generating distribution to simulate from.
-#' @param makePlot logical indicating whether a histogram of stopping times should be
-#' plotted.
-#'
-#' @return \code{n.final}, vector of realized sample sizes, and \code{rejected},
-#' logical vector indicating whether the null hypothesis was rejected in that simulation.
-#' @export
-#'
-#' @examples
-#' safeDesignProportionTest <- designSafeTwoProportions(deltaMin = 0.4, lowN = 80)
-#' #sample size planned, according to design
-#' safeDesignProportionTest$n.star
-#'
-#' simulationResult <- simulateSpreadSampleSizeTwoProportions(safeDesignProportionTest,
-#' M = 1000, parametersDataGeneratingDistribution = c(0.2, 0.6))
-#' #what was the power?
-#' mean(simulationResult$rejected)
-#' #what sample size can be expected to be collected with optional stopping?
-#' mean(simulationResult$actually_collected)
-#'
-simulateSpreadSampleSizeTwoProportions <- function(safeDesign, M, parametersDataGeneratingDistribution, makePlot=FALSE) {
-
-  H1set <- safeDesign$H1set
-  na.max <- safeDesign$na
-  nb.max <- safeDesign$nb
-  critical_value_s <- 1 / safeDesign$alpha
-
-  if (na.max != nb.max)
-    stop("optional stopping simulation only available for equal group sizes")
-
-  if (nrow(H1set) != 2)
-    stop("optional stopping simulation only available for two-sided test")
-
-  #for H1_delta.min, we want to retrieve E(stopping time) IN THE WORST CASE
-  H1.deltamin <- parametersDataGeneratingDistribution
-
-  theta.a <- H1.deltamin[1]
-  theta.b <- H1.deltamin[2]
-  rejected <- logical(M)
-  n.final <- s.final <- numeric(M)
-
-  for (i in 1:M) {
-    #perform the "optional stopping" experiment: collect data sequentially
-    a.sample <- stats::rbinom(n = na.max, size = 1, prob = theta.a)
-    b.sample <- stats::rbinom(n = nb.max, size = 1, prob = theta.b)
-
-    #retrieve na1 and nb1 at n=2, n=4, n=6, etc
-    na <- 1:na.max
-    nb <- 1:nb.max
-
-    na1 <- sapply(1:na.max, function(n.cur) {sum(a.sample[1:n.cur])})
-
-    nb1 <- sapply(1:nb.max, function(n.cur) {sum(b.sample[1:n.cur])})
-
-    calculateLikelihoodUnderH <- function(h) {
-      exp(na1 * log(h[1]) + (na - na1) * log(1 - h[1]) + nb1 * log(h[2]) +
-            (nb - nb1) * log(1 - h[2]))
-    }
-    #retrieve pbar1 at each time point (is a vector now!)
-    pbar1 <- rowSums(0.5 * apply(H1set, 1, calculateLikelihoodUnderH))
-
-    #n is a vector now! And so is pbar0!
-    n <- na + nb
-    pbar0 <- 0.5 ^ n
-
-    if (sum(pbar1 / pbar0 >= critical_value_s) > 0) {
-      #at some time point, we rejected: record the first time point
-      rejected[i] <- TRUE
-      n.final[i] <- n[min(which(pbar1 / pbar0 >= critical_value_s))]
-      s.final[i] <- (pbar1/pbar0)[min(which(pbar1 / pbar0 >= critical_value_s))]
-    } else {
-      #we have not rejected and stopped collecting according to our stopping rule
-      rejected[i] <- FALSE
-      n.final[i] <- na.max + nb.max
-      s.final[i] <- (pbar1/pbar0)[length(pbar1)]
-    }
-  }
-
-  if(makePlot){
-    graphics::hist(n.final, breaks = na.max+nb.max, xlim = c(0, max(n.final)), xlab = "n collected",
-                   main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~"," ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(safeDesign$alpha)))
-
-  }
-  return(list(allN = n.final,
-              rejected = rejected,
-              s_values = s.final,
-              allRejectedN = n.final[rejected]))
-}
-
-#' Function that can be used to illustrate that H0 is falsely rejected too often when using
-#' Fisher's exact test in the optional stopping setting.
-#'
-#' Simulates what would happen if we would use Fisher's exact test in the optional
-#' stopping setting. First, determines the sample size we should use according to design with
-#' simulations. Can be omitted if planned sample size is already known and passed through
-#' Then, starts sampling from the passed distribution up to this sample size in each simulation, and stops
-#' if a significant Fisher's exact test is recorded during sampling.
-#'
-#' @param deltaDesign minimal difference in mean proportions between group a and b
-#' we want to be able to detect with a certain power.
-#' @param alpha significance level used for testing.
-#' @param power minimal power we want to achieve
-#' @param M number of simulations to carry out.
-#' @param parametersDataGeneratingDistribution Vector with actual values of the means in groups a and
-#' b in the data generating distribution to simulate for. Values between 0 and 1.
-#' @param nDesign if n has been designed/ determined previously, it can be passed
-#' here and simulations to find the design sample size are omitted. This saves
-#' time. Default \code{NA}.
-#' @param highN maximal nDesign: if no nDesign is found to achieve the desired power
-#' for the \code{deltaDesign} below \code{highN}, simulations are stopped.
-#' @param makePlot logical indicating whether a histogram of stopping times should be
-#' plotted.
-#'
-#' @return see \code{\link{simulateSpreadSampleSizeTwoProportions}}
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' simulationResult <- simulateFisherSpreadSampleSizeOptionalStopping(deltaDesign = 0.5,
-#' alpha = 0.05, power = 0.8, M = 100,
-#' parametersDataGeneratingDistribution = c(0.4, 0.4))
-#' #what was the power?
-#' mean(simulationResult$rejected)
-#' #what sample size can be expected to be collected with optional stopping?
-#' mean(simulationResult$actually_collected)
-#'
-#' #nDesign already known
-#' simulationResult <- simulateFisherSpreadSampleSizeOptionalStopping(deltaDesign = 0.5,
-#' alpha = 0.05, power = 0.8, M = 1000, nDesign = 40,
-#' parametersDataGeneratingDistribution = c(0.4, 0.4))
-#' }
-#'
-simulateFisherSpreadSampleSizeOptionalStopping <- function(deltaDesign, alpha, power,
-                                                           M, parametersDataGeneratingDistribution,
-                                                           nDesign = NA, highN = 200, makePlot = FALSE) {
-
-  if (is.na(nDesign)) {
-    cat("nDesign not known, determining sample size through power simulations.\nTrying n: ")
-    #determine design na and nb for fisher
-    #for H1_delta.min, we want to test the power:
-    H1.deltamin <- create_data_generating_distributions(deltaDesign, alternative = "two.sided", length.out = 5)
-
-    #condition for looping
-    # TODO(Rosanne): Hier heb TRUE van gemaakt. Klopt dat?
-
-    not.satisfied <- TRUE
-    n <- 20
-    seed.time <- Sys.time()
-
-    #case na=nb now
-    while (not.satisfied) {
-      n <- n + 2
-      na <- nb <- n / 2
-
-      cat(n); cat(" ")
-
-      #reserve memory space for power estimate for each distribution in
-      #the alternative of interest
-      percent.reject.F <- numeric(nrow(H1.deltamin))
-
-      #start MC simulation
-      set.seed(seed.time)
-      for (i in 1:nrow(H1.deltamin)) {
-        #data are generated by a distribution in H1.deltamin
-        mu.a <- H1.deltamin[i, 1]
-        mu.b <- H1.deltamin[i, 2]
-        reject.F <- numeric(M)
-
-        for (m in 1:M) {
-          na1 <- sum(stats::rbinom(na, 1, mu.a))
-          nb1 <- sum(stats::rbinom(nb, 1, mu.b))
-
-          # TODO(Rosanne): Dit heb ik uit elkaar getrokken. Klopt dit nog?
-          somePValue <- stats::fisher.test(x = matrix(c(na - na1, na1, nb - nb1, nb1),
-                                                      byrow = TRUE, nrow = 2))$p.value
-
-          reject.F[m] <- somePValue <= alpha
-        }
-
-        percent.reject.F[i] <- mean(reject.F)
-      }
-
-      if (min(percent.reject.F) >= power) {
-        # TODO(Rosanne): Hier heb ik FALSE van gemaakt klopt dat?
-        not.satisfied <- F
-      }
-
-      if (n > highN) {
-        stop("highN too low or deltaDesign too low; desired power not achieved with these settings.")
-      }
-
-    }
-
-    na.max <- nb.max <- na
-    nDesign <- n
-    cat("\nFound Fisher sample design size: ")
-    cat(nDesign); cat(".\n")
-  } else {
-    na.max <- nb.max <- nDesign / 2
-  }
-
-  #for H1_delta.min, we want to retrieve E(stopping time) IN THE WORST CASE
-  H1.deltamin <- parametersDataGeneratingDistribution
-
-  theta.a <- H1.deltamin[1]
-  theta.b <- H1.deltamin[2]
-
-  rejected <- logical(M)
-  n.final <- rep(nDesign, times = M)
-
-  cat("Starting optional stopping simulations:\n")
-  pbar <- utils::txtProgressBar(min = 1, max = M)
-
-
-  for (i in 1:M) {
-    utils::setTxtProgressBar(pbar, i)
-
-    #perform the "optional stopping" experiment: collect data sequentially
-    a.sample <- stats::rbinom(n = na.max, size = 1, prob = theta.a)
-    b.sample <- stats::rbinom(n = nb.max, size = 1, prob = theta.b)
-
-    #retrieve na1 and nb1 at n=2, n=4, n=6, etc
-    na <- 1:na.max
-
-    # TODO(Rosanne): Ik dacht er aan om hier een generieke functie te maken die een functie uit spuugt
-    # Omdat je dit ook eerder al doet. Zie "function factory"
-
-    na1 <- sapply(1:na.max, function(n.cur) {sum(a.sample[1:n.cur])})
-    nb1 <- sapply(1:nb.max, function(n.cur) {sum(b.sample[1:n.cur])})
-
-    for (j in 1:length(na)) {
-      na.cur <- nb.cur <- na[j]
-      na1.cur <- na1[j]
-      nb1.cur <- nb1[j]
-
-      somePValue <- stats::fisher.test(x = matrix(c(na.cur - na1.cur, na1.cur, nb.cur - nb1.cur, nb1.cur),
-                                                  byrow = TRUE,nrow = 2))$p.value
-
-      if (somePValue <= alpha) {
-        n.final[i] <- na.cur + nb.cur
-        rejected[i] <- TRUE
-        break
-      }
-    } # TODO(Rosanne): Wat denk je van de volgende comment: End for loop over the first sample
-  } # TODO(Rosanne): Wat denk je van de volgende comment: End the number of iterations
-  close(pbar)
-  if(makePlot == TRUE){
-    graphics::hist(n.final, breaks = nDesign, xlim = c(0, max(n.final)), xlab = "n collected",
-                   main = bquote(~"Mean 1" == .(parametersDataGeneratingDistribution[1]) ~","
-                                 ~"Mean 2" == .(parametersDataGeneratingDistribution[2])  ~"," ~"alpha" == ~.(alpha)))
-  }
-  return(list("actually_collected" = n.final, "rejected" = rejected))
-}
-
-
-
-#' Function that illustrates that experiments can, on average, be stopped sooner
-#' than planned in the optional stopping setting with tests of two proportions.
-#'
-#' For each effect size (absolute difference between mean proportions in group a
-#' and b), the 'design' sample size and S-value to reach at least a power are found
-#' through simulations. Then, for each found combination of delta min, n design and the S-value,
-#' the optional stopping setting is simulated \code{M} times and the average number
-#' of samples collected during optional stopping is recorded.
-#'
-#' A plot is then generated, illustrating the difference between the designed sample
-#' size and the sample size collected during optional stopping.
-#'
-#' Note that this function only demonstrates the two-sided setting, with equal
-#' group sizes.
-#'
-#' @param alpha Significance level used for testing.
-#' @param beta Maximally acceptable type-II error.
-#' @param maxN numeric, the maximum number of samples one has budget for to collect data.
-#' Default 100.
-#' @param deltaMinVec Vector with effect sizes one would want to detect with an
-#' experiment.
-#' @param numberForSeed Optionally, a seed can be set to make results replicable.
-#' @param M Number of simulations to be carried out per data generating distribution.
-#' Default 200.
-#' @param highN Maximal n to sample while determining the design n for each. Default 200.
-#' Increasing this will increase runtime of function significantly.
-#' \code{delta.min}.
-#'
-#' @return The data used to generate the plot.
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' plotSafeTwoProportionsSampleSizeProfile(alpha = 0.05, beta = 0.20, highN = 100)
-#' }
-plotSafeTwoProportionsSampleSizeProfile <- function(alpha, beta, maxN = 100, deltaMinVec = seq(0.9, 0.2, -0.1),
-                                                    numberForSeed = NA, M = 200, highN = 200) {
-  #determine seed
-  seed.time <- ifelse(is.na(numberForSeed), Sys.time(), numberForSeed)
-
-  #initialize parameters
-  deltaMinVec <- sort(deltaMinVec, decreasing = TRUE)
-  n.min.vec <- numeric(length(deltaMinVec))
-  n <- 10
-  power <- 1 - beta
-
-  #progress bar
-  cat("Simulation progress part 1, determining n design:\n")
-  pbar <- utils::txtProgressBar(min = 1, max = length(deltaMinVec))
-
-  #---------------------------------------------------
-  #start filling the plot data for each delta min
-  #to retrieve n 'standard/ frequentist':
-  for (d in 1:length(deltaMinVec)) {
-    #continue with the previous n: lowN monotonically decreasing in deltamin
-    utils::setTxtProgressBar(pbar, d)
-
-    delta.min <- deltaMinVec[d]
-    #for H1_delta.min, we want to test the power:
-    H1.deltamin <- rbind(
-      cbind(seq(delta.min, 1, length.out = 5),
-            seq(0, 1 - delta.min, length.out = 5)),
-      cbind(seq(0, 1 - delta.min, length.out = 5),
-            seq(delta.min, 1, length.out = 5))
+  return(
+    list(
+      worstCasePower = currentWorstCasePower,
+      worstCasePowerTwoSe = worstCasePowerTwoSe,
+      worstCaseQuantile = currentWorstCaseQuantile,
+      worstCaseQuantileTwoSe = worstCaseQuantileTwoSe,
+      logImpliedTarget = logImpliedTarget,
+      logImpliedTargetTwoSe = logImpliedTargetTwoSe
     )
+  )
+}
 
-    #condition for looping
-    not.satisfied <- TRUE
-
-    #case na=nb now
-    while (not.satisfied) {
-      n <- n + 2
-      na <- nb <- n / 2
-
-      #design the simple S for this n
-      pbar0 <- 0.5 ^ n
-      delta <- get_delta_ump_analytically(n, alpha)
-
-      if (is.na(delta))
-        next
-
-      H1set <- matrix(1/2*c(1- delta, 1 + delta,
-                            1 + delta, 1 - delta),
-                      byrow = TRUE, nrow = 2)
-
-      #reserve memory space for power estimate for each distribution in
-      #the alternative of interest
-      percent.reject.S <- numeric(nrow(H1.deltamin))
-
-      #start MC simulation
-      set.seed(seed.time)
-
-      for (i in 1:nrow(H1.deltamin)) {
-        #data are generated by a distribution in H1.deltamin
-        mu.a <- H1.deltamin[i, 1]
-        mu.b <- H1.deltamin[i, 2]
-        reject.S <- numeric(M)
-
-        for (m in 1:M) {
-          na1 <- sum(stats::rbinom(na, 1, mu.a))
-          nb1 <- sum(stats::rbinom(nb, 1, mu.b))
-
-          #perform the safe test designed with delta star on the sample
-
-          helpFunc <- function(h) {
-            result <- exp(na1 * log(h[1]) + (na - na1) * log(1 - h[1]) +
-                            nb1 * log(h[2]) + (nb - nb1) * log(1 - h[2]))
-            return(result)
-          }
-
-          pbar1 <- sum(0.5 * apply(H1set, 1, helpFunc))
-
-          reject.S[m] <- (pbar1 / pbar0) >= (1 / alpha)
-        } # End iterations
-
-        percent.reject.S[i] <- mean(reject.S)
-      }
-
-      if (min(percent.reject.S) >= power)
-        not.satisfied <- FALSE
-
-      if (n > highN)
-        break
-
-    } # TODO(Rosanne): End while satisfied loop for fixed deltamin
-
-    if (n > highN)
-      break
-
-    n.min.vec[d] <- n
-  } # TODO(Rosanne): End looping over all deltaMin
-  close(pbar)
-
-  #---------------------------------------------------
-  #to retrieve n optional stop
-  n.s.opt <- numeric(length(deltaMinVec))
-  cat("Simulation progress part 2, determining n optional stop:\n")
-  pbar <- utils::txtProgressBar(min = 1, max = length(deltaMinVec))
-
-  for (d in 1:length(deltaMinVec)) {
-    utils::setTxtProgressBar(pbar, d)
-    #maximal n: the 'design' n retrieved in the previous simulations
-    n.min <- n.min.vec[d]
-    na.max <- nb.max <- n.min / 2
-
-    delta <- get_delta_ump_analytically(n.min, alpha)
-
-    if (is.na(delta))
-      next
-
-    H1 <- matrix(1/2*c(1 - delta, 1 + delta,
-                       1 + delta, 1 - delta),
-                 byrow = TRUE, nrow = 2)
-
-    delta.min <- deltaMinVec[d]
-
-    # TODO(Rosanne): Dit zie ik nu een paar keer, maar ik begrijp het niet helemaal
-    #
-    #for H1_delta.min, we want to retrieve E(stopping time) IN THE WORST CASE
-    H1.deltamin <- rbind(
-      cbind(seq(delta.min, 1, length.out = 8),
-            seq(0, 1 - delta.min, length.out = 8)),
-      cbind(seq(0, 1 - delta.min, length.out = 8),
-            seq(delta.min, 1, length.out = 8))
-    )
-
-    mean.s.os <- numeric(nrow(H1.deltamin))
-
-    set.seed(seed.time)
-
-    for (h in 1:nrow(H1.deltamin)) {
-      theta.a <- H1.deltamin[h, 1]
-      theta.b <- H1.deltamin[h, 2]
-
-      rejected <- logical(M)
-      n.final <- numeric(M)
-
-
-      for (i in 1:M) {
-        #perform the "optional stopping" experiment: collect data sequentially
-
-        a.sample <- stats::rbinom(n = na.max, size = 1, prob = theta.a)
-        b.sample <- stats::rbinom(n = nb.max, size = 1, prob = theta.b)
-
-        #retrieve na1 and nb1 at n=2, n=4, n=6, etc
-        na <- 1:na.max
-        nb <- 1:nb.max
-
-        # TODO(Rosanne): Function factory zoals boven
-        na1 <- sapply(1:na.max, function(n.cur) {sum(a.sample[1:n.cur])})
-        nb1 <- sapply(1:nb.max, function(n.cur) {sum(b.sample[1:n.cur])})
-
-        # TODO(Rosanne): Is dit nog okay? Ken je een betere naam hiervoor?
-        helpFunc <-  function(h) {
-          exp(na1 * log(h[1]) + (na - na1) * log(1 - h[1]) + nb1 * log(h[2]) +
-                (nb -nb1) * log(1 - h[2]))
-        }
-
-        #retrieve pbar1 at each time point (is a vector now!)
-        pbar1 <- rowSums(0.5 * apply(H1, 1, helpFunc))
-
-        #n is a vector now! And so is pbar0!
-        n <- na + nb
-        pbar0 <- 0.5 ^ n
-
-        if (sum(pbar1 / pbar0 >= 20) > 0) {
-          #at some time point, we rejected: record the first time point
-          rejected[i] <- TRUE
-          n.final[i] <- n[min(which(pbar1 / pbar0 >= 20))]
-        } else {
-          #we have not rejected and stopped collecting according to our stopping rule
-          rejected[i] <- FALSE
-          n.final[i] <- na.max + nb.max
-        }
-      }
-
-      mean.s.os[h] <- mean(n.final)
+simulateWorstCaseDeltaTwoProportions <- function(na, nb, priorValues,
+                                   alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                   alpha,
+                                   beta, maxSimStoptime,
+                                   M = 1e3,
+                                   deltaGridSize = 10,
+                                   deltamax = 0.99, deltamin = 0.01,
+                                   thetaAgridSize = 8){
+  deltaVec <- seq(deltamax, deltamin, length.out = deltaGridSize)
+  for (deltaIndex in seq_along(deltaVec)) {
+    if (simulateWorstCaseQuantileTwoProportions(na = na, nb = nb,
+                                 priorValues = priorValues,
+                                 alternativeRestriction = alternativeRestriction,
+                                 alpha = alpha,
+                                 delta = deltaVec[deltaIndex], M = M,
+                                 maxSimStoptime = maxSimStoptime,
+                                 gridSize = thetaAgridSize)$worstCasePower < (1 - beta)) {
+      break()
     }
-    #what was the worst case?
-    n.s.opt[d] <- max(mean.s.os)
   }
-  close(pbar)
-
-  #--------------------------------
-  #save the results and plot
-  resultForPlot <- list()
-  resultForPlot[["deltaMinVec"]] <- deltaMinVec[n.min.vec > 0]
-  resultForPlot[["n.min.vec"]] <- n.min.vec[n.min.vec > 0]
-  resultForPlot[["n.os.vec"]] <- n.s.opt[n.min.vec > 0]
-
-  graphics::par(cex.main=1.5, mar=c(5, 6, 4, 7)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
-                font.lab=2, cex.axis=1.3, bty="n", las=1)
-
-  graphics::plot(resultForPlot[["deltaMinVec"]], resultForPlot[["n.min.vec"]],
-                 ylim = c(0, highN), type="l", col="blue", lty=2, lwd=2,
-                 ylab="n1", xlab=expression(delta["min"]),
-                 main=bquote(~alpha == ~.(alpha) ~ "and" ~beta== ~.(beta)))
-
-  graphics::lines(resultForPlot[["deltaMinVec"]], resultForPlot[["n.os.vec"]],  col="black", lwd=2, lty=1)
-
-  graphics::abline(h=maxN, col="red", lty=2)
-
-  legendName <- c("Average n", "Safe design", "max n")
-  legendCol <- c("black", "blue", "red")
-  legendLty <- c(1, 2, 2)
-
-  graphics::legend("topright", legend = legendName, col = legendCol, lty=legendLty, bty="n")
-
-  return(resultForPlot)
+  return(deltaVec[deltaIndex - 1])
 }
-
-#' Function that simulates combining initial S-values with S-values resulting
-#' from a follow-up study when testing 2 proportions.
-#'
-#' @param previousSValues numeric vector of S-values from previously simulated experiments.
-#' @param nFollowUp number of samples to collect in the follow-up study
-#' @param parametersDataGeneratingDistribution group means a and b in the data
-#' generating distribution to simulate from.
-#' @param alpha significance level that will be used for testing.
-#' Default \code{0.05}.
-#'
-#' @return numeric vector with the optional continuation S-values
-#' @export
-simulateOptionalContinuationTwoProportions <- function(previousSValues,
-                                                       nFollowUp,
-                                                       parametersDataGeneratingDistribution,
-                                                       alpha = 0.05){
-  na <- nb <- nFollowUp/2
-  safeDesign <- designPilotSafeTwoProportions(na = na, nb = nb, alpha = alpha)
-  theta.a <- parametersDataGeneratingDistribution[1]
-  theta.b <- parametersDataGeneratingDistribution[2]
-  newSValues <- numeric(length(previousSValues))
-  for(i in 1:length(previousSValues)){
-    a.sample <- stats::rbinom(n = na, size = 1, prob = theta.a)
-    b.sample <- stats::rbinom(n = nb, size = 1, prob = theta.b)
-    na1 <- sum(a.sample)
-    nb1 <- sum(b.sample)
-    dataTable <- as.table(matrix(c(na-na1, na1, nb-nb1, nb1), nrow = 2, byrow = TRUE))
-    newSValues[i] <- safeTwoProportionsTest(x = dataTable, testDesign = safeDesign)$s_value
-  }
-  return(newSValues*previousSValues)
-}
-
-

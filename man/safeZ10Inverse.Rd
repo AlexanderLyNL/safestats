@@ -7,10 +7,7 @@
 safeZ10Inverse(parameter, nEff, sigma = 1, alpha = 0.05)
 }
 \arguments{
-\item{parameter}{numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average likelihood defined by
-the likelihood at the parameter value. For the two sided case 1/2 at the parameter value and 1/2 at minus the
-parameter value.}
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
 \item{nEff}{numeric > 0, the effective sample size.}
 
@@ -24,8 +21,8 @@ A number that represents a z-value. The function's domain is the positive real l
 is the real line, i.e., the outcome space of the z-statistic.
 }
 \description{
-This helper function is used in \code{\link{designSafeZ}} to find parameter. The function is the (two-sided)
-inverse of safeZTestStat.
+This helper function is used in \code{\link{designSafeZ}()} to find parameter. The function is the (two-sided)
+inverse of 'safeZTestStat'.
 }
 \examples{
 safeZ10Inverse(0.4, n=13)

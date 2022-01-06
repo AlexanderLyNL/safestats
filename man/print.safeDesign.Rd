@@ -19,10 +19,10 @@
 No returned value, called for side effects.
 }
 \description{
-Printing objects of class "safeTest" modelled after \code{\link[stats]{print.power.htest}}.
+Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.power.htest}()}.
 }
 \examples{
 designSafeZ(meanDiffMin=0.5)
 designSafeT(deltaMin=0.5)
-designSafeLogrank(nEvents=89)
+designSafeLogrank(hrMin=0.7)
 }

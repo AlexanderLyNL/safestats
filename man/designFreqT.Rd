@@ -9,10 +9,8 @@ designFreqT(
   alpha = 0.05,
   beta = 0.2,
   alternative = c("two.sided", "greater", "less"),
-  lowN = 3L,
-  highN = 100L,
+  h0 = 0,
   testType = c("oneSample", "paired", "twoSample"),
-  ratio = 1,
   ...
 )
 }
@@ -29,20 +27,14 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{lowN}{integer that defines the smallest n of our search space for n.}
-
-\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
-are able to fund.}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
-
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
-Returns an object of class "freqTDesign". An object of class "freqTDesign" is a list containing at least the
+Returns an object of class 'freqTDesign'. An object of class 'freqTDesign' is a list containing at least the
 following components:
 \describe{
   \item{nPlan}{the planned sample size(s).}

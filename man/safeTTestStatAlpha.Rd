@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{safeTTestStatAlpha}
 \alias{safeTTestStatAlpha}
-\title{safeTTestStat Subtracted with 1/alpha.}
+\title{safeTTestStat() Subtracted with 1/alpha.}
 \usage{
 safeTTestStatAlpha(
   t,
@@ -28,11 +28,11 @@ this specifies the size of the first sample for a two-sample test.}
 \item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 \code{NULL} it implies that the t-statistic is based on one-sample.}
 
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then
+the alpha of the design object is used instead in constructing the decision rule S > 1/alpha.}
 
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
+then the alternative specified by the design object is used instead.}
 
 \item{tDensity}{Uses the the representation of the safe t-test as the likelihood ratio of t densities.}
 }
@@ -41,7 +41,7 @@ Returns a numeric that represent the e10 - 1/alpha, that is, the e-value in favo
 alternative over the null - 1/alpha.
 }
 \description{
-This is basically just \code{\link{safeTTestStat}} - 1/alpha. This function is used for root finding for
+This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is used for root finding for
 pilot designs.
 }
 \examples{

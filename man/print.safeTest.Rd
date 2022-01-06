@@ -4,13 +4,7 @@
 \alias{print.safeTest}
 \title{Print Method for Safe Tests}
 \usage{
-\method{print}{safeTest}(
-  x,
-  digits = getOption("digits"),
-  prefix = "\\t",
-  printConfSeq = FALSE,
-  ...
-)
+\method{print}{safeTest}(x, digits = getOption("digits"), prefix = "\\t", ...)
 }
 \arguments{
 \item{x}{a safeTest object.}
@@ -19,16 +13,13 @@
 
 \item{prefix}{string, passed to strwrap for displaying the method components.}
 
-\item{printConfSeq}{logical, if \code{TRUE} prints also confidence sequence.
-Default \code{FALSE}}
-
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 No returned value, called for side effects.
 }
 \description{
-Printing objects of class "safeTest" modelled after \code{\link[stats]{print.htest}}.
+Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.htest}()}.
 }
 \examples{
 safeTTest(rnorm(19), pilot=TRUE)

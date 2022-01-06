@@ -6,7 +6,7 @@
 \usage{
 \method{simulate}{safeDesign}(
   object,
-  nsim = 1,
+  nsim = nSim,
   seed = NULL,
   deltaTrue = NULL,
   muGlobal = 0,
@@ -17,15 +17,16 @@
   nPlanFreq = NULL,
   logging = TRUE,
   pb = TRUE,
+  nSim = 1,
   ...
 )
 }
 \arguments{
-\item{object}{A safeDesign obtained obtained from \code{\link{designSafeT}}.}
+\item{object}{A safeDesign obtained obtained from \code{\link{designSafeT}()}.}
 
-\item{nsim}{numeric, number of iterations.}
+\item{nsim}{integer, formally the number of iterations, but by default nsim=nSim}
 
-\item{seed}{numeric, seed number.}
+\item{seed}{integer, seed number.}
 
 \item{deltaTrue}{numeric, if NULL, then the minimally clinically relevant standardised effect size is used
 as the true data generating effect size deltaTrue.}
@@ -36,7 +37,7 @@ matter for the test. This parameter is treated as a nuisance.}
 \item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
 for the test.This parameter treated is treated as a nuisance.}
 
-\item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
 \item{safeOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
 the safe test.}
@@ -44,11 +45,13 @@ the safe test.}
 \item{freqOptioStop}{logical, \code{TRUE} implies that optional stopping simulation is performed for
 the frequentist test.}
 
-\item{nPlanFreq}{the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}}.}
+\item{nPlanFreq}{the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}()}.}
 
 \item{logging}{logical, if \code{TRUE}, then return the simulated data.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{nSim}{integer, number of iterations.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -65,19 +68,19 @@ least the following components:
   \item{paired}{if \code{TRUE} then paired t-test.}
   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
-  \item{nsim}{the number of replications of the experiment.}
+  \item{nSim}{the number of replications of the experiment.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
-  Acquired from \code{\link{designSafeT}}.}
-  \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}}
+  Acquired from \code{\link{designSafeT}()}.}
+  \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}()}
   \item{safeSim}{list with the simulation results of the safe test under optional stopping.}
   \item{freqSim}{list with the simulation results of the frequentist test under optional stopping.}
 }
 }
 \description{
-Applied to a safeDesign object this function empirically shows the performance of a safe experiments under
+Applied to a 'safeDesign' object this function empirically shows the performance of safe experiments under
 optional stopping.
 }
 \examples{
@@ -85,23 +88,22 @@ optional stopping.
 alpha <- 0.05
 beta <- 0.20
 deltaMin <- 1
-designObj <- designSafeT(deltaMin, alpha=alpha, beta=beta)
+designObj <- designSafeT(deltaMin, alpha=alpha, beta=beta, nSim=100)
 
 # Design frequentist test
 freqObj <- designFreqT(deltaMin, alpha=alpha, beta=beta)
 
 # Simulate based on deltaTrue=deltaMin
-simResultsDeltaTrueIsDeltaMin <- simulate(object=designObj, nsim=100)
+simResultsDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=100)
 
 # Simulate based on deltaTrue > deltaMin
 simResultsDeltaTrueIsLargerThanDeltaMin <- simulate(
-  object=designObj, nsim=100, deltaTrue=2)
+  object=designObj, nSim=100, deltaTrue=2)
 
 # Simulate under the null deltaTrue = 0
 simResultsDeltaTrueIsNull <- simulate(
-  object=designObj, nsim=100, deltaTrue=0)
+  object=designObj, nSim=100, deltaTrue=0)
 
-simulate(object=designObj, deltraTrue=0, nsim=100, freqOptioStop=TRUE,
+simulate(object=designObj, deltraTrue=0, nSim=100, freqOptioStop=TRUE,
          nPlanFreq=freqObj$nPlan)
-
 }

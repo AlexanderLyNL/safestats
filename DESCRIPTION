@@ -1,34 +1,53 @@
 Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
-Version: 0.8.3
+Version: 0.8.6
 Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = "aut"),
-  person("Alexander", "Ly", email = "a.ly@jasp-stats.org", 
-  role = c("cre", "aut")))
+  person("Alexander", "Ly", email = "a.ly@jasp-stats.org",
+  role = c("cre", "aut")),
+  person("Muriel Felipe", "Perez-Ortiz", email = "Muriel.Perez@cwi.nl",
+  role = c("ctb")),
+  person("Judith", "ter Schure", email = "Judith.ter.Schure@cwi.nl",
+  role = c("ctb")),
+  person("Peter", "Grunwald", email = "Peter.Grunwald@cwi.nl",
+  role = c("ctb"))
+  )
 Maintainer: Alexander Ly <a.ly@jasp-stats.org>
-Description: Functions to design and apply tests that are anytime valid. The 
-  functions can be used to design hypothesis tests in the prospective/randomised 
-  control trial setting or in the observational/retrospective setting. The 
-  resulting tests remain valid under both optional stopping and optional 
-  continuation. The current version includes safe t-tests and safe tests of 
-  two proportions. For details on the theory of safe tests, see 
-  Grunwald, de Heide and Koolen (2019) "Safe Testing". <arXiv:1906.07801>.
+Description: Functions to design and apply tests that are anytime valid. The
+  functions can be used to design hypothesis tests in the prospective/randomised
+  control trial setting or in the observational/retrospective setting. The
+  resulting tests remain valid under both optional stopping and optional
+  continuation. The current version includes safe t-tests and safe tests of
+  two proportions. For details on the theory of safe tests, see
+  Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>, 
+  for details on safe logrank tests see ter Schure, Perez-Ortiz, Ly and Grunwald
+  (2020) "The Safe Logrank Test: Error Control under Continuous Monitoring with 
+  Unlimited Horizon" <arXiv:2011.06931v3> and Turner, Ly and Grunwald (2021)
+  "Safe Tests and Always-Valid Confidence Intervals for contingency tables and 
+  beyond" <arXiv:2106.02693> for details on safe contingency table tests.
 License: LGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Depends:
   R (>= 3.6)
-Imports: 
+Imports:
   stats (>= 3.6),
   hypergeo (>= 1.2-13),
-  purrr (>= 0.3.3),
-  coin (>= 1.3-1),
-  survival (>= 3.1-11),
-  BiasedUrn (>= 1.07)
-Suggests: testthat, knitr, rmarkdown, graphics
+  survival (>= 3.2-13),
+  BiasedUrn (>= 1.07),
+  boot (>= 1.3-28),
+  dplyr (>= 1.0.6),
+  purrr,
+  rlang
+Suggests: 
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    graphics
 VignetteBuilder: knitr
 NeedsCompilation: no
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.2
 Language: en-GB
+Config/testthat/edition: 3

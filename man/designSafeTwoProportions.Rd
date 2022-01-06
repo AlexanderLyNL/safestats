@@ -2,72 +2,127 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{designSafeTwoProportions}
 \alias{designSafeTwoProportions}
-\title{Design an S-value for a test of two proportions with a certain minimal power
-for detecting at least a certain difference delta.min in proportions between
-group a and b.}
+\title{Designs a Safe Experiment to Test Two Proportions in Stream Data}
 \usage{
 designSafeTwoProportions(
-  deltaMin,
+  na,
+  nb,
+  nBlocksPlan = NULL,
+  beta = NULL,
+  delta = NULL,
+  alternativeRestriction = c("none", "difference", "logOddsRatio"),
   alpha = 0.05,
-  beta = 0.2,
-  alternative = c("two.sided", "greater", "less"),
-  M = 100,
-  lowN = 20,
-  highN = 200,
-  sampleSizeRatio = 1,
-  lowDelta = 0.1,
-  highDelta = 0.8,
-  tol = 0.1,
-  numberForSeed = NA
+  pilot = "FALSE",
+  hyperParameterValues = NULL,
+  previousSafeTestResult = NULL,
+  M = 1000,
+  simThetaAMin = NULL,
+  simThetaAMax = NULL
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal absolute difference between the group means the
-safe test should be designed for, i.e. the minimal relevant difference we want to be able to detect.}
+\item{na}{number of observations in group a per data block}
 
-\item{alpha}{numeric in (0, 1) that specifies the target type 1 error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule S10 > 1/alpha. Default
-\code{0.05}.}
+\item{nb}{number of observations in group b per data block}
 
-\item{beta}{numeric in (0, 1) that specifies the target type II error control necessary to calculate both "n"
-and "deltaS". Note that 1-beta defines the power. Default \code{0.20}.}
+\item{nBlocksPlan}{planned number of data blocks collected}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less"}
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "nBlocksPlan"
+and "delta". Note that 1-beta defines the power.}
 
-\item{M}{M Number of simulations used per sample size, per possible S-value, per
-data-generating distribution. Default \code{100}.}
+\item{delta}{a priori minimal relevant divergence between group means b and a, either a numeric between -1 and 1 for
+no alternative restriction or a restriction on difference, or a real for a restriction on the log odds ratio.}
 
-\item{lowN}{integer that defines the smallest n of our search space for n. Default 20.}
+\item{alternativeRestriction}{a character string specifying an optional restriction on the alternative hypothesis; must be one of "none" (default),
+"difference" (difference group mean b minus group b) or "logOddsRatio" (the log odds ratio between group means b and a).}
 
-\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
-are able to fund. Default 200.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{sampleSizeRatio}{numeric representing nb/na. Default 1.}
+\item{pilot}{logical, specifying whether it's a pilot design.}
 
-\item{lowDelta}{numeric that defines the smallest delta of our search space for the test-defining deltaS}
+\item{hyperParameterValues}{named list containing numeric values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
+equivalent to \code{shape1} in \code{stats::dbeta} for groups A and B, respectively, and betaA2 and betaB2 equivalent to \code{shape2}. By default
+chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format:
+\code{list(betaA1 = numeric1, betaA2 = numeric2, betaB1 = numeric3, betaB2 = numeric4)}.}
 
-\item{highDelta}{numeric that defines the largest delta of our search space for the test-defining deltaS}
+\item{previousSafeTestResult}{optionally, a previous safe test result can be provided. The posterior
+of the hyperparameters of this test is then used for the hyperparameter settings. Default NULL.}
 
-\item{tol}{a number that defines the stepsizes between the lowDelta and highDelta}
+\item{M}{number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.}
 
-\item{numberForSeed}{Optionally provide your own seed for the simulations.
-Default \code{NA}.}
+\item{simThetaAMin}{minimal event rate in control group to simulate nPlan or power for.
+Can be specified when specifically interested in planning studies for specific event rates.
+Default \code{NULL}, then the entire parameter space (possibly restricted by delta) is used for simulation.}
+
+\item{simThetaAMax}{maximal event rate in control group to simulate nPlan or power for. Default \code{NULL}.}
 }
 \value{
-Result object that can be used within \code{\link{safeTwoProportionsTest}}
+Returns a 'safeDesign' object that includes:
+
+\describe{
+  \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
+  if known.}
+  \item{parameter}{the safe test defining parameter: here the hyperparameters.}
+  \item{esMin}{the minimally clinically relevant effect size provided by the user.}
+  \item{alpha}{the tolerable type I error provided by the user.}
+  \item{beta}{the tolerable type II error specified by the user.}
+  \item{alternative}{any of "two.sided", "greater", "less" based on the \code{alternativeRestriction} provided by the user.}
+  \item{testType}{here 2x2}
+  \item{pilot}{logical, specifying whether it's a pilot design.}
+  \item{call}{the expression with which this function is called.}
+}
 }
 \description{
-\code{designSafeTwoProportions} finds for a given delta.min indicating the minimal
-mean difference one wants to detect between group a and b, and a given significance level alpha
-and desired type II error guarantee beta the smallest sample size that is needed to detect
-that difference. For this sample size, the S-value formula achieving the desired power is
-found as well and can be used for performing the a safe test.
+The design requires the number of observations one expects to collect in each group in each data block.
+I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyse
+the data stream each time a new observation in both groups has come in. The best results in terms of power
+are achieved when the data blocks are chosen as small as possible, as this allows for analysing and updating
+the safe test as often as possible, to fit the data best.
+Further, the design requires two out of the following three parameters to be known:
+\itemize{
+ \item the power one aims to achieve (\code{1 - beta}),
+ \item the minimal relevant difference between the groups (\code{delta})
+ \item the number of blocks planned (\code{nBlocksPlan}),
 }
-\details{
-As a side effect, prints each sample size being tried.
+where the unknown out of the three will be estimated. In the case of an exploratory "pilot" analysis,
+one can also only provide the number of blocks planned.
 }
 \examples{
-designSafeTwoProportions(deltaMin = 0.7)
-designSafeTwoProportions(deltaMin = 0.7, sampleSizeRatio = 2, lowN = 30)
+#plan for an experiment to detect minimal difference of 0.6 with a balanced design
+set.seed(3152021)
+designSafeTwoProportions(na = 1,
+                         nb = 1,
+                         alpha = 0.1,
+                         beta = 0.20,
+                         delta = 0.6,
+                         alternativeRestriction = "none",
+                         M = 75)
+
+#safe analysis of a pilot: number of samples already known
+designSafeTwoProportions(na = 1,
+                          nb = 1,
+                          nBlocksPlan = 20,
+                          pilot = TRUE)
+
+#specify own hyperparameters
+hyperParameterValues <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
+designSafeTwoProportions(na = 1,
+                         nb = 1,
+                         alpha = 0.1,
+                         beta = 0.20,
+                         delta = 0.6,
+                         hyperParameterValues = hyperParameterValues,
+                         alternativeRestriction = "none",
+                         M = 75)
+
+#restrict range of proportions for estimating nPlan in the control group
+designSafeTwoProportions(na = 1,
+                         nb = 1,
+                         beta = 0.20,
+                         delta = 0.3,
+                         alternativeRestriction = "none",
+                         M = 75,
+                         simThetaAMin = 0.1, simThetaAMax = 0.2)
+
 }

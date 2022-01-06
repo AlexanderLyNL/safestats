@@ -19,7 +19,7 @@ tryOrFailWithNA <- function(expr, value=NA_real_) {
   )
 }
 
-#' Checks Whether a Vector of Object Inherits from the Class "try-error"
+#' Checks Whether a Vector of Object Inherits from the Class 'try-error'
 #'
 #' Checks whether any of the provided objects contains a try error.
 #'
@@ -42,24 +42,6 @@ isTryError <- function(...) {
   result <- purrr::some(obj, .p=tryErrorFunc)
   return(result)
 }
-
-
-
-#' Rounds a Numeric to At Most 5 Significant Figures
-#'
-#' Helper function to round a numeric to 5 significant figures.
-#'
-#' @param num numeric
-#'
-#' @return number rounded up to 5 decimal places.
-#'
-#' @examples
-#' safestats:::round5(pi)
-round5 <- function(num) {
-  stopifnot(is.numeric(num))
-  round(num, 5)
-}
-
 
 #' Helper function: Get all arguments as entered by the user
 #'
@@ -101,6 +83,159 @@ extractNameFromArgs <- function(list, name) {
   return(result)
 }
 
+
+# Check Consistency function --------
+
+#' Checks consistency between the sided of the hypothesis and the  minimal clinically relevant effect size
+#' or safe test defining parameter. Throws an error if the one-sided hypothesis is incongruent with the
+#'
+#' @inheritParams designSafeZ
+#' @param paramToCheck numeric. Either a named safe test defining parameter such as phiS, or thetaS, or a
+#' minimal clinically relevant effect size called with a non-null esMinName name
+#' @param esMinName provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for
+#' the t-test, or "hrMin" for the logrank test
+#' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
+#'
+#' @return paramToCheck after checking, perhaps with a change in sign
+#'
+#' @examples
+#' ### Use in the design stage
+#' meanDiffMin <- 0.4
+#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
+#'                                                               esMin="meanDiffMin",
+#'                                                               alternative="two.sided")
+#' # Returns absolute value of meanDiffMin
+#' paramChecked
+#'
+#' # Invokes warnings
+#' # paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
+#' #                                                               esMin="meanDiffMin",
+#' #                                                               alternative="greater")
+#' # paramChecked == meanDiffMin
+#' #
+#' # ### Use in the execution stage
+#' # phiS <- -0.3
+#' # paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS,
+#' #                                                               alternative="greater")
+#' # paramChecked == phiS
+checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.sided", "greater", "less"),
+                                              esMinName=c("noName", "meanDiffMin", "phiS",
+                                                          "deltaMin", "deltaS",
+                                                          "hrMin", "thetaS", "deltaTrue"),
+                                              paramDomain=NULL) {
+
+  alternative <- match.arg(alternative)
+  paramDomain <- match.arg(paramDomain)
+  esMinName <- match.arg(esMinName)
+
+  if (alternative == "two.sided") {
+    if (esMinName %in% c("meanDiffMin", "deltaMin", "deltaTrue"))
+      return(abs(paramToCheck))
+
+    return(paramToCheck)
+  }
+
+  if (esMinName=="noName")
+    paramName <- NULL
+  else
+    paramName <- esMinName
+
+  if (is.null(paramName)) {
+    paramName <- "the safe test defining parameter"
+    hypParamName <- "test relevant parameter"
+    paramDomain <- "unknown"
+  } else if (paramName=="phiS" || esMinName=="meanDiffMin") {
+    hypParamName <- "meanDiff"
+    paramDomain <- "realNumbers"
+  } else if (paramName=="deltaS" || esMinName=="deltaMin"  || esMinName=="deltaTrue") {
+    hypParamName <- "delta"
+    paramDomain <- "realNumbers"
+  } else if (paramName=="thetaS" || esMinName=="hrMin") {
+    hypParamName <- "theta"
+    paramDomain <- "positiveNumbers"
+  } else {
+    hypParamName <- "testRelevantParameter"
+  }
+
+
+  if (paramDomain=="unknown") {
+    nullValue <- "nullValue"
+
+    if (alternative=="greater" && paramToCheck < 0) {
+      warning('The safe test defining parameter is incongruent with alternative "greater". ',
+              "This safe test parameter is made positive to compare H+: ",
+              "test-relevant parameter > 0 against H0 : test-relevant parameter = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 0) {
+      warning('The safe test defining parameter is incongruent with alternative "less". ',
+              "This safe test parameter is made positive to compare H-: ",
+              "test-relevant parameter < 0 against H0 : test-relevant parameter = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+  } else if (paramDomain=="realNumbers") {
+    nullValue <- 0
+
+    if (alternative=="greater" && paramToCheck < 0) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to -", paramName, " > 0 in order to compare H+: ",
+              hypParamName, " > 0 against H0 : ", hypParamName, " = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 0) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to -", paramName, " < 0 in order to compare H-: ",
+              hypParamName, " < 0 against H0 : ", hypParamName, " = 0")
+      paramToCheck <- -paramToCheck
+    }
+  } else if (paramDomain=="positiveNumbers") {
+    if (alternative=="greater" && paramToCheck < 1) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to 1/", paramName, " > 1 in order to compare H+: ",
+              hypParamName, " > 1 against H0 : ", hypParamName, " = 1")
+
+      paramToCheck <- 1/paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 1) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to 1/", paramName, " < 1 in order to compare H-: ",
+              hypParamName, " < 1 against H0 : ", hypParamName, " = 1")
+
+      paramToCheck <- 1/paramToCheck
+    }
+  }
+
+  return(paramToCheck)
+}
+
+#' Check consistency between nPlan and the testType for one and two-sample z and t-tests
+#'
+#' @inheritParams designSafeZ
+#'
+#' @return nPlan a vector of sample sizes of length 1 or 2
+#'
+#' @examples
+#' safestats:::checkAndReturnsNPlan(nPlan=5, testType="oneSample")
+checkAndReturnsNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired", "twoSample")) {
+  if (testType=="twoSample" && length(nPlan)==1) {
+    nPlan <- c(nPlan, ratio*nPlan)
+    warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] = ratio*nPlan[1], that is, ',
+            nPlan[2], '.')
+  } else if (testType=="paired" && length(nPlan==1)) {
+    nPlan <- c(nPlan, nPlan)
+    warning('testType=="paired" specified, but nPlan[2] not provided. nPlan[2] set to nPlan[1].')
+  } else if (testType=="oneSample" && length(nPlan)==2) {
+    nPlan <- nPlan[1]
+    warning('testType=="oneSample" specified, but two nPlan[2] provided, which is ignored.')
+  }
+  return(nPlan)
+}
+
+
 # Plot helper -----
 #' Sets 'safestats' Plot Options and Returns the Current Plot Options.
 #'
@@ -126,8 +261,7 @@ setSafeStatsPlotOptionsAndReturnOldOnes <- function(...) {
 #'
 #' Helper function to display the histogram of stopping times.
 #'
-#' @param safeSim A safeSim object, returned from \code{\link{replicateTTests}} and
-#' \code{\link{simulateSpreadSampleSizeTwoProportions}}.
+#' @param safeSim A safeSim object, returned from \code{\link{replicateTTests}}.
 #' @param nPlan numeric > 0, the planned sample size(s).
 #' @param deltaTrue numeric, that represents the true underlying standardised effect size delta.
 #' @param showOnlyNRejected logical, when \code{TRUE} discards the cases that did not reject.
@@ -168,7 +302,7 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 
   maxLength <- ceiling(nPlan/nStep)
 
-  mainTitle <- bquote(~"Spread of stopping times when true difference " == .(round(deltaTrue,2)))
+  mainTitle <- bquote(~"Spread of stopping times when true delta " == .(round(deltaTrue,2)))
   oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
   on.exit(graphics::par(oldPar))
   graphics::hist(dataToPlot,
@@ -204,34 +338,32 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' alpha <- 0.05
 #' mIter <- 1000L
 #'
-#' designObj <- designSafeT(deltaMin=1, alpha=alpha)
-#' oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nsim=mIter, seed=1)
+#' designObj <- designSafeT(deltaMin=1, alpha=alpha, beta=0.2, nSim=100)
+#' oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nSim=mIter, seed=1)
 #'
 #' eValues <- vector("numeric", length=mIter)
 #'
 #' for (i in seq_along(eValues)) {
 #'   eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
 #' }
-#' # First run: 7 false null rejections
+#'
+#' # First run: 8 false null rejections
 #' sum(eValues > 1/alpha)
 #'
 #' continuedSafe <- selectivelyContinueTTestCombineData(
 #'   oldValues=eValues, designObj=designObj, oldData=oldData,
 #'   deltaTrue=0, seed=2)
 #'
-#' # Second run: 8 false null rejections
+#' # Second run: 1 false null rejections
 #' sum(continuedSafe$newValues > 1/alpha)
 #'
-#' for (i in 1:3) {
-#'   eValues <- continuedSafe$newValues
-#'   oldData <- continuedSafe$combinedData
-#'   continuedSafe <- selectivelyContinueTTestCombineData(
-#'    oldValues=eValues, designObj=designObj, oldData=oldData,
-#'    deltaTrue=0, seed=i+2)
-#'   print(paste("Iteration", i+2))
-#'   print("Number of false null rejections")
-#'   print(sum(continuedSafe$newValues > 1/alpha))
-#' }
+#' # Third run: 0 false null rejections
+#' eValues <- continuedSafe$newValues
+#' oldData <- continuedSafe$combinedData
+#' continuedSafe <- selectivelyContinueTTestCombineData(
+#'   oldValues=eValues, designObj=designObj, oldData=oldData,
+#'   deltaTrue=0, seed=3)
+#' sum(continuedSafe$newValues > 1/alpha)
 selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues", "pValues"), designObj=NULL,
                                                 alternative=c("two.sided", "greater", "less"),
                                                 oldData, deltaTrue, alpha=NULL,
@@ -285,7 +417,7 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues
     tempNPlan <- c(n1Extra, n2Extra)
 
   newData <- generateNormalData("nPlan"=tempNPlan,
-                               "deltaTrue"=deltaTrue, "nsim"=length(notRejectedIndex),
+                               "deltaTrue"=deltaTrue, "nSim"=length(notRejectedIndex),
                                "paired"=paired, "seed"=seed,
                                "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue)
 
@@ -455,3 +587,99 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 
   }
 }
+
+# ---------- Boot helpers --------
+
+#' Computes the bootObj for sequential sampling procedures regarding nPlan, beta, the implied target
+#'
+#' @inheritParams designSafeZ
+#' @param values numeric vector. If objType equals "nPlan" or "beta" then values should be stopping times,
+#' if objType equals "logImpliedTarget" then values should be eValues.
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
+#' approximation of the power, the planned sample size(s) of the safe test under continuous monitoring.
+#' @param nPlan integer > 0 representing the number of planned samples (for the first group).
+#' @param objType character string either "nPlan", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".
+#'
+#' @return bootObj
+#' @export
+#'
+#' @examples
+#' computeBootObj(1:100, objType="nPlan", beta=0.3)
+computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L, alpha=NULL,
+                           objType=c("nPlan", "beta", "betaFromEValues", "logImpliedTarget", "expectedStopTime")) {
+  objType <- match.arg(objType)
+
+  if (objType=="beta") {
+    if (is.null(nPlan) || nPlan <= 0) stop("Please provide an nPlan > 0")
+
+    times <- values
+    stopifnot(nPlan > 0)
+
+    bootObj <- boot::boot(times,
+                          function(x, idx) {
+                            1-mean(x[idx] <= nPlan)
+                          },  R = nBoot)
+  } else if (objType =="betaFromEValues") {
+    if (is.null(alpha) || alpha <= 0 || alpha >= 1) stop("Please provide an alpha in (0, 1)")
+    eValues <- values
+
+    bootObj <- boot::boot(
+      data = eValues,
+      statistic = function(x, idx) {
+        mean(x[idx] >= 1/alpha)
+      },
+      R = nBoot
+    )
+
+  } else if (objType=="nPlan") {
+    if (is.null(beta) || beta <= 0 || beta >= 1) stop("Please provide a beta in (0, 1)")
+
+    times <- values
+    bootObj <- boot::boot(times,
+                          function(x, idx) {
+                            quantile(x[idx], prob=1-beta, names=FALSE)
+                          }, R = nBoot)
+  } else if (objType=="logImpliedTarget") {
+    eValues <- values
+    stopifnot(eValues > 0)
+
+    bootObj <- boot::boot(eValues,
+                          function(x, idx) {
+                            mean(log(x[idx]))
+                          }, R = nBoot)
+  } else if (objType=="expectedStopTime") {
+    times <- values
+    bootObj <- boot::boot(times,
+                          function(x, idx) {
+                            mean(x[idx])
+                          }, R = nBoot)
+  }
+
+  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
+  return(bootObj)
+}
+
+#' #' Helper function to produce notes based on bootstrap results
+#' #'
+#' #' @param targetName character string representing the target of estimation, e.g., nPlan, or beta
+#' #' @param estimate numeric bootstrap estimate
+#' #' @param sdEstimate numeric > 0 representing the standard error
+#' #' @param digits integer >= 0. Default taken from options
+#' #'
+#' #' @return character string with bootstrap note.
+#' #'
+#' #' @examples
+#' #' safestats:::writeBootNote("nPlan", 18, 4)
+#' writeBootNote <- function(targetName, estimate, sdEstimate, digits = getOption("digits")) {
+#'   note <- paste0(targetName, " is estimated with bootstrap standard error ",
+#'                  format(sdEstimate, digits = digits))
+#'
+#'   # note <- paste0(targetName, " is estimated with bootstrap standard error ",
+#'   #                format(sdEstimate, digits = digits), ". \n",
+#'   #                "Thus, with a relative approximation error of ",
+#'   #                format(sdEstimate/estimate*100, digits=digits), "%.")
+#'                  # "\n Increase nSim for a more accurate estimate.")
+#'   return(note)
+#' }
+
+

@@ -7,8 +7,8 @@
 designPilotSafeT(
   nPlan = 50,
   alpha = 0.05,
-  h0 = 0,
   alternative = c("two.sided", "greater", "less"),
+  h0 = 0,
   lowParam = 0.01,
   highParam = 1.2,
   tol = 0.01,
@@ -24,14 +24,16 @@ designPilotSafeT(
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
-
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS.}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
-\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS.}
+\item{lowParam}{numeric defining the smallest delta of the search space for the test-defining deltaS
+for scenario 3. Currently not yet in use.}
+
+\item{highParam}{numeric defining the largest delta of the search space for the test-defining deltaS
+for scenario 3. Currently not yet in use.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
@@ -45,7 +47,7 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 lowParam to highParam, if the minimum is not found.}
 }
 \value{
-Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
+Returns an object of class 'safeDesign'. An object of class 'safeDesign' is a list containing at least the
 following components:
 
 \describe{

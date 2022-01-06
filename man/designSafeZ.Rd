@@ -8,15 +8,18 @@ designSafeZ(
   meanDiffMin = NULL,
   beta = NULL,
   nPlan = NULL,
-  alternative = c("two.sided", "greater", "less"),
   alpha = 0.05,
+  h0 = 0,
+  alternative = c("two.sided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
-  highN = 8e+09,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
+  nSim = 1000L,
+  nBoot = 1000L,
+  pb = TRUE,
   grow = TRUE,
   ...
 )
@@ -32,20 +35,19 @@ and "phiS". Note that 1-beta defines the power.}
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
-"greater" or "less".}
-
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+
+\item{h0}{numeric, represents the null hypothesis, default h0=0.}
+
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+"greater" or "less".}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
-
-\item{highN}{integer that stops the search process if the lower bound for the candidate nPlan exceeds this
-number. Default highN is set 8e9 to correspond to the current population of the earth.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
@@ -54,7 +56,16 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
 
-\item{grow}{logical, defaul set to \code{TRUE} so the grow safe test is used in the design.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{grow}{logical, default set to \code{TRUE} so the grow safe test is used in the design.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -82,10 +93,10 @@ Returns a safeDesign object that includes:
 }
 \description{
 A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
-phiS. If nPlan is provided, then only the safe test defining parameter phiS needs to be determined. That resulting
-phiS leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
-(i) a tolerable type II error beta, and (b) a clinically relevant minimal population mean difference meanDiffMin.
-The procedure finds the smallest nPlan for which meanDiffMin is found with power of at least 1 - beta.
+phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
+phiS = meanDiffMin as the safe test defining parameter in accordance to the GROW criterion.
+If a tolerable type II error, i.e., beta, is provided then nPlan can be sampled. The sampled nPlan is then
+the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
 }
 \examples{
 designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
@@ -93,4 +104,7 @@ designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="gr
 #nPlan known:
 designObj <- designSafeZ(nPlan = 100, alpha=0.05)
 
+}
+\references{
+Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
 }

@@ -14,8 +14,7 @@ plotHistogramDistributionStoppingTimes(
 )
 }
 \arguments{
-\item{safeSim}{A safeSim object, returned from \code{\link{replicateTTests}} and
-\code{\link{simulateSpreadSampleSizeTwoProportions}}.}
+\item{safeSim}{A safeSim object, returned from \code{\link{replicateTTests}}.}
 
 \item{nPlan}{numeric > 0, the planned sample size(s).}
 

@@ -11,10 +11,11 @@ safeTTest(
   designObj = NULL,
   paired = FALSE,
   varEqual = TRUE,
-  h0 = 0,
   pilot = FALSE,
   alpha = NULL,
   alternative = NULL,
+  ciValue = NULL,
+  na.rm = FALSE,
   ...
 )
 
@@ -24,7 +25,6 @@ safe.t.test(
   designObj = NULL,
   paired = FALSE,
   var.equal = TRUE,
-  h0 = 0,
   pilot = FALSE,
   alpha = NULL,
   alternative = NULL,
@@ -36,23 +36,28 @@ safe.t.test(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{designObj}{an object obtained from \code{\link{designSafeT}}, or \code{NULL}, when pilot equals \code{TRUE}..}
+\item{designObj}{an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot
+equals  \code{TRUE}.}
 
 \item{paired}{a logical indicating whether you want a paired t-test.}
 
-\item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For the moment,
-this is always \code{TRUE}.}
+\item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
+the moment, this is always \code{TRUE}.}
 
-\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0}
+\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that
+the number of samples is exactly as planned.}
 
-\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned.}
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then
+the alpha of the design object is used instead in constructing the decision rule S > 1/alpha.}
 
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
+then the alternative specified by the design object is used instead.}
 
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
+and ciValue = 1 - alpha}
+
+\item{na.rm}{a logical value indicating whether \code{NA} values should be stripped before
+the computation proceeds.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
@@ -67,21 +72,19 @@ following components:
   \item{statistic}{the value of the t-statistic.}
   \item{n}{The realised sample size(s).}
   \item{eValue}{the realised e-value from the safe test.}
-  \item{confSeq}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
+  \item{confSeq}{A safe confidence interval for the mean appropriate to the specific alternative
   hypothesis.}
-  \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-  sample test or a two-sample test.}
-  \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test.}
+  \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it a one-
+  sample test or a two-sample test was conducted.}
   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{dataName}{a character string giving the name(s) of the data.}
-  \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}}.}
+  \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}()}.}
   \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-A safe t-test adapted from  \code{\link[stats]{t.test}} to perform one and two sample t-tests on vectors of data.
+A safe t-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample t-tests on vectors of data.
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",

@@ -7,7 +7,7 @@
 \method{print}{safeTSim}(x, ...)
 }
 \arguments{
-\item{x}{a "safeTSim" object.}
+\item{x}{a 'safeTSim' object.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -21,10 +21,10 @@ Prints a safeTSim Object
 designObj <- designSafeT(1)
 
 # Data under deltaTrue=deltaMin
-simObj <- simulate(designObj, nsim=100)
-simObj
+#simObj <- simulate(designObj, nsim=100)
+#simObj
 
 # Data under the null deltaTrue=0
-simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
-simObj
+#simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
+#simObj
 }

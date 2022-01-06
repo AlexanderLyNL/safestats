@@ -6,19 +6,23 @@
 \usage{
 designSafeT(
   deltaMin = NULL,
-  alpha = 0.05,
-  beta = 0.2,
-  alternative = c("two.sided", "greater", "less"),
-  h0 = 0,
+  beta = NULL,
   nPlan = NULL,
+  alpha = 0.05,
+  h0 = 0,
+  alternative = c("two.sided", "greater", "less"),
   lowN = 3L,
-  highN = 100L,
+  highN = 1000000L,
   lowParam = 0.01,
-  highParam = 1.5 * abs(deltaMin),
+  highParam = 1.5,
   tol = 0.01,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
-  logging = FALSE,
+  nSim = 1000L,
+  nBoot = 1000L,
+  parameter = NULL,
+  pb = TRUE,
+  seed = NULL,
   ...
 )
 }
@@ -26,27 +30,30 @@ designSafeT(
 \item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 we would the experiment to be able to detect.}
 
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
+the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+
+\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
 "greater" or "less".}
 
-\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
+\item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
+optional stopping. Default lowN is set 1.}
 
-\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+\item{highN}{integer minimal sample size of the (first) sample when computing the power due to
+optional stopping. Default highN is set 1e6.}
 
-\item{lowN}{integer that defines the smallest n of our search space for n.}
+\item{lowParam}{numeric defining the smallest delta of the search space for the test-defining deltaS
+for scenario 3. Currently not yet in use.}
 
-\item{highN}{integer that defines the largest n of our search space for n. This might be the largest n that we
-are able to fund.}
-
-\item{lowParam}{numeric that defines the smallest delta of our search space for the test-defining deltaS.}
-
-\item{highParam}{numeric that defines the largest delta of our search space for the test-defining deltaS.}
+\item{highParam}{numeric defining the largest delta of the search space for the test-defining deltaS
+for scenario 3. Currently not yet in use.}
 
 \item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
@@ -55,12 +62,23 @@ are able to fund.}
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{logging}{logical, if \code{TRUE} return altSThreshes.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
+
+\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{seed}{integer, seed number.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
-Returns an object of class "safeDesign". An object of class "safeDesign" is a list containing at least the
+Returns an object of class 'safeDesign'. An object of class 'safeDesign' is a list containing at least the
 following components:
 
 \describe{
@@ -93,6 +111,17 @@ deltaS leads to an (approximately) most powerful safe test. Typically, nPlan is 
 deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
 }
 \examples{
-designObj <- designSafeT(deltaMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
+designObj <- designSafeT(deltaMin=0.8, alpha=0.03, alternative="greater")
+designObj
+
+# "Scenario 1.a": Minimal clinically relevant standarised mean difference and tolerable type
+# II error also known. Goal: find nPlan.
+designObj <- designSafeT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
+designObj
+
+# "Scenario 2": Minimal clinically relevant standarised mean difference and nPlan known.
+# Goal: find the power, hence, the type II error of the procedure under optional stopping.
+
+designObj <- designSafeT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
 designObj
 }

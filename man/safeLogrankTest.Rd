@@ -2,20 +2,29 @@
 % Please edit documentation in R/logRankTest.R
 \name{safeLogrankTest}
 \alias{safeLogrankTest}
+\alias{safeLogrankTestStat}
 \title{Safe Logrank Test}
 \usage{
 safeLogrankTest(
   formula,
   designObj = NULL,
-  h0 = 1,
+  ciValue = NULL,
   data = NULL,
   survTime = NULL,
   group = NULL,
   pilot = FALSE,
-  alpha = NULL,
-  alternative = NULL,
-  exact = FALSE,
+  exact = TRUE,
+  computeZ = TRUE,
   ...
+)
+
+safeLogrankTestStat(
+  z,
+  nEvents,
+  designObj,
+  ciValue = NULL,
+  dataNull = 1,
+  sigma = 1
 )
 }
 \arguments{
@@ -24,56 +33,74 @@ see \code{\link[survival]{Surv}} for more details.}
 
 \item{designObj}{a safe logrank design obtained from \code{\link{designSafeLogrank}}.}
 
-\item{h0}{a number indicating the hypothesised true value of the hazard ratio under the null. Default set to 1}
+\item{ciValue}{numeric, represents the ciValue-level of the confidence sequence. Default ciValue=NULL, and
+ciValue = 1 - alpha, where alpha is taken from the design object.}
 
-\item{data}{an optional data frame in which to interpret the variables occurring in survTime and group}
+\item{data}{an optional data frame in which to interpret the variables occurring in survTime and group.}
 
-\item{survTime}{an optional survival time object of class "Surv" created with \code{\link[survival]{Surv}}, or
-a name of a column in the data set of class "Surv". Does not need specifying if a formula is provided, therefore
+\item{survTime}{an optional survival time object of class 'Surv' created with \code{\link[survival]{Surv}}, or
+a name of a column in the data set of class 'Surv'. Does not need specifying if a formula is provided, therefore
 set to \code{NULL} by default.}
 
 \item{group}{an optional factor, a grouping variable. Currently, only two levels allowed. Does not need specifying
 if a formula is provided, therefore set to \code{NULL} by default.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned.}
-
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the alpha of
-the design object is used instead in constructing the decision rule S > 1/alpha.}
-
-\item{alternative}{a character string only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then the
-alternative specified by the design object is used instead.}
+samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+To change these default values, please use \code{\link{designSafeLogrank}}.}
 
 \item{exact}{a logical indicating whether the exact safe logrank test needs to be performed based on
-the hypergeometric likelihood}
+the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the safe z-test (for Gaussian data)
+applied to the logrank z-statistic is used instead.}
+
+\item{computeZ}{logical. If \code{TRUE} computes the logrank z-statistic.
+Default is \code{TRUE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{z}{numeric representing the observed logrank z statistic.}
+
+\item{nEvents}{numeric > 0, observed number of events.}
+
+\item{dataNull}{numeric > 0, the null hypothesis corresponding to the z statistics.
+By default dataNull = 1 representing equality of the hazard ratio.}
+
+\item{sigma}{numeric > 0, scaling in the data.}
 }
 \value{
-Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
 following components:
 
 \describe{
-  \item{statistic}{the value of the z-statistic.}
+  \item{statistic}{the value of the summary, i.e., z-statistic or the e-value.}
   \item{nEvents}{The number of observed events.}
-  \item{eValue}{the s-value of the safe test.}
+  \item{eValue}{the e-value of the safe test.}
   \item{confSeq}{An anytime-valid confidence sequence.}
   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
-  \item{h0}{the specified hypothesised value of hazard ratio.}
   \item{testType}{"logrank".}
   \item{dataName}{a character string giving the name(s) of the data.}
   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}
-  \item{logrankObj}{an object obtained from \code{\link[coin]{logrank_test}}.}
+  \item{sumStats}{a list containing.the time of events, the progression of the risk sets and events.}
   \item{call}{the expression with which this function is called.}
 }
+
+
 }
 \description{
 A safe test to test whether there is a difference between two survival curves. This function
-builds on the Mantel-Cox version of the logrank test computed with \code{\link[survival]{survdiff}}
-and adds a sign to the statistic based on the output of \code{\link[coin]{logrank_test}}.
+builds on the Mantel-Cox version of the logrank test.
 }
+\section{Functions}{
+\itemize{
+\item \code{safeLogrankTestStat}: Safe Logrank Test based on Summary Statistic Z
+All provided data (i.e., z-scores) are assumed to be centred on a hazard ratio = 1, thus, log(hr) = 0 ,
+and the proper (e.g., hypergeometric) scaling is applied to the data, so sigma = 1. The null hypothesis
+in the design object pertains to the population and is allowed to differ from log(theta) = 0.
+}}
+
 \examples{
 # Example taken from survival::survdiff
+
 designObj <- designSafeLogrank(hrMin=1/2)
 
 ovData <- survival::ovarian
@@ -91,11 +118,58 @@ callaert <- data.frame(
   group = factor(rep(0:1, c(7, 8)))
 )
 
-designObj <- designSafeLogrank(hrMin=1/2, beta=0.2)
+designObj <- designSafeLogrank(hrMin=1/2)
 
 safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
                 designObj = designObj)
 
 safeLogrankTest(survTime=survival::Surv(callaert$time),
                 group=callaert$group, designObj = designObj)
+
+result <- safeLogrankTest(survTime=survival::Surv(callaert$time),
+                group=callaert$group, designObj = designObj)
+
+result
+
+##  Sequentially
+# Greater
+eValueGreater <- exp(cumsum(result$sumStats$logEValueGreater))
+# Less
+eValueLess <- exp(cumsum(result$sumStats$logEValueLess))
+
+# two.sided
+eValueTwoSided <- 1/2*eValueGreater+1/2*eValueLess
+
+eValueTwoSided
+result$eValue
+
+###### Example switching between safe exact and safe Gaussian logrank test
+
+designObj <- designSafeLogrank(0.8, alternative="less")
+
+dat <- safestats::generateSurvData(300, 300, 2, 0.0065, 0.0065*0.8, seed=1)
+survTime <- survival::Surv(dat$time, dat$status)
+
+resultE <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj)
+
+resultG <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj, exact=FALSE)
+
+resultE
+resultG
+
+###### Example switching between safe exact and safe Gaussian logrank test other side
+
+designObj <- designSafeLogrank(1/0.8, alternative="greater")
+
+resultE <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj)
+
+resultG <- safeLogrankTest(survTime ~ dat$group,
+                           designObj = designObj, exact=FALSE)
+
+if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
+  stop("one-sided wrong")
+
 }
