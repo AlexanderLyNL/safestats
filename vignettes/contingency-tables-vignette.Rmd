@@ -61,12 +61,11 @@ balancedSafeDesign <- designSafeTwoProportions(
   delta = 0.3
 )
 ```
-
-For detecting this difference with a power of at least 80%, while testing at significance level 0.05, we would need to observe:
 ```{r}
-print(balancedSafeDesign[["nPlan"]]["nBlocksPlan"])
+print(balancedSafeDesign)
 ```
-data blocks.
+
+For detecting this difference with a power of at least 80%, while testing at significance level 0.05, we would need to observe `r balancedSafeDesign[["nPlan"]]["nBlocksPlan"]` data blocks.
 
 A safe test could now be performed with this design object; for this, some mock data are generated below:
 ```{r }
@@ -90,7 +89,7 @@ safe.prop.test(ya = ya, yb = yb, designObj = balancedSafeDesign)
 In this example, we would reject the null hypothesis that the true difference between the success probabilities in the groups receiving either the new treatment or a placebo is equal to 0. The interpretation of the "e-values" calculated in safe tests is the opposite of that of p-values: the higher the e-value, the more _evidence_ for the alternative hypothesis we have. The e-value exceeds the significance threshold of $1 / \alpha = 1 / 0.05 = 20$, hence, we reject the null hypothesis. More details and the surprisingly simple proof of the type-I error guarantee of e-values can be found in the original safe testing paper, on page 3 ([Grünwald, 2019](#originalSafeTest)).
 
 ### Case (II): Minimal clinically relevant effect size unknown, but maximum number of samples known.
-We might not have enough resources to fund our study to detect the minimal difference of 0.3. For example, we might only have funds to treat 50 patients in each group, so 100 in total. If this is the case, we could inspect the minimal number of patients we need for the experiment to achieve a power of 80% at our significance level per effect size of interest in the worst case:
+We might not have enough resources to fund our study to detect the minimal difference of 0.3. For example, we might only have funds to treat *50* patients in each group, so *100 in total*. If this is the case, we could inspect the minimal number of patients we need for the experiment to achieve a power of 80% at our significance level per effect size of interest in the worst case:
 ```{r, echo = FALSE}
 # #make the plot voor standard parameter settings
 # standardPrior <- list(betaA1 = 0.18,
@@ -129,11 +128,15 @@ sampleSizePerMinimalDifference <- simulateTwoProportions(list(standard = standar
                                            deltamax = 0.9
                                          )
 ```
+```{r, echo = FALSE}
+someIndex <- max(which(sampleSizePerMinimalDifference$simdata$worstCaseQuantile <= 50))
+minDetectableEffect <- round(sampleSizePerMinimalDifference$simdata$delta[someIndex], 2)
+```
 ```{r}
 graphics::plot(sampleSizePerMinimalDifference)
 ```
 
-The simulateTwoProportions function generates experiments based on the minimal difference corresponding to the x-axis and carries out a simulation with _optional stopping_, i.e., experiments were stopped when $e > 1/\alpha=20$ was observed. The realised average number of patients in the worst case was calculated, shown as _worst case_, depicting the worst-case sample size we need to plan for if we want to reach 80% power. Observe that the smallest absolute difference detectable with our available resources is 0.47 if we want the worst-case power guarantee; we might have to cancel the study, or try to acquire more research funds. With our current funds, we can not guarantee a high enough power for detecting the difference between the groups we are interested in. This implies that, when a non-significant result is obtained, we would be unsure whether this was caused by our underpowered study, or because there was really no difference between the groups.
+The simulateTwoProportions function generates experiments based on the minimal difference corresponding to the x-axis and carries out a simulation with _optional stopping_, i.e., experiments were stopped when $e > 1/\alpha=20$ was observed. The realised average number of patients in the worst case was calculated, shown as _worst case_, depicting the worst-case sample size we need to plan for if we want to reach 80% power. Observe that the smallest absolute difference detectable with our available resources is `r minDetectableEffect` if we want the worst-case power guarantee; we might have to cancel the study, or try to acquire more research funds. With our current funds, we can not guarantee a high enough power for detecting the difference between the groups we are interested in. This implies that, when a non-significant result is obtained, we would be unsure whether this was caused by our underpowered study, or because there was really no difference between the groups.
 
 Furthermore, the plot also shows the _expected sample sizes_ under optional stopping. To retrieve these, the simulateTwoProportions function carries out simulations with _optional stopping_ where experiments were stopped when $e > 1/\alpha=20$ was observed, or when the worst-case sample size for the 80% power guarantee was reached. Observe that the difference between the planned sample size and the expected sample size under optional stopping is substantial. In section 2, the behaviour of the safe test for two proportions and Fisher's exact test under optional stopping is studied further.
 
@@ -261,7 +264,7 @@ When can use this new design on the data obtained for the unrestricted balanced 
 ```{r}
 safe.prop.test(ya = ya, yb = yb, designObj = differenceRestrictedSafeDesign)
 ```
-We see that we now have obtained a much higher e-value, i.e., more evidence for the alternative hypothesis. We can also see in the design that if the true difference between the groups would be 0.3, we would only need to collect 54 data blocks instead of 95. However, one needs to be careful: if the true difference would be smaller than 0.3, we could miss evidence and would need to continue experiments longer than with the unrestricted safe tests: a good illustration can be found in [Turner et al., 2021](#TurnerRef), figure 4.
+We see that we now have obtained a much higher e-value, i.e., more evidence for the alternative hypothesis. We can also see in the design that if the true difference between the groups would be 0.3, we would only need to collect `r differenceRestrictedSafeDesign$nPlan[3]` data blocks instead of `r balancedSafeDesign[["nPlan"]]["nBlocksPlan"]`. However, one needs to be careful: if the true difference would be smaller than 0.3, we could miss evidence and would need to continue experiments longer than with the unrestricted safe tests: a good illustration can be found in [Turner et al., 2021](#TurnerRef), figure 4.
 
 ## 2. Inference with Safe Tests and <a name = "optStop2x2"></a>Optional Stopping
 In this section, we illustrate the concept of optional stopping under various scenarios.
@@ -370,7 +373,7 @@ In almost 20% of experiments we would reject the null, which is four times as mu
 ## 3. <a name = "optCont2x2"></a>Optional Continuation for tests of two proportions
 In each of the simulations above, a fraction of the experiments did not lead to the rejection of the null hypothesis. Since safe tests allow for optional continuation, one could decide to plan a replication experiment after such a 'failed' first experiment, for example when the e-value is borderline significant. The resulting e-values from these replication studies could then be multiplied to calculate a final e-value.
 
-We are now going to zoom in on two of the optional stopping simulations we carried out above, where the true difference between the groups equalled our design difference (0.3), and where the true difference equalled 0. In the experiment where the true difference was 0.3, we did not reject the null in 15.9% of the studies. If we now imagine the situation we would encounter in reality, where we would not know that we were really sampling from the alternative hypothesis, how high should e-values then be to support starting a replication study? To give ourselves some pointers, we could look at the spread of e-values from studies where the null was not rejected, from our experiments under the null and under the alternative:
+We are now going to zoom in on two of the optional stopping simulations we carried out above, where the true difference between the groups equalled our design difference (0.3), and where the true difference equalled 0. In the experiment where the true difference was 0.3, we did not reject the null in `r 100*(1 - optionalStoppingResult[["powerOptioStop"]])`% of the studies. If we now imagine the situation we would encounter in reality, where we would not know that we were really sampling from the alternative hypothesis, how high should e-values then be to support starting a replication study? To give ourselves some pointers, we could look at the spread of e-values from studies where the null was not rejected, from our experiments under the null and under the alternative:
 ```{r}
 eValuesNotRejected <-
   optionalStoppingResult[["eValues"]][!optionalStoppingResult[["allSafeDecisions"]]]
@@ -463,7 +466,7 @@ plotConfidenceSequenceTwoProportions(ya = ya,
 ```
 ![](safe2x2ConfidencePlot.png)
 
-The above plot shows that in our confidence sequence, from data block 36 onwards, $0$ is not included in the confidence interval (grey dashed line). The true value, 0.3, remains included. The precision indicates how many difference values between -1 and 1 are checked while building the confidence sequence. It is recommended to set this value to 100 (default).
+The above plot shows that after finishing our experiment, $0$ is not included in the confidence interval (grey dashed line). The true value, 0.3, remains included. The precision indicates how many difference values between -1 and 1 are checked while building the confidence sequence. It is recommended to set this value to 100 (default).
 
 The code below can be used to check that our confidence sequence indeed offers the $1 - \alpha$ guarantee and includes the difference between the two success probabilities of $0.3$ in at least 95% of simulated scenarios:
 
@@ -485,7 +488,7 @@ coverageSimResult <- simulateCoverageDifferenceTwoProportions(successProbability
 print(coverageSimResult)
 ```
 
-Our confidence interval is even a bit conservative: the true difference (delta) is included in 97% of the confidence intervals in 1000 simulations.
+Our confidence interval is even a bit conservative: the true difference (delta) is included in `r 100*coverageSimResult`% of the confidence intervals in 1000 simulations.
 
 #### Confidence sequence for log of the odds ratio
 Due to the mathematical properties of this measure, for the log of the odds ratio, only one-sided confidence intervals can be constructed for the 2x2 setting (more details in [Turner et al., 2021](#TurnerRef)). When one hypothesizes/ observes that the log odds ratio is positive (the success probability in the treatment group is bigger than that in the placebo group), a positive lower bound can be given for this odds ratio. Vice versa, if one hypothesizes a negative log odds ratio, an negative upper bound can be given.
