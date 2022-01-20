@@ -74,14 +74,23 @@ At the same time, we would like to avoid a type II error, that is, missing out o
 Not all effects are equally important, especially, when a minimal clinically relevant effect size can be formulated. For instance, suppose that a population of interest has a population average systolic blood pressure of $\mu = 120$ mmHg (milimetre of mercury) and that the population standard deviation is $\sigma = 15$. Suppose further that all approved blood pressure drugs change the blood pressure by at least 9 mmHg, then a minimal clinically relevant effect size can be specified as $\delta_{\min} = (\mu_{\text{post}} - \mu_{\text{pre}}) / (\sqrt{2} \sigma) = 9 / (15 \sqrt{2} ) = 0.42$, where $\mu_{\text{post}}$ represents the average blood pressure after treatment and $\mu_{\text{pre}}$ the average blood pressure before treatment of the population of interest. The $\sqrt{2}$-term in the denominator is a result of the measurements being paired. 
 
 Based on a tolerable type I error rate of $\alpha = 0.05$, type II error rate of $\beta = 0.20$, and minimal clinical effect size of $\delta_{\min} \approx 0.42$, the function designSafeT allows us to design the experiment as follows.
-
 ```{r}
 alpha <- 0.05
 beta <- 0.2
 deltaMin <- 9/(sqrt(2)*15)
+```
+```{r, echo = FALSE}
+# designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
+#                          alternative="greater", testType="paired", seed=1, pb=FALSE)
+# save(designObj, file="safeTVignetteData/safeTDesignObject.Rdata")
+load("safeTVignetteData/safeTDesignObject.Rdata")
+```
 
+```{r, eval=FALSE}
 designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
                          alternative="greater", testType="paired", seed=1, pb=FALSE)
+```
+```{r}
 designObj
 ```
 The design object defines both the parameter deltaS that will used to compute the e-value, e.g., `r designObj$parameter`, and the planned sample size(s), e.g., `r designObj$nPlan`. Hence, in this case we need the pre- and post-measurements of about `r designObj$nPlan[1]` patients to detect a true effect of $\delta=\delta_{\min} \approx 0.42$. This nPlan of `r designObj$nPlan[1]` is based on continuously monitoring the e-value and stopping the experiment as soon as it exceeds $1/\alpha = 20$. Note that the event that the E-variable exceeds $1/\alpha$ is random, and the sample size at which this occurs is therefore also random. This randomness is expressed with nPlan being reported with two standard error of the mean. When it is only possible to conduct the test once, when the data are treated as a single batch, then `r designObj$nPlanBatch[1]` patients (thus `r designObj$nPlanBatch[1]-designObj$nPlan[1]` more) are needed to detect $\delta=\delta_{\min} \approx 0.42$ with 80% chance. <!--The batch planned sample size, e.g., `designObj$nPlanBatch[1]`, is non-random and serves as an upper bound for the nPlan reported above, see the [section on optional stopping](#optStopT) for further details.-->
@@ -89,20 +98,33 @@ The design object defines both the parameter deltaS that will used to compute th
 ## <a name = powerplotT>Case (II):</a> Minimal clinically relevant effect size unknown, but maximum number of samples known.
 It is not always clear what the minimal clinically relevant effect size is. Suppose that the tolerable type I and type II error rates and a maximum sample size nMax, say, 100 is known due to budget constraints. In this case, the design function can be called with a reasonable range of minimal clinically relevant effect sizes, and a prospective futility analysis can be done: 
 
-```{r, fig.height=4, fig.width=8}
+```{r, echo = FALSE}
+# plotSafeTSampleSizeProfile <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta,
+#                                                                lowDeltaMin=0.1, highDeltaMin=1,
+#                                                                nMax=100, seed=1,
+#                                                                alternative="greater",
+#                                                                testType="paired", nSim=1000,
+#                                                                pb=FALSE)
+# save(plotSafeTSampleSizeProfile, file="safeTVignetteData/plotSafeTSampleSizeProfile.Rdata")
+load("safeTVignetteData/plotSafeTSampleSizeProfile.Rdata")
+```
+```{r, eval = FALSE}
 # Recall:
 # alpha <- 0.05
 # beta <- 0.2
-
-result <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta, 
+plotSafeTSampleSizeProfile <- plotSafeTDesignSampleSizeProfile(alpha=alpha, beta=beta, 
                                            lowDeltaMin=0.1, highDeltaMin=1,
                                            nMax=100, seed=1, alternative="greater", 
                                            testType="paired", nSim=1000, pb=FALSE)
-result$deltaDomain
-result$allN1PlanSafe
+```
+![](safeTVignetteData/plotSafeTSampleSizeProfile.png)
+```{r}
+plotSafeTSampleSizeProfile$deltaDomain
+plotSafeTSampleSizeProfile$allN1PlanSafe
 ```
 
-The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80%, if the true effect size is at least 0.35. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for extra grant money to test an additional `r result$allN1PlanSafe[8]-100` patients, or decide that it's futile to conduct this experiment, and that we should spend our time and efforts on different endeavours instead. 
+
+The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80%, if the true effect size is at least 0.35. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for extra grant money to test an additional `r plotSafeTSampleSizeProfile$allN1PlanSafe[8]-100` patients, or decide that it's futile to conduct this experiment, and that we should spend our time and efforts on different endeavours instead. 
 
 # 2. <a name = "optStopT">Inference with safe tests: Optional stopping</a>
 In this section we illustrate the operational characteristics of the safe t-test under optional stopping. The [next section](#optContT) studies the operational characteristics of this test under optional continuation. Robustness to these both optional stopping and continuation demonstrate that if the null hypothesis of no effect holds true, then there is less than $\alpha$ chance that the E-variable will _ever_ reject the null. After illustrating the operational characteristics of the safe test under the null, we then demonstrate its performance under the alternative. 
@@ -168,11 +190,22 @@ The following code replicates 1,000 experiments and each data set is generated w
 
 freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta,
                              alternative="greater", testType="paired")
-
+```
+```{r, echo = FALSE}
+# simResultDeltaTrueIsZero <- simulate(object=designObj, nSim=1000L, seed=1,
+#                                      deltaTrue=0, freqOptioStop=TRUE,
+#                                      nPlanFreq=freqDesignObj$nPlan,
+#                                      muGlobal=120, sigmaTrue=15, pb=FALSE)
+# save(simResultDeltaTrueIsZero, file="safeTVignetteData/simResultDeltaTrueIsZero.Rdata")
+load("safeTVignetteData/simResultDeltaTrueIsZero.Rdata")
+```
+```{r, eval = FALSE}
 simResultDeltaTrueIsZero <- simulate(object=designObj, nSim=1000L, seed=1,
                                      deltaTrue=0, freqOptioStop=TRUE,
                                      nPlanFreq=freqDesignObj$nPlan,
                                      muGlobal=120, sigmaTrue=15, pb=FALSE)
+```
+```{r}
 simResultDeltaTrueIsZero
 ```
 Note that optional stopping always increases the chance of observing a false detection. For the safe test this increased to `r simResultDeltaTrueIsZero$safeSim$powerOptioStop*100`%, which is still below the tolerable 5%. On the other hand, tracking the p-value and rejecting the null as soon it falls below $\alpha$ leads to `r simResultDeltaTrueIsZero$freqSim$powerOptioStop*100`%, which is well above 5%. 
@@ -186,9 +219,20 @@ In this section we illustrate the operational characteristics of the safe t-test
 # alpha <- 0.05
 # beta <- 0.2
 deltaMin <- 9/(sqrt(2)*15)      # = 0.42
+```
+```{r, echo = FALSE}
+# simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=1000L,
+#                                          seed=1, deltaTrue=deltaMin,
+#                                          muGlobal=120, sigmaTrue=15, pb=FALSE)
+# save(simResultDeltaTrueIsDeltaMin, file="safeTVignetteData/simResultDeltaTrueIsDeltaMin.Rdata")
+load("safeTVignetteData/simResultDeltaTrueIsDeltaMin.Rdata")
+```
+```{r, eval = FALSE}
 simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=1000L,
                                          seed=1, deltaTrue=deltaMin,
                                          muGlobal=120, sigmaTrue=15, pb=FALSE)
+```
+```{r}
 simResultDeltaTrueIsDeltaMin
 ```
 The simulations confirms that at the planned sample size there is about 80% chance of detecting the minimal clinically relevant effect. The discrepancy of 0.3% is due to sampling error and vanishes as the number of simulations increases. 
@@ -216,11 +260,22 @@ What we believe is clinically minimally relevant might not match reality. One ad
 # beta <- 0.2
 # deltaMin <- 9/(sqrt(2)*15)      # = 0.42
 deltaTrueLarger <- 0.6
-
+```
+```{r, echo = FALSE}
+# simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
+#                                                  nSim=1000L, seed=1,
+#                                                  deltaTrue=deltaTrueLarger,
+#                                                  muGlobal=120, sigmaTrue=15, pb=FALSE)
+# save(simResultDeltaTrueLargerThanDeltaMin, file="safeTVignetteData/simResultDeltaTrueLargerThanDeltaMin.Rdata")
+load("safeTVignetteData/simResultDeltaTrueLargerThanDeltaMin.Rdata")
+```
+```{r, eval = FALSE}
 simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
                                                  nSim=1000L, seed=1,
                                                  deltaTrue=deltaTrueLarger,
                                                  muGlobal=120, sigmaTrue=15, pb=FALSE)
+```
+```{r}
 simResultDeltaTrueLargerThanDeltaMin
 ```
 
@@ -406,10 +461,19 @@ Another batch yields e-values so small that it leads to an underflow.
 #### When the effect is present optional continuation results in safe tests correctly rejecting the null
 The slow drift of the sampling distribution of e-values to smaller values is replaced by a fast drift to large values whenever there is an effect. We again consider the situation in which we continue studies for which the first batch of e-values did not lead to a null rejection. For this we consider the case with deltaTrue smaller than deltaMin. 
 
-```{r}
+```{r, echo = FALSE}
+# simResultDeltaTrueLessThanDeltaMin <- simulate(object=designObj, nSim=1000L,
+#                                                seed=1, deltaTrue=0.3,
+#                                                muGlobal=120, sigmaTrue=15, pb=FALSE)
+# save(simResultDeltaTrueLessThanDeltaMin, file="safeTVignetteData/simResultDeltaTrueLessThanDeltaMin.Rdata")
+load("safeTVignetteData/simResultDeltaTrueLessThanDeltaMin.Rdata")
+```
+```{r, eval = FALSE}
 simResultDeltaTrueLessThanDeltaMin <- simulate(object=designObj, nSim=1000L,
                                                seed=1, deltaTrue=0.3,
                                                muGlobal=120, sigmaTrue=15, pb=FALSE)
+```
+```{r}
 simResultDeltaTrueLessThanDeltaMin
 ```
 
@@ -427,7 +491,7 @@ eValuesBatch1 <- simResultDeltaTrueLessThanDeltaMin$safeSim$eValues
 sum(eValuesBatch1 > 1/alpha)
 ```
 
-`sum(eValuesBatch1 > 1/alpha)` correct null rejections, since this simulation is based on data generated under alternative with deltaTrue > 0. 
+`r sum(eValuesBatch1 > 1/alpha)` correct null rejections, since this simulation is based on data generated under alternative with deltaTrue > 0. 
 
 The following code selectively continues the `r 1000-sum(eValuesBatch1 > 1/alpha)` experiments which did not lead to a null rejection:
 
@@ -442,14 +506,14 @@ selectivelyContinueDeltaTrueLessThanDeltaMin <-
                                       sigmaTrue=15)
 ```
 
-The plot shows that after the second batch of data that the sampling distribution of e-values now concentrates on larger values, as is apparent from the blue histogram shifting to the red histogram on the right. Note that most of the red histogram's mass is on the right-hand side of the grey vertical line that represents the $\alpha$ threshold (e.g., $\log(1/\alpha) \approx 3$. The continuation of the 145 experiments with $E < 1/\alpha=20$ led to 
+The plot shows that after the second batch of data that the sampling distribution of e-values now concentrates on larger values, as is apparent from the blue histogram shifting to the red histogram on the right. Note that most of the red histogram's mass is on the right-hand side of the grey vertical line that represents the $\alpha$ threshold (e.g., $\log(1/\alpha) \approx 3$. The continuation of the `r 1000-sum(eValuesBatch1 > 1/alpha)` experiments with $E < 1/\alpha=20$ led to 
 
 ```{r}
 eValuesBatch1To2 <- selectivelyContinueDeltaTrueLessThanDeltaMin$newValues
 sum(eValuesBatch1To2 > 1/alpha)
 ```
 
-an additional `r sum(eValuesBatch1To2 > 1/alpha)` correct null rejections (`r sum(eValuesBatch1To2 > 1/alpha)/sum(eValuesBatch1 < 1/alpha)*100`% of `r sum(eValuesBatch1 < 1/alpha)` experiments). This brings up the total number of null rejections to `r sum(eValuesBatch1To2 > 1/alpha) + sum(eValuesBatch1 > 1/alpha)` out of the 1,000 experiments. In this case, a null rejection is correct, since the data were generated with a true effect larger than zero. 
+an additional `r sum(eValuesBatch1To2 > 1/alpha)` correct null rejections (`r sum(eValuesBatch1To2 > 1/alpha)/sum(eValuesBatch1 < 1/alpha)*100`% of `r sum(eValuesBatch1 < 1/alpha)` experiments). This brings up the total number of null rejections to `r sum(eValuesBatch1To2 > 1/alpha) + sum(eValuesBatch1 > 1/alpha)` out of the 1,000 experiments. In this case, a null rejection is correct, since the data were generated with a true effect larger than zero, though smaller than the minimal clinically relevant effect size. 
 
 ### ii. Optional continuation through replication studies
 It is not always appropriate to combine data sets, in particular for replication attempts where the original experiment is performed in a different population. In that case, one can still easily do safe inference by multiplying the e-values computed over each data set separately. This procedure also conserves the $\alpha$-level, as we show below. 

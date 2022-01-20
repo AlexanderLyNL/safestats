@@ -464,7 +464,7 @@ plotConfidenceSequenceTwoProportions(ya = ya,
                                      precision = 100, 
                                      trueDifference = 0.3)
 ```
-![](safe2x2ConfidencePlot.png)
+![](safe2x2VignetteData/safe2x2ConfidencePlot.png)
 
 The above plot shows that after finishing our experiment, $0$ is not included in the confidence interval (grey dashed line). The true value, 0.3, remains included. The precision indicates how many difference values between -1 and 1 are checked while building the confidence sequence. It is recommended to set this value to 100 (default).
 
@@ -547,7 +547,7 @@ plotConfidenceSequenceTwoProportions(ya = ya,
                                      deltaStart = 0.001,
                                      deltaStop = 2)
 ```
-![](safe2x2ConfidenceOdds.png)
+![](safe2x2VignetteData/safe2x2ConfidenceOdds.png)
 
 ## References
 <a name = "TurnerRef"></a>1. Rosanne Turner, Alexander Ly, and Peter Grünwald. Two-Sample Tests that are Safe under Optional Stopping, with an Application to Contingency Tables, 2021. [https://arxiv.org/abs/2106.02693](https://arxiv.org/abs/2106.02693)
