@@ -178,10 +178,14 @@ What makes the safe tests in this package particularly interesting is that they 
 
 > Note that <a name = "martingale">not all E-variables necessarily allow for optional stopping</a>: this only holds for some special E-variables, that are also _test martingales_. More information can be found, for example, in the first author's [master thesis](https://www.universiteitleiden.nl/binaries/content/assets/science/mi/scripties/statscience/2019-2020/thesis_rjturner_for_publication.pdf), Chapter 5.
 
-### Optional stopping does not causes safe tests to overreject the null, but is problematic for p-values
+### Optional stopping does not causes safe tests to over-reject the null, but is problematic for p-values
 Optionally stopping results in the type I error rate of the safe test to *not* exceed the tolerable $\alpha$ level, whereas tracking the classical p-value tests and acting on it *does* result in an overinflation of the type I error. In other words, optional stopping with these p-value tests leads to an increased risk of falsely claiming that a medicine is effective, while in reality it is not. 
 
-The following code replicates 1,000 experiments and each data set is generated with a true effect size set to zero. For each data set a sequential analysis is run, that is, an e-value is computed as the data come in. As soon as the e-value exceeds $1 / \alpha = 20$, the null is rejected and the experiment can be stopped. 
+```{r, echo=FALSE}
+nSim <- 500L
+```
+
+The following code replicates `r nSim` experiments and each data set is generated with a true effect size set to zero. For each data set a sequential analysis is run, that is, an e-value is computed as the data come in. As soon as the e-value exceeds $1 / \alpha = 20$, the null is rejected and the experiment can be stopped. 
 
 ```{r}
 # Recall:
@@ -192,15 +196,18 @@ freqDesignObj <- designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta,
                              alternative="greater", testType="paired")
 ```
 ```{r, echo = FALSE}
-# simResultDeltaTrueIsZero <- simulate(object=designObj, nSim=1000L, seed=1,
+# nSim <- 500L
+# simResultDeltaTrueIsZero <- simulate(object=designObj, nSim=nSim, seed=1,
 #                                      deltaTrue=0, freqOptioStop=TRUE,
 #                                      nPlanFreq=freqDesignObj$nPlan,
 #                                      muGlobal=120, sigmaTrue=15, pb=FALSE)
+# simResultDeltaTrueIsZero$bootObjN1Plan <- NULL
 # save(simResultDeltaTrueIsZero, file="safeTVignetteData/simResultDeltaTrueIsZero.Rdata")
 load("safeTVignetteData/simResultDeltaTrueIsZero.Rdata")
 ```
 ```{r, eval = FALSE}
-simResultDeltaTrueIsZero <- simulate(object=designObj, nSim=1000L, seed=1,
+nSim <- 500
+simResultDeltaTrueIsZero <- simulate(object=designObj, nSim=nSim, seed=1,
                                      deltaTrue=0, freqOptioStop=TRUE,
                                      nPlanFreq=freqDesignObj$nPlan,
                                      muGlobal=120, sigmaTrue=15, pb=FALSE)
@@ -212,7 +219,7 @@ Note that optional stopping always increases the chance of observing a false det
 
 ## Safe tests detect the effect early if it is present: deltaTrue equal to deltaMin
 <!--#### Optional stopping: True effect size equals minimal clinically relevant effect size-->
-In this section we illustrate the operational characteristics of the safe t-test under optional stopping, when the effect is  present. The following code replicates 1,000 experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of $\delta_{\min}=9/(15 \sqrt{2}) \approx 0.42$. If the e-value does not exceed $1 / \alpha$, the experiment is run until all samples are collected as planned.
+In this section we illustrate the operational characteristics of the safe t-test under optional stopping, when the effect is  present. The following code replicates 500 experiments and each data set is generated with a true effect size that equals the minimal clinical-relevant effect size of $\delta_{\min}=9/(15 \sqrt{2}) \approx 0.42$. If the e-value does not exceed $1 / \alpha$, the experiment is run until all samples are collected as planned.
 
 ```{r}
 # Recall:
@@ -221,21 +228,21 @@ In this section we illustrate the operational characteristics of the safe t-test
 deltaMin <- 9/(sqrt(2)*15)      # = 0.42
 ```
 ```{r, echo = FALSE}
-# simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=1000L,
+# simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=nSim,
 #                                          seed=1, deltaTrue=deltaMin,
 #                                          muGlobal=120, sigmaTrue=15, pb=FALSE)
 # save(simResultDeltaTrueIsDeltaMin, file="safeTVignetteData/simResultDeltaTrueIsDeltaMin.Rdata")
 load("safeTVignetteData/simResultDeltaTrueIsDeltaMin.Rdata")
 ```
 ```{r, eval = FALSE}
-simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=1000L,
+simResultDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=nSim,
                                          seed=1, deltaTrue=deltaMin,
                                          muGlobal=120, sigmaTrue=15, pb=FALSE)
 ```
 ```{r}
 simResultDeltaTrueIsDeltaMin
 ```
-The simulations confirms that at the planned sample size there is about 80% chance of detecting the minimal clinically relevant effect. The discrepancy of 0.3% is due to sampling error and vanishes as the number of simulations increases. 
+The simulations confirms that at the planned sample size there is indeed about 80% chance of detecting the minimal clinically relevant effect. The discrepancy is due to sampling error and vanishes as the number of simulations increases. 
 
 To see the distributions of stopping times, the following code can be run
 
@@ -244,7 +251,7 @@ plot(simResultDeltaTrueIsDeltaMin)
 tabResult <- table(simResultDeltaTrueIsDeltaMin$safeSim$allN)
 tabResult
 ```
-The table shows the full distribution of the times at which the experiment is stopped. For instance, `r sum(tabResult[1:which(names(tabResult)==floor(designObj$nPlan[1]/2))])` out of the 1,000 experiments stopped before half the planned sample size. In these cases we were lucky and the effect was detected early. The last bar collects all experiments that ran until the planned sample sizes, thus, also those that did not lead to a null rejection at n=`r designObj$nPlan[1]`. To see the distributions of stopping times of only the experiments where the null is rejected, we run the following code:
+The table shows the full distribution of the times at which the experiment is stopped. For instance, `r sum(tabResult[1:which(names(tabResult)==floor(designObj$nPlan[1]/2))])` out of the `r nSim` experiments stopped before half the planned sample size. In these cases we were lucky and the effect was detected early. The last bar collects all experiments that ran until the planned sample sizes, thus, also those that did not lead to a null rejection at n=`r designObj$nPlan[1]`. To see the distributions of stopping times of only the experiments where the null is rejected, we run the following code:
 
 ```{r}
 plot(simResultDeltaTrueIsDeltaMin, showOnlyNRejected=TRUE)
@@ -263,7 +270,7 @@ deltaTrueLarger <- 0.6
 ```
 ```{r, echo = FALSE}
 # simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
-#                                                  nSim=1000L, seed=1,
+#                                                  nSim=nSim, seed=1,
 #                                                  deltaTrue=deltaTrueLarger,
 #                                                  muGlobal=120, sigmaTrue=15, pb=FALSE)
 # save(simResultDeltaTrueLargerThanDeltaMin, file="safeTVignetteData/simResultDeltaTrueLargerThanDeltaMin.Rdata")
@@ -271,7 +278,7 @@ load("safeTVignetteData/simResultDeltaTrueLargerThanDeltaMin.Rdata")
 ```
 ```{r, eval = FALSE}
 simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
-                                                 nSim=1000L, seed=1,
+                                                 nSim=nSim, seed=1,
                                                  deltaTrue=deltaTrueLarger,
                                                  muGlobal=120, sigmaTrue=15, pb=FALSE)
 ```
@@ -279,7 +286,7 @@ simResultDeltaTrueLargerThanDeltaMin <- simulate(object=designObj,
 simResultDeltaTrueLargerThanDeltaMin
 ```
 
-With a larger true effect size, the power at the sampled sample sizes increased to `r simResultDeltaTrueLargerThanDeltaMin$safeSim$powerOptioStop*100`%. More importantly, this increase is picked up earlier by the designed safe test, and optional stopping allows us to act on this. Note that the average stopping time is now decreased, from `r simResultDeltaTrueIsDeltaMin$safeSim$nMean` to `r simResultDeltaTrueLargerThanDeltaMin$safeSim$nMean`. This is apparent from the fact that the histogram of stopping times is now shifted to the left:
+With a larger true effect size, the power increased to `r simResultDeltaTrueLargerThanDeltaMin$safeSim$powerOptioStop*100`%. More importantly, this increase is picked up earlier by the designed safe test, and optional stopping allows us to act on this. Note that the average stopping time is now decreased, from `r simResultDeltaTrueIsDeltaMin$safeSim$nMean` to `r simResultDeltaTrueLargerThanDeltaMin$safeSim$nMean`. This is apparent from the fact that the histogram of stopping times is now shifted to the left:
 
 ```{r}
 plot(simResultDeltaTrueLargerThanDeltaMin)
@@ -292,23 +299,23 @@ The last scenario with deltaTrue smaller than what was planned for, that is, del
 # 3. <a name = "optContT">Optional Continuation</a>
 In the previous section we saw that monitoring the p-value and stopping before the planned sample sizes whenever $p < \alpha=0.05$ leads to an increased risk of a false claim (from 5% to `r simResultDeltaTrueIsZero$freqSim$powerOptioStop*100`%). 
 
-In this section, we first show that optional continuation, that is, extending the experiment beyond the planned sample sizes, also causes the p-value to overreject the null. As such, the chance of incorrectly detecting an effect based on $p < \alpha$ will be larger than $\alpha$ whenever (1) funders, reviewers or editors urge the experimenter to collect more data after observing an non-significant p-value, because an effect is nonetheless expected, or (2) when other researchers attempt to replicate the original results. 
+In this section, we first show that optional continuation, that is, extending the experiment beyond the planned sample sizes, also causes the p-value to over-reject the null. As such, the chance of incorrectly detecting an effect based on $p < \alpha$ will be larger than $\alpha$ whenever (1) funders, reviewers or editors urge the experimenter to collect more data after observing an non-significant p-value, because an effect is nonetheless expected, or (2) when other researchers attempt to replicate the original results. 
 
 The inability of p-values to conserve the $\alpha$-level under optional stopping and optional continuation implies that they only control the risk of an incorrect null rejection, whenever the sample sizes are fixed beforehand and the protocol is followed stringently. This assumes that no problems occur during the experiment, which might not be realistic in practice, and makes it impossible for practitioners to adapt to new circumstances. In other words, classical p-value tests turn the experimental design into a prison for practitioners who care about controlling the type I error rate. 
 
 With safe tests one does not need to choose between correct inferences and the ability to adapt to new circumstances, as they were constructed to provide practitioners with additional flexibility in the experimental design without sacrificing the level $\alpha$ type I error control. As safe tests conserve the $\alpha$-level under both optional stopping and continuation, they yield anytime-valid inferences. The robustness of safe tests to optional continuation is illustrated with additional simulations. 
 
 ## Optional continuation is problematic for p-values and leads to overinflating the type I error rate
-Firstly, we show that optional continuation also causes p-values to overreject the null. In the following we consider the situation in which we continue studies for which a first batch of data resulted in $p \geq \alpha$. These non-significant experiments are extended with a second batch of data with the same sample sizes as the first batch, that is, `r freqDesignObj$nPlan`. We see that selectively continuing non-significant experiments causes the collective rate of false null rejections to be larger than $\alpha$. 
+Firstly, we show that optional continuation also causes p-values to over-reject the null. In the following we consider the situation in which we continue studies for which a first batch of data resulted in $p \geq \alpha$. These non-significant experiments are extended with a second batch of data with the same sample sizes as the first batch, that is, `r freqDesignObj$nPlan`. We see that selectively continuing non-significant experiments causes the collective rate of false null rejections to be larger than $\alpha$. 
 
-The following code simulates 1,000 (first batch) experiments under the null, each with the same (frequentist) sample sizes as planned for, resulting in 1,000 p-values: 
+The following code simulates `r nSim` (first batch) experiments under the null, each with the same (frequentist) sample sizes as planned for, resulting in `r nSim` p-values: 
 
 ```{r}
 dataBatch1 <- generateNormalData(nPlan=freqDesignObj$nPlan,
-                               deltaTrue=0, nSim=1000, paired=TRUE, seed=1,
+                               deltaTrue=0, nSim=nSim, paired=TRUE, seed=1,
                                muGlobal=120, sigmaTrue=15)
 
-pValuesBatch1 <- vector("numeric", length=1000)
+pValuesBatch1 <- vector("numeric", length=nSim)
 
 for (i in seq_along(pValuesBatch1)) {
   pValuesBatch1[i] <- t.test(x=dataBatch1$dataGroup1[i, ], 
@@ -319,9 +326,9 @@ mean(pValuesBatch1 > alpha)
 sum(pValuesBatch1 < alpha)
 ```
 
-Hence, after a first batch of data, we get `r sum(pValuesBatch1 < alpha)` incorrect null rejections out of a 1,000 experiments (`r mean(pValuesBatch1 < alpha)*100`%). 
+Hence, after a first batch of data, we get `r sum(pValuesBatch1 < alpha)` incorrect null rejections out of a `r nSim` experiments (`r mean(pValuesBatch1 < alpha)*100`%). 
 
-The following code continues only the non-significant `r round(mean(pValuesBatch1 > alpha)*1000)` experiments with a second batch of data all also generated under the null, and plots two histograms. <!--In blue the histogram of all the non-significant results (954 experiments), and in red the histogram of p-values over the combined data set. -->
+The following code continues only the non-significant `r round(mean(pValuesBatch1 > alpha)*nSim)` experiments with a second batch of data all also generated under the null, and plots two histograms. <!--In blue the histogram of all the non-significant results (954 experiments), and in red the histogram of p-values over the combined data set. -->
 
 ```{r}
 selectivelyContinueDeltaTrueIsZeroWithP <-
@@ -337,7 +344,7 @@ selectivelyContinueDeltaTrueIsZeroWithP <-
                                       muGlobal=120, sigmaTrue=15)
 ```
 
-The blue histogram represents the distribution of the 954 non-significant p-values calculated over the first batch of data, whereas the red histogram represents the distribution of p-values calculated over the two batches of data combined. 
+The blue histogram represents the distribution of the `r round(mean(pValuesBatch1 > alpha)*nSim)` non-significant p-values calculated over the first batch of data, whereas the red histogram represents the distribution of p-values calculated over the two batches of data combined. 
 
 The commands
 
@@ -346,9 +353,9 @@ pValuesBatch1To2 <- selectivelyContinueDeltaTrueIsZeroWithP$newValues
 sum(pValuesBatch1To2 < alpha)
 ```
 
-show that by extending the non-significant results of the first batch with a second batch of data, we got another `r sum(pValuesBatch1To2 < alpha)` false null rejections. This brings the total number of incorrect null rejections to `r sum(pValuesBatch1 < alpha)+sum(pValuesBatch1To2 < alpha)` out of 1,000 experiments, hence, `r (sum(pValuesBatch1 < alpha) + sum(pValuesBatch1To2 < alpha))/10`%, which is above the tolerable $\alpha$-level. 
+show that by extending the non-significant results of the first batch with a second batch of data, we got another `r sum(pValuesBatch1To2 < alpha)` false null rejections. This brings the total number of incorrect null rejections to `r sum(pValuesBatch1 < alpha)+sum(pValuesBatch1To2 < alpha)` out of `r nSim` experiments, hence, `r (sum(pValuesBatch1 < alpha) + sum(pValuesBatch1To2 < alpha))/nSim*100`%, which is above the tolerable $\alpha$-level of 5%. 
 
-The reason why p-values overreject the null under optional stopping and optional continuation is due to p-values being uniformly distributed under the null. As such, if the null holds true and the number of samples increases, then the p-value meanders between 0 and 1, thus, eventually crossing any fixed $\alpha$-level. 
+The reason why p-values over-reject the null under optional stopping and optional continuation is due to p-values being uniformly distributed under the null. As such, if the null holds true and the number of samples increases, then the p-value meanders between 0 and 1, thus, eventually crossing any fixed $\alpha$-level. 
 <!-- from an original with 
 
 combined across different experiments, for instance, from 
@@ -389,7 +396,7 @@ A natural way to deal with the first three cases is by computing an e-value over
 
 Replication attempts, however, are typically based on samples from a different population. One way to deal with this is by multiplying the e-value computed from the original study with the e-value computed from the replication attempt. 
 
-We show that both procedures are safe, that is, they do not lead to the tolerable type I error rate be exceeded, whereas classical p-values once again overreject. 
+We show that both procedures are safe, that is, they do not lead to the tolerable type I error rate be exceeded, whereas classical p-values once again over-reject. 
 -->
 
 ## Two ways to optionally continue studies with safe tests
@@ -402,7 +409,7 @@ Replication attempts, however, are typically based on samples from a different p
 We show that both procedures are safe, that is, they do not lead to exceedance of the tolerable type I error rate, as was the case with classical p-values. 
 
 ### i. Optional continuation by _extending_ the experiment does not result in safe tests exceeding the tolerable $\alpha$-level
-In this subsection, we show that only continuing studies for which the e-value $\leq 1/ \alpha$ does *not* lead to an overrejection of the null. This is because the sampling distribution of e-values under the null slowly drifts towards smaller values as the number of samples increases. 
+In this subsection, we show that only continuing studies for which the e-value $\leq 1/ \alpha$ does *not* lead to an over-rejection of the null. This is because the sampling distribution of e-values under the null slowly drifts towards smaller values as the number of samples increases. 
 
 Again, we consider the situation in which we only continue studies for which the original e-values did not lead to a null rejection. For the first batch of e-values, we use the simulation study ran in the previous section, and we recall that under optional stopping we get 
 
@@ -414,7 +421,7 @@ eValuesBatch1 <- simResultDeltaTrueIsZero$safeSim$eValues
 sum(eValuesBatch1 > 1/alpha)
 ```
 
-thus, `r sum(eValuesBatch1 > 1/alpha)` false null rejections out of 1,000 experiments. 
+thus, `r sum(eValuesBatch1 > 1/alpha)` false null rejections out of `r nSim` experiments. 
 
 The follow-up batches of data will be of the same size as the original, thus, `r designObj$nPlan`, and will also be generated under the null. The slow drift to lower e-values is visualised by two histograms. The blue histogram represents the sampling distribution of e-values of the original simulation study that did not resulted in a null rejection. The red histogram represents the sampling distribution of e-values computed over the two batches of data combined. To ease visualisation, we plot the histogram of the logarithm of e-values; a negative log e-value implies that the e-value is smaller than one, whereas a positive log e-values corresponds to e-values larger than one. For this we run the following code:
 
@@ -430,7 +437,7 @@ selectivelyContinueDeltaTrueIsZero <-
                                       moreMainText="Batch 1-2")
 ```
 
-Note that compared to blue histogram, the red histogram is shifted to the left, thus, the sampling distribution of e-values computed over the two batches combined concentrates on smaller values. In particular, most of the mass remains under the threshold value of $1/\alpha$, which is represented by the vertical grey line $\log(1/\alpha) \approx 3.00$. This shift to the left is caused by the increase in sample sizes from n1=n2=`designObj$nPlan[1]` to n1=n2=`2*designObj$nPlan[1]`. The commands 
+Note that compared to blue histogram, the red histogram is shifted to the left, thus, the sampling distribution of e-values computed over the two batches combined concentrates on smaller values. In particular, most of the mass remains under the threshold value of $1/\alpha$, which is represented by the vertical grey line $\log(1/\alpha) \approx 3.00$. This shift to the left is caused by the increase in sample sizes from n1=n2=`r designObj$nPlan[1]` to n1=n2=`r 2*designObj$nPlan[1]`. The commands 
 
 ```{r}
 eValuesBatch1To2 <- selectivelyContinueDeltaTrueIsZero$newValues
@@ -438,7 +445,7 @@ sum(eValuesBatch1To2 > 1/alpha)
 length(eValuesBatch1To2)
 ```
 
-show that `r sum(eValuesBatch1To2 > 1/alpha)` out of the `r length(eValuesBatch1To2)` of the selectively continued experiments (`r mean(eValuesBatch1To2 > 1/alpha)*100`%) now lead to a false null rejection due to optional continuation. Hence, after the second batch of data the total number of total number of false null rejections is `r sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha)` out of a total of a 1,000 original experiment, thus, `r sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha)/10`%. Similar, a third batch won't increase the collective false rejection rate either. 
+show that `r sum(eValuesBatch1To2 > 1/alpha)` out of the `r length(eValuesBatch1To2)` of the selectively continued experiments (`r mean(eValuesBatch1To2 > 1/alpha)*100`%) now lead to a false null rejection due to optional continuation. Hence, after the second batch of data the total number of total number of false null rejections is `r sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha)` out of a total of a `r nSim` original experiment, thus, `r sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha)/nSim*100`%. Similar, a third batch won't increase the collective false rejection rate either. 
 
 ```{r}
 eValuesBatch1To2 <- selectivelyContinueDeltaTrueIsZero$newValue
@@ -455,14 +462,13 @@ selectivelyContinueDeltaTrueIsZero <-
                                       moreMainText=paste("Batch: 1 to", 3))
 sum(selectivelyContinueDeltaTrueIsZero$newValues > 1/alpha)
 ```
-
 Another batch yields e-values so small that it leads to an underflow. 
 
 #### When the effect is present optional continuation results in safe tests correctly rejecting the null
 The slow drift of the sampling distribution of e-values to smaller values is replaced by a fast drift to large values whenever there is an effect. We again consider the situation in which we continue studies for which the first batch of e-values did not lead to a null rejection. For this we consider the case with deltaTrue smaller than deltaMin. 
 
 ```{r, echo = FALSE}
-# simResultDeltaTrueLessThanDeltaMin <- simulate(object=designObj, nSim=1000L,
+# simResultDeltaTrueLessThanDeltaMin <- simulate(object=designObj, nSim=nSim,
 #                                                seed=1, deltaTrue=0.3,
 #                                                muGlobal=120, sigmaTrue=15, pb=FALSE)
 # save(simResultDeltaTrueLessThanDeltaMin, file="safeTVignetteData/simResultDeltaTrueLessThanDeltaMin.Rdata")
@@ -493,7 +499,7 @@ sum(eValuesBatch1 > 1/alpha)
 
 `r sum(eValuesBatch1 > 1/alpha)` correct null rejections, since this simulation is based on data generated under alternative with deltaTrue > 0. 
 
-The following code selectively continues the `r 1000-sum(eValuesBatch1 > 1/alpha)` experiments which did not lead to a null rejection:
+The following code selectively continues the `r nSim-sum(eValuesBatch1 > 1/alpha)` experiments which did not lead to a null rejection:
 
 ```{r}
 selectivelyContinueDeltaTrueLessThanDeltaMin <- 
@@ -506,14 +512,14 @@ selectivelyContinueDeltaTrueLessThanDeltaMin <-
                                       sigmaTrue=15)
 ```
 
-The plot shows that after the second batch of data that the sampling distribution of e-values now concentrates on larger values, as is apparent from the blue histogram shifting to the red histogram on the right. Note that most of the red histogram's mass is on the right-hand side of the grey vertical line that represents the $\alpha$ threshold (e.g., $\log(1/\alpha) \approx 3$. The continuation of the `r 1000-sum(eValuesBatch1 > 1/alpha)` experiments with $E < 1/\alpha=20$ led to 
+The plot shows that after the second batch of data that the sampling distribution of e-values now concentrates on larger values, as is apparent from the blue histogram shifting to the red histogram on the right. Note that most of the red histogram's mass is on the right-hand side of the grey vertical line that represents the $\alpha$ threshold (e.g., $\log(1/\alpha) \approx 3$. The continuation of the `r nSim-sum(eValuesBatch1 > 1/alpha)` experiments with $E < 1/\alpha=20$ led to 
 
 ```{r}
 eValuesBatch1To2 <- selectivelyContinueDeltaTrueLessThanDeltaMin$newValues
 sum(eValuesBatch1To2 > 1/alpha)
 ```
 
-an additional `r sum(eValuesBatch1To2 > 1/alpha)` correct null rejections (`r sum(eValuesBatch1To2 > 1/alpha)/sum(eValuesBatch1 < 1/alpha)*100`% of `r sum(eValuesBatch1 < 1/alpha)` experiments). This brings up the total number of null rejections to `r sum(eValuesBatch1To2 > 1/alpha) + sum(eValuesBatch1 > 1/alpha)` out of the 1,000 experiments. In this case, a null rejection is correct, since the data were generated with a true effect larger than zero, though smaller than the minimal clinically relevant effect size. 
+an additional `r sum(eValuesBatch1To2 > 1/alpha)` correct null rejections (`r sum(eValuesBatch1To2 > 1/alpha)/sum(eValuesBatch1 < 1/alpha)*100`% of `r sum(eValuesBatch1 < 1/alpha)` experiments). This brings up the total number of null rejections to `r sum(eValuesBatch1To2 > 1/alpha) + sum(eValuesBatch1 > 1/alpha)` out of the `r nSim` experiments. In this case, a null rejection is correct, since the data were generated with a true effect larger than zero, though smaller than the minimal clinically relevant effect size. 
 
 ### ii. Optional continuation through replication studies
 It is not always appropriate to combine data sets, in particular for replication attempts where the original experiment is performed in a different population. In that case, one can still easily do safe inference by multiplying the e-values computed over each data set separately. This procedure also conserves the $\alpha$-level, as we show below. 
@@ -536,11 +542,11 @@ someConstant <- 1.2
 
 repData <- generateNormalData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
                                      ceiling(someConstant*designObj$nPlan[2])),
-                             deltaTrue=0, nSim=1000, 
+                             deltaTrue=0, nSim=nSim, 
                              muGlobal=90, sigmaTrue=6,
                              paired=TRUE, seed=2)
 
-eValuesRep <- vector("numeric", length=1000)
+eValuesRep <- vector("numeric", length=nSim)
 
 for (i in seq_along(eValuesRep)) {
   eValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
@@ -569,11 +575,11 @@ someConstant <- 1.2
 
 repData <- generateNormalData(nPlan=c(ceiling(someConstant*designObj$nPlan[1]),
                                      ceiling(someConstant*designObj$nPlan[2])), 
-                             deltaTrue=deltaMin, nSim=1000, 
+                             deltaTrue=deltaMin, nSim=nSim, 
                              muGlobal=110, sigmaTrue=50,
                              paired=TRUE, seed=2)
 
-eValuesRep <- vector("numeric", length=1000)
+eValuesRep <- vector("numeric", length=nSim)
 
 for (i in seq_along(eValuesRep)) {
   eValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
@@ -584,10 +590,10 @@ for (i in seq_along(eValuesRep)) {
 eValuesMulti <- eValuesOri*eValuesRep
 mean(eValuesMulti > 1/alpha)
 ```
-This led to `r sum(eValuesMulti > 1/alpha)` null rejections out of the 1,000 experiments, which is the correct result as the effect is present in both the original and replication studies. 
+This led to `r sum(eValuesMulti > 1/alpha)` null rejections out of the `r nSim` experiments, which is the correct result as the effect is present in both the original and replication studies. 
 
 ## Conclusion
-We believe that optional continuation is essential for (scientific) learning, as it allows us to revisit uncertain decisions such as ($p < \alpha$ and e-value $ > 1/\alpha$) either by extending an experiment directly, or via replication studies. Hence, we view learning as an ongoing process, which requires that inference becomes more precise as data accumulate. The inability of p-values to conserve the $\alpha$-level under optional continuation, however, is at odds with this view --by gathering more data after an initial look, the inference becomes less precise, as the likelihood of the null being true after observing $p < \alpha$ increases beyond what is tolerable. 
+We believe that optional continuation is essential for (scientific) learning, as it allows us to revisit uncertain decisions such as ($p < \alpha$ and e-value $> 1/\alpha$) either by extending an experiment directly, or via replication studies. Hence, we view learning as an ongoing process, which requires that inference becomes more precise as data accumulate. The inability of p-values to conserve the $\alpha$-level under optional continuation, however, is at odds with this view --by gathering more data after an initial look, the inference becomes less precise, as the likelihood of the null being true after observing $p < \alpha$ increases beyond what is tolerable. 
 
 Safe tests on the other hand benefit from more data, as the chance of seeing e-value $> 1/\alpha$ (slowly) decreases when the null is true, whereas it (quickly) increases when the alternative is true, as the number of samples increases.  
 
@@ -604,7 +610,7 @@ inference is a continuous process, and that as more data accumulates one should 
 
 We hope to have highlighted the problem of optional stopping and optional 
 
-illustrated how both optional stopping and optional continuation causes the p-values to overreject the null. This means that both intuitive 
+illustrated how both optional stopping and optional continuation causes the p-values to over-reject the null. This means that both intuitive 
 
 As such, making an observed $p< \alpha$ less informative, as it might well be due to the null hypothesis of no effect being true. This is particularly paradoxical for p-values under optional continuation, where one would expect that more data would provides more accurate inference. The inflation of the type I error implies otherwise
 
@@ -618,9 +624,9 @@ the chance of observing a low e-value remains high,
 ## Subconclusion
 The goal the simulation studies is to illustrate the theoretical properties of safe tests developed [here](https://arxiv.org/abs/1906.07801). 
 
-We hope to have illustrated how intuitive actions, such as monitoring the evidence and stopping early, or acquiring additional data causes the p-value to overreject the null, thus, yielding incorrect inferences. This means that regardless of the null being true, or that there was actually an effect, the chances of 
+We hope to have illustrated how intuitive actions, such as monitoring the evidence and stopping early, or acquiring additional data causes the p-value to over-reject the null, thus, yielding incorrect inferences. This means that regardless of the null being true, or that there was actually an effect, the chances of 
 
-Regardless of the presence or absence of an effect, optional stopping and optional continuation leads to an increased chance of observing $p>\alpha$, in particular, larger than $\alpha$. Especially paradoxical is the fact that optional continuation results in an overrejection of the null, which, thus, implies that more data leads to 
+Regardless of the presence or absence of an effect, optional stopping and optional continuation leads to an increased chance of observing $p>\alpha$, in particular, larger than $\alpha$. Especially paradoxical is the fact that optional continuation results in an over-rejection of the null, which, thus, implies that more data leads to 
 
 As such, when confronted with $p>\alpha$ it is unclear whether the null or alternative were true. 
 
@@ -810,7 +816,7 @@ The type I error rate has stayed below 0.05:
 ```
 
 #### Classical test "Fisher's exact test" under the null with optional stopping
-Optional stopping, however, causes Fisher's exact test to overreject the null. When the null is true, the rate of incorrect null rejections exceeds the tolerable $\alpha$-level:
+Optional stopping, however, causes Fisher's exact test to over-reject the null. When the null is true, the rate of incorrect null rejections exceeds the tolerable $\alpha$-level:
 
 ```{r }
 # set.seed(5224)
