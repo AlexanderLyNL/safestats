@@ -59,7 +59,3 @@ the safe test.
 Helper function: Computes the planned sample size based on the minimal clinical relevant mean
 difference, alpha and beta.
 }
-\examples{
-safestats:::computeNPlanBatchSafeZ(0.4)
-safestats:::computeNPlanBatchSafeZ(0.4, grow=FALSE)
-}

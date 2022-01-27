@@ -47,6 +47,3 @@ a list which contains at least nPlan and the phiS the parameter that defines the
 Helper function: Computes the planned sample size for the safe t-test based on the minimal clinically
 relevant standardised effect size, alpha and beta.
 }
-\examples{
-safestats:::computeNPlanBatchSafeT(0.4)
-}

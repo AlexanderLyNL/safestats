@@ -38,5 +38,5 @@ numeric vector that contains the upper and lower bound of the safe confidence se
 Helper function: Computes the safe confidence sequence for the mean in a t-test
 }
 \examples{
-safestats:::computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, deltaS=0.4)
+computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, deltaS=0.4)
 }

@@ -293,7 +293,7 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' @export
 #'
 #' @examples
-#' safestats:::computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
+#' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
                                        alternative="two.sided", a=NULL, g=NULL) {
   if (!is.null(a) && !is.null(g)) {
@@ -751,10 +751,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 #'
 #' @return a list which contains at least nPlan and the phiS, that is, the parameter that defines
 #' the safe test.
-#'
-#' @examples
-#' safestats:::computeNPlanBatchSafeZ(0.4)
-#' safestats:::computeNPlanBatchSafeZ(0.4, grow=FALSE)
 computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
                                    alternative=c("two.sided", "greater", "less"),
                                    testType=c("oneSample", "paired", "twoSample"),
@@ -951,9 +947,6 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
 #' @inheritParams designSafeZ
 #'
 #' @return numeric that represents the type II error
-#'
-#' @examples
-#' safestats:::computeBetaBatchSafeZ(meanDiffMin=0.9, nPlan=12)
 computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
                               alternative=c("two.sided", "greater", "less"),
                               testType=c("oneSample", "paired", "twoSample"),
@@ -989,9 +982,6 @@ computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa
 #' @param maxIter maximum number of iterations in the optimisation process for two-sided designs
 #'
 #' @return numeric > 0 that represents the minimal detectable mean difference
-#'
-#' @examples
-#' safestats:::computeMinEsBatchSafeZ(nPlan=78)
 computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
                                     alternative=c("two.sided", "greater", "less"),
                                     testType=c("oneSample", "paired", "twoSample"),
@@ -1294,9 +1284,6 @@ computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
 #' @param silent logical, if true, then turn off warnings
 #'
 #' @return a numeric that represents the effective sample size.
-#'
-#' @examples
-#' safestats:::computeNEff(c(3, 4), testType="twoSample")
 computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silent=TRUE) {
   testType <- match.arg(testType)
 

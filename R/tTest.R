@@ -395,7 +395,7 @@ safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE,
 #' @export
 #'
 #' @examples
-#' safestats:::computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, deltaS=0.4)
+#' computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, deltaS=0.4)
 computeConfidenceIntervalT <- function(meanObs, sdObs, nEff, nu, deltaS,
                                        ciValue=0.95, g=NULL) {
   if (is.null(g)) g <- deltaS^2
@@ -879,9 +879,6 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("two.sided", "g
 #' @inheritParams  designSafeT
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
-#'
-#' @examples
-#' safestats:::computeNPlanBatchSafeT(0.4)
 computeNPlanBatchSafeT <- function(deltaMin, alpha=0.05, beta=0.2,
                                    alternative=c("two.sided", "greater", "less"),
                                    testType=c("oneSample", "paired", "twoSample"),
@@ -960,9 +957,6 @@ computeNPlanBatchSafeT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' @inheritParams  designSafeT
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
-#'
-#' @examples
-#' safestats:::computeNPlanBatchSafeT(0.4)
 computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
                               alternative=c("two.sided", "greater", "less"),
                               testType=c("oneSample", "paired", "twoSample"),
@@ -1315,9 +1309,6 @@ computeNPlanSafeT <- function(deltaMin, beta=0.2, alpha=0.05, alternative = c("t
 #' @inheritParams replicateTTests
 #'
 #' @return Returns the sample sizes and degrees of freedom.
-#'
-#' @examples
-#' safestats:::defineTTestN()
 defineTTestN <- function(lowN=3, highN=100, ratio=1,
                          testType=c("oneSample", "paired", "twoSample")) {
   testType <- match.arg(testType)

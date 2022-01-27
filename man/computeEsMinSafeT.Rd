@@ -46,6 +46,3 @@ a list which contains at least nPlan and the phiS the parameter that defines the
 Helper function: Computes the minimal clinically relevant standardised mean difference for the safe t-test
 nPlan and beta.
 }
-\examples{
-safestats:::computeNPlanBatchSafeT(0.4)
-}

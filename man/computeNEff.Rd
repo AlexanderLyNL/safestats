@@ -19,6 +19,3 @@ a numeric that represents the effective sample size.
 \description{
 Help function to compute the effective sample size based on a length 2 vector of samples
 }
-\examples{
-safestats:::computeNEff(c(3, 4), testType="twoSample")
-}

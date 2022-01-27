@@ -17,6 +17,3 @@ Returns a character string with the name of the analysis.
 \description{
 Helper function that outputs the name of the analysis.
 }
-\examples{
-safestats:::getNameTestType("oneSample", "t")
-}

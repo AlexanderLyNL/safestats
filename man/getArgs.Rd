@@ -12,10 +12,3 @@ a list of variable names of class "call" that can be changed into names
 \description{
 Helper function: Get all arguments as entered by the user
 }
-\examples{
-foo <- function(x, y) {
-  safestats:::getArgs()
-}
-
-foo(x="3", y=df)
-}
