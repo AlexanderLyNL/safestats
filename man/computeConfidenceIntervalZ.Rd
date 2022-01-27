@@ -42,5 +42,5 @@ numeric vector that contains the upper and lower bound of the safe confidence se
 Helper function: Computes the safe confidence sequence for a z-test
 }
 \examples{
-safestats:::computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
+computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 }

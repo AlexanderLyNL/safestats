@@ -17,12 +17,3 @@ returns a character string
 \description{
 Helper function: Get all names as entered by the user
 }
-\examples{
-
-foo <- function(x, y) {
-  safestats:::getArgs()
-}
-
-bar <- foo(x="3", y=rnorm(10))
-safestats:::extractNameFromArgs(bar, "y")
-}

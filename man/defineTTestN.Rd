@@ -30,6 +30,3 @@ Returns the sample sizes and degrees of freedom.
 Helper function that outputs the sample sizes, effective sample sizes and the degrees of
 freedom depending on the type of t-test. Also used for z-tests.
 }
-\examples{
-safestats:::defineTTestN()
-}

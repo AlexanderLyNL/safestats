@@ -43,6 +43,3 @@ numeric that represents the type II error
 \description{
 Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.
 }
-\examples{
-safestats:::computeBetaBatchSafeZ(meanDiffMin=0.9, nPlan=12)
-}

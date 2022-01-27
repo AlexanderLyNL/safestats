@@ -48,6 +48,3 @@ numeric > 0 that represents the minimal detectable mean difference
 Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
 sample size
 }
-\examples{
-safestats:::computeMinEsBatchSafeZ(nPlan=78)
-}

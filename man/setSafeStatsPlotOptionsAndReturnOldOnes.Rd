@@ -16,7 +16,7 @@ Returns a list with the user specified plot options.
 Sets 'safestats' Plot Options and Returns the Current Plot Options.
 }
 \examples{
-oldPar <- safestats:::setSafeStatsPlotOptionsAndReturnOldOnes()
+oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
 graphics::plot(1:10, 1:10)
-graphics::par(oldPar)
+setPar <- graphics::par(oldPar)
 }

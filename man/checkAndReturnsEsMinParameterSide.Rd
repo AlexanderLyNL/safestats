@@ -32,24 +32,3 @@ paramToCheck after checking, perhaps with a change in sign
 Checks consistency between the sided of the hypothesis and the  minimal clinically relevant effect size
 or safe test defining parameter. Throws an error if the one-sided hypothesis is incongruent with the
 }
-\examples{
-### Use in the design stage
-meanDiffMin <- 0.4
-paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
-                                                              esMin="meanDiffMin",
-                                                              alternative="two.sided")
-# Returns absolute value of meanDiffMin
-paramChecked
-
-# Invokes warnings
-# paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
-#                                                               esMin="meanDiffMin",
-#                                                               alternative="greater")
-# paramChecked == meanDiffMin
-#
-# ### Use in the execution stage
-# phiS <- -0.3
-# paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS,
-#                                                               alternative="greater")
-# paramChecked == phiS
-}

@@ -22,6 +22,7 @@ provided in the design object.
 \examples{
 designObj <- designSafeZ(0.4)
 
-safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
-safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
+checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
+## Throws a warning
+# checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
 }

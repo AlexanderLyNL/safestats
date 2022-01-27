@@ -8,9 +8,6 @@
 #' @param parameterName The name of the parameter to identify test performed
 #'
 #' @return Returns a character string with the name of the analysis.
-#'
-#' @examples
-#' safestats:::getNameTestType("oneSample", "t")
 getNameTestType <- function(testType, parameterName) {
   nameChar <- switch(testType,
                      "oneSample"="Safe One Sample",
@@ -37,9 +34,6 @@ getNameTestType <- function(testType, parameterName) {
 #' @param testType A character string either "oneSample", "paired", "twoSample", "gLogrank", or "eLogrank".
 #' @param h0 the value of the null hypothesis
 #' @return Returns a character string with the name of the analysis.
-#'
-#' @examples
-#' safestats:::getNameAlternative("two.sided", testType="oneSample")
 getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), testType, h0=0) {
   alternative <- match.arg(alternative)
 

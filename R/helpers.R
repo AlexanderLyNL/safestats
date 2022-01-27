@@ -8,10 +8,6 @@
 #' @param value Return value if there is an error, default is \code{NA_real_}.
 #'
 #' @return Returns the evaluation of the expression, or \code{value} if it doesn't work out.
-#'
-#' @examples
-#' safestats:::tryOrFailWithNA(integrate(exp, -Inf, Inf)[["value"]], NA)
-#' safestats:::tryOrFailWithNA(integrate(exp, 0, 3)[["value"]], NA)
 tryOrFailWithNA <- function(expr, value=NA_real_) {
   tryCatch(
     error=function(cnd) value,
@@ -46,13 +42,6 @@ isTryError <- function(...) {
 #' Helper function: Get all arguments as entered by the user
 #'
 #' @return a list of variable names of class "call" that can be changed into names
-#'
-#' @examples
-#' foo <- function(x, y) {
-#'   safestats:::getArgs()
-#' }
-#'
-#'foo(x="3", y=df)
 getArgs <- function() {
   as.list(match.call(definition = sys.function(-1),
                      call = sys.call(-1)))[-1]
@@ -65,15 +54,6 @@ getArgs <- function() {
 #' @param name character string, name of the item that need retrieving
 #'
 #' @return returns a character string
-#'
-#' @examples
-#'
-#' foo <- function(x, y) {
-#'   safestats:::getArgs()
-#' }
-#'
-#' bar <- foo(x="3", y=rnorm(10))
-#' safestats:::extractNameFromArgs(bar, "y")
 extractNameFromArgs <- function(list, name) {
   result <- list[[name]]
 
@@ -97,27 +77,6 @@ extractNameFromArgs <- function(list, name) {
 #' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
 #'
 #' @return paramToCheck after checking, perhaps with a change in sign
-#'
-#' @examples
-#' ### Use in the design stage
-#' meanDiffMin <- 0.4
-#' paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
-#'                                                               esMin="meanDiffMin",
-#'                                                               alternative="two.sided")
-#' # Returns absolute value of meanDiffMin
-#' paramChecked
-#'
-#' # Invokes warnings
-#' # paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
-#' #                                                               esMin="meanDiffMin",
-#' #                                                               alternative="greater")
-#' # paramChecked == meanDiffMin
-#' #
-#' # ### Use in the execution stage
-#' # phiS <- -0.3
-#' # paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(phiS,
-#' #                                                               alternative="greater")
-#' # paramChecked == phiS
 checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.sided", "greater", "less"),
                                               esMinName=c("noName", "meanDiffMin", "phiS",
                                                           "deltaMin", "deltaS",
@@ -218,8 +177,6 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.s
 #'
 #' @return nPlan a vector of sample sizes of length 1 or 2
 #'
-#' @examples
-#' safestats:::checkAndReturnsNPlan(nPlan=5, testType="oneSample")
 checkAndReturnsNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired", "twoSample")) {
   if (testType=="twoSample" && length(nPlan)==1) {
     nPlan <- c(nPlan, ratio*nPlan)
@@ -243,10 +200,12 @@ checkAndReturnsNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired
 #'
 #' @return Returns a list with the user specified plot options.
 #'
+#' @export
+#'
 #' @examples
-#' oldPar <- safestats:::setSafeStatsPlotOptionsAndReturnOldOnes()
+#' oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
 #' graphics::plot(1:10, 1:10)
-#' graphics::par(oldPar)
+#' setPar <- graphics::par(oldPar)
 setSafeStatsPlotOptionsAndReturnOldOnes <- function(...) {
   oldPar <- graphics::par(no.readonly = TRUE)
   graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
@@ -569,11 +528,14 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 #'
 #' @return Returns nothing only used for its side-effects to produces warnings if needed.
 #'
+#' @export
+#'
 #' @examples
 #' designObj <- designSafeZ(0.4)
 #'
-#' safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
-#' safestats:::checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
+#' checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
+#' ## Throws a warning
+#' # checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
 checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 
   argsToCheck <- list(...)
@@ -658,28 +620,3 @@ computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L, alpha=NULL
   bootObj[["bootSe"]] <- sd(bootObj[["t"]])
   return(bootObj)
 }
-
-#' #' Helper function to produce notes based on bootstrap results
-#' #'
-#' #' @param targetName character string representing the target of estimation, e.g., nPlan, or beta
-#' #' @param estimate numeric bootstrap estimate
-#' #' @param sdEstimate numeric > 0 representing the standard error
-#' #' @param digits integer >= 0. Default taken from options
-#' #'
-#' #' @return character string with bootstrap note.
-#' #'
-#' #' @examples
-#' #' safestats:::writeBootNote("nPlan", 18, 4)
-#' writeBootNote <- function(targetName, estimate, sdEstimate, digits = getOption("digits")) {
-#'   note <- paste0(targetName, " is estimated with bootstrap standard error ",
-#'                  format(sdEstimate, digits = digits))
-#'
-#'   # note <- paste0(targetName, " is estimated with bootstrap standard error ",
-#'   #                format(sdEstimate, digits = digits), ". \n",
-#'   #                "Thus, with a relative approximation error of ",
-#'   #                format(sdEstimate/estimate*100, digits=digits), "%.")
-#'                  # "\n Increase nSim for a more accurate estimate.")
-#'   return(note)
-#' }
-
-

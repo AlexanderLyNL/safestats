@@ -26,6 +26,3 @@ nPlan a vector of sample sizes of length 1 or 2
 \description{
 Check consistency between nPlan and the testType for one and two-sample z and t-tests
 }
-\examples{
-safestats:::checkAndReturnsNPlan(nPlan=5, testType="oneSample")
-}
