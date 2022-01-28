@@ -141,22 +141,6 @@ safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="tw
 }
 
 
-#' safeTTestStat(), but as a function of the square of t and subtracted with 1/alpha
-#'
-#' This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is used for root finding for
-#' pilot designs.
-#'
-#' @inheritParams safeTTest
-#' @inherit safeTTestStat
-#'
-#' @return Returns a numeric that represent the e10 - 1/alpha, that is, the e-value in favour of the
-#' alternative over the null - 1/alpha.
-#'
-safeT2TestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="two.sided", tDensity=FALSE) {
-  safeTTestStat("t"=t, "parameter"=parameter, "n1"=n1, "n2"=n2, "alternative"=alternative, "tDensity"=tDensity) - 1/alpha
-}
-
-
 #' Safe Student's T-Test.
 #'
 #' A safe t-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample t-tests on vectors of data.
@@ -201,7 +185,7 @@ safeT2TestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="t
 #'
 #' @examples
 #' designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-#' testType="twoSample", ratio=1.2)
+#'                          testType="twoSample", ratio=1.2)
 #'
 #' set.seed(1)
 #' x <- rnorm(100)
@@ -357,7 +341,7 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
 #'
 #' @examples
 #' designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-#' testType="twoSample", ratio=1.2)
+#'                          testType="twoSample", ratio=1.2)
 #'
 #' set.seed(1)
 #' x <- rnorm(100)

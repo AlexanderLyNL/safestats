@@ -18,13 +18,9 @@ No returned value, called for side effects.
 Prints a safeTSim Object
 }
 \examples{
-designObj <- designSafeT(1)
+designObj <- designSafeT(1, beta=0.2, nSim=10)
 
 # Data under deltaTrue=deltaMin
-#simObj <- simulate(designObj, nsim=100)
-#simObj
-
-# Data under the null deltaTrue=0
-#simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
-#simObj
+simObj <- simulate(designObj, nSim=10)
+print(simObj)
 }

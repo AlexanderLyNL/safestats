@@ -336,15 +336,11 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' @export
 #'
 #' @examples
-#' designObj <- designSafeT(1)
+#' designObj <- designSafeT(1, beta=0.2, nSim=10)
 #'
 #' # Data under deltaTrue=deltaMin
-#' #simObj <- simulate(designObj, nsim=100)
-#' #simObj
-#'
-#' # Data under the null deltaTrue=0
-#' #simObj <- simulate(designObj, nsim=100, deltaTrue=0, freqOptioStop=TRUE, nPlanFreq=10)
-#' #simObj
+#' simObj <- simulate(designObj, nSim=10)
+#' print(simObj)
 print.safeTSim <- function(x, ...) {
   analysisName <- getNameTestType("testType" = x[["testType"]], "parameterName"=names(x[["parameter"]]))
 

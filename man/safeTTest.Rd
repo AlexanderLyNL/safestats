@@ -88,7 +88,7 @@ A safe t-test adapted from  \code{\link[stats]{t.test}()} to perform one and two
 }
 \examples{
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-testType="twoSample", ratio=1.2)
+                         testType="twoSample", ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)
@@ -97,7 +97,7 @@ safeTTest(x, y, designObj=designObj)      #0.2959334
 
 safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-testType="twoSample", ratio=1.2)
+                         testType="twoSample", ratio=1.2)
 
 set.seed(1)
 x <- rnorm(100)
