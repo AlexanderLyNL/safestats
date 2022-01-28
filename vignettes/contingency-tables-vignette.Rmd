@@ -383,7 +383,7 @@ eValuesNotRejectedNull <-
 ```{r, echo = FALSE}
 trueHist <- graphics::hist(x = eValuesNotRejected, plot = FALSE)
 nullHist <- graphics::hist(x = eValuesNotRejectedNull, plot = FALSE)
-graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
+oldPar <- graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
               font.lab=2, cex.axis=1.3, bty="n", las=1)
 graphics::plot(nullHist, xlim = c(0, max(eValuesNotRejected, eValuesNotRejectedNull)),
                freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "e-values",
@@ -391,6 +391,7 @@ graphics::plot(nullHist, xlim = c(0, max(eValuesNotRejected, eValuesNotRejectedN
 graphics::plot(trueHist, add = TRUE, freq = FALSE, col = "red", density = 20,
                angle = -45)
 graphics::legend(x = "topright", legend = c("True delta: null", "True delta: design"), fill = c("blue", "red"))
+par(oldPar)
 ```
 
 It can be observed that, when the true difference between the groups equals our design difference, the e-values are spread out between 0 and 20. On the other hand, with our experiment under the null, all e-values were smaller than 2.
@@ -406,11 +407,12 @@ newEValues <- followUpResults[["eValues"]] * promisingEValues
 ```
 ```{r, echo = FALSE, cache = FALSE}
 trueHist <- graphics::hist(x = newEValues, plot = FALSE)
-graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
-              font.lab=2, cex.axis=1.3, bty="n", las=1)
+oldPar <- graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
+                        font.lab=2, cex.axis=1.3, bty="n", las=1)
 graphics::plot(trueHist, xlim = c(0, max(newEValues)),
                freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "e-values",
                main = "Histogram of e-values after continuing data collection")
+par(oldPar)
 ```
 
 We now have rejected the null hypothesis in:
@@ -440,11 +442,12 @@ newEValuesNull <-
 ```
 ```{r, echo = FALSE, cache = FALSE}
 nullHist <- graphics::hist(x = newEValuesNull, plot = FALSE)
-graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
-              font.lab=2, cex.axis=1.3, bty="n", las=1)
+oldPar <- graphics::par(cex.main=1.5, mar=c(5, 6, 4, 4)+0.1, mgp=c(3.5, 1, 0), cex.lab=1.5,
+                        font.lab=2, cex.axis=1.3, bty="n", las=1)
 graphics::plot(nullHist, xlim = c(0, max(newEValuesNull)),
                freq = FALSE, col = "blue", density = 20, angle = 45, xlab = "e-values",
                main = "Histogram of e-values after continuing data collection under the null")
+par(oldPar)
 ```
 
 We still keep our type-I error probability guarantee: we have not rejected the null in any of the follow-up experiments.

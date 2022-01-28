@@ -534,8 +534,8 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 #' designObj <- designSafeZ(0.4)
 #'
 #' checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
-#' ## Throws a warning
-#' # checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
+#' # Throws a warning
+#' checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
 checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 
   argsToCheck <- list(...)

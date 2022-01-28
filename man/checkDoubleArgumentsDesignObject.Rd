@@ -23,6 +23,6 @@ provided in the design object.
 designObj <- designSafeZ(0.4)
 
 checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
-## Throws a warning
-# checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
+# Throws a warning
+checkDoubleArgumentsDesignObject(designObj, "alpha"=0.4, alternative="d")
 }
