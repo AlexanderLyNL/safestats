@@ -88,7 +88,8 @@ following components:
 }
 \description{
 A safe test to test whether there is a difference between two survival curves. This function
-builds on the Mantel-Cox version of the logrank test.
+builds on the Mantel-Cox version of the logrank test. To Peto estimator is used as a best guess
+for the underlying hazard ratio.
 }
 \section{Functions}{
 \itemize{
@@ -172,4 +173,9 @@ resultG <- safeLogrankTest(survTime ~ dat$group,
 if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
   stop("one-sided wrong")
 
+}
+\references{
+Yusuf, S., Peto, R., Lewis, J., Collins, R., and Sleight, P. (1985).
+Beta blockade during and after myocardial infarction: an overview of the
+randomized trials. Progress in cardiovascular diseases, 27(5), 335-371.
 }

@@ -106,5 +106,5 @@ designObj <- designSafeZ(nPlan = 100, alpha=0.05)
 
 }
 \references{
-Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
+Grunwald, P.D., de Heide, R., and Koolen, W. (2019) "Safe Testing" <arXiv:1906.07801>
 }

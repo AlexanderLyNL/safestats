@@ -1,7 +1,8 @@
 #' Safe Logrank Test
 #'
 #' A safe test to test whether there is a difference between two survival curves. This function
-#' builds on the Mantel-Cox version of the logrank test.
+#' builds on the Mantel-Cox version of the logrank test. To Peto estimator is used as a best guess
+#' for the underlying hazard ratio.
 #'
 #' @inheritParams computeLogrankZ
 #' @importFrom survival Surv
@@ -41,6 +42,10 @@
 #'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
+#'
+#' @references Yusuf, S., Peto, R., Lewis, J., Collins, R., and Sleight, P. (1985).
+#' Beta blockade during and after myocardial infarction: an overview of the
+#' randomized trials. Progress in cardiovascular diseases, 27(5), 335-371.
 #'
 #' @examples
 #' # Example taken from survival::survdiff
@@ -271,10 +276,17 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     class(result) <- "safeTest"
     result[["designObj"]] <- designObj
   } else {
-    nEff <- ratio/(1+ratio)^2*nEvents
-
+    # TODO(Alexander): NOT EXACT HERE
+    #   So different here
     zStat <- sumStats[["z"]]
-    meanObs <- zStat/sqrt(nEff)
+
+    sumOMinE <- sumStats[["sumOMinE"]]
+    sumVarOMinE <- sumStats[["sumVarOMinE"]]
+
+    meanObs <- sumOMinE/sumVarOMinE
+
+    # This is the same as nEff <- (zStat/meanObs)^2
+    nEff <- sumVarOMinE
 
     result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanObs), "eValue"=NULL,
                    "confSeq"=NULL, "testType"="gLogrank", "dataName"=dataName)
@@ -294,8 +306,11 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     if (is.null(ciValue))
       ciValue <- 1 - designObj[["alpha"]]
 
+    # Note that 1/n sumOminE / (sqrt(1/n)*sqrt(sumVarOMinE/n)) = xBar / sigma/sqrt(n)
+    #  Hence, sigma = sqrt(sumVarOMinE/n), because n = sumVarOMinE, then sigma = 1
+
     tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
-                                              "phiS"=phiS, "sigma"=1,
+                                              "phiS"=phiS, "sigma"=1/sqrt(nEff),
                                               "ciValue"=ciValue, "alternative"="two.sided")
 
     result[["ciValue"]] <- ciValue
