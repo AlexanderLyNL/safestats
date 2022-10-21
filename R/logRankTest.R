@@ -560,8 +560,6 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       nEventsBatch <- bootObjNEvents[["nEventsBatch"]]
       nEventsTwoSe <- 2*bootObjNEvents[["bootSe"]]
 
-      browser()
-
       if (!is.null(nEventsBatch) && is.finite(nEventsBatch)) {
         note <- paste0("If it is only possible to look at the data once, ",
                        "then nEvents = ", nEventsBatch, ".")
