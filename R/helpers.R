@@ -182,7 +182,7 @@ checkAndReturnsNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired
     nPlan <- c(nPlan, ratio*nPlan)
     warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] = ratio*nPlan[1], that is, ',
             nPlan[2], '.')
-  } else if (testType=="paired" && length(nPlan==1)) {
+  } else if (testType=="paired" && length(nPlan)==1) {
     nPlan <- c(nPlan, nPlan)
     warning('testType=="paired" specified, but nPlan[2] not provided. nPlan[2] set to nPlan[1].')
   } else if (testType=="oneSample" && length(nPlan)==2) {
