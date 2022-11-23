@@ -7,7 +7,7 @@
 sampleStoppingTimesSafeT(
   deltaTrue,
   alpha = 0.05,
-  alternative = c("two.sided", "less", "greater"),
+  alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
   nSim = 1000L,
   nMax = 1000,
@@ -26,7 +26,7 @@ This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}

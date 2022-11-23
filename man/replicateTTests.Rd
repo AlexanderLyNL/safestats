@@ -10,7 +10,7 @@ replicateTTests(
   muGlobal = 0,
   sigmaTrue = 1,
   paired = FALSE,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   lowN = 3,
   nSim = 1000L,
   alpha = 0.05,
@@ -38,7 +38,7 @@ for the test.This parameter treated is treated as a nuisance.}
 
 \item{paired}{logical, if \code{TRUE} then paired t-test.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{lowN}{integer that defines the smallest n of our search space for n.}
@@ -80,7 +80,7 @@ least the following components:
   \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
   the user.}
   \item{paired}{if \code{TRUE} then paired t-test.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
   \item{nSim}{the number of replications of the experiment.}
   \item{alpha}{the tolerable type I error provided by the user.}

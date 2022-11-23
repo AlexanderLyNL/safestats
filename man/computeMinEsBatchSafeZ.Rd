@@ -11,7 +11,7 @@ computeMinEsBatchSafeZ(
   beta = 0.2,
   sigma = 1,
   kappa = sigma,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
   maxIter = 10
@@ -32,7 +32,7 @@ and "phiS". Note that 1-beta defines the power.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}

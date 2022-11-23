@@ -46,7 +46,7 @@ set to \code{NULL} by default.}
 if a formula is provided, therefore set to \code{NULL} by default.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
 To change these default values, please use \code{\link{designSafeLogrank}}.}
 
 \item{exact}{a logical indicating whether the exact safe logrank test needs to be performed based on
@@ -137,7 +137,7 @@ eValueGreater <- exp(cumsum(result$sumStats$logEValueGreater))
 # Less
 eValueLess <- exp(cumsum(result$sumStats$logEValueLess))
 
-# two.sided
+# twoSided
 eValueTwoSided <- 1/2*eValueGreater+1/2*eValueLess
 
 eValueTwoSided

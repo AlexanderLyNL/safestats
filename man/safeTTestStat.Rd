@@ -9,7 +9,7 @@ safeTTestStat(
   parameter,
   n1,
   n2 = NULL,
-  alternative = c("two.sided", "less", "greater"),
+  alternative = c("twoSided", "less", "greater"),
   tDensity = FALSE,
   paired = FALSE,
   ...

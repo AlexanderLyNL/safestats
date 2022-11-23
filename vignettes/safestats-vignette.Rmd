@@ -297,13 +297,7 @@ Hence, this means that if the true effect is larger than what was planned for, t
 The last scenario with deltaTrue smaller than what was planned for, that is, deltaMin, is discussed in the context of optional continuation. 
 
 # 3. <a name = "optContT">Optional Continuation</a>
-In the previous section we saw that monitoring the p-value and stopping before the planned sample sizes whenever $p < \alpha=0.05$ leads to an increased risk of a false claim (from 5% to `r simResultDeltaTrueIsZero$freqSim$powerOptioStop*100`%). 
-
-In this section, we first show that optional continuation, that is, extending the experiment beyond the planned sample sizes, also causes the p-value to over-reject the null. As such, the chance of incorrectly detecting an effect based on $p < \alpha$ will be larger than $\alpha$ whenever (1) funders, reviewers or editors urge the experimenter to collect more data after observing an non-significant p-value, because an effect is nonetheless expected, or (2) when other researchers attempt to replicate the original results. 
-
-The inability of p-values to conserve the $\alpha$-level under optional stopping and optional continuation implies that they only control the risk of an incorrect null rejection, whenever the sample sizes are fixed beforehand and the protocol is followed stringently. This assumes that no problems occur during the experiment, which might not be realistic in practice, and makes it impossible for practitioners to adapt to new circumstances. In other words, classical p-value tests turn the experimental design into a prison for practitioners who care about controlling the type I error rate. 
-
-With safe tests one does not need to choose between correct inferences and the ability to adapt to new circumstances, as they were constructed to provide practitioners with additional flexibility in the experimental design without sacrificing the level $\alpha$ type I error control. As safe tests conserve the $\alpha$-level under both optional stopping and continuation, they yield anytime-valid inferences. The robustness of safe tests to optional continuation is illustrated with additional simulations. 
+    
 
 ## Optional continuation is problematic for p-values and leads to overinflating the type I error rate
 Firstly, we show that optional continuation also causes p-values to over-reject the null. In the following we consider the situation in which we continue studies for which a first batch of data resulted in $p \geq \alpha$. These non-significant experiments are extended with a second batch of data with the same sample sizes as the first batch, that is, `r freqDesignObj$nPlan`. We see that selectively continuing non-significant experiments causes the collective rate of false null rejections to be larger than $\alpha$. 
@@ -445,7 +439,7 @@ sum(eValuesBatch1To2 > 1/alpha)
 length(eValuesBatch1To2)
 ```
 
-show that `r sum(eValuesBatch1To2 > 1/alpha)` out of the `r length(eValuesBatch1To2)` of the selectively continued experiments (`r mean(eValuesBatch1To2 > 1/alpha)*100`%) now lead to a false null rejection due to optional continuation. Hence, after the second batch of data the total number of total number of false null rejections is `r sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha)` out of a total of a `r nSim` original experiment, thus, `r sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha)/nSim*100`%. Similar, a third batch won't increase the collective false rejection rate either. 
+show that `r sum(eValuesBatch1To2 > 1/alpha)` out of the `r length(eValuesBatch1To2)` of the selectively continued experiments (`r mean(eValuesBatch1To2 > 1/alpha)*100`%) now lead to a false null rejection due to optional continuation. Hence, after the second batch of data the total number of total number of false null rejections is `r sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha)` out of a total of a `r nSim` original experiments, thus, `r (sum(eValuesBatch1 > 1/alpha) + sum(eValuesBatch1To2 > 1/alpha))/nSim*100`%. Similar, a third batch won't increase the collective false rejection rate either. 
 
 ```{r}
 eValuesBatch1To2 <- selectivelyContinueDeltaTrueIsZero$newValue
@@ -483,7 +477,7 @@ simResultDeltaTrueLessThanDeltaMin <- simulate(object=designObj, nSim=1000L,
 simResultDeltaTrueLessThanDeltaMin
 ```
 
-The follow-up batch of data will again be of the same sizes, thus, `r designObj$nPlan`, and be generataed with the same deltaTrue smaller than deltaMin, as in the first batch. 
+The follow-up batch of data will again be of the same sizes, thus, `r designObj$nPlan`, and be generated with the same deltaTrue smaller than deltaMin, as in the first batch. 
 
 As a first batch of e-values, we use the simulation study ran in the previous section when deltaTrue equals deltaMin, and we recall that under optional stopping we get 
 
@@ -522,18 +516,18 @@ sum(eValuesBatch1To2 > 1/alpha)
 an additional `r sum(eValuesBatch1To2 > 1/alpha)` correct null rejections (`r sum(eValuesBatch1To2 > 1/alpha)/sum(eValuesBatch1 < 1/alpha)*100`% of `r sum(eValuesBatch1 < 1/alpha)` experiments). This brings up the total number of null rejections to `r sum(eValuesBatch1To2 > 1/alpha) + sum(eValuesBatch1 > 1/alpha)` out of the `r nSim` experiments. In this case, a null rejection is correct, since the data were generated with a true effect larger than zero, though smaller than the minimal clinically relevant effect size. 
 
 ### ii. Optional continuation through replication studies
-It is not always appropriate to combine data sets, in particular for replication attempts where the original experiment is performed in a different population. In that case, one can still easily do safe inference by multiplying the e-values computed over each data set separately. This procedure also conserves the $\alpha$-level, as we show below. 
+It is not always appropriate to compute one e-value over a combine data set, in particular for replication attempts where the original experiment is performed on a different population. In that case, one can still easily do safe inference by multiplying the e-values computed over each data set separately. This procedure also conserves the $\alpha$-level, as we show below. 
 
 In all scenarios the simulation results of the optional stopping studies are used as original experiments. The data from these simulated experiments were all generated with a global population mean (e.g., baseline blood pressure) that was set to $\mu_{g}=120$, a population standard deviation of $\sigma=15$, and a deltaTrue, which depending on the absence or presence of the effect was zero, or equal to deltaMin, respectively. 
 
 #### Type I error is guaranteed when multiplying e-values
-As original experiments we take the e-values from the optional stopping simulation study
+We continue the e-values from the optional stopping simulation study
 
 ```{r}
 eValuesOri <- simResultDeltaTrueIsZero$safeSim$eValues
 ```
 
-The code below multiplies these original e-values with e-values observed in a replication attempt with larger sample size. As in the original study the data are generated under the null. Suppose that for the replication attempt we now administer the same drug to a clinical group that has a lower overall baseline blood pressure of $\mu_{g}=90$ mmHg and standard deviation of $\sigma=6$. 
+The code below multiplies these original e-values with e-values observed in a replication attempt with a larger sample size. As in the original study the data are generated under the null. Suppose that for the replication attempt we now administer the same drug to a clinical group that has a lower overall baseline blood pressure of $\mu_{g}=90$ mmHg and standard deviation of $\sigma=6$. 
 
 ```{r}
 # Needs to be larger than 1/designObj$n1Plan to have at least two samples 

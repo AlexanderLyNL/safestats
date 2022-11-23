@@ -5,13 +5,13 @@
 \title{Gets the Label of the Alternative Hypothesis}
 \usage{
 getNameAlternative(
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   testType,
   h0 = 0
 )
 }
 \arguments{
-\item{alternative}{A character string. "two.sided", "greater", "less".}
+\item{alternative}{A character string. "twoSided", "greater", "less".}
 
 \item{testType}{A character string either "oneSample", "paired", "twoSample", "gLogrank", or "eLogrank".}
 

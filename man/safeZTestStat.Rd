@@ -9,7 +9,7 @@ safeZTestStat(
   phiS,
   n1,
   n2 = NULL,
-  alternative = c("two.sided", "less", "greater"),
+  alternative = c("twoSided", "less", "greater"),
   paired = FALSE,
   sigma = 1,
   ...
@@ -29,7 +29,7 @@ parameter value.}
 \item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 \code{NULL} it implies that the z-statistic is based on one-sample.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{paired}{a logical, if \code{TRUE} ignores n2, and indicates that a paired z-test is performed.}

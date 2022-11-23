@@ -10,7 +10,7 @@ computeBootObj(
   nPlan = NULL,
   nBoot = 1000L,
   alpha = NULL,
-  objType = c("nPlan", "beta", "betaFromEValues", "logImpliedTarget",
+  objType = c("nPlan", "nMean", "beta", "betaFromEValues", "logImpliedTarget",
     "expectedStopTime")
 )
 }
@@ -29,7 +29,7 @@ approximation of the power, the planned sample size(s) of the safe test under co
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{objType}{character string either "nPlan", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".}
+\item{objType}{character string either "nPlan", "nMean", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".}
 }
 \value{
 bootObj

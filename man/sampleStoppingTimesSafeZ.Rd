@@ -7,7 +7,7 @@
 sampleStoppingTimesSafeZ(
   meanDiffMin,
   alpha = 0.05,
-  alternative = c("two.sided", "less", "greater"),
+  alternative = c("twoSided", "less", "greater"),
   sigma = 1,
   kappa = sigma,
   nSim = 1000L,
@@ -26,7 +26,7 @@ that we would like to detect.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
