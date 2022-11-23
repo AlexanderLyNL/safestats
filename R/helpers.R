@@ -57,7 +57,7 @@ getArgs <- function() {
 extractNameFromArgs <- function(list, name) {
   result <- list[[name]]
 
-  if (class(result)=="call")
+  if (inherits(result, "call"))
     result <- as.character(as.expression(result))
 
   return(result)
