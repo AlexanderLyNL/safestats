@@ -7,7 +7,7 @@ or safe test defining parameter. Throws an error if the one-sided hypothesis is 
 \usage{
 checkAndReturnsEsMinParameterSide(
   paramToCheck,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   esMinName = c("noName", "meanDiffMin", "phiS", "deltaMin", "deltaS", "hrMin",
     "thetaS", "deltaTrue"),
   paramDomain = NULL
@@ -17,7 +17,7 @@ checkAndReturnsEsMinParameterSide(
 \item{paramToCheck}{numeric. Either a named safe test defining parameter such as phiS, or thetaS, or a
 minimal clinically relevant effect size called with a non-null esMinName name}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{esMinName}{provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for

@@ -6,7 +6,7 @@
 \usage{
 designPilotSafeZ(
   nPlan,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   alpha = 0.05,
   sigma = 1,
   h0 = 0,
@@ -21,7 +21,7 @@ designPilotSafeZ(
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
@@ -47,7 +47,7 @@ Returns a 'safeDesign' object
   \item{esMin}{\code{NULL} no minimally clinically relevant effect size provided.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{\code{NULL}, no tolerable type II error specified.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}

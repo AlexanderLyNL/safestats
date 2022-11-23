@@ -67,7 +67,7 @@ Returns a 'safeDesign' object that includes:
   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error specified by the user.}
-  \item{alternative}{any of "two.sided", "greater", "less" based on the \code{alternativeRestriction} provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" based on the \code{alternativeRestriction} provided by the user.}
   \item{testType}{here 2x2}
   \item{pilot}{logical, specifying whether it's a pilot design.}
   \item{call}{the expression with which this function is called.}

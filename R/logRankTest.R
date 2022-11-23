@@ -16,7 +16,7 @@
 #' @param group an optional factor, a grouping variable. Currently, only two levels allowed. Does not need specifying
 #' if a formula is provided, therefore set to \code{NULL} by default.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-#' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+#' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
 #' To change these default values, please use \code{\link{designSafeLogrank}}.
 #' @param ciValue numeric, represents the ciValue-level of the confidence sequence. Default ciValue=NULL, and
 #' ciValue = 1 - alpha, where alpha is taken from the design object.
@@ -81,7 +81,7 @@
 #' # Less
 #' eValueLess <- exp(cumsum(result$sumStats$logEValueLess))
 #'
-#' # two.sided
+#' # twoSided
 #' eValueTwoSided <- 1/2*eValueGreater+1/2*eValueLess
 #'
 #' eValueTwoSided
@@ -210,7 +210,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
   #
   if (isTRUE(pilot)) {
     alpha <- 0.05
-    alternative <- "two.sided"
+    alternative <- "twoSided"
     h0 <- 1
 
     survTimeMatrix <- as.matrix(survTime)
@@ -252,16 +252,16 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
   # Compute e-value ------
   #
   if (exact) {
-    if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="less")
+    if (designObj[["alternative"]]=="twoSided" || designObj[["alternative"]]=="less")
       eValueLess <- exp(sum(sumStats[["logEValueLess"]]))
 
-    if (designObj[["alternative"]]=="two.sided" || designObj[["alternative"]]=="greater")
+    if (designObj[["alternative"]]=="twoSided" || designObj[["alternative"]]=="greater")
       eValueGreater <- exp(sum(sumStats[["logEValueGreater"]]))
 
     eValue <- switch(designObj[["alternative"]],
                      "greater"=eValueGreater,
                      "less"=eValueLess,
-                     "two.sided"=1/2*eValueGreater+1/2*eValueLess)
+                     "twoSided"=1/2*eValueGreater+1/2*eValueLess)
 
     names(eValue) <- "e"
 
@@ -296,7 +296,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 
     tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
                                               "phiS"=phiS, "sigma"=1,
-                                              "ciValue"=ciValue, "alternative"="two.sided")
+                                              "ciValue"=ciValue, "alternative"="twoSided")
 
     result[["ciValue"]] <- ciValue
 
@@ -364,7 +364,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
                           "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1)
 
   tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs, "phiS"=phiS,
-                                            "sigma"=1, "ciValue"=ciValue, "alternative"="two.sided")
+                                            "sigma"=1, "ciValue"=ciValue, "alternative"="twoSided")
 
   result[["confSeq"]] <- exp(tempConfSeq)
 
@@ -401,7 +401,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' @param parameter numeric > 0 representing the test defining thetaS. Default is NULL, then GROW the choice is used,
 #' that is, parameter equals the data generating hazardRatio.
 #' @param alternative a character string specifying the alternative hypothesis, which must be one of
-#' "two.sided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
+#' "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
 #' of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
 #' lambda2 the hazard ratio of group 2 (i.e., treatment), then the null hypothesis states that the hazard ratio
 #' theta = lambda2/lambda1 = 1. If alternative = "less", the null hypothesis is compared to theta < 1, thus,
@@ -430,7 +430,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #'   \item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error provided by the user.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{testType}{"logrank".}
 #'   \item{ratio}{default is 1. It defines the ratio between the planned randomisation of
 #'   condition 2 over condition 1.}
@@ -449,7 +449,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' designSafeLogrank(hrMin=0.7, beta=0.3, nSim=10)
 #' designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
 designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
-                              alternative=c("two.sided", "greater", "less"),
+                              alternative=c("twoSided", "greater", "less"),
                               alpha=0.05, ratio=1, exact=TRUE, tol=1e-5,
                               m0=50000L, m1=50000L, nSim=1e3L, nBoot=1e4L,
                               parameter=NULL, groupSizePerTimeFunction=returnOne,
@@ -457,6 +457,14 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
   stopifnot(0 < alpha, alpha < 1)
 
   result <- list()
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
 
@@ -467,18 +475,19 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "alternative"=alternative, "esMinName"="thetaS")
 
   thetaS <- if (is.null(parameter)) hrMin else parameter
-
-  nEventsBatch <- nEventsTwoSe <- NULL
-  betaTwoSe <- NULL
-  impliedTarget <- impliedTargetTwoSe <- NULL
-  bootObjNEvents <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
   note <- NULL
 
+  nEventsBatch <- nEventsTwoSe <- NULL
+  nMean <- nMeanTwoSe <- NULL
+
   logImpliedTarget <- logImpliedTargetTwoSe <- NULL
+  betaTwoSe <- NULL
+
+  bootObjNEvents <- bootObjN1Mean <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
 
   if (!exact) {
     if (!is.null(hrMin)) {
-      logHazardRatio <- if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
+      logHazardRatio <- if (alternative=="twoSided") abs(log(hrMin)) else log(hrMin)
       meanDiffMin <- logHazardRatio*sqrt(ratio)/(1+ratio)
     } else {
       logHazardRatio <- NULL
@@ -499,7 +508,7 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
 
     nEventsBatch <- safeZObj[["nPlanBatch"]]
     safeZObj[["nPlanBatch"]] <- NULL
-    safeZObj[["nEventsBatch"]] <- safeZObj
+    safeZObj[["nEventsBatch"]] <- nEventsBatch
 
     nEventsTwoSe <- safeZObj[["nPlanTwoSe"]]
     safeZObj[["nPlanTwoSe"]] <- NULL
@@ -556,9 +565,16 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                                           "groupSizePerTimeFunction"=groupSizePerTimeFunction,
                                           "parameter"=parameter, "pb"=pb)
       nEvents <- tempResult[["nEvents"]]
+
       bootObjNEvents <- tempResult[["bootObjNEvents"]]
-      nEventsBatch <- bootObjNEvents[["nEventsBatch"]]
       nEventsTwoSe <- 2*bootObjNEvents[["bootSe"]]
+
+      nMean <- tempResult[["n1Mean"]]
+      names(nMean) <- "nMean"
+      bootObjN1Mean <- tempResult[["bootObjN1Mean"]]
+      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
+
+      nEventsBatch <- bootObjNEvents[["nEventsBatch"]]
 
       if (!is.null(nEventsBatch) && is.finite(nEventsBatch)) {
         note <- paste0("If it is only possible to look at the data once, ",
@@ -629,13 +645,16 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
     if (!is.null(h0))
       names(h0) <- "theta"
 
-    result <- list("nPlan"=nEvents, "parameter"=thetaS, "esMin"=hrMin, "alpha"=alpha, "beta"=beta,
-                   "alternative"=alternative, "h0"=h0, "testType"="eLogrank",
-                   "exact"=exact, "ratio"=m1/m0, "pilot"=FALSE, "note"=note,
-                   "nPlanBatch"=nEventsBatch, "betaTwoSe"=betaTwoSe, "nPlanTwoSe"=nEventsTwoSe,
+    result <- list("parameter"=thetaS, "esMin"=hrMin, "alpha"=alpha, "alternative"=alternative,
+                   "h0"=h0, "testType"="eLogrank", "exact"=exact,
+                   "ratio"=m1/m0, "pilot"=FALSE,
+                   "nPlan"=nEvents, "nPlanTwoSe"=nEventsTwoSe, "nPlanBatch"=nEventsBatch,
+                   "nMean"=nMean, "nMeanTwoSe"=nMeanTwoSe,
+                   "beta"=beta, "betaTwoSe"=betaTwoSe,
                    "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
-                   "call"=sys.call(), "timeStamp"=Sys.time(), "bootObjNPlan"=bootObjNEvents,
-                   "bootObjBeta"=bootObjBeta, "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
+                   "bootObjNPlan"=bootObjNEvents, "bootObjBeta"=bootObjBeta,
+                   "bootObjLogImpliedTarget"=bootObjLogImpliedTarget, "bootObjN1Mean"=bootObjN1Mean,
+                   "call"=sys.call(), "timeStamp"=Sys.time(), "note"=note)
 
     class(result) <- "safeDesign"
 
@@ -1052,11 +1071,19 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
 #'
 #' @examples
 #' sampleLogrankStoppingTimes(0.7, nSim=10)
-sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                                        m0=5e4L, m1=5e4L, nSim=1e3L, groupSizePerTimeFunction = returnOne,
                                        parameter=NULL, nMax=Inf, pb=TRUE) {
 
   stopifnot(is.null(parameter) || parameter > 0, alpha > 0, alpha <= 1)
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
 
@@ -1113,7 +1140,7 @@ sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c(
       evidenceNow <- switch(alternative,
                             "less" = exp(logEValueLess),
                             "greater" = exp(logEValueGreater),
-                            "two.sided" = 1/2*exp(logEValueGreater) +
+                            "twoSided" = 1/2*exp(logEValueGreater) +
                               1/2*exp(logEValueLess))
 
       # Note(Alexander): If exceeds 1/alpha threshold then reject normally
@@ -1162,9 +1189,17 @@ sampleLogrankStoppingTimes <- function(hazardRatio, alpha=0.05, alternative = c(
 #' @examples
 #' computeLogrankBetaFrom(hrMin=0.7, 300, nSim=10)
 computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
-                                   alternative = c("two.sided", "greater","less"),
+                                   alternative = c("twoSided", "greater","less"),
                                    nSim=1e3L, nBoot=1e4L, groupSizePerTimeFunction = returnOne,
                                    parameter=NULL, pb=TRUE) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
 
@@ -1216,9 +1251,17 @@ computeLogrankBetaFrom <- function(hrMin, nEvents, m0=5e4L, m1=5e4L, alpha=0.05,
 #' @examples
 #' computeLogrankNEvents(0.7, 0.2, nSim=10)
 computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
-                                  alternative = c("two.sided", "greater","less"),
+                                  alternative = c("twoSided", "greater","less"),
                                   nSim=1e3L, nBoot=1e3L, groupSizePerTimeFunction = returnOne,
                                   nMax=Inf, parameter=NULL, digits = getOption("digits"), pb=TRUE) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
 
@@ -1226,7 +1269,7 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
     if (hrMin >= 0.5 && hrMin <= 2) {
       ratio <- m1/m0
 
-      logHazardRatio <- if (alternative=="two.sided") abs(log(hrMin)) else log(hrMin)
+      logHazardRatio <- if (alternative=="twoSided") abs(log(hrMin)) else log(hrMin)
       meanDiffMin <- logHazardRatio*sqrt(ratio)/(1+ratio)
 
       logThetaS <- if (!is.null(parameter)) log(parameter) else NULL
@@ -1249,8 +1292,15 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
   bootObjNEvents  <- computeBootObj("values"=times, "beta"=beta, "objType"="nPlan", "nBoot"=nBoot)
 
-  result <- list("nEvents" = ceiling(bootObjNEvents[["t0"]]),
-                 "bootObjNEvents" = bootObjNEvents, "nEventsBatch"=nBatch)
+  nEvents <- ceiling(bootObjNEvents[["t0"]])
+
+  bootObjN1Mean <- computeBootObj("values"=times, "objType"="nMean", "nPlan"=nEvents, "nBoot"=nBoot)
+
+  n1Mean <- ceiling(bootObjN1Mean[["t0"]])
+
+  result <- list("nEvents" = nEvents, "bootObjNEvents" = bootObjNEvents,
+                 "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
+                 "nEventsBatch"=nBatch)
 
   return(result)
 }

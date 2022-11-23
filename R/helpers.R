@@ -77,17 +77,25 @@ extractNameFromArgs <- function(list, name) {
 #' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
 #'
 #' @return paramToCheck after checking, perhaps with a change in sign
-checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("two.sided", "greater", "less"),
+checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSided", "greater", "less"),
                                               esMinName=c("noName", "meanDiffMin", "phiS",
                                                           "deltaMin", "deltaS",
                                                           "hrMin", "thetaS", "deltaTrue"),
                                               paramDomain=NULL) {
 
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
   paramDomain <- match.arg(paramDomain)
   esMinName <- match.arg(esMinName)
 
-  if (alternative == "two.sided") {
+  if (alternative == "twoSided") {
     if (esMinName %in% c("meanDiffMin", "deltaMin", "deltaTrue"))
       return(abs(paramToCheck))
 
@@ -324,11 +332,20 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #'   deltaTrue=0, seed=3)
 #' sum(continuedSafe$newValues > 1/alpha)
 selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues", "pValues"), designObj=NULL,
-                                                alternative=c("two.sided", "greater", "less"),
+                                                alternative=c("twoSided", "greater", "less"),
                                                 oldData, deltaTrue, alpha=NULL,
                                                 n1Extra=NULL, n2Extra=NULL, seed=NULL, paired=FALSE,
                                                 muGlobal=0, sigmaTrue=1, moreMainText="") {
   valuesType <- match.arg(valuesType)
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
 
   if (valuesType=="pValues") {
@@ -404,8 +421,14 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues
     threshValue <- log(1/alpha)
   } else if (valuesType=="pValues") {
     for (i in seq_along(newValues)) {
+
+      alternativeFreq <- alternative
+
+      if (alternative=="twoSided")
+        alternativeFreq <- "two.sided"
+
       newValues[i] <- t.test("x"=dataGroup1[i, ], "y"=dataGroup2[i, ],
-                             "alternative"=alternative, "paired"=paired)$p.value
+                             "alternative"=alternativeFreq, "paired"=paired)$p.value
     }
     minX <- 0
     maxX <- 1
@@ -560,7 +583,7 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
 #' approximation of the power, the planned sample size(s) of the safe test under continuous monitoring.
 #' @param nPlan integer > 0 representing the number of planned samples (for the first group).
-#' @param objType character string either "nPlan", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".
+#' @param objType character string either "nPlan", "nMean", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".
 #'
 #' @return bootObj
 #' @export
@@ -568,11 +591,13 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 #' @examples
 #' computeBootObj(1:100, objType="nPlan", beta=0.3)
 computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L, alpha=NULL,
-                           objType=c("nPlan", "beta", "betaFromEValues", "logImpliedTarget", "expectedStopTime")) {
+                           objType=c("nPlan", "nMean", "beta", "betaFromEValues",
+                                     "logImpliedTarget", "expectedStopTime")) {
   objType <- match.arg(objType)
 
   if (objType=="beta") {
-    if (is.null(nPlan) || nPlan <= 0) stop("Please provide an nPlan > 0")
+    if (is.null(nPlan) || nPlan <= 0)
+      stop("Please provide an nPlan > 0")
 
     times <- values
     stopifnot(nPlan > 0)
@@ -582,7 +607,9 @@ computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L, alpha=NULL
                             1-mean(x[idx] <= nPlan)
                           },  R = nBoot)
   } else if (objType =="betaFromEValues") {
-    if (is.null(alpha) || alpha <= 0 || alpha >= 1) stop("Please provide an alpha in (0, 1)")
+    if (is.null(alpha) || alpha <= 0 || alpha >= 1)
+      stop("Please provide an alpha in (0, 1)")
+
     eValues <- values
 
     bootObj <- boot::boot(
@@ -594,12 +621,25 @@ computeBootObj <- function(values, beta=NULL, nPlan=NULL, nBoot=1e3L, alpha=NULL
     )
 
   } else if (objType=="nPlan") {
-    if (is.null(beta) || beta <= 0 || beta >= 1) stop("Please provide a beta in (0, 1)")
+    if (is.null(beta) || beta <= 0 || beta >= 1)
+      stop("Please provide a beta in (0, 1)")
 
     times <- values
     bootObj <- boot::boot(times,
                           function(x, idx) {
                             quantile(x[idx], prob=1-beta, names=FALSE)
+                          }, R = nBoot)
+  } else if (objType=="nMean") {
+    if (is.null(nPlan[1]) || nPlan[1] <= 0)
+      stop("Please provide a positive nPlan")
+
+    times <- values
+
+    times[times > nPlan[1]] <- nPlan[1]
+
+    bootObj <- boot::boot(times,
+                          function(x, idx) {
+                            mean(x[idx])
                           }, R = nBoot)
   } else if (objType=="logImpliedTarget") {
     eValues <- values

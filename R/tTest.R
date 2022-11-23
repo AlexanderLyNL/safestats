@@ -24,7 +24,8 @@
 #' @examples
 #' safeTTestStat(t=1, n1=100, 0.4)
 #' safeTTestStat(t=3, n1=100, parameter=0.3)
-safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", "less", "greater"), tDensity=FALSE,
+safeTTestStat <- function(t, parameter, n1, n2=NULL,
+                          alternative=c("twoSided", "less", "greater"), tDensity=FALSE,
                           paired=FALSE, ...) {
   # TODO(Alexander):
   #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
@@ -34,6 +35,15 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
   # safeTTestStat(t=-3.1878, parameter=0.29, n1=315, alternative="greater")
   # safeTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
   # safeTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
   deltaS <- parameter
 
@@ -73,7 +83,7 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
 
   aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
 
-  if (alternative=="two.sided") {
+  if (alternative=="twoSided") {
     result[!zeroIndex] <- expTerm[!zeroIndex] * aKummerFunction
   } else {
     bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu)[!zeroIndex] *
@@ -103,11 +113,23 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL, alternative=c("two.sided", 
 #' @return Returns a numeric that represent the e10, that is, the e-value in favour of the
 #' alternative over the null.
 #'
-safeTTestStatTDensity <- function(t, parameter, nu, nEff, alternative=c("two.sided", "less", "greater"),
+safeTTestStatTDensity <- function(t, parameter, nu, nEff,
+                                  alternative=c("twoSided", "less", "greater"),
                                   paired=FALSE, ...) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
+  alternative <- match.arg(alternative)
+
   deltaS <- parameter
 
-  if (alternative=="two.sided") {
+  if (alternative=="twoSided") {
     logTerm1 <- stats::dt(t, df=nu, ncp=sqrt(nEff)*deltaS, log=TRUE)-stats::dt(t, df=nu, ncp=0, log=TRUE)
     logTerm2 <- stats::dt(t, df=nu, ncp=-sqrt(nEff)*deltaS, log=TRUE)-stats::dt(t, df=nu, ncp=0, log=TRUE)
 
@@ -136,7 +158,20 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff, alternative=c("two.sid
 #' @return Returns a numeric that represent the e10 - 1/alpha, that is, the e-value in favour of the
 #' alternative over the null - 1/alpha.
 #'
-safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha, alternative="two.sided", tDensity=FALSE) {
+safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha,
+                               alternative=c("twoSided", "greater", "less"),
+                               tDensity=FALSE) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
+  alternative <- match.arg(alternative)
+
   safeTTestStat("t"=t, "parameter"=parameter, "n1"=n1, "n2"=n2, "alternative"=alternative, "tDensity"=tDensity) - 1/alpha
 }
 
@@ -268,10 +303,10 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
 
   if (pilot) {
     if (is.null(alternative))
-      alternative <- "two.sided"
+      alternative <- "twoSided"
     else {
-      if (!(alternative %in% c("two.sided", "greater", "less")))
-        stop('Provided alternative must be one of "two.sided", "greater", or "less".')
+      if (!(alternative %in% c("twoSided", "greater", "less")))
+        stop('Provided alternative must be one of "twoSided", "greater", or "less".')
     }
 
     if (is.null(alpha))
@@ -424,31 +459,41 @@ computeConfidenceIntervalT <- function(meanObs, sdObs, nEff, nu, deltaS,
 #'   \item{lowN}{the smallest n of the search space for n provided by the user.}
 #'   \item{highN}{the largest n of the search space for n provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #' }
 #' @export
 #'
 #' @examples
 #' designFreqT(0.5)
-designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided", "greater", "less"),
+designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
+                        alternative=c("twoSided", "greater", "less"),
                         h0=0, testType=c("oneSample", "paired", "twoSample"), ...) {
   stopifnot(alpha > 0, beta > 0, alpha < 1, beta < 1)
 
   testType <- match.arg(testType)
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
 
-  alternativeStat <- switch(alternative,
+  alternativeFreq <- switch(alternative,
                             "greater"="one.sided",
                             "less"="one.sided",
-                            "two.sided"="two.sided")
+                            "twoSided"="two.sided")
 
-  testTypeStat <- switch(testType,
+  testTypeFreq <- switch(testType,
                          "twoSample"="two.sample",
                          "oneSample"="one.sample",
                          "paired"="paired")
 
-  tempResult <- stats::power.t.test("delta"=deltaMin, "power"=1-beta, "type"=testTypeStat,
-                                    "alternative"=alternativeStat)
+  tempResult <- stats::power.t.test("delta"=deltaMin, "power"=1-beta, "type"=testTypeFreq,
+                                    "alternative"=alternativeFreq)
 
   n1Plan <- ceiling(tempResult[["n"]])
   n2Plan <- NULL
@@ -483,7 +528,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 #' the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+#' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 #' "greater" or "less".
 #' @param nPlan vector of max length 2 representing the planned sample sizes.
 #' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.
@@ -518,7 +563,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error provided by the user.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
 #'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
@@ -550,11 +595,19 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2, alternative=c("two.sided
 #' designObj <- designSafeT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
 #' designObj
 designSafeT <- function(deltaMin=NULL, beta=NULL, nPlan=NULL, alpha=0.05, h0=0,
-                        alternative=c("two.sided", "greater", "less"),
+                        alternative=c("twoSided", "greater", "less"),
                         lowN=3L, highN=1e6L, lowParam=0.01, highParam=1.5, tol=0.01,
                         testType=c("oneSample", "paired", "twoSample"), ratio=1,
                         nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE, seed=NULL, ...) {
   stopifnot(alpha > 0, alpha < 1)
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
@@ -573,10 +626,12 @@ designSafeT <- function(deltaMin=NULL, beta=NULL, nPlan=NULL, alpha=0.05, h0=0,
   note <- NULL
 
   nPlanBatch <- nPlanTwoSe <- NULL
+  nMean <- nMeanTwoSe <- NULL
+
   logImpliedTarget <- logImpliedTargetTwoSe <- NULL
   betaTwoSe <- NULL
 
-  bootObjN1Plan <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
+  bootObjN1Plan <- bootObjN1Mean <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
 
   tempResult <- list()
 
@@ -594,11 +649,17 @@ designSafeT <- function(deltaMin=NULL, beta=NULL, nPlan=NULL, alpha=0.05, h0=0,
     nPlanBatch <- tempResult[["nPlanBatch"]]
 
     bootObjN1Plan <- tempResult[["bootObjN1Plan"]]
+    bootObjN1Mean <- tempResult[["bootObjN1Mean"]]
 
     if (testType=="oneSample") {
       nPlan <- tempResult[["n1Plan"]]
       names(nPlan) <- "nPlan"
       nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
+
+      nMean <- tempResult[["n1Mean"]]
+      names(nMean) <- "nMean"
+      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
+
       note <- paste0("If it is only possible to look at the data once, ",
                      "then nPlan = ", nPlanBatch, ".")
     } else if (testType=="paired") {
@@ -607,15 +668,26 @@ designSafeT <- function(deltaMin=NULL, beta=NULL, nPlan=NULL, alpha=0.05, h0=0,
 
       nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
       nPlanTwoSe <- c(nPlanTwoSe, nPlanTwoSe)
+
+      nMean <- c(tempResult[["n1Mean"]], tempResult[["n1Mean"]])
+      names(nMean) <- c("n1Mean", "n2Mean")
+      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
+      nMeanTwoSe <- c(nMeanTwoSe, nMeanTwoSe)
+
       note <- paste0("If it is only possible to look at the data once, ",
                      "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
                      nPlanBatch[2], ".")
     } else if (testType=="twoSample") {
       nPlan <- c(tempResult[["n1Plan"]], ceiling(ratio*tempResult[["n1Plan"]]))
       names(nPlan) <- c("n1Plan", "n2Plan")
-
       nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
       nPlanTwoSe <- c(nPlanTwoSe, ratio*nPlanTwoSe)
+
+
+      nMean <- c(tempResult[["n1Mean"]], ceiling(ratio*tempResult[["n1Mean"]]))
+      names(nMean) <- c("n1Mean", "n2Mean")
+      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
+      nMeanTwoSe <- c(nMeanTwoSe, ratio*nMeanTwoSe)
 
       note <- paste0("If it is only possible to look at the data once, ",
                      "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
@@ -676,14 +748,16 @@ designSafeT <- function(deltaMin=NULL, beta=NULL, nPlan=NULL, alpha=0.05, h0=0,
     names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
   }
 
-  result <- list("nPlan"=nPlan, "nPlanTwoSe"=nPlanTwoSe, "parameter"=deltaS, "esMin"=deltaMin,
-                 "alpha"=alpha, "beta"=beta, "betaTwoSe"=betaTwoSe, "alternative"=alternative,
+  result <- list("parameter"=deltaS, "esMin"=deltaMin,"alpha"=alpha, "alternative"=alternative,
                  "h0"=h0, "testType"=testType, "paired"=paired,
-                 "nPlanBatch"=nPlanBatch, "ratio"=ratio, "pilot"=FALSE,
+                 "ratio"=ratio, "pilot"=FALSE,
+                 "nPlan"=nPlan, "nPlanTwoSe"=nPlanTwoSe, "nPlanBatch"=nPlanBatch,
+                 "nMean"=nMean, "nMeanTwoSe"=nMeanTwoSe,
+                 "beta"=beta, "betaTwoSe"=betaTwoSe,
                  "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
-                 "call"=sys.call(), "timeStamp"=Sys.time(),
-                 "note"=note, "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
-                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
+                 "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
+                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget, "bootObjN1Mean"=bootObjN1Mean,
+                 "call"=sys.call(), "timeStamp"=Sys.time(), "note"=note)
   class(result) <- "safeDesign"
 
   names(result[["esMin"]]) <- "standardised mean difference"
@@ -713,7 +787,7 @@ designSafeT <- function(deltaMin=NULL, beta=NULL, nPlan=NULL, alpha=0.05, h0=0,
 #'
 #' @examples
 #' designPilotSafeT(nPlan=30)
-designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("two.sided", "greater", "less"),
+designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("twoSided", "greater", "less"),
                              h0=0, lowParam=0.01, highParam=1.2, tol=0.01, inverseMethod=TRUE,
                              logging=FALSE, paired=FALSE, maxIter=10) {
   # TODO(Alexander): Check relation with forward method, that is, the least conservative test and maximally powered
@@ -730,6 +804,14 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("two.sided", "g
   #
   #     Trick bound the estimation error using Chebyshev: Note do this on log (safeTTestStat)
   #
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
   stopifnot(all(nPlan > 0))
@@ -864,9 +946,18 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("two.sided", "g
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
 computeNPlanBatchSafeT <- function(deltaMin, alpha=0.05, beta=0.2,
-                                   alternative=c("two.sided", "greater", "less"),
+                                   alternative=c("twoSided", "greater", "less"),
                                    testType=c("oneSample", "paired", "twoSample"),
                                    lowN=3, highN=1e6, ratio=1) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
@@ -886,7 +977,7 @@ computeNPlanBatchSafeT <- function(deltaMin, alpha=0.05, beta=0.2,
   nuVector <- nDef[["nu"]]
   nEffVector <- nDef[["nEff"]]
 
-  if (alternative=="two.sided") {
+  if (alternative=="twoSided") {
     for (i in seq_along(n1Vector)) {
       qBeta <- sqrt(stats::qf("p"=beta, "df1"=1, "df2"=nuVector[i], "ncp"=nEffVector[i]*deltaTrue^2))
 
@@ -942,10 +1033,19 @@ computeNPlanBatchSafeT <- function(deltaMin, alpha=0.05, beta=0.2,
 #'
 #' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
 computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
-                              alternative=c("two.sided", "greater", "less"),
+                              alternative=c("twoSided", "greater", "less"),
                               testType=c("oneSample", "paired", "twoSample"),
                               lowN=3, highN=1e6, ratio=1) {
   stop("Not yet implemented")
+
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
@@ -966,7 +1066,7 @@ computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
   nuVector <- nDef[["nu"]]
   nEffVector <- nDef[["nEff"]]
 
-  if (alternative=="two.sided") {
+  if (alternative=="twoSided") {
     for (i in seq_along(n1Vector)) {
       qBeta <- sqrt(stats::qf("p"=beta, "df1"=1, "df2"=nuVector[i], "ncp"=nEffVector[i]*deltaTrue^2))
 
@@ -1030,12 +1130,20 @@ computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
 #'
 #' @examples
 #' sampleStoppingTimesSafeT(0.7, nSim=10)
-sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                                      testType=c("oneSample", "paired", "twoSample"),
                                      nSim=1e3L, nMax=1e3, ratio=1, #designObj=NULL,
                                      lowN=3L, parameter=NULL, seed=NULL,
                                      wantEValuesAtNMax=FALSE, pb=TRUE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
@@ -1179,9 +1287,17 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
 #'
 #' @examples
 #' computeBetaSafeT(deltaMin=0.7, 27, nSim=10)
-computeBetaSafeT <- function(deltaMin, nPlan, alpha=0.05, alternative=c("two.sided", "greater", "less"),
+computeBetaSafeT <- function(deltaMin, nPlan, alpha=0.05, alternative=c("twoSided", "greater", "less"),
                              testType=c("oneSample", "paired", "twoSample"), seed=NULL,
                              parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
@@ -1245,10 +1361,18 @@ computeBetaSafeT <- function(deltaMin, nPlan, alpha=0.05, alternative=c("two.sid
 #'
 #' @examples
 #' computeNPlanSafeT(0.7, 0.2, nSim=10)
-computeNPlanSafeT <- function(deltaMin, beta=0.2, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+computeNPlanSafeT <- function(deltaMin, beta=0.2, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                               testType=c("oneSample", "paired", "twoSample"), lowN=3,
                               highN=1e6, ratio=1, nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE,
                               nMax=1e6, seed=NULL) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
@@ -1275,8 +1399,15 @@ computeNPlanSafeT <- function(deltaMin, beta=0.2, alpha=0.05, alternative = c("t
 
   bootObjN1Plan <- computeBootObj("values"=times, "objType"="nPlan", "beta"=beta, "nBoot"=nBoot)
 
-  result <- list("n1Plan" = ceiling(bootObjN1Plan[["t0"]]),
-                 "bootObjN1Plan" = bootObjN1Plan, "nPlanBatch"=nPlanBatch)
+  n1Plan <- ceiling(bootObjN1Plan[["t0"]])
+
+  bootObjN1Mean <- computeBootObj("values"=times, "objType"="nMean", "nPlan"=n1Plan, "nBoot"=nBoot)
+
+  n1Mean <- ceiling(bootObjN1Mean[["t0"]])
+
+  result <- list("n1Plan" = n1Plan, "bootObjN1Plan" = bootObjN1Plan,
+                 "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
+                 "nPlanBatch"=nPlanBatch)
 
   return(result)
 }
@@ -1475,7 +1606,7 @@ simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, mu
 #'   \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
 #'   the user.}
 #'   \item{paired}{if \code{TRUE} then paired t-test.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
 #'   \item{nSim}{the number of replications of the experiment.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
@@ -1548,7 +1679,7 @@ simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, mu
 #' simResults$freqSim$powerOptioStop
 #' simResults$freqSim$powerOptioStop > alpha
 replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FALSE,
-                            alternative=c("two.sided", "greater", "less"), lowN=3,
+                            alternative=c("twoSided", "greater", "less"), lowN=3,
                             nSim=1000L, alpha=0.05, beta=0.2,
                             safeOptioStop=TRUE, parameter=NULL,
                             freqOptioStop=FALSE, nPlanFreq=NULL,
@@ -1557,7 +1688,20 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
   stopifnot(all(nPlan > lowN), lowN > 0, nSim > 0, alpha > 0, alpha < 1,
             any(safeOptioStop, freqOptioStop))
 
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
+
+  alternativeFreq <- alternative
+
+  if (alternative=="twoSided")
+    alternativeFreq <- "two.sided"
 
   n1Plan <- nPlan[1]
   n2Plan <- NULL
@@ -1663,7 +1807,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
       subData1 <- dataGroup1[iter, ]
       subData2 <- dataGroup2[iter, ]
 
-      someT <- unname(stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternative,
+      someT <- unname(stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternativeFreq,
                                     "var.equal"=TRUE, "paired"=paired)[["statistic"]])
       someS <- safeTTestStat("t"=someT, "parameter"=parameter, "n1"=n1Plan, "n2"=n2Plan, "alternative"=alternative,
                              "paired"=paired)
@@ -1678,7 +1822,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
         # TODO(Alexander): Perhaps replace by custom t computing to speed things up
         #
         someT <- unname(stats::t.test("x"=subData1[seq.int(n1Samples[k])], "y"=subData2[seq.int(n2Samples[k])],
-                                      "alternative"=alternative, "var.equal"=TRUE, "paired"=paired)[["statistic"]])
+                                      "alternative"=alternativeFreq, "var.equal"=TRUE, "paired"=paired)[["statistic"]])
 
         someS <- safeTTestStat("n1"=n1Samples[k], "n2"=n2Samples[k], "t"=someT, "parameter"=parameter,
                                "alternative"=alternative, "paired"=paired)
@@ -1774,7 +1918,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
     for (iter in seq.int(nSim)) {
       subData1 <- dataGroup1[iter, ]
       subData2 <- dataGroup2[iter, ]
-      someP <- stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternative,
+      someP <- stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternativeFreq,
                              "var.equal"=TRUE, "paired"=paired)[["p.value"]]
 
       pValues[iter] <- someP
@@ -1784,7 +1928,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
 
       for (k in seq_along(n1Samples)) {
         someP <- stats::t.test("x"=subData1[seq.int(n1Samples[k])], "y"=subData2[seq.int(n2Samples[k])],
-                               "alternative"=alternative, "var.equal"=TRUE, "paired"=paired)[["p.value"]]
+                               "alternative"=alternativeFreq, "var.equal"=TRUE, "paired"=paired)[["p.value"]]
 
         if (someP < alpha) {
           allFreqN[iter] <- n1Samples[k]
@@ -1896,13 +2040,22 @@ plot.safeTSim <- function(x, y=NULL, showOnlyNRejected=FALSE, nBin=25, ...) {
 #' plotSafeTDesignSampleSizeProfile(nSim=1e2L)
 plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, nMax=100, lowDeltaMin=0.1, highDeltaMin=1,
                                              stepDeltaMin=0.1, testType=c("oneSample", "paired", "twoSample"),
-                                             alternative=c("two.sided", "greater", "less"), ratio=1, nSim=1e3L,
+                                             alternative=c("twoSided", "greater", "less"), ratio=1, nSim=1e3L,
                                              nBoot=1e3L, seed=NULL, pb=TRUE, freqPlot=FALSE, ...) {
   stopifnot(lowDeltaMin < highDeltaMin, alpha > 0, beta > 0, alpha < 1, beta < 1)
 
   # Order from high to low
   deltaDomain <- -seq(-highDeltaMin, -lowDeltaMin, by=stepDeltaMin)
   testType <- match.arg(testType)
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
 
   result <- list("alpha"=alpha, "beta"=beta, "nMax"=nMax, "deltaDomain"=deltaDomain)

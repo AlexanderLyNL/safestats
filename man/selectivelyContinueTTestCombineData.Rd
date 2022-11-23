@@ -8,7 +8,7 @@ selectivelyContinueTTestCombineData(
   oldValues,
   valuesType = c("eValues", "pValues"),
   designObj = NULL,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   oldData,
   deltaTrue,
   alpha = NULL,
@@ -29,7 +29,7 @@ selectivelyContinueTTestCombineData(
 \item{designObj}{a safeDesign object obtained from \code{\link{designSafeT}}, or \code{NULL}
 if valuesType equal "pValues".}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{oldData}{a list of matrices with names "dataGroup1" and "dataGroup2".}

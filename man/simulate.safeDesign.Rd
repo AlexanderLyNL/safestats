@@ -66,7 +66,7 @@ least the following components:
   \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
   the user.}
   \item{paired}{if \code{TRUE} then paired t-test.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
   \item{nSim}{the number of replications of the experiment.}
   \item{alpha}{the tolerable type I error provided by the user.}

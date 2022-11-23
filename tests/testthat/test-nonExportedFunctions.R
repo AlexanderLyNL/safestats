@@ -3,7 +3,7 @@ test_that("checkAndReturnsEsMinParameterSide throws a warning", {
   meanDiffMin <- 0.4
   paramChecked <- safestats:::checkAndReturnsEsMinParameterSide(meanDiffMin,
                                                                 esMin="meanDiffMin",
-                                                                alternative="two.sided")
+                                                                alternative="twoSided")
   # Returns absolute value of meanDiffMin
   paramChecked
 
@@ -71,7 +71,7 @@ test_that("getNameTestType returns the correct name", {
 })
 
 test_that("getNameAlternative returns the correct alternative", {
-  result <- safestats:::getNameAlternative("two.sided", testType="oneSample")
+  result <- safestats:::getNameAlternative("twoSided", testType="oneSample")
   expect_equal(object=result, expected="true mean not equal to 0")
 })
 

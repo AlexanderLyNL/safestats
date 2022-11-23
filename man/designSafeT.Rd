@@ -10,7 +10,7 @@ designSafeT(
   nPlan = NULL,
   alpha = 0.05,
   h0 = 0,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   lowN = 3L,
   highN = 1000000L,
   lowParam = 0.01,
@@ -40,7 +40,7 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
@@ -87,7 +87,7 @@ following components:
   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
