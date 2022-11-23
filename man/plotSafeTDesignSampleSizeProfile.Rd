@@ -12,7 +12,7 @@ plotSafeTDesignSampleSizeProfile(
   highDeltaMin = 1,
   stepDeltaMin = 0.1,
   testType = c("oneSample", "paired", "twoSample"),
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   ratio = 1,
   nSim = 1000L,
   nBoot = 1000L,
@@ -39,7 +39,7 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType

@@ -9,7 +9,7 @@ computeNPlanSafeT(
   deltaMin,
   beta = 0.2,
   alpha = 0.05,
-  alternative = c("two.sided", "less", "greater"),
+  alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
   lowN = 3,
   highN = 1e+06,
@@ -32,7 +32,7 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}

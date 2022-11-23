@@ -8,7 +8,7 @@ computeBetaSafeZ(
   meanDiffMin,
   nPlan,
   alpha = 0.05,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
   testType = c("oneSample", "paired", "twoSample"),
@@ -29,7 +29,7 @@ and beta should be set to NULL.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}

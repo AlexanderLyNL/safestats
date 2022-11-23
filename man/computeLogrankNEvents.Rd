@@ -11,7 +11,7 @@ computeLogrankNEvents(
   m0 = 50000,
   m1 = 50000,
   alpha = 0.05,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   nSim = 1000L,
   nBoot = 1000L,
   groupSizePerTimeFunction = returnOne,
@@ -36,7 +36,7 @@ and "phiS". Note that 1-beta defines the power.}
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis, which must be one of
-"two.sided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
+"twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
 of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
 lambda2 the hazard ratio of group 2 (i.e., treatment), then the null hypothesis states that the hazard ratio
 theta = lambda2/lambda1 = 1. If alternative = "less", the null hypothesis is compared to theta < 1, thus,

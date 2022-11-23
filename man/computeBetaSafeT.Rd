@@ -9,7 +9,7 @@ computeBetaSafeT(
   deltaMin,
   nPlan,
   alpha = 0.05,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   seed = NULL,
   parameter = NULL,
@@ -27,7 +27,7 @@ we would the experiment to be able to detect.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}

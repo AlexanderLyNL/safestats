@@ -9,7 +9,7 @@ computeNPlanSafeZ(
   meanDiffMin,
   beta = 0.2,
   alpha = 0.05,
-  alternative = c("two.sided", "less", "greater"),
+  alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
   sigma = 1,
   kappa = sigma,
@@ -31,7 +31,7 @@ and "phiS". Note that 1-beta defines the power.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}

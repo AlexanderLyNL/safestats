@@ -30,11 +30,11 @@ getNameTestType <- function(testType, parameterName) {
 #'
 #' Helper function that outputs the alternative hypothesis of the analysis.
 #'
-#' @param alternative A character string. "two.sided", "greater", "less".
+#' @param alternative A character string. "twoSided", "greater", "less".
 #' @param testType A character string either "oneSample", "paired", "twoSample", "gLogrank", or "eLogrank".
 #' @param h0 the value of the null hypothesis
 #' @return Returns a character string with the name of the analysis.
-getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), testType, h0=0) {
+getNameAlternative <- function(alternative=c("twoSided", "greater", "less"), testType, h0=0) {
   alternative <- match.arg(alternative)
 
   if (testType == "oneSample") {
@@ -48,7 +48,7 @@ getNameAlternative <- function(alternative=c("two.sided", "greater", "less"), te
   }
 
   nameChar <- paste(trueMeanStatement, switch(alternative,
-                                              "two.sided"= paste("not equal to", h0),
+                                              "twoSided"= paste("not equal to", h0),
                                               "greater"= paste("greater than", h0),
                                               "less"= paste("less than", h0))
   )
@@ -225,48 +225,38 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   displayList <- list()
 
-  for (item in c("nPlan", "nEvents", "esMin", "alternative","alternativeRestriction", "beta", "parameter",
+  for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
+                 "alternativeRestriction", "beta", "parameter",
                  "alpha", "decision rule", "logImpliedTarget")) {
     itemValue <- designObj[[item]]
     itemValueString <- format(itemValue, digits=digits)
 
     if (!is.null(itemValue)) {
-      if (item == "nPlan") {
-        nPlanTwoSe <- designObj[["nPlanTwoSe"]]
+      if (item %in% c("nPlan", "nMean")) {
+        itemNeem <- paste0(item, "TwoSe")
 
-        if (!is.null(nPlanTwoSe)) {
-          tempNeem <- names(designObj[["nPlan"]])
+        itemTwoSe <- designObj[[itemNeem]]
+
+        if (!is.null(itemTwoSe)) {
+          tempNeem <- names(designObj[[item]])
 
           for (i in seq_along(itemValue)) {
             if (i==1) {
               itemValueString <- paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                        format(nPlanTwoSe[i]))
+                                        format(itemTwoSe[i]))
             } else {
               itemValueString <- paste(itemValueString,
                                        paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                              format(nPlanTwoSe[i])),
+                                              format(itemTwoSe[i])),
                                        sep=", ")
             }
           }
-          tempNeem <- paste0(names(designObj[["nPlan"]]), "\U00B1", "2se")
+          tempNeem <- paste0(names(designObj[[item]]), "\U00B1", "2se")
           displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
         } else {
-          tempNeem <- names(designObj[["nPlan"]])
+          tempNeem <- names(designObj[[item]])
           displayList[[paste(tempNeem, collapse=", ")]] <- itemValue
         }
-      } else if (item == "nEvents") {
-        nEventsTwoSe <- designObj[["nEventsTwoSe"]]
-        tempNeem <- names(designObj[["nEvents"]])
-
-        if (!is.null(nEventsTwoSe)) {
-          tempNeem <- paste0(tempNeem, "\U00B1", "2se")
-
-          itemValueString <- paste0(format(itemValue, digits=digits), "\U00B1",
-                                        format(nEventsTwoSe))
-        } else {
-          itemValueString <- paste0(format(itemValue, digits=digits))
-        }
-        displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
       } else if (item=="beta") {
         betaTwoSe <- designObj[["betaTwoSe"]]
         itemValueString <- format(1-itemValue, digits=digits)

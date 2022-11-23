@@ -10,7 +10,7 @@ safeTTestStatAlpha(
   n1,
   n2 = NULL,
   alpha,
-  alternative = "two.sided",
+  alternative = c("twoSided", "greater", "less"),
   tDensity = FALSE
 )
 }

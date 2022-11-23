@@ -9,7 +9,7 @@ designSafeLogrank(
   beta = NULL,
   nEvents = NULL,
   h0 = 1,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   alpha = 0.05,
   ratio = 1,
   exact = TRUE,
@@ -36,7 +36,7 @@ and "phiS". Note that 1-beta defines the power.}
 \item{h0}{numeric > 0, represents the null hypothesis, default h0=1.}
 
 \item{alternative}{a character string specifying the alternative hypothesis, which must be one of
-"two.sided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
+"twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
 of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
 lambda2 the hazard ratio of group 2 (i.e., treatment), then the null hypothesis states that the hazard ratio
 theta = lambda2/lambda1 = 1. If alternative = "less", the null hypothesis is compared to theta < 1, thus,
@@ -87,7 +87,7 @@ Returns a safeDesign object that includes:
   \item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{testType}{"logrank".}
   \item{ratio}{default is 1. It defines the ratio between the planned randomisation of
   condition 2 over condition 1.}

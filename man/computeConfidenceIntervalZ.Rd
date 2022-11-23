@@ -10,7 +10,7 @@ computeConfidenceIntervalZ(
   phiS,
   sigma = 1,
   ciValue = 0.95,
-  alternative = "two.sided",
+  alternative = "twoSided",
   a = NULL,
   g = NULL
 )
@@ -26,7 +26,7 @@ computeConfidenceIntervalZ(
 
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{a}{numeric, the centre of the normal prior on population mean (of the normal data). Default

@@ -8,7 +8,7 @@ designFreqT(
   deltaMin,
   alpha = 0.05,
   beta = 0.2,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   h0 = 0,
   testType = c("oneSample", "paired", "twoSample"),
   ...
@@ -24,7 +24,7 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
@@ -44,7 +44,7 @@ following components:
   \item{lowN}{the smallest n of the search space for n provided by the user.}
   \item{highN}{the largest n of the search space for n provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 }
 }
 \description{

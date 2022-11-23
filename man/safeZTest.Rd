@@ -37,7 +37,7 @@ safe.z.test(
 \item{designObj}{an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
 \item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
 To change these default values, please use \code{\link{designSafeZ}()}.}
 
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}

@@ -13,7 +13,7 @@
 #' \code{NULL}, this specifies the size of the first sample for a two-sample test.
 #' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 #' \code{NULL} it implies that the z-statistic is based on one-sample.
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+#' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 #' "greater" or "less".
 #' @param paired a logical, if \code{TRUE} ignores n2, and indicates that a paired z-test is performed.
 #' @param sigma numeric, the assumed known standard deviation, default 1.
@@ -26,8 +26,18 @@
 #' @examples
 #' safeZTestStat(z=1, n1=100, phiS=0.4)
 #' safeZTestStat(z=3, n1=100, phiS=0.3)
-safeZTestStat <- function(z, phiS, n1, n2=NULL, alternative=c("two.sided", "less", "greater"),
+safeZTestStat <- function(z, phiS, n1, n2=NULL,
+                          alternative=c("twoSided", "less", "greater"),
                           paired=FALSE, sigma=1, ...) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
 
   if (is.null(n2) || is.na(n2) || paired==TRUE)
@@ -38,7 +48,7 @@ safeZTestStat <- function(z, phiS, n1, n2=NULL, alternative=c("two.sided", "less
   phiS <- checkAndReturnsEsMinParameterSide("paramToCheck"=phiS, "alternative"=alternative,
                                             "esMinName"="phiS")
 
-  if (alternative=="two.sided") { # two-sided
+  if (alternative=="twoSided") { # two-sided
     result <- exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z)
   } else { # one-sided
     result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
@@ -85,7 +95,7 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #' @param paired a logical indicating whether you want the paired z-test.
 #' @param designObj an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-#' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="two.sided" is used.
+#' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
 #' To change these default values, please use \code{\link{designSafeZ}()}.
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha
 #' @param tol numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
@@ -183,7 +193,7 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 
   if (pilot) {
     if (is.null(designObj)) {
-      alternative <- "two.sided"
+      alternative <- "twoSided"
       alpha <- 0.05
       sigma <- 1
 
@@ -243,7 +253,7 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   result[["confSeq"]] <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
                                                     "phiS"=designObj[["parameter"]],
                                                     "sigma"=sigma, "ciValue"=ciValue,
-                                                    "alternative"="two.sided")
+                                                    "alternative"="twoSided")
   result[["eValue"]] <- eValue
 
   names(result[["statistic"]]) <- "z"
@@ -258,7 +268,7 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' @export
 safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
                         pilot=FALSE, tol=1e-05, ...) {
-  alternative <- match.arg(alternative)
+
   result <- safeZTest("x"=x, "y"=y, "designObj"=designObj,
                       "paired"=paired, "pilot"=pilot, ...)
   argumentNames <- getArgs()
@@ -295,10 +305,10 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' @examples
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
-                                       alternative="two.sided", a=NULL, g=NULL) {
+                                       alternative="twoSided", a=NULL, g=NULL) {
   if (!is.null(a) && !is.null(g)) {
     # Note(Alexander): Here normal distribution not centred at null
-    if (alternative != "two.sided")
+    if (alternative != "twoSided")
       stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
 
     shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
@@ -312,7 +322,7 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
       g <- meanDiffMin^2/sigma^2
     }
 
-    if (alternative=="two.sided") {
+    if (alternative=="twoSided") {
       shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
       lowerCS <- meanObs - shift
       upperCS <- meanObs + shift
@@ -353,13 +363,22 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
 #' freqDesign$nPlan
 #' freqDesign2 <- designFreqZ(meanDiffMin = 0.2, lowN = 32, highN = 200)
 #' freqDesign2$nPlan
-designFreqZ <- function(meanDiffMin, alternative=c("two.sided", "greater", "less"),
+designFreqZ <- function(meanDiffMin, alternative=c("twoSided", "greater", "less"),
                         alpha=0.05, beta=0.2, testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, sigma=1, h0=0, kappa=sigma, lowN=3L, highN=100L, ...) {
 
   stopifnot(lowN >= 1, highN > lowN, alpha > 0, beta >0)
 
   testType <- match.arg(testType)
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
 
   result <- list("nPlan"=NA, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
@@ -373,7 +392,7 @@ designFreqZ <- function(meanDiffMin, alternative=c("two.sided", "greater", "less
   n1Plan <- NULL
   n2Plan <- NULL
 
-  if (alternative=="two.sided")
+  if (alternative=="twoSided")
     threshold <- 1-alpha/2
   else if (alternative %in% c("greater", "less"))
     threshold <- 1-alpha
@@ -427,7 +446,7 @@ designFreqZ <- function(meanDiffMin, alternative=c("two.sided", "greater", "less
 #'   \item{esMin}{\code{NULL} no minimally clinically relevant effect size provided.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{\code{NULL}, no tolerable type II error specified.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
 #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
 #'   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
@@ -442,11 +461,20 @@ designFreqZ <- function(meanDiffMin, alternative=c("two.sided", "greater", "less
 #'
 #' @examples
 #' designPilotSafeZ(nPlan=30, alpha = 0.05)
-designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"),
+designPilotSafeZ <- function(nPlan, alternative=c("twoSided", "greater", "less"),
                              alpha=0.05, sigma=1, h0=0, kappa=sigma, tol=1e-5,
                              paired=FALSE, parameter=NULL) {
 
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
+
   stopifnot(all(nPlan > 0))
 
   if (length(nPlan)==1) {
@@ -493,7 +521,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
   if (is.null(parameter)) {
     phiSPlus0 <- sigma*sqrt(2/nEff*log(1/alpha))
 
-    if (alternative == "two.sided") {
+    if (alternative == "twoSided") {
       phiS10 <- sigma*sqrt(2/nEff*log(2/alpha))
 
       candidatePhi <- seq(phiSPlus0, phiS10, by=tol)
@@ -531,7 +559,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' and "phiS". Note that 1-beta defines the power.
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
 #' that we would like to detect.
-#' @param alternative a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+#' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 #' "greater" or "less".
 #' @param nPlan optional numeric vector of length at most 2. When provided, it is used to find the safe test
 #' defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
@@ -562,7 +590,7 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #'   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error specified by the user.}
-#'   \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
 #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
 #'   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
@@ -583,13 +611,21 @@ designPilotSafeZ <- function(nPlan, alternative=c("two.sided", "greater", "less"
 #' designObj <- designSafeZ(nPlan = 100, alpha=0.05)
 #'
 designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
-                        alpha=0.05, h0=0, alternative=c("two.sided", "greater", "less"),
+                        alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
                         sigma=1, kappa=sigma, tol=1e-5,
                         testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, parameter=NULL, nSim=1e3L, nBoot=1e3L,
                         pb=TRUE, grow=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
@@ -608,10 +644,12 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   note <- NULL
 
   nPlanBatch <- nPlanTwoSe <- NULL
+  nMean <- nMeanTwoSe <- NULL
+
   logImpliedTarget <- logImpliedTargetTwoSe <- NULL
   betaTwoSe <- NULL
 
-  bootObjN1Plan <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
+  bootObjN1Plan <- bootObjN1Mean <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
 
   tempResult <- list()
 
@@ -627,11 +665,17 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     nPlanBatch <- tempResult[["nPlanBatch"]]
 
     bootObjN1Plan <- tempResult[["bootObjN1Plan"]]
+    bootObjN1Mean <- tempResult[["bootObjN1Mean"]]
 
     if (testType=="oneSample") {
       nPlan <- tempResult[["n1Plan"]]
       names(nPlan) <- "nPlan"
       nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
+
+      nMean <- tempResult[["n1Mean"]]
+      names(nMean) <- "nMean"
+      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
+
       note <- paste0("If it is only possible to look at the data once, ",
                      "then nPlan = ", nPlanBatch, ".")
     } else if (testType=="paired") {
@@ -640,15 +684,26 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
       nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
       nPlanTwoSe <- c(nPlanTwoSe, nPlanTwoSe)
+
+      nMean <- c(tempResult[["n1Mean"]], tempResult[["n1Mean"]])
+      names(nMean) <- c("n1Mean", "n2Mean")
+      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
+      nMeanTwoSe <- c(nMeanTwoSe, nMeanTwoSe)
+
       note <- paste0("If it is only possible to look at the data once, ",
                      "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
                      nPlanBatch[2], ".")
     } else if (testType=="twoSample") {
       nPlan <- c(tempResult[["n1Plan"]], ceiling(ratio*tempResult[["n1Plan"]]))
       names(nPlan) <- c("n1Plan", "n2Plan")
-
       nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
       nPlanTwoSe <- c(nPlanTwoSe, ratio*nPlanTwoSe)
+
+
+      nMean <- c(tempResult[["n1Mean"]], ceiling(ratio*tempResult[["n1Mean"]]))
+      names(nMean) <- c("n1Mean", "n2Mean")
+      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
+      nMeanTwoSe <- c(nMeanTwoSe, ratio*nMeanTwoSe)
 
       note <- paste0("If it is only possible to look at the data once, ",
                      "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
@@ -660,6 +715,7 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
     nPlan <- NULL
     beta <- NULL
+
     meanDiffMin <- meanDiffMin
   } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
     #scenario 1c: only nPlan known, can perform a pilot (no warning though)
@@ -723,14 +779,16 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
   }
 
-  result <- list("nPlan"=nPlan, "nPlanTwoSe"=nPlanTwoSe, "parameter"=phiS, "esMin"=meanDiffMin,
-                 "alpha"=alpha, "beta"=beta, "betaTwoSe"=betaTwoSe, "alternative"=alternative,
+  result <- list("parameter"=phiS, "esMin"=meanDiffMin, "alpha"=alpha, "alternative"=alternative,
                  "h0"=h0, "testType"=testType, "paired"=paired, "sigma"=sigma, "kappa"=kappa,
-                 "nPlanBatch"=nPlanBatch, "ratio"=ratio, "pilot"=FALSE,
+                 "ratio"=ratio, "pilot"=FALSE,
+                 "nPlan"=nPlan, "nPlanTwoSe"=nPlanTwoSe, "nPlanBatch"=nPlanBatch,
+                 "nMean"=nMean, "nMeanTwoSe"=nMeanTwoSe,
+                 "beta"=beta, "betaTwoSe"=betaTwoSe,
                  "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
-                 "call"=sys.call(), "timeStamp"=Sys.time(),
-                 "note"=note, "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
-                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
+                 "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
+                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget, "bootObjN1Mean"=bootObjN1Mean,
+                 "call"=sys.call(), "timeStamp"=Sys.time(), "note"=note)
   class(result) <- "safeDesign"
 
   names(result[["h0"]]) <- "mu"
@@ -752,10 +810,18 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 #' @return a list which contains at least nPlan and the phiS, that is, the parameter that defines
 #' the safe test.
 computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
-                                   alternative=c("two.sided", "greater", "less"),
+                                   alternative=c("twoSided", "greater", "less"),
                                    testType=c("oneSample", "paired", "twoSample"),
                                    tol=1e-5, highN=1e6, ratio=1, parameter=NULL,
                                    grow=TRUE) {
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
 
@@ -770,7 +836,7 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
   if (grow) {
     phiS <- abs(meanDiffMin)
 
-    if (alternative == "two.sided") {
+    if (alternative == "twoSided") {
       criterionFunction <- function(n) {
         lowerTail <- sigma^4/(n*kappa^2*meanDiffMin^2)*acosh(exp((n*meanDiffMin^2)/(2*sigma^2))/alpha)^2
         stats::pchisq(q=lowerTail, df=1, ncp=n*meanDiffMin^2/kappa^2)-beta
@@ -831,7 +897,7 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
 
       phiS <- sigma/sqrt(nEff)*(qBeta + sqrt(discriminantD))
     } else {
-      # Two.sided
+      # twoSided
 
       nEffExactUpper <- tryOrFailWithNA(
         ((sigma*sqrt(2*log(2/alpha))-kappa*qnorm(beta))/meanDiffMin)^2
@@ -923,7 +989,7 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
 
       result[["lowParam"]] <- lowPhi
       result[["highParam"]] <- highPhi
-    } # end two.sided
+    } # end twoSided
 
     if (alternative=="less")
       phiS <- - phiS
@@ -948,11 +1014,20 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
 #'
 #' @return numeric that represents the type II error
 computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
-                              alternative=c("two.sided", "greater", "less"),
+                              alternative=c("twoSided", "greater", "less"),
                               testType=c("oneSample", "paired", "twoSample"),
                               parameter=NULL) {
 
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
+
   testType <- match.arg(testType)
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
@@ -960,7 +1035,7 @@ computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa
   if (is.null(parameter))
     parameter <- meanDiffMin
 
-  if (alternative=="two.sided") {
+  if (alternative=="twoSided") {
     lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(parameter)) *
       (acosh(exp(nEff*parameter^2/(2*sigma^2))/alpha))^2
 
@@ -983,15 +1058,24 @@ computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa
 #'
 #' @return numeric > 0 that represents the minimal detectable mean difference
 computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
-                                    alternative=c("two.sided", "greater", "less"),
+                                    alternative=c("twoSided", "greater", "less"),
                                     testType=c("oneSample", "paired", "twoSample"),
                                     parameter=NULL, maxIter=10) {
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
+
   testType <- match.arg(testType)
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
 
-  if (alternative=="two.sided") {
+  if (alternative=="twoSided") {
     if (is.null(parameter)) {
       criterionFunction <- function(x) {
         lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(x)) *
@@ -1057,13 +1141,22 @@ computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=s
 #'
 #' @examples
 #' sampleStoppingTimesSafeZ(0.7, nSim=10)
-sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                                      sigma=1, kappa=sigma, nSim=1e3L, nMax=1e3, ratio=1,
                                      testType=c("oneSample", "paired", "twoSample"), parameter=NULL,
                                      wantEValuesAtNMax=FALSE, pb=TRUE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
 
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
+
   testType <- match.arg(testType)
 
   ## Object that will be returned. A sample of stopping times
@@ -1172,11 +1265,20 @@ sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("t
 #'
 #' @examples
 #' computeBetaSafeZ(meanDiffMin=0.7, 20, nSim=10)
-computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.sided", "greater", "less"),
+computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("twoSided", "greater", "less"),
                              sigma=1, kappa=sigma, testType=c("oneSample", "paired", "twoSample"),
                              parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L) {
 
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
+
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan) == 2) nPlan[2]/nPlan[1] else 1
@@ -1238,11 +1340,20 @@ computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("two.
 #'
 #' @examples
 #' computeNPlanSafeZ(0.7, 0.2, nSim=10)
-computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c("two.sided", "less", "greater"),
+computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                               testType=c("oneSample", "paired", "twoSample"), sigma=1, kappa=sigma,
                               ratio=1, nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE, nMax=1e8) {
 
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   alternative <- match.arg(alternative)
+
   testType <- match.arg(testType)
 
   if (!is.null(parameter)) {
@@ -1268,8 +1379,15 @@ computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
 
   bootObjN1Plan <- computeBootObj("values"=times, "objType"="nPlan", "beta"=beta, "nBoot"=nBoot)
 
-  result <- list("n1Plan" = ceiling(bootObjN1Plan[["t0"]]),
-                 "bootObjN1Plan" = bootObjN1Plan, "nPlanBatch"=nPlanBatch)
+  n1Plan <- ceiling(bootObjN1Plan[["t0"]])
+
+  bootObjN1Mean <- computeBootObj("values"=times, "objType"="nMean", "nPlan"=n1Plan, "nBoot"=nBoot)
+
+  n1Mean <- ceiling(bootObjN1Mean[["t0"]])
+
+  result <- list("n1Plan" = n1Plan, "bootObjN1Plan" = bootObjN1Plan,
+                 "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
+                 "nPlanBatch"=nPlanBatch)
 
   return(result)
 }

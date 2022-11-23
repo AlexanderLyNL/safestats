@@ -6,7 +6,7 @@
 \usage{
 designFreqZ(
   meanDiffMin,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   alpha = 0.05,
   beta = 0.2,
   testType = c("oneSample", "paired", "twoSample"),
@@ -23,7 +23,7 @@ designFreqZ(
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the

@@ -10,7 +10,7 @@ designSafeZ(
   nPlan = NULL,
   alpha = 0.05,
   h0 = 0,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
   tol = 1e-05,
@@ -40,7 +40,7 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{h0}{numeric, represents the null hypothesis, default h0=0.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
@@ -79,7 +79,7 @@ Returns a safeDesign object that includes:
   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error specified by the user.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}

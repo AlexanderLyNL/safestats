@@ -7,7 +7,7 @@
 designPilotSafeT(
   nPlan = 50,
   alpha = 0.05,
-  alternative = c("two.sided", "greater", "less"),
+  alternative = c("twoSided", "greater", "less"),
   h0 = 0,
   lowParam = 0.01,
   highParam = 1.2,
@@ -24,7 +24,7 @@ designPilotSafeT(
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "two.sided" (default),
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
 \item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
@@ -56,7 +56,7 @@ following components:
   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
   \item{alpha}{the tolerable type I error provided by the user.}
   \item{beta}{the tolerable type II error provided by the user.}
-  \item{alternative}{any of "two.sided", "greater", "less" provided by the user.}
+  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
