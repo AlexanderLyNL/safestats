@@ -39,8 +39,8 @@ Imports:
   BiasedUrn (>= 1.07),
   boot (>= 1.3-28),
   dplyr (>= 1.0.6),
-  purrr,
-  rlang
+  purrr (>= 0.3.5),
+  rlang (>= 1.0.6)
 Suggests: 
     testthat (>= 3.0.0),
     knitr,
@@ -48,6 +48,6 @@ Suggests:
     graphics
 VignetteBuilder: knitr
 NeedsCompilation: no
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.2
 Language: en-GB
 Config/testthat/edition: 3

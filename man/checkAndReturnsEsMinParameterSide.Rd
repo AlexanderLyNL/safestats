@@ -8,8 +8,8 @@ or safe test defining parameter. Throws an error if the one-sided hypothesis is 
 checkAndReturnsEsMinParameterSide(
   paramToCheck,
   alternative = c("twoSided", "greater", "less"),
-  esMinName = c("noName", "meanDiffMin", "phiS", "deltaMin", "deltaS", "hrMin",
-    "thetaS", "deltaTrue"),
+  esMinName = c("noName", "meanDiffMin", "phiS", "deltaMin", "deltaS", "hrMin", "thetaS",
+    "deltaTrue"),
   paramDomain = NULL
 )
 }

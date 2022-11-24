@@ -328,7 +328,6 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 #' By default dataNull = 1 representing equality of the hazard ratio.
 #' @param sigma numeric > 0, scaling in the data.
 #'
-#' @return
 #' @export
 safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
                                 dataNull=1, sigma=1) {
@@ -1309,8 +1308,8 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
 #' Randomly samples from a logrank distribution
 #'
-#' Draws a number of occurences in group 1 (treatment) out of
-#' obsTotal number of occurences.
+#' Draws a number of occurrences in group 1 (treatment) out of
+#' obsTotal number of occurrences.
 #'
 #' @param n integer, number of observations to be sampled.
 #' @param y0 Size of the risk set of group 0 (Placebo).
@@ -1318,8 +1317,8 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 #' @param obsTotal Total number of observations.
 #' @param theta Odds of group 1 over group 0 (treatment over placebo).
 #'
-#' @return integer representing the number of occurences in group 1 out of
-#' obsTotal number of occurences.
+#' @return integer representing the number of occurrences in group 1 out of
+#' obsTotal number of occurrences.
 #'
 #' @export
 #'

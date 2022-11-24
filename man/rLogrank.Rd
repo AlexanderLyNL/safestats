@@ -18,12 +18,12 @@ rLogrank(n = 1, y0, y1, obsTotal, theta)
 \item{theta}{Odds of group 1 over group 0 (treatment over placebo).}
 }
 \value{
-integer representing the number of occurences in group 1 out of
-obsTotal number of occurences.
+integer representing the number of occurrences in group 1 out of
+obsTotal number of occurrences.
 }
 \description{
-Draws a number of occurences in group 1 (treatment) out of
-obsTotal number of occurences.
+Draws a number of occurrences in group 1 (treatment) out of
+obsTotal number of occurrences.
 }
 \examples{
 rLogrank(y0=360, y1=89, obsTotal=12, theta=3.14)
