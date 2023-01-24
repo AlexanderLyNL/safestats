@@ -306,6 +306,14 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
                                        alternative="twoSided", a=NULL, g=NULL) {
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
   if (!is.null(a) && !is.null(g)) {
     # Note(Alexander): Here normal distribution not centred at null
     if (alternative != "twoSided")
@@ -332,9 +340,11 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
       if (alternative=="greater") {
         lowerCS <- meanObs + shift
         upperCS <- Inf
-      } else {
+      } else if (alternative=="less") {
         lowerCS <- -Inf
         upperCS <- meanObs - shift
+      } else {
+        stop('Incorrect specification of the "alternative" argument.')
       }
     }
   }

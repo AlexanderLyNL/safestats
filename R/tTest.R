@@ -1114,13 +1114,14 @@ computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
 
 # Sampling functions for design ----
 
-#' Simulate stopping times for the safe z-test
+#' Simulate stopping times for the safe t-test
 #'
 #' @inheritParams designSafeT
 #' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
 #' This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
+#' @param wantSamplePaths logical. If \code{TRUE} then output the (stopped) sample paths. Default \code{FALSE}.
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies that in corresponding stopping
@@ -1134,7 +1135,8 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
                                      testType=c("oneSample", "paired", "twoSample"),
                                      nSim=1e3L, nMax=1e3, ratio=1, #designObj=NULL,
                                      lowN=3L, parameter=NULL, seed=NULL,
-                                     wantEValuesAtNMax=FALSE, pb=TRUE) {
+                                     wantEValuesAtNMax=FALSE, wantSamplePaths=FALSE,
+                                     pb=TRUE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1150,7 +1152,13 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
 
   ## Object that will be returned. A sample of stopping times
   stoppingTimes <- breakVector <- integer(nSim)
-  eValuesStopped <- eValuesAtNMax <- numeric(nSim)
+  eValuesStopped <- numeric(nSim)
+
+  eValuesAtNMax <- if (wantEValuesAtNMax) {
+    numeric(nSim)
+  } else {
+    NULL
+  }
 
   # if (!is.null(designObj)) {
   #   parameter <- designObj[["parameter"]]
@@ -1176,6 +1184,12 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
     n2Max <- NULL
     nMax <- n1Max
     ratio <- 1
+  }
+
+  samplePaths <- if (wantSamplePaths) {
+    matrix(nrow=nSim, ncol=nMax[1])
+  } else {
+    NULL
   }
 
   if (pb)
@@ -1234,6 +1248,8 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
       }
     }
 
+    #
+
     for (j in seq_along(n1Vector)) {
       evidenceNow <- if (testType %in% c("oneSample", "paired")) {
         safeTTestStat("t"=tValues[j], "parameter"=deltaS,
@@ -1245,9 +1261,18 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
                       "alternative"=alternative)
       }
 
+      if (wantSamplePaths)
+        samplePaths[sim, j] <- evidenceNow
+
       if (evidenceNow > 1/alpha) {
         stoppingTimes[sim] <- n1Vector[j]
         eValuesStopped[sim] <- evidenceNow
+
+        if (wantSamplePaths) {
+          if (j < nMax) {
+            samplePaths[sim, (j+1):nMax] <- evidenceNow
+          }
+        }
         break()
       }
 
@@ -1270,7 +1295,8 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
     close(pbSafe)
 
   result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
-                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax)
+                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
+                 "samplePaths"=samplePaths, "n1Vector"=n1Vector, "ratio"=ratio)
   return(result)
 }
 
