@@ -656,6 +656,8 @@ plot.safe2x2Sim <- function(x, ...){
 #' between (and including) 0 and \code{nb}, the number of observations in group b per block.
 #' @param precision precision of the grid of differences to search over for the lower and upper bounds.
 #' @param safeDesign a 'safeDesign' object obtained through
+#' @param maxAcceptableEJump maximum acceptable value of increase or decrease in E-value between grid points at confidence interval bounds.
+#' A warning is thrown if exceeded.
 #' \code{\link{designSafeTwoProportions}}
 #'
 #' @return list with found lower and upper bound.
@@ -678,7 +680,8 @@ plot.safe2x2Sim <- function(x, ...){
 computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
                                                            yb,
                                                            precision,
-                                                           safeDesign){
+                                                           safeDesign,
+                                                           maxAcceptableEJump = 1e9){
   na <- safeDesign[["nPlan"]][["na"]]
   nb <- safeDesign[["nPlan"]][["nb"]]
   alpha <- safeDesign[["alpha"]]
@@ -693,6 +696,8 @@ computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
   ciSummary <- eValuesDeltaGrid %>%
     dplyr::filter(.data[["E"]] < 1/alpha) %>%
     dplyr::summarise(lowerBound = min(.data[["delta"]]), upperBound = max(.data[["delta"]]))
+
+  checkForBigJumpsOnEValueGrid(eValuesDeltaGrid, ciSummary, alpha, maxAcceptableEJump = maxAcceptableEJump)
 
   return(as.list(ciSummary))
 }
@@ -1445,6 +1450,24 @@ calculateEValuesForOddsDeltaGrid <- function(ya, yb, na, nb,
     }
   }
   return(ciEValues)
+}
+
+checkForBigJumpsOnEValueGrid <- function(eValuesDeltaGrid, ciSummary, alpha, maxAcceptableEJump = 1e9){
+  warningResult <- eValuesDeltaGrid %>%
+    mutate(isLowerBound = .data[["delta"]] == ciSummary$lowerBound,
+           isUpperBound = .data[["delta"]] == ciSummary$upperBound,
+           previousE = lag(.data[["E"]]),
+           nextE = lead(.data[["E"]])) %>%
+    mutate(generateWarning = case_when(
+      .data[["isLowerBound"]] & (abs(.data[["E"]] - .data[["previousE"]]) > maxAcceptableEJump) ~ TRUE,
+      .data[["isUpperBound"]] & (abs(.data[["E"]] - .data[["nextE"]]) > maxAcceptableEJump) ~ TRUE,
+      TRUE ~ FALSE
+    )) %>%
+    summarise(throwWarning = any(generateWarning))
+
+  if(warningResult$throwWarning){
+    warning("Big jumps on grid of E-values used to calculate confidence interval: adviced to increase grid precision.")
+  }
 }
 
 #Main functions ---------------------------------------------------------------
