@@ -298,6 +298,10 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis.
 #' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
 #' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2.
+#' @param pointPrior logical, used to indicate whether a point prior is used that
+#' puts half its mass on -phiS and the other half on phiS. Default \code{FALSE}.
+#' @param freq logical, used to indicate whether the classical confidence interval
+#' needs computing. Default \code{FALSE}.
 #'
 #' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
 #' @export
@@ -305,7 +309,8 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' @examples
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
-                                       alternative="twoSided", a=NULL, g=NULL) {
+                                       alternative="twoSided", a=NULL, g=NULL,
+                                       pointPrior=FALSE, freq=FALSE) {
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -314,40 +319,55 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
     alternative <- "twoSided"
   }
 
-  if (!is.null(a) && !is.null(g)) {
-    # Note(Alexander): Here normal distribution not centred at null
-    if (alternative != "twoSided")
-      stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
+  if (isTRUE(freq)) {
+    shift <- sigma/sqrt(nEff)*qnorm((1-ciValue)/2)
+    lowerCS <- meanObs + shift
+    upperCS <- meanObs - shift
+    return(unname(c(lowerCS, upperCS)))
+  }
 
-    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
+  if (isTRUE(pointPrior)) {
+    shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
     lowerCS <- meanObs - shift
     upperCS <- meanObs + shift
   } else {
-    # Note(Alexander): Here normal distribution centred at the null
-    # Here use GROW
-    if (is.null(g)) {
-      meanDiffMin <- phiS
-      g <- meanDiffMin^2/sigma^2
-    }
+    if (!is.null(a) && !is.null(g)) {
+      # Note(Alexander): Here normal distribution not centred at null
+      if (alternative != "twoSided")
+        stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
 
-    if (alternative=="twoSided") {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+      shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
       lowerCS <- meanObs - shift
       upperCS <- meanObs + shift
     } else {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+      # Note(Alexander): Here normal distribution centred at the null
+      # Here use GROW
+      if (is.null(g)) {
+        meanDiffMin <- phiS
+        g <- meanDiffMin^2/sigma^2
+      }
 
-      if (alternative=="greater") {
-        lowerCS <- meanObs + shift
-        upperCS <- Inf
-      } else if (alternative=="less") {
-        lowerCS <- -Inf
-        upperCS <- meanObs - shift
+      if (alternative=="twoSided") {
+        shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+        lowerCS <- meanObs - shift
+        upperCS <- meanObs + shift
       } else {
-        stop('Incorrect specification of the "alternative" argument.')
+        shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+
+        if (alternative=="greater") {
+          lowerCS <- meanObs + shift
+          upperCS <- Inf
+        } else if (alternative=="less") {
+          lowerCS <- -Inf
+          upperCS <- meanObs - shift
+        } else {
+          stop('Incorrect specification of the "alternative" argument.')
+        }
       }
     }
   }
+
+
 
   return(unname(c(lowerCS, upperCS)))
 }
