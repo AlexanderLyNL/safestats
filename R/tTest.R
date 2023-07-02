@@ -26,7 +26,8 @@
 #' safeTTestStat(t=3, n1=100, parameter=0.3)
 safeTTestStat <- function(t, parameter, n1, n2=NULL,
                           alternative=c("twoSided", "less", "greater"), tDensity=FALSE,
-                          paired=FALSE, ...) {
+                          paired=FALSE, eType="grow",
+                          kappa1=parameter, ...) {
   # TODO(Alexander):
   #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
   #   1. Use Kummer's transform again (??)
@@ -70,33 +71,60 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL,
       return(1)
   }
 
-  a <- t^2/(nu+t^2)
-  expTerm <- exp((a-1)*nEff*deltaS^2/2)
+  if (eType=="grow") {
+    a <- t^2/(nu+t^2)
+    expTerm <- exp((a-1)*nEff*deltaS^2/2)
 
-  zeroIndex <- abs(expTerm) < .Machine$double.eps
-  result <- vector("numeric", length(expTerm))
+    zeroIndex <- abs(expTerm) < .Machine$double.eps
+    result <- vector("numeric", length(expTerm))
 
-  zArg <- (-1)*a*nEff*deltaS^2/2
-  zArg <- zArg[!zeroIndex]
-  # Note(Alexander): This made the vector shorter. Only there where expTerm is non-zero will we evaluate
-  # the hypergeometric functions
+    zArg <- (-1)*a*nEff*deltaS^2/2
+    zArg <- zArg[!zeroIndex]
+    # Note(Alexander): This made the vector shorter. Only there where expTerm is non-zero will we evaluate
+    # the hypergeometric functions
 
-  aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
+    aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
 
-  if (alternative=="twoSided") {
-    result[!zeroIndex] <- expTerm[!zeroIndex] * aKummerFunction
-  } else {
-    bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu)[!zeroIndex] *
-      Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
-    result[!zeroIndex] <- expTerm[!zeroIndex]*(aKummerFunction + bKummerFunction)
+    if (alternative=="twoSided") {
+      result[!zeroIndex] <- expTerm[!zeroIndex] * aKummerFunction
+    } else {
+      bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu)[!zeroIndex] *
+        Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
+      result[!zeroIndex] <- expTerm[!zeroIndex]*(aKummerFunction + bKummerFunction)
+    }
+
+    if (result < 0) {
+      warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
+      result <- safeTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
+                                      "nEff"=nEff, "alternative"=alternative)
+    }
+    return(result)
+  } else if (eType=="bayes") {
+    if (alternative=="twoSided") {
+      integrand <- function(u){
+        exp(-1/2*log(1+kappa1^2*nEff/u)+(nu+1)/2*(log(1+t^2/nu)-log(1+t^2/(nu*(1+kappa1^2*nEff/u))))+dgamma(u, shape=1/2, rate=1/2, log=TRUE))
+      }
+      tempResult <- integrate(integrand, 0, Inf)
+
+      if (inherits(tempResult, "try-error"))
+        return(NA)
+
+      return(tempResult[["value"]])
+    } else {
+      stop("Not yet implemented")
+    }
+  } else if (eType=="normal") {
+    g <- kappa1^2
+    if (alternative=="twoSided") {
+      logResult <- -1/2*log(1+nEff*g)+((nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g))))
+      return(exp(logResult))
+    } else {
+      stop("Not yet implemented")
+    }
   }
 
-  if (result < 0) {
-    warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
-    result <- safeTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
-                                    "nEff"=nEff, "alternative"=alternative)
-  }
-  return(result)
+
+
 }
 
 #' safeTTestStat() based on t-densities
@@ -1136,7 +1164,7 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
                                      nSim=1e3L, nMax=1e3, ratio=1, #designObj=NULL,
                                      lowN=3L, parameter=NULL, seed=NULL,
                                      wantEValuesAtNMax=FALSE, wantSamplePaths=FALSE,
-                                     pb=TRUE) {
+                                     eType="grow", kappa1=0.5, pb=TRUE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1219,7 +1247,8 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
       if (wantEValuesAtNMax) {
         eValuesAtNMax[sim] <- safeTTestStat("t"=tValues[length(tValues)], "parameter"=deltaS,
                                             "n1"=n1Max, "n2"=n2Max,
-                                            "alternative"=alternative, "paired"=FALSE)
+                                            "alternative"=alternative, "paired"=FALSE,
+                                            "eType"=eType, "kappa1"=kappa1)
       }
     } else {
       x1 <- simData[["dataGroup1"]][sim, ]
@@ -1244,7 +1273,7 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
 
         eValuesAtNMax[sim] <- safeTTestStat("t"=tValues[length(tValues)], "parameter"=deltaS,
                                             "n1"=nMax[1], n2=nMax[2],
-                                            "alternative"=alternative)
+                                            "alternative"=alternative, "eType"=eType, "kappa1"=kappa1)
       }
     }
 
@@ -1253,12 +1282,13 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
     for (j in seq_along(n1Vector)) {
       evidenceNow <- if (testType %in% c("oneSample", "paired")) {
         safeTTestStat("t"=tValues[j], "parameter"=deltaS,
-                      "n1"=n1Vector[j], n2=n2Vector[j],
-                      "alternative"=alternative, "paired"=FALSE)
+                      "n1"=n1Vector[j], "n2"=n2Vector[j],
+                      "alternative"=alternative, "paired"=FALSE,
+                      "eType"=eType, "kappa1"=kappa1)
       } else {
         safeTTestStat("t"=tValues[j], "parameter"=deltaS,
-                      "n1"=n1Vector[j], n2=n2Vector[j],
-                      "alternative"=alternative)
+                      "n1"=n1Vector[j], "n2"=n2Vector[j],
+                      "alternative"=alternative, "eType"=eType, "kappa1"=kappa1)
       }
 
       if (wantSamplePaths)
