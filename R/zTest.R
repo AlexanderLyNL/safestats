@@ -310,7 +310,7 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
                                        alternative="twoSided", a=NULL, g=NULL,
-                                       pointPrior=FALSE, freq=FALSE) {
+                                       pointPrior=FALSE, freq=FALSE, credibleInterval=FALSE) {
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -321,9 +321,31 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
 
   if (isTRUE(freq)) {
     shift <- sigma/sqrt(nEff)*qnorm((1-ciValue)/2)
-    lowerCS <- meanObs + shift
-    upperCS <- meanObs - shift
-    return(unname(c(lowerCS, upperCS)))
+    lowerCi <- meanObs + shift
+    upperCi <- meanObs - shift
+    return(unname(c(lowerCi, upperCi)))
+  }
+
+  if (isTRUE(credibleInterval)) {
+    normalisedCiLower <- qnorm((1-ciValue)/2)
+
+    if (is.null(a)) {
+      warning("Centre of normal prior not given, default to a=0")
+      a <- 0
+    }
+
+    if (is.null(g)) {
+      warning("Variance of normal prior not given, default to g=0")
+      g <- 1
+    }
+
+    meanMu <- nEff*g/(nEff*g+sigma^2)*meanObs + sigma^2/(nEff*g+sigma^2)*a
+    sdMu <- sqrt(g*sigma^2)/sqrt(nEff*g + sigma^2)
+
+    lowerCi <- sdMu*normalisedCiLower+meanMu
+    upperCi <- -sdMu*(normalisedCiLower)+meanMu
+
+    return(unname(c(lowerCi, upperCi)))
   }
 
   if (isTRUE(pointPrior)) {

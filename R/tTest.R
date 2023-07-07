@@ -99,7 +99,7 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL,
                                       "nEff"=nEff, "alternative"=alternative)
     }
     return(result)
-  } else if (eType=="bayes") {
+  } else if (eType=="cauchy") {
     if (alternative=="twoSided") {
       integrand <- function(u){
         exp(-1/2*log(1+kappa1^2*nEff/u)+(nu+1)/2*(log(1+t^2/nu)-log(1+t^2/(nu*(1+kappa1^2*nEff/u))))+dgamma(u, shape=1/2, rate=1/2, log=TRUE))
@@ -113,7 +113,7 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL,
     } else {
       stop("Not yet implemented")
     }
-  } else if (eType=="normal") {
+  } else if (eType=="gauss") {
     g <- kappa1^2
     if (alternative=="twoSided") {
       logResult <- -1/2*log(1+nEff*g)+((nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g))))
@@ -121,10 +121,20 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL,
     } else {
       stop("Not yet implemented")
     }
+  } else if (eType=="bayarri") {
+    if (alternative=="twoSided") {
+      tempResult <- try(log(1-(1+t^2/(nEff^2-1))^((2-nEff)/2)))
+
+      if (is.na(tempResult))
+        return(1)
+
+      logResult <- log((nEff-1)/(nEff-2))+1/2*log(1+nEff)-log(t^2)+nEff/2*log(1+t^2/nu)+tempResult
+      result <- exp(logResult)
+      return(result)
+    }
+  } else if (eType=="bayes") {
+    stop("name changed to \"Cauchy\"")
   }
-
-
-
 }
 
 #' safeTTestStat() based on t-densities
@@ -1280,6 +1290,10 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
     #
 
     for (j in seq_along(n1Vector)) {
+
+      # if (n1Vector[j] <= 2)
+      #   next()
+
       evidenceNow <- if (testType %in% c("oneSample", "paired")) {
         safeTTestStat("t"=tValues[j], "parameter"=deltaS,
                       "n1"=n1Vector[j], "n2"=n2Vector[j],
