@@ -310,7 +310,7 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
                                        alternative="twoSided", a=NULL, g=NULL,
-                                       pointPrior=FALSE, freq=FALSE, credibleInterval=FALSE) {
+                                       intervalType=c("safe", "grow", "freq", "credibleInterval")) {
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -319,14 +319,18 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
     alternative <- "twoSided"
   }
 
-  if (isTRUE(freq)) {
+  intervalType <- match.arg(intervalType)
+
+  if (intervalType=="freq") {
     shift <- sigma/sqrt(nEff)*qnorm((1-ciValue)/2)
     lowerCi <- meanObs + shift
     upperCi <- meanObs - shift
     return(unname(c(lowerCi, upperCi)))
   }
 
-  if (isTRUE(credibleInterval)) {
+
+
+  if (intervalType=="credibleInterval") {
     normalisedCiLower <- qnorm((1-ciValue)/2)
 
     if (is.null(a)) {
@@ -335,7 +339,7 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
     }
 
     if (is.null(g)) {
-      warning("Variance of normal prior not given, default to g=0")
+      warning("Variance of normal prior not given, default to g=1")
       g <- 1
     }
 
@@ -348,11 +352,13 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
     return(unname(c(lowerCi, upperCi)))
   }
 
-  if (isTRUE(pointPrior)) {
+  if (intervalType=="grow") {
     shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
     lowerCS <- meanObs - shift
     upperCS <- meanObs + shift
-  } else {
+  }
+
+  if (intervalType=="safe") {
     if (!is.null(a) && !is.null(g)) {
       # Note(Alexander): Here normal distribution not centred at null
       if (alternative != "twoSided")
@@ -363,7 +369,7 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
       upperCS <- meanObs + shift
     } else {
       # Note(Alexander): Here normal distribution centred at the null
-      # Here use GROW
+      # Here use GROW restricted to zero-centred normal priors
       if (is.null(g)) {
         meanDiffMin <- phiS
         g <- meanDiffMin^2/sigma^2
@@ -388,8 +394,6 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
       }
     }
   }
-
-
 
   return(unname(c(lowerCS, upperCS)))
 }
@@ -1246,7 +1250,8 @@ sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("t
   for (sim in seq_along(stoppingTimes)) {
     if (testType %in% c("oneSample", "paired")) {
       x1 <- simData[["dataGroup1"]][sim, ]
-      zVector <- 1/sqrt(n1Vector)*cumsum(x1)
+      x1BarVector <- 1/(n1Vector)*cumsum(x1)
+      zVector <- sqrt(n1Vector)*x1BarVector
 
       if (wantEValuesAtNMax) {
         eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)], "phiS"=phiS,
@@ -1487,4 +1492,157 @@ computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silen
     nEff <- (1/n1+1/n2)^(-1)
   }
   return(nEff)
+}
+
+
+
+# Workshop functions -----
+pValueFromZStat <- function(z,
+                            alternative=c("twoSided", "less", "greater"),
+                            ...) {
+
+  alternative <- match.arg(alternative)
+
+  pValue <- 1-pnorm(abs(z), mean=0, sd=1)
+
+  if (alternative=="twoSided") { # two-sided
+    pValue <- 2*pValue
+  } else if (alternative=="less") { # one-sided
+    if (z >= 0)
+      pValue <- 1-pValue
+  } else if (alternative=="greater") {
+    if (z <= 0)
+      pValue <- 1-pValue
+  }
+
+  return(unname(pValue))
+}
+
+pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
+                        alpha=0.05, na.rm=FALSE, sigma=1, h0=0,
+                        alternative=c("twoSided", "greater", "less"), ...) {
+
+  result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
+                 "testType"=NULL, "dataName"=NULL, "h0"=NULL, "sigma"=NULL, "call"=sys.call())
+  class(result) <- "pValueTest"
+
+  alternative <- match.arg(alternative)
+
+  if (is.null(y)) {
+    testType <- "oneSample"
+    n <- nEff <- n1 <- length(x)
+    n2 <- NULL
+
+    if (paired)
+      stop("Data error: Paired analysis requested without specifying the second variable")
+
+    meanObs <- estimate <- mean(x, "na.rm"=na.rm)
+
+    names(estimate) <- "mean of x"
+    names(n) <- "n1"
+  } else {
+    nEff <- n1 <- length(x)
+    n2 <- length(y)
+
+    if (paired) {
+      if (n1 != n2)
+        stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
+             "but the two samples are not of the same size.")
+
+      testType <- "paired"
+
+      meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
+      names(estimate) <- "mean of the differences"
+    } else {
+      testType <- "twoSample"
+
+      nEff <- (1/n1+1/n2)^(-1)
+      estimate <- c(mean(x, "na.rm"=na.rm), mean(y, "na.rm"=na.rm))
+      names(estimate) <- c("mean of x", "mean of y")
+      meanObs <- estimate[1]-estimate[2]
+    }
+
+    n <- c(n1, n2)
+    names(n) <- c("n1", "n2")
+  }
+
+  if (is.null(ciValue))
+    ciValue <- 1-alpha
+
+  if (ciValue < 0 || ciValue > 1)
+    stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
+
+  zStat <- tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sigma)
+
+  if (is.na(zStat))
+    stop("Could not compute the z-statistic")
+
+  names(zStat) <- "z"
+
+  pValue <- pValueFromZStat(zStat, "alternative"=alternative)
+
+  argumentNames <- getArgs()
+  xLabel <- extractNameFromArgs(argumentNames, "x")
+
+  if (is.null(y)) {
+    dataName <- xLabel
+  } else {
+    yLabel <- extractNameFromArgs(argumentNames, "y")
+    dataName <- paste(xLabel, "and", yLabel)
+  }
+
+  result[["testType"]] <- testType
+  result[["statistic"]] <- zStat
+  result[["estimate"]] <- estimate
+  result[["dataName"]] <- dataName
+  result[["ciValue"]] <- ciValue
+  result[["n"]] <- n
+
+  result[["confInt"]] <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
+                                                    "sigma"=sigma, "ciValue"=ciValue,
+                                                    "alternative"=alternative, "intervalType"="freq")
+  result[["pValue"]] <- pValue
+
+  names(result[["statistic"]]) <- "z"
+
+  return(result)
+}
+
+zMarg <- function(n, x, s2, a=0, b=1, sigma=1) {
+  if (n > 1) {
+    result <- -n/2*log(2*pi)+(1-n)*log(sigma)-1/2*log(n*b^2+sigma^2) -
+      (n-1)*s2/(2*sigma^2)-n*(x-a)^2/(2*(n*b^2+sigma^2))
+  } else {
+    result <- -n/2*log(2*pi)+(1-n)*log(sigma)-1/2*log(n*b^2+sigma^2) -
+      n*(x-a)^2/(2*(n*b^2+sigma^2))
+  }
+
+  return(result)
+}
+
+subjectiveBfZStat <- function(x1, s21, n1, x2, s22, n2, sigma=1,
+                              a1=5, b1=2, a2=-5, b2=2, a0=0, b0=1,
+                              log=FALSE) {
+  nTotal <- n1+n2
+  xTotal <- (n1*x1+n2*x2)/nTotal
+
+  if (n1 <= 1 && n2 <= 1) {
+    s2Total <- var(c(x1, x2))
+    s21 <- 0
+    s22 <- 0
+  } else {
+    s2Total <- ((n1-1)*s21+n1*x1^2+(n2-1)*s22+n2*x2^2-(nTotal)*xTotal^2)/(nTotal-1)
+  }
+
+  logMarg1 <- zMarg("n"=n1, "x"=x1, "s2"=s21, "a"=a1, "b"=b1, "sigma"=sigma) +
+    zMarg("n"=n2, "x"=x2, "s2"=s22, "a"=a2, "b"=b2, "sigma"=sigma)
+  logMarg0 <- zMarg("n"=nTotal, "x"=xTotal, "s2"=s2Total, "a"=a0, "b"=b0, "sigma"=sigma)
+
+  logBf10 <- logMarg1 - logMarg0
+
+  if (isTRUE(log)) {
+    return(logBf10)
+  } else {
+    return(exp(logBf10))
+  }
 }
