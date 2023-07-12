@@ -48,6 +48,6 @@ Suggests:
     graphics
 VignetteBuilder: knitr
 NeedsCompilation: no
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 Language: en-GB
 Config/testthat/edition: 3

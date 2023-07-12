@@ -17,6 +17,8 @@ sampleStoppingTimesSafeT(
   seed = NULL,
   wantEValuesAtNMax = FALSE,
   wantSamplePaths = FALSE,
+  eType = "grow",
+  kappa1 = 0.5,
   pb = TRUE
 )
 }

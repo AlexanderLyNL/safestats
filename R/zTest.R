@@ -28,7 +28,8 @@
 #' safeZTestStat(z=3, n1=100, phiS=0.3)
 safeZTestStat <- function(z, phiS, n1, n2=NULL,
                           alternative=c("twoSided", "less", "greater"),
-                          paired=FALSE, sigma=1, ...) {
+                          paired=FALSE, sigma=1,
+                          eType=c("grow", "eGauss", "eCauchy"), ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -39,6 +40,7 @@ safeZTestStat <- function(z, phiS, n1, n2=NULL,
   }
 
   alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
 
   if (is.null(n2) || is.na(n2) || paired==TRUE)
     nEff <- n1
@@ -48,10 +50,21 @@ safeZTestStat <- function(z, phiS, n1, n2=NULL,
   phiS <- checkAndReturnsEsMinParameterSide("paramToCheck"=phiS, "alternative"=alternative,
                                             "esMinName"="phiS")
 
-  if (alternative=="twoSided") { # two-sided
-    result <- exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z)
-  } else { # one-sided
-    result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
+  if (eType=="grow") {
+    if (alternative=="twoSided") { # two-sided
+      result <- exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z)
+    } else { # one-sided
+      result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
+    }
+  } else if (eType=="eGauss") {
+    # TODO(Alexander): Check what we do as a parameter in the design object
+    g <- phiS^2/sigma^2
+    if (alternative=="twoSided") { # two-sided
+      logResult <- -1/2*log(1+nEff*g)+nEff*g*z^2/(2*(1+nEff*g))
+      result <- exp(logResult)
+    } else { # one-sided
+      stop("Not yet implemented")
+    }
   }
 
   if (result < 0) {
@@ -137,7 +150,8 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'
 #' safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 7.7543e+20 > 1/alpha
 safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
-                      pilot=FALSE, ciValue=NULL, tol=1e-05, na.rm=FALSE, ...) {
+                      pilot=FALSE, ciValue=NULL, tol=1e-05,
+                      na.rm=FALSE, ...) {
 
   result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "testType"=NULL, "dataName"=NULL, "h0"=NULL, "sigma"=NULL, "call"=sys.call())
@@ -298,10 +312,13 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis.
 #' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
 #' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2.
-#' @param pointPrior logical, used to indicate whether a point prior is used that
-#' puts half its mass on -phiS and the other half on phiS. Default \code{FALSE}.
-#' @param freq logical, used to indicate whether the classical confidence interval
-#' needs computing. Default \code{FALSE}.
+#' @param intervalType character string, one of "eGauss", "grow", "freq", "credibleInterval".
+#' "eGauss" yields an anytime-valid confidence interval based on a Gaussian mixture. "grow" yields an
+#' anytime-valid confidence interval using a mixture of point masses at the minimal clinically relevant
+#' mean difference. This confidence interval unfortunately does not shrink as the sample size tends to
+#' infinity. "freq" yields the standard frequentist confidence interval, which is not safe.
+#' "credibleInterval" yields the credible interval based on a conjugate prior as is usual in Bayesian
+#' analysis. This interval is also not safe.
 #'
 #' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
 #' @export
@@ -310,7 +327,7 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
 computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
                                        alternative="twoSided", a=NULL, g=NULL,
-                                       intervalType=c("safe", "grow", "freq", "credibleInterval")) {
+                                       intervalType=c("eGauss", "grow", "freq", "credibleInterval")) {
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -358,7 +375,7 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
     upperCS <- meanObs + shift
   }
 
-  if (intervalType=="safe") {
+  if (intervalType=="eGauss") {
     if (!is.null(a) && !is.null(g)) {
       # Note(Alexander): Here normal distribution not centred at null
       if (alternative != "twoSided")
@@ -634,7 +651,9 @@ designPilotSafeZ <- function(nPlan, alternative=c("twoSided", "greater", "less")
 #' approximation of the power, the number of samples for the safe z test under continuous monitoring,
 #' or for the computation of the logarithm of the implied target.
 #' @param pb logical, if \code{TRUE}, then show progress bar.
-#' @param grow logical, default set to \code{TRUE} so the grow safe test is used in the design.
+#' @param eType character one of "eGauss", "eCauchy", "grow". "eGauss" yields e-values based on
+#' a Gaussian/normal mixture. "eCauchy" based on a Cauchy mixture and "grow" based on a mixture of two
+#' point masses at the minimal clinically relevant effect size.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a safeDesign object that includes:
@@ -671,7 +690,7 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
                         sigma=1, kappa=sigma, tol=1e-5,
                         testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, parameter=NULL, nSim=1e3L, nBoot=1e3L,
-                        pb=TRUE, grow=TRUE, ...) {
+                        pb=TRUE, eType=c("eGauss", "eCauchy", "grow"),...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
 
@@ -1497,6 +1516,9 @@ computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silen
 
 
 # Workshop functions -----
+
+#' @rdname pValueZTest
+#' @export
 pValueFromZStat <- function(z,
                             alternative=c("twoSided", "less", "greater"),
                             ...) {
@@ -1518,6 +1540,17 @@ pValueFromZStat <- function(z,
   return(unname(pValue))
 }
 
+#' Computes the p-value for the z-test
+#'
+#'
+#' @aliases pValueZTest
+#' @inheritParams safeZTest
+#'
+#' @return pValueTest object
+#' @export
+#'
+#' @examples
+#' pValueZTest(rnorm(10))
 pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
                         alpha=0.05, na.rm=FALSE, sigma=1, h0=0,
                         alternative=c("twoSided", "greater", "less"), ...) {
@@ -1608,6 +1641,21 @@ pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
   return(result)
 }
 
+#' Logarithmic marginal likelihood of the normal with conjugate priors
+#'
+#' @inheritParams subjectiveBfZStat
+#' @param n integer, sample size
+#' @param x numeric, sample mean
+#' @param s2 numeric > 0, sample variance
+#' @param a numeric, prior mean of the population mean mu
+#' @param b numeric > 0, prior standard deviation of the population mean mu
+#'
+#'
+#' @return numeric, the logarithm of the marginal likelihood
+#' @export
+#'
+#' @examples
+#' zMarg(12, 0.3, 2)
 zMarg <- function(n, x, s2, a=0, b=1, sigma=1) {
   if (n > 1) {
     result <- -n/2*log(2*pi)+(1-n)*log(sigma)-1/2*log(n*b^2+sigma^2) -
@@ -1620,6 +1668,30 @@ zMarg <- function(n, x, s2, a=0, b=1, sigma=1) {
   return(result)
 }
 
+#' A subjective Bayes factor for the two-sample z-test
+#'
+#' Based on conjugate priors with a total of 6 hyperparameters.
+#'
+#' @param x1 numeric, sample mean of group 1
+#' @param s21 numeric, sample variance of group 1
+#' @param n1 integer sample size of group 1
+#' @param x2 numeric, sample mean of group 2
+#' @param s22 numeric, sample variance of group 2
+#' @param n2 integer sample size of group 2
+#' @param sigma numeric > 0, population standard deviation
+#' @param a1 numeric, prior mean of the population mean mu1 of group 1
+#' @param b1 numeric > 0, prior standard deviation of the population mean mu1 of group 1
+#' @param a2 numeric, prior mean of the population mean mu2 of group 2
+#' @param b2 numeric > 0, prior standard deviation of the population mean mu2 of group 2
+#' @param a0 numeric, prior mean of the overall population mean mu0 of both groups
+#' @param b0 numeric > 0, prior standard deviation of the population mean mu0 of both groups
+#' @param log logical, default FALSE, if TRUE then return logarithm of the subjective Bayes factor outcome
+#'
+#' @return numeric > 0 representing the subjective Bayes factor outcome in favour of the alternative over the null
+#' @export
+#'
+#' @examples
+#' subjectiveBfZStat(5.2, 2, 3, 3.4, 2, 12)
 subjectiveBfZStat <- function(x1, s21, n1, x2, s22, n2, sigma=1,
                               a1=5, b1=2, a2=-5, b2=2, a0=0, b0=1,
                               log=FALSE) {

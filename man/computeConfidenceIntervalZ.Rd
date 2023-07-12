@@ -12,7 +12,8 @@ computeConfidenceIntervalZ(
   ciValue = 0.95,
   alternative = "twoSided",
   a = NULL,
-  g = NULL
+  g = NULL,
+  intervalType = c("eGauss", "grow", "freq", "credibleInterval")
 )
 }
 \arguments{
@@ -34,6 +35,14 @@ is \code{NULL}, which implies the default choice of setting the centre equal to 
 
 \item{g}{numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
 (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2.}
+
+\item{intervalType}{character string, one of "eGauss", "grow", "freq", "credibleInterval".
+"eGauss" yields an anytime-valid confidence interval based on a Gaussian mixture. "grow" yields an
+anytime-valid confidence interval using a mixture of point masses at the minimal clinically relevant
+mean difference. This confidence interval unfortunately does not shrink as the sample size tends to
+infinity. "freq" yields the standard frequentist confidence interval, which is not safe.
+"credibleInterval" yields the credible interval based on a conjugate prior as is usual in Bayesian
+analysis. This interval is also not safe.}
 }
 \value{
 numeric vector that contains the upper and lower bound of the safe confidence sequence

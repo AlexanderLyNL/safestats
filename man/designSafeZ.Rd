@@ -20,7 +20,7 @@ designSafeZ(
   nSim = 1000L,
   nBoot = 1000L,
   pb = TRUE,
-  grow = TRUE,
+  eType = c("eGauss", "eCauchy", "grow"),
   ...
 )
 }
@@ -65,7 +65,9 @@ or for the computation of the logarithm of the implied target.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
-\item{grow}{logical, default set to \code{TRUE} so the grow safe test is used in the design.}
+\item{eType}{character one of "eGauss", "eCauchy", "grow". "eGauss" yields e-values based on
+a Gaussian/normal mixture. "eCauchy" based on a Cauchy mixture and "grow" based on a mixture of two
+point masses at the minimal clinically relevant effect size.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
