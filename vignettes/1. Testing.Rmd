@@ -23,9 +23,9 @@ Using the two-sample z-test as a guiding example, we illustrate the following:
 2. [Sequential use of Bayes factors based on subjectively chosen priors can also over-inflate the type I error](#bf)
 3. [Sequential use of a safe test/e-variable will **not** over-inflate the type I error](#eValues)
 
-The first point is well-known, but we believe it's good to see this in action. The second point illustrates that __not all__ Bayes factors have type I error control under optional stopping. That is, not all Bayes factors are safe/e-variables. 
+The first point is well-known, but we believe it's good to see this in action. The second point illustrates that __not all__ Bayes factors have type I error control under optional stopping. That is, not all Bayes factors are safe/e-variables.
 
-The third point shows how e-variable conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping) without over-inflating the chance of a false discovery. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
+The main point is that with e-variables type I error control is retained _regardless of the sample size_. In other words, we can safely monitor the e-value and stop the experiment (early) whenever this e-value provides compelling evidence for the presence over the absence of an effect. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data.
 
 Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. 
 
@@ -41,13 +41,13 @@ eColours <- c("#1F78B4E6", "#A6CEE380")
 The next markdown document is concerned with power and the design of experiments. 
 
 # The two-sample z-test
-The working example will be a two-sample z-test. Suppose a new educational programme is developed that claims to increase IQ scores by 10 points. The null hypothesis is that this educational programme does not change the population average IQ score. To test this null hypothesis, n1 students are assigned to the treatment group, and n2 students are assigned to the control group. The null and alternative hypotheses are respectively given by 
+The working example will be a two-sample z-test. Suppose a pre-university educational programme is developed that claims to increase IQ scores by 10 points. The null hypothesis is that this educational programme does not change the population average IQ score. To test this null hypothesis, n1 secondary school students are assigned to the treatment group, and n2 students are assigned to the control group. The null and alternative hypotheses are respectively given by 
 
 \begin{align}
 \mathcal{H}_{0} : \mu_{1} = \mu_{2} \text{ and } \mathcal{H}_{1} : \mu_{1} \neq \mu_{2}
 \end{align}
 
-The IQ score of each student is assumed to be drawn from a normal distribution, thus,
+The IQ score of each secondary school student is assumed to be drawn from a normal distribution, thus,
 
 \begin{align}
 X_{1i} \overset{\text{iid}}{\sim} \mathcal{N} \left (\mu_{1}, \sigma^2 \right ), \text{ and } X_{2i} \overset{\text{iid}}{\sim} \mathcal{N} \left (\mu_{2}, \sigma^2 \right ) .
@@ -57,7 +57,7 @@ For simplicity we take n1=n2=100. Data under the null hypothesis of no differenc
 
 ```{r, eval=TRUE}
 n1 <- n2 <- 100
-sigmaTrue <- 2
+sigmaTrue <- 8
 alpha <- 0.05
 
 muGlobal <- 112
@@ -68,12 +68,12 @@ set.seed(3)
 dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
 ```
 
-Note that the data are indeed from the null as the difference between the two population means is zero. The variable muGlobal can take on any value under the null, and we are dealing with a composite null and composite alternative. 
+Note that the data are indeed from the null as the difference between the two population means is zero. The variable muGlobal can take on any value under the null, and is referred to as a nuisance parameter. In this case both the null and the alternative hypothesis/model are composite. 
 
 # 1. <a name = "pValues">Sequential use of p-values over-inflate the type I error</a>
-For the p-value demonstration we use the `pValueZTest` function from the safestats package. The details provided here are only given to those interested in its derivation. This subsection can be safely skipped, as the use of the `pValueZTest` function becomes clear in the next subsections. 
+For the p-value demonstration we use the `pValueZTest` function from the safestats package. The details provided here are only given to those interested in its derivation. This subsection can be safely skipped, as the use of the `pValueZTest` function becomes clear in the next subsections.
 
-A p-value analysis relies on the sampling distribution of a test statistic. The natural statistic to consider is the difference between the sample means. The sample mean $\bar{X}_{1}$ has sampling distribution 
+A p-value analysis relies on the sampling distribution of a test statistic. The natural statistic to consider here is the difference between the sample means. The sample mean $\bar{X}_{1}$ has sampling distribution 
 
 \begin{align}
 \bar{X}_{1} \sim \mathcal{N} \left (\mu_{1}, \frac{\sigma^{2}}{n_{1}} \right ).
@@ -82,13 +82,13 @@ A p-value analysis relies on the sampling distribution of a test statistic. The 
 The sample mean of $\bar{X}_{2}$ has an analogous sampling distribution, but with $2$ as subscript instead of $1$. The difference between the two sample means has distribution 
 
 \begin{align}
-\bar{X}_{1} - \bar{X}_{2} \sim \mathcal{N} \left (\mu_{1}- \mu_{2}, \big ( \frac{1}{n_{1}} + \frac{1}{n_{2}} \big ) \sigma^{2} \right ). 
+\bar{X}_{1} - \bar{X}_{2} \sim \mathcal{N} \left (\mu_{1}- \mu_{2}, \big ( \tfrac{1}{n_{1}} + \tfrac{1}{n_{2}} \big ) \sigma^{2} \right ). 
 \end{align}
 
 Hence, we can define the z-statistic as the rescaled version 
 
 \begin{align}
-Z:= \frac{ \sqrt{n}_{\text{eff}} \bar{X}_{1} - \bar{X}_{2}}{\sigma} \sim \mathcal{N} \left (\mu_{1}- \mu_{2}, 1 \right ). 
+Z:= \frac{ \sqrt{n}_{\text{eff}} ( \bar{X}_{1} - \bar{X}_{2})}{\sigma} \sim \mathcal{N} \left (\tfrac{ \sqrt{n}_{\text{eff}} (\mu_{1}- \mu_{2})}{\sigma}, 1 \right ). 
 \end{align}
 
 where
@@ -97,10 +97,10 @@ where
 n_{\text{eff}} = \big ( \frac{1}{n_{1}} + \frac{1}{n_{2}} \big )^{-1} = \frac{n_{1} n_{2}}{n_{1} + n_{2}}
 \end{align}
 
-can be referred to as the effective sample size. Hence, under the null hypothesis $z$ has a standard normal distribution. Its p-value can thus be easily taken from the standard R function `pnorm`, which is effectively what the functions `pValueZTest` and `pValueFromZStat` do.
+can be referred to as the effective sample size. Hence, under the null hypothesis $\mu_{1} = \mu_{2}$, $Z$ has a standard normal distribution. Its p-value can thus be easily derived from the standard R function `pnorm`, which is effectively what the functions `pValueZTest` and `pValueFromZStat` do.
 
 ## Sequential analysis
-The sequential use of a p-value entails computing a p-value after each observation, and claiming an effect, as soon as the p-value dips below the threshold alpha, say, alpha=0.05. This procedure is not safe, as it will lead to false rejections with more than 5\% chance. This is well-known, but we will show this with a simulation. The algorithmic description of a  sequential p-value analysis is as follows: 
+The sequential use of a p-value entails computing a p-value after each observation, and claiming an effect, as soon as the p-value dips below the threshold alpha, say, alpha=0.05. This procedure therefore allows for the possibility to stop an experiment early. The problem, however, is that it is not safe, as it will lead to false rejections with more than 5\% chance. This is well-known, but we will show this with a simulation. The algorithmic description of a sequential p-value analysis is as follows: 
 
 ```{r, eval=FALSE}
 # PSEUDO CODE
@@ -141,12 +141,14 @@ plot(1:n1, pValueVector, type="l", lwd=2, xlab="n",
      col=freqColours[1])
 abline(h=0.05, lty=2, lwd=2)
 ```
-Note how the p-value dips below the threshold of alpha=0.05. This occurred for the specific data set we used, but it can be mathematical proven that this procedure will always yield a significant p-value if we increase indefinitely. 
+Using p < alpha = 0.05 as a stopping rule and an indication of there being an effect leads to the experiment to be stopped early at the cost of making an incorrect decision, as the data are sampled under the null. 
+
+This incorrect conclusion happened to occur for the specific data set we used, but it can be mathematical proven that this procedure will always yield a significant p-value if we sample indefinitely. This is also known as __sampling to a foregone conclusion__. 
 
 ### The behaviour of the sequential p-value procedure under multiple use 
-The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 p-values. We now repeat the procedure, but over 1,000 data sets/experiments. And the code below stores 1,000 times 100 p-values in the variable `allPValues`. 
+The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 p-values. We now repeat the procedure, but over 1,000 data sets/experiments. The code below stores 1,000 times 100 p-values in the variable `allPValues`. 
 
-We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result if we compare against alpha=0.05, despite the data being sampled under the null. 
+We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result, despite the data being sampled under the null. 
 
 The following code stores the the 1,000 times 100 p-values: 
 
@@ -155,7 +157,7 @@ mIter <- 1000
 
 allData <- generateNormalData(c(n1, n2), muGlobal=muGlobal,
                               nSim=mIter,
-                              muTrue=0, seed=1,
+                              meanDiffTrue=0, seed=1,
                               sigmaTrue=sigmaTrue)
 allPValues <- matrix(nrow=mIter, ncol=n1)
 
@@ -192,7 +194,7 @@ for (sim in 1:mIter) {
 }
 ```
 
-To count the number of data sets/experiments that yielded a false negative result at observation 1 to 100, we run the following code:
+To count the number of data sets/experiments that yielded a false negative result at observations 1 to 100, we run the following code:
 
 ```{r, eval=TRUE}
 numberOfDippingExperimentsAtTimeN <- integer(n1)
@@ -201,43 +203,46 @@ for (i in 1:n1) {
   numberOfDippingExperimentsAtTimeN[i] <- sum(firstPassageTime <= i)
 }
 
-pValueFdr <-numberOfDippingExperimentsAtTimeN/mIter 
+pValueFalseRejects <-numberOfDippingExperimentsAtTimeN/mIter 
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-plot(1:n1, pValueFdr, type="l", xlab="n", ylab="Type I error",
+plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n",
+     ylab="Type I error (%)",
      lwd=2, col=freqColours[1])
-lines(c(1, n1), c(0.05, 0.05), lwd=2, lty=2)
+lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
-
-The reason why type I error over-inflates is due to classical p-value methods being developed for fixed designs. In that case, in advance the sample size needs to be fixed at which both data collection is stopped, and analysed. This is supported by the plot, which shows that at the first look the procedure already has a type I error of alpha. The use of classical p-values thus confine researchers to analyse the data once, and only once. 
+The reason why type I error over-inflates is due to classical p-value methods being developed for fixed designs. For these designs, the sample size at which both data collection is stopped, and analysed needs to be fixed in advanced. Deviating from this plan results in multiple looks at the data resulting in an over-inflation of the type I error. The plot emphasises this as it shows that upon the first look the procedure already has a type I error of alpha. The use of classical p-values thus confines researchers to analysing the data once, and only once. 
 
 # 2. <a name = "bf">Sequential use of Bayes factors based on subjectively chosen priors can also over-inflate the type I error</a>
 
-For the subjective Bayes factor demonstration we use the `subjectiveBfZStat` function from the safestats package. This Bayes factor is based on normal priors on the parameters. In the alternative model there are two parameters, namely, $\mu_{1}$ and $\mu_{2}$, whereas in the null model there is only one, namely, $\mu_{0}$ representing the common mean shared by both groups. 
+For the subjective Bayes factor demonstration we use the `subjectiveBfZStat` function from the safestats package. This Bayes factor is based on normal priors on the parameters. In the alternative model there are two parameters, namely, $\mu_{1}$ and $\mu_{2}$, whereas in the null model there is only one, namely, $\mu_{0}$ representing the common (but unknown) population mean shared by both groups. 
 
 For computational simplicity these parameters are given normal priors, respectively, $\mathcal{N}(a_{1}, b_{1}^{2})$, $\mathcal{N}(a_{2}, b_{2}^{2})$ in the alternative model, and $\mathcal{N}(a_{0}, b_{0}^{2})$ in the null model. 
 
-Provided with the two sample means $\bar{x}_{1}, \bar{x}_{2}$ and the sample variances $s_{1}^{2}, s_{2}^{2}$ and six values of the hyperparameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ the function `subjectiveBfZStat` outputs a subjective Bayes factor in favour of the alternative over the null. 
+Provided with the two sample means $\bar{x}_{1}, \bar{x}_{2}$, the sample variances $s_{1}^{2}, s_{2}^{2}$, and the six values of the hyper parameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ the function `subjectiveBfZStat` outputs a subjective Bayes factor outcome in favour of the alternative over the null. 
 
-One way to choose the 6 hyper parameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ is by using data from a comparative study, as if we're dealing with a replication attempt. Suppose that data are available of first-year Belgian psychology students in their first week of study. This data lead to an estimate of the population average IQ score of 107. For our test on the Dutch population we therefore set. 
+One way to choose the 6 hyper parameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ is by using data from a comparative study, as if we're dealing with a replication attempt. Suppose that data are available of first-year Belgian psychology students in their first week of study. These data lead to an estimate of the population average IQ score of 107. Before we agree to implement the new educational programme that claims an IQ increase of 10 points in the Netherlands, we first test the null hypothesis of no effect. To do so with  the subjective Bayes factor described above, the hyper parameters could then be set as follows: 
 
 ```{r, eval=TRUE}
 # Null
 a0 <- 107
-b0 <- 1
+b0 <- 2
 
 # Alternative
 #   Control
 a2 <- 107
-b2 <- 1
+b2 <- 2
 #   Treatment
 a1 <- 117
-b1 <- 2
+b1 <- 4
 ```
-The standard deviation of the treatment condition is set higher to model the fact that there is more uncertainty about the new educational programme compared to the status quo. 
+
+The prior standard deviation of the treatment condition is set higher to model our uncertainty about the new educational programme compared to the status quo. 
 
 ## Sequential analysis
-The sequential use of the subjective Bayes factor entails computing a Bayes factor after each observation, and claiming an effect, as soon as the Bayes factor bf10 in favour of the alternative over the null crosses the evidence threshold of 1/alpha, say, 20 for alpha=0.05. This procedure is not safe, as it will lead to false rejections with more than 5\% chance. The algorithmic description of a sequential subjective Bayes factor analysis is as follows: 
+A Bayes factor outcome bf10=8 is interpreted as the data being 8 times more likely under the alternative model compared to the null model. A bf10 larger than 30 is sometimes perceived as strong evidence for the alternative over the null. 
+
+Hence, a sequential use of the subjective Bayes factor entails computing a Bayes factor after each observation, and claiming an effect, as soon as the Bayes factor bf10 in favour of the alternative over the null crosses the evidence threshold of 30. We show that this procedure is not safe in general, at it leads to false rejections with more than 5\% chance. The algorithmic description of a sequential subjective Bayes factor analysis is as follows: 
 
 ```{r, eval=FALSE}
 # PSEUDO CODE
@@ -245,10 +250,10 @@ The sequential use of the subjective Bayes factor entails computing a Bayes fact
 n <- 1
 bf10 <- 1
 
-while (bf10 < 1/alpha) {
+while (bf10 < 30) {
   bf10 <- computeBfZTest(x=x[1:n], y=y[1:n])
   
-  if (bf10 > 1/alpha) {
+  if (bf10 > 30) {
     print("Reject the null")
     stop()
   } else {
@@ -290,14 +295,15 @@ oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
 plot(1:n1, bfVector, type="l", lwd=2, xlab="n", ylab="BF10",
      col=bayesColours[1])
+lines(c(1, n1), c(30, 30), lwd=2, lty=3)
 lines(c(1, n1), c(1/alpha, 1/alpha), lwd=2, lty=2)
 ```
-This Bayes factor sample path does not exceed the evidence threshold of 20, but, as we will see in the next subsection, as a procedure this subjective Bayes factor yields type I error much larger than alpha. 
+This Bayes factor sample path exceeds both evidence thresholds of 20 (1/alpha) and 30 ("strong evidence"). We will see in general this procedure yields a type I error  larger than alpha. 
 
 ### The behaviour of the subjective Bayes factor procedure under multiple use 
 The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 subjective Bayes factor outcomes. We now repeat the procedure, but over 1,000 data sets/experiments. And the code below stores 1,000 times 100 Bayes factor outcomes in the variable `allBfValues`. 
 
-We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result if we reject the null if bf10 > 20, despite the data being sampled under the null. 
+We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result if we reject the null if bf10 > 30, despite the data being sampled under the null. To prepare ourselves with the comparison with the e-value procedure, we will also track the number of times we reject the null whenever bf10 > 20=1/alpha, which corresponds to alpha=0.05. 
 
 The following code stores the the 1,000 times 100 Bayes factor values: 
 
@@ -306,15 +312,16 @@ mIter <- 1000
 
 allData <- generateNormalData(c(n1, n2), muGlobal=muGlobal,
                               nSim=mIter,
-                              muTrue=0, seed=1, sigmaTrue=sigmaTrue)
+                              meanDiffTrue=0, seed=1,
+                              sigmaTrue=sigmaTrue)
 allBfValues <- matrix(nrow=mIter, ncol=n1)
 
 # This indicates whether a simulation yielded a "significant" Bayes factor values
-bfValueOver <- vector("integer", length=mIter)
+bfValueOver20 <- bfValueOver30 <- vector("integer", length=mIter)
 
 # This indicates the first time an experiment yielded a "significant" Bayes factor
-# Default is Inf, which indicates that the bf didn't cross 1/alpha
-firstPassageTime <- rep(Inf, times=mIter)
+# Default is Inf, which indicates that the bf didn't cross 1/alpha=20, or 30 respectively 
+firstPassageTime20 <- firstPassageTime30 <- rep(Inf, times=mIter)
 
 for (sim in 1:mIter) {
   dataGroup1 <- allData$dataGroup1[sim, ]
@@ -336,55 +343,68 @@ for (sim in 1:mIter) {
     
     allBfValues[sim, i] <- currentBf10
     
-    if (currentBf10 > 1/alpha && bfValueOver[sim]!=1) {
-      bfValueOver[sim] <- 1
-      firstPassageTime[sim] <- i
+    if (currentBf10 > 30 && bfValueOver30[sim]!=1) {
+      bfValueOver30[sim] <- 1
+      firstPassageTime30[sim] <- i
+    }
+    
+    # Prepare for the comparison with the e-value procedure
+    if (currentBf10 > 1/alpha && bfValueOver20[sim]!=1) {
+      bfValueOver20[sim] <- 1
+      firstPassageTime20[sim] <- i
     }
   }
 }
 ```
 
-To count the number of data sets/experiments that yielded a false negative result at observation 1 to 100, we run the following code:
+To count the number of data sets/experiments that yielded a false negative result at observations 1 to 100, we run the following code:
   
 ```{r, eval=TRUE}
-numberOfCrossingExperimentsAtTimeN <- integer(n1)
+numberOfCrossingExperimentsAtTimeN20 <- numberOfCrossingExperimentsAtTimeN30 <- integer(n1)
 
 for (i in 1:n1) {
-  numberOfCrossingExperimentsAtTimeN[i] <- sum(firstPassageTime <= i)
+  numberOfCrossingExperimentsAtTimeN30[i] <- sum(firstPassageTime30 <= i)
+    numberOfCrossingExperimentsAtTimeN20[i] <- sum(firstPassageTime20 <= i)
 }
 
-subjectiveBfValueFdr <-numberOfCrossingExperimentsAtTimeN/mIter 
+subjectiveBfValueFalseRejects30 <-numberOfCrossingExperimentsAtTimeN30/mIter 
+
+subjectiveBfValueFalseRejects <-numberOfCrossingExperimentsAtTimeN20/mIter 
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-plot(1:n1, subjectiveBfValueFdr, type="l", xlab="n", 
-     ylab="Type I error", 
-     lwd=2, col=bayesColours[1], ylim=c(0, 0.35))
-lines(c(1, n1), c(0.05, 0.05), lwd=2, lty=2)
+plot(1:n1, 100*subjectiveBfValueFalseRejects, type="l",
+     xlab="n", ylab="Type I error (%)", 
+     lwd=2, col=bayesColours[1], ylim=c(0, 20))
+
+lines(1:n1, 100*subjectiveBfValueFalseRejects30, lwd=2,
+      col=bayesColours[1], lty=2)
+lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
+The broken brown curve corresponds to rejecting the null as soon as bf10 > 30, whereas the full brown curve corresponds to bf10 > 1/alpha=20. Regardless of the threshold for the Bayes factor, the type I error is much higher than 5\%. 
 
 The following code allows you to explore the sample path where the subjective Bayes factor leads to a false negative result
 
 ```{r, eval=TRUE}
-failedSimIndeces <- which(bfValueOver==1)
+failedSimIndeces <- which(bfValueOver20==1)
 
 # Take an arbitrary index where it fails
-someIndex <- failedSimIndeces[3]
+someIndex <- failedSimIndeces[2]
 
-plot(1:n1, allBfValues[someIndex, ], type="l", lwd=2, xlab="n",
-     ylab="BF10", col=bayesColours[1])
+plot(1:n1, allBfValues[someIndex, ], type="l", lwd=2,
+     xlab="n", ylab="BF10", col=bayesColours[1])
 lines(c(1, n1), c(1/alpha, 1/alpha), lwd=2, lty=2)
 ```
 
-The main message is that if type I error control for Bayes factors is desirable, then the priors need to be selected with care. One of the reasons why this subjective Bayes factor led to poor type I error performance is due to it being sensitive to the value of the nuisance parameter muGlobal, that is, the true baseline population mean. If the hyperparameter $a_{0}$ equals the true baseline population mean the type I error would remain below 5\%. In practice, we cannot assume that we know muGlobal exactly and ensure no baseline shifts. Note that this remark is only concerned with one of the six parameters, and that we can over-inflate the type I error by playing with the other five hyper parameters as well. 
+The main message is that if type I error control for Bayes factors is desirable, then the priors need to be selected with care. One of the reasons why this subjective Bayes factor led to poor type I error performance is due to its sensitivity to the underlying value of the nuisance parameter muGlobal, that is, the true baseline population mean. If the hyperparameter $a_{0}$ equals the true baseline population mean the type I error would remain below 5\%. In practice, we cannot assume that we know muGlobal exactly, nor can we ensure no baseline shifts. Note that this remark is only concerned with one of the six parameters, and that we can over-inflate the type I error by playing with the other five hyper parameters as well. 
 
 # 3. <a name = "eValues">Sequential use of a safe test/e-variable will **not** over-inflate the type I error</a>
 
 For the e-variable demonstration we rely on the `safeZTest` function from the safestats package. 
 
-To run the `safeZTest` a design object needs to be created. When provided with a minimal clinically relevant effect size, say, a mean difference of 0.5, inference can be sped up. The following code creates a design object. 
+To run `safeZTest` a design object needs to be created. When provided with a minimal clinically relevant effect size, say, a mean difference of 10 (the claimed increase in IQ score), inference can be sped up. The following code creates such a design object. 
 
 ```{r, eval=TRUE}
-designObj <- designSafeZ(meanDiffMin=0.5,
+designObj <- designSafeZ(meanDiffMin=10,
                          testType="twoSample",
                          sigma=sigmaTrue)
 designObj
@@ -400,7 +420,8 @@ n <- 1
 eValue <- 1
 
 while (eValue < 1/alpha) {
-  eValue <- safeZTest(x=x[1:n], y=y[1:n], designObj=designObj)
+  eValue <- safeZTest(x=x[1:n], y=y[1:n],
+                      designObj=designObj)
   
   if (eValue > 1/alpha) {
     print("Reject the null")
@@ -439,17 +460,17 @@ lines(c(1, n1), c(1/alpha, 1/alpha), lwd=2, lty=2)
 This sample path does not exceed the evidence threshold of 20, and fewer than 5\% of the experiments will, even if we increase the sample size indefinitely. 
 
 ### The behaviour of the e-variable procedure under multiple use 
-The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 e-values. We now repeat the procedure, but over 1,000 data sets/experiments. And the code below stores 1,000 times 100 e-values outcomes in the variable `allEValues`. 
+The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 e-values. We now repeat the procedure, but over 1,000 data sets/experiments. And the code below stores 1,000 times 100 e-values in the variable `allEValues`. 
 
 We will see that __fewer__ than 50 out of these 1,000 data sets/repeated experiments will yield a false negative result if we reject the null as soon as eValue > 20, despite the data being sampled under the null. 
 
-The following code stores the the 1,000 times 100 e-values: 
+The following code stores 1,000 times 100 e-values: 
 
 ```{r, eval=TRUE}
 mIter <- 1000
 
 allData <- generateNormalData(c(n1, n2), muGlobal=muGlobal, nSim=mIter,
-                              muTrue=0, seed=1, sigmaTrue=sigmaTrue)
+                              meanDiffTrue=0, seed=1, sigmaTrue=sigmaTrue)
 allEValues <- matrix(nrow=mIter, ncol=n1)
 
 # This indicates whether a simulation yielded a "significant" Bayes factor values
@@ -474,9 +495,9 @@ for (sim in 1:mIter) {
   
   for (i in 1:n1) {
     currentEValue <- safeZTestStat(zVector[i], 
-                                  phiS=designObj$parameter, 
+                                   parameter=designObj$parameter, 
                                    n1=n1Vector[i], n2=n2Vector[i], 
-                                   sigma=sigmaTrue)
+                                   sigma=sigmaTrue, eType=designObj$eType)
     
     allEValues[sim, i] <- currentEValue
     
@@ -488,7 +509,7 @@ for (sim in 1:mIter) {
 }
 ```
 
-To count the number of data sets/experiments that yielded a false negative result at observation 1 to 100, we run the following code:
+To count the number of data sets/experiments that yielded a false negative result at observations 1 to 100, we run the following code:
   
 ```{r, eval=TRUE}
 numberOfCrossingExperimentsAtTimeN <- integer(n1)
@@ -497,21 +518,30 @@ for (i in 1:n1) {
   numberOfCrossingExperimentsAtTimeN[i] <- sum(firstPassageTime <= i)
 }
 
-eValueFdr <- numberOfCrossingExperimentsAtTimeN/mIter 
+eValueFalseRejects <- numberOfCrossingExperimentsAtTimeN/mIter 
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-plot(1:n1, eValueFdr, type="l", xlab="n", ylab="Type I error", 
-     lwd=2, col=eColours[1])
-lines(c(1, n1), c(0.05, 0.05), lwd=2, lty=2)
+plot(1:n1, 100*eValueFalseRejects, type="l", 
+     xlab="n", ylab="Type I error (%)", lwd=2,
+     col=eColours[1], ylim=c(0, 5))
+lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
-Hence, only 6 out of 1,000 experiments lead to a false negative finding compared to 384 out of 1,000 experiment for the sequential p-value procedure and the 323 out of 1,000 experiments for the subjective Bayes factor procedure. That is, 
+Hence, after n1=n2=100 observations, i.e. looks at the data, we falsely reject 26 out of the 1,000 times the null (2.6\%). This is well below the tolerable alpha of 5\%. The type I error control that e-values provide is independent of the maximum sample size. If we increase it to n1=n2=200, we get only 2 additional false rejections resulting in a total of 28 out of 1,000 false rejections (2.8\%) still below the 5\%. One might wonder whether the chance of a false rejection will **ever** cross the tolerable 5\%. In a very general framework, Grunwald, de Heide and Koolen (2019) showed that this will not occur, even if we sample indefinitely under the null. 
+
+The following plot summarise the false rejections rates of the three procedures after n1=n2=100 observations/looks: In red the sequential p-value procedure resulting in a type I error of 38.4\%, in brown the subjective Bayes factor procedure resulting in a type I error of 17.3\%, and the e-value procedure resulting in a type I error of 2.6\%: 
 
 ```{r, eval=TRUE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-plot(1:n1, pValueFdr, type="l", xlab="n", ylab="Type I error", 
-     bty="n", lwd=2, ylim=c(0, 0.35), col=freqColours[1])
-lines(c(1, n1), c(0.05, 0.05), lwd=2, lty=2)
-lines(1:n1, subjectiveBfValueFdr, col=bayesColours[1])
-lines(1:n1, eValueFdr, col=eColours[1])
+plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n", 
+     ylab="Type I error (%)", 
+     bty="n", lwd=2, ylim=c(0, 40), col=freqColours[1])
+lines(c(1, n1), c(5, 5), lwd=2, lty=2)
+lines(1:n1, 100*subjectiveBfValueFalseRejects,
+      col=bayesColours[1])
+lines(1:n1, 100*eValueFalseRejects, col=eColours[1])
 ```
-It is worth emphasising that the false rejection rate of the e-variable will slowly increase as the end point (e.g. n=100) increases, but it will never be larger than alpha. 
+By simulating under the null, we showed that the sequential use of classical p-values and a subjectively derived Bayes factor can lead to early stopping at the high cost of drawing incorrect conclusions. 
+
+<!-- In other words, with these two procedures we cannot adapt to the information acquired during the study without increasing the risk of making a false discovery, as these methods extract unreliable information.  -->
+
+In the next document we show that the e-value procedure is not only safe to optional stopping, but also powerful. We also elaborate on the design of experiments with e-variables.

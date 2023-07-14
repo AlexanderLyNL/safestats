@@ -161,9 +161,9 @@ freqCoverageRate <- 1-complementCoverageRate
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-plot(1:n, freqCoverageRate, type="l", lwd=2, xlab="n",
-     ylab="Coverage rate", col=freqColours[1], ylim=c(0.6, 1))
-lines(c(1, n), c(1-alpha, 1-alpha), lwd=2, lty=2)
+plot(1:n, 100*freqCoverageRate, type="l", lwd=2, xlab="n",
+     ylab="Coverage rate (%)", col=freqColours[1], ylim=c(60, 100))
+lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
 This plot reiterates the point that classical methods (i.e. p-values and confidence intervals) are made for one-shot inference. After the first time the confidence interval is compute the tolerable 5\% error was already spent. 
 
@@ -287,9 +287,9 @@ bayesCoverageRate <- 1-complementCoverageRate
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-plot(1:n, 1-complementCoverageRate, type="l", lwd=2, xlab="n",
-     ylab="Coverage rate", col=bayesColours[1], ylim=c(0.6, 1))
-lines(c(1, n), c(1-alpha, 1-alpha), lwd=2, lty=2)
+plot(1:n, 100*bayesCoverageRate, type="l", lwd=2, xlab="n",
+     ylab="Coverage rate (%)", col=bayesColours[1], ylim=c(60, 100))
+lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
 This plot shows that the credible interval centred at the a=muTrue does indeed yield better coverage than the classical confidence intervals. However, as time goes by and with more data the coverage still breaks down. Setting a=muTrue is not realistic and typically we just set a=0. 
 
@@ -424,9 +424,9 @@ anytimeCiCoverageRate <- 1-complementCoverageRate
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-plot(1:n, anytimeCiCoverageRate, type="l", lwd=2, xlab="n",
-     ylab="Coverage rate", col=eColours[1], ylim=c(0.6, 1))
-lines(c(1, n), c(1-alpha, 1-alpha), lwd=2, lty=2)
+plot(1:n, 100*anytimeCiCoverageRate, type="l", lwd=2, xlab="n",
+     ylab="Coverage rate (%)", col=eColours[1], ylim=c(60, 100))
+lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
 This plot shows that the anytime-valid confidence sequences cover the true mean under repeated use as promised. 
 
@@ -455,11 +455,11 @@ The following code can be used to see all coverage profiles.
 ```{r, eval=TRUE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-plot(1:n, anytimeCiCoverageRate, type="l", lwd=2, xlab="n",
-     ylab="Coverage rate", col=eColours[1], ylim=c(0.6, 1))
-lines(1:n, bayesCoverageRate, col=bayesColours[1], lwd=2)
-lines(1:n, freqCoverageRate, col=freqColours[1], lwd=2)
-lines(c(1, n), c(1-alpha, 1-alpha), lwd=2, lty=2)
+plot(1:n, 100*anytimeCiCoverageRate, type="l", lwd=2, xlab="n",
+     ylab="Coverage rate (%)", col=eColours[1], ylim=c(60, 100))
+lines(1:n, 100*bayesCoverageRate, col=bayesColours[1], lwd=2)
+lines(1:n, 100*freqCoverageRate, col=freqColours[1], lwd=2)
+lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
 # Sensitivity wrt to g: Credible intervals versus anytime-valid confidence intervals
 
@@ -489,6 +489,7 @@ for (i in nDomain) {
   
 }
 
+oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(nDomain, anytimeCiWidth, col=eColours[1], type="l", lwd=2, ylim=c(0, 12))
 lines(nDomain, credibleIntervalWidth, col=bayesColours[1], lwd=2)
 lines(nDomain, freqCiWidth, col=freqColours[1], lwd=2, lty=2)
