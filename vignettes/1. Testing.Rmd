@@ -17,19 +17,19 @@ knitr::opts_chunk$set(
 )
 ```
 
-Using the two-sample z-test as a guiding example, we illustrate the following: 
+Using the two-sample z-test for comparing means as a guiding example, we illustrate the following: 
 
-1. [Sequential use of p-values over-inflate the type I error](#pValues)
+1. [Sequential use of p-values over-inflates the type I error](#pValues)
 2. [Sequential use of Bayes factors based on subjectively chosen priors can also over-inflate the type I error](#bf)
 3. [Sequential use of a safe test/e-variable will **not** over-inflate the type I error](#eValues)
 
-The first point is well-known, but we believe it's good to see this in action. The second point illustrates that __not all__ Bayes factors have type I error control under optional stopping. That is, not all Bayes factors are safe/e-variables. 
+The first point is well-known, but we believe it's good to see actual examples of this as a wake-up call, as in our experience researchers play down their expectation of this over-inflation in their minds. The second point illustrates that __not all__ Bayes factors have type I error control under optional stopping. That is, not all Bayes factors are safe/e-variables and not all Bayes factors can be used for sequential experiment setups. 
 
-The third point shows how e-variable conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping) without over-inflating the chance of a false discovery. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
+The third point shows how e-variable conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping) without over-inflating the chance of a false discovery. By stopping early fewer participants will be put at risk, in particular patients who are assigned to the control condition, while in reality the treatment condition obtains more effective results. Safe tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
 
 Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. 
 
-For this demonstration we use function from the safestats package and the following colours:
+For this demonstration we use functions from the safestats package and the following colours:
 
 ```{r, eval=TRUE}
 library("safestats")
@@ -38,7 +38,7 @@ bayesColours <- c("#B15928E6", "#FFFF9980")
 eColours <- c("#1F78B4E6", "#A6CEE380")
 ```
 
-The next markdown document is concerned with power and the design of experiments. 
+The next markdown document concerns power and the design of experiments. 
 
 # The two-sample z-test
 The working example will be a two-sample z-test. Suppose a new educational programme is developed that claims to increase IQ scores by 10 points. The null hypothesis is that this educational programme does not change the population average IQ score. To test this null hypothesis, n1 students are assigned to the treatment group, and n2 students are assigned to the control group. The null and alternative hypotheses are respectively given by 
@@ -68,12 +68,12 @@ set.seed(3)
 dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
 ```
 
-Note that the data are indeed from the null as the difference between the two population means is zero. The variable muGlobal can take on any value under the null, and we are dealing with a composite null and composite alternative. 
+Note that the data align with the null hypothesis as the difference between the two population means is zero. The variable muGlobal can take on any value under the null, and we are dealing with a composite null and composite alternative. 
 
 # 1. <a name = "pValues">Sequential use of p-values over-inflate the type I error</a>
-For the p-value demonstration we use the `pValueZTest` function from the safestats package. The details provided here are only given to those interested in its derivation. This subsection can be safely skipped, as the use of the `pValueZTest` function becomes clear in the next subsections. 
+For the p-value demonstration we use the `pValueZTest` function from the safestats package. The details provided here are only included for those particularly interested in its derivation.: this subsection can be safely skipped, as the use of the `pValueZTest` function becomes clear in the next subsections (Sequential analysis and onward). 
 
-A p-value analysis relies on the sampling distribution of a test statistic. The natural statistic to consider is the difference between the sample means. The sample mean $\bar{X}_{1}$ has sampling distribution 
+A p-value analysis relies on the sampling distribution of a test statistic. The natural statistic for this example to consider is the difference between the sample means. The sample mean $\bar{X}_{1}$ has sampling distribution 
 
 \begin{align}
 \bar{X}_{1} \sim \mathcal{N} \left (\mu_{1}, \frac{\sigma^{2}}{n_{1}} \right ).
@@ -123,7 +123,7 @@ while (pValue > alpha) {
 ```
 
 ### One sample path
-We demonstrate this procedure for a single data set of n1=n2=100 samples, and we monitor the p-value a 100 times, after an observation of each group.
+We demonstrate this procedure for a single data set of n1=n2=100 samples, and we monitor the p-value a 100 times, each time after one observation from each group has been completed.
 
 ```{r, eval=TRUE}
 pValueVector <- vector("numeric", length=n1)
@@ -141,12 +141,12 @@ plot(1:n1, pValueVector, type="l", lwd=2, xlab="n",
      col=freqColours[1])
 abline(h=0.05, lty=2, lwd=2)
 ```
-Note how the p-value dips below the threshold of alpha=0.05. This occurred for the specific data set we used, but it can be mathematical proven that this procedure will always yield a significant p-value if we increase indefinitely. 
+Note how the p-value dips below the threshold of alpha=0.05. This occurred for the specific data set we used, but it can be mathematical proven that this procedure will always yield a significant p-value if we keep collecting data and testing sequentially indefinitely. 
 
 ### The behaviour of the sequential p-value procedure under multiple use 
-The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 p-values. We now repeat the procedure, but over 1,000 data sets/experiments. And the code below stores 1,000 times 100 p-values in the variable `allPValues`. 
+The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 p-values. We now repeat the procedure for 1,000 data sets/experiments. The code below stores 1,000 times 100 p-values in the variable `allPValues`. 
 
-We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result if we compare against alpha=0.05, despite the data being sampled under the null. 
+We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result if we compare against alpha=0.05, despite the data being sampled under the null: far more than what we would want for a test that should retain a type-I error probability guarantee at level 0.05.
 
 The following code stores the the 1,000 times 100 p-values: 
 
@@ -209,7 +209,7 @@ plot(1:n1, pValueFdr, type="l", xlab="n", ylab="Type I error",
 lines(c(1, n1), c(0.05, 0.05), lwd=2, lty=2)
 ```
 
-The reason why type I error over-inflates is due to classical p-value methods being developed for fixed designs. In that case, in advance the sample size needs to be fixed at which both data collection is stopped, and analysed. This is supported by the plot, which shows that at the first look the procedure already has a type I error of alpha. The use of classical p-values thus confine researchers to analyse the data once, and only once. 
+The reason why type I error over-inflates is due to classical p-value methods being developed for fixed designs. In that case, in advance the sample size needs to be fixed at which the data collection is both stopped and analysed. This is supported by the plot, which shows that at the first look the procedure already has a type I error of alpha. The use of classical p-values thus confine researchers to analyse the data once, and only once. 
 
 # 2. <a name = "bf">Sequential use of Bayes factors based on subjectively chosen priors can also over-inflate the type I error</a>
 
