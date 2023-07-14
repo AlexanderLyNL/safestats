@@ -1,9 +1,9 @@
 ---
-title: "Testing: Behaviour of e-variables under the alternative"
+title: "Experimental design: Behaviour of e-variables under alternatives"
 author: "Alexander Ly"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{workshop2Testing}
+  %\VignetteIndexEntry{workshop2Design}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

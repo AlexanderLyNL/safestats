@@ -17,14 +17,14 @@ knitr::opts_chunk$set(
 )
 ```
 
-Previously, we considered the testing problem. We showed that within a tolerable type I error alpha, we have sufficient evidence to reject the null, and stop the experiment as soon as e > 1/alpha.
+Previously we considered the testing problem. We showed that within a tolerable type I error alpha, we have sufficient evidence to reject the null, and stop the experiment as soon as e > 1/alpha.
 
-Here we consider the problem of interval estimation. A 95\% interval estimate should contain the true value with at least 95\% chance --regardless of if, when or why data collection stopped. 
+Here we consider the problem of interval estimation. A 95\% interval estimate should contain the true value with at least 95\% chance --regardless of when, why or even if data collection stopped. 
 
 We illustrate the following: 
 
-1. [The 95\% classical confidence intervals fail to cover the true mean with 95\% chance across time](#classicalConfidenceIntervals)
-2. [Similarly, the 95\% credible intervals fails to cover the true mean with 95\% chance across time](#credibleIntervals)
+1. [Classical 95\% confidence intervals fail to cover the true mean with 95\% chance across time](#classicalConfidenceIntervals)
+2. [Similarly, Bayesian 95\% credible intervals fail to cover the true mean with 95\% chance across time](#credibleIntervals)
 3. [The 95\% anytime-valid confidence sequence/intervals will **always** cover the true mean with at least 95\% chance](#avConfidenceSequence)
 
 For this demonstration we use function from the safestats package and the following colours:
@@ -41,10 +41,10 @@ alpha <- 0.05
 As a running example we consider the problem of interval estimation of a normal mean with known variance, say, $\sigma=1$. That is, we want to give an uncertainty estimate of $\mu$ where 
 
 \begin{align}
-X_{i} \overset{\text{iid}}{\sim} \mathcal{N}(\mu, \sigma^{2}) ,
+X_{i} \overset{\text{iid}}{\sim} \mathcal{N}(\mu, \sigma^{2}).
 \end{align}
 
-Both the anytime-valid confidence interval and credible interval depend on a Gaussian/normal distribution that is centred at zero and a variance g. To highlight their difference we clarify how they act very differently with varying mixture/prior variance g.
+<!-- Both the anytime-valid confidence interval and credible interval depend on a Gaussian/normal distribution that is centred at zero and a variance g. To highlight their difference we clarify how they act very differently with varying mixture/prior variance g. -->
 
 For all three examples we use the `computeConfidenceIntervalZ` function from the safestats package, which produces (1) classical confidence intervals if `intervalType="freq"`, (2) credible intervals if `intervalType="credibleInterval"`, and (3) an anytime-valid confidence sequence if `intervalType="eGaussian"`. 
 
@@ -60,9 +60,10 @@ someData <- rnorm(n, mean=muTrue,
                   sd=sigmaTrue)
 ```
 
+
 After each observation a confidence interval can be computed yielding n=100 intervals. If any of these n=100 intervals does not contain muTrue we say that the sequence of intervals does not cover across time. 
 
-# 1. <a name = "classicalConfidenceIntervals">The 95\% classical confidence intervals fail to cover the true mean with 95\% chance across time</a>
+# 1. <a name = "classicalConfidenceIntervals">Classical 95\% confidence intervals fail to cover the true mean with 95\% chance across time</a>
 The classical confidence interval for a normal mean is directly related to the p-value test z-test, where the z-statistic is defined as 
 
 \begin{align}
@@ -187,7 +188,7 @@ polygon(c(1:n, n:1), c(allFreqCis[someIndex, , 2],
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 
-# 2. <a name = "credibleIntervals">The 95\% credible intervals fail to cover the true mean with 95\% chance across time</a>
+# 2. <a name = "credibleIntervals">Bayesian 95\% credible intervals fail to cover the true mean with 95\% chance across time</a>
 
 The (Bayesian) credible interval for a normal mean is easily computed with a normal prior for the mean parameter mu. A normal prior with normal data leads to a normal posterior, which is computationally attractive. More precise, with the normal prior centred at a and variance g, that is, 
 
