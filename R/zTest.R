@@ -748,7 +748,7 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   logImpliedTarget <- logImpliedTargetTwoSe <- NULL
   betaTwoSe <- NULL
-  samplePaths <- NULL
+  samplePaths <- breakVector <- NULL
 
   bootObjN1Plan <- bootObjN1Mean <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
 
@@ -781,6 +781,8 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
     bootObjN1Plan <- tempResult[["bootObjN1Plan"]]
     bootObjN1Mean <- tempResult[["bootObjN1Mean"]]
+
+    breakVector <- tempResult[["breakVector"]]
 
     if (testType=="oneSample") {
       nPlan <- tempResult[["n1Plan"]]
@@ -864,6 +866,7 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
                                    "eType"=eType, "wantSamplePaths"=wantSamplePaths)
 
     samplePaths <- tempResult[["samplePaths"]]
+    breakVector <- tempResult[["breakVector"]]
 
     beta <- tempResult[["beta"]]
     bootObjBeta <- tempResult[["bootObjBeta"]]
@@ -928,7 +931,7 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
                  "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
                  "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
                  "bootObjLogImpliedTarget"=bootObjLogImpliedTarget, "bootObjN1Mean"=bootObjN1Mean,
-                 "samplePaths"=samplePaths, "eType"=eType,
+                 "samplePaths"=samplePaths, "breakVector"=breakVector, "eType"=eType,
                  "call"=sys.call(), "timeStamp"=Sys.time(), "note"=note)
   class(result) <- "safeDesign"
 
@@ -1562,7 +1565,8 @@ computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("twoS
                  "bootObjBeta" = bootObjBeta,
                  "logImpliedTarget"=bootObjLogImpliedTarget[["t0"]],
                  "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
-                 "samplePaths"=tempResult[["samplePaths"]])
+                 "samplePaths"=tempResult[["samplePaths"]],
+                 "breakVector"=breakVector)
 
   return(result)
 }
@@ -1633,7 +1637,8 @@ computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
   result <- list("n1Plan" = n1Plan, "bootObjN1Plan" = bootObjN1Plan,
                  "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
                  "nPlanBatch"=nPlanBatch,
-                 "samplePaths"=samplingResults[["samplePaths"]])
+                 "samplePaths"=samplingResults[["samplePaths"]],
+                 "breakVector"=samplingResults[["breakVector"]])
 
   return(result)
 }

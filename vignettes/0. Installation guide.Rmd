@@ -1,9 +1,9 @@
 ---
 title: "0. Installing the safestats package"
-author: "Alexander Ly"
+author: "Alexander Ly, Rosanne Turner, Udo Boehm, Rianne de Heide, Peter Grunwald"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{workshop0Install}
+  %\VignetteIndexEntry{0. Installing the safestats package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -54,53 +54,41 @@ Asdf
 The `safestats` package workflow is as follows: 
 
 ```{r, eval=FALSE}
+# PSEUDO CODE
 designObj <- designSafeAnalysis(alternative="twoSided")
 result <- safeAnalysis(x=dat$x, designObj)
 ```
 
-The design object `designObj` summarise which analysis, e.g. `designSafeZ` (z-test), `designSafeT` (t-test), or `designSafeTwoProportions` (test for two proportions), is going to be performed, the type I error alpha that is tolerate, and whether the test is directional, e.g. "twoSided", "greater", "less". It may also contain information regarding the minimal clinically relevant effect size and the targeted power, or equivalently the tolerable type II error. 
+The design object "designObj" summarise which analysis, e.g. "designSafeZ" (z-test), "designSafeT" (t-test), or "designSafeTwoProportions" (test for two proportions), is going to be performed, what type I error, i.e. alpha, that is tolerate, and whether the test is directional, e.g. "twoSided", "greater", or "less". It can be provide with a minimal clinically relevant effect size, and a targeted power, 1-beta, or equivalently a tolerable type II error, beta. 
 
 <!-- In case there is a minimal clinically relevant effect size available and a targeted power, 1-beta, is known, then the design object describes how many samples the experimenter should plan for. Due to optional stopping, the actual realised sample size will typically be smaller than what one should plan for, provided that there is a true effect equal or larger than the minimal clinical relevant effect size. Further details on optional stopping are provided in the next document.  -->
 
-In the second stage the safe analysis function, e.g. `safeZTest`, `safeTTest` or `safeTwoProportionsTest`, combine the design object at hand with the available data. In fact, a safe test can be performed after each observation and acted upon without over-inflating the chance of falsely rejecting the null hypothesis.
+In the second stage the safe analysis function, e.g. "safeZTest", "safeTTest" or safeTwoProportionsTest", combine the design object at hand with the available data. In fact, an e-variable/safe test can be performed after each observation and acted upon without over-inflating the chance of falsely rejecting the null hypothesis.
 
-## Type I error and type II errors 
-Before we show this we first review the notions of type I and type II errors. 
+# A first example
+To check whether the package is installed correctly, we run a safe two-sample z-test. 
 
-REWRITE IN TERMS OF THE Z-TEST EXAMPLE IN THE TESTING DOCUMENT
+Suppose a new educational programme was developed that claims to increase secondary school students IQ scores by ten points. Assume further that the IQ scores are normally distributed with a population standard deviation of 8. The following code provides a design object:
 
-To avoid bringing an ineffective medicine to the market, experiments need to be conducted in which the null hypothesis of no effect is tested. Here we show how flexible experiments based on safe tests can be designed. 
-
-As the problem is statistical in nature, due to variability between patients, we cannot guarantee that all of the medicine that pass the test will indeed be effective. <!--This can only be accomplished by tests that never reject the null. -->
-Instead, the target is to bound the type I error rate by a tolerable $\alpha$, typically, $\alpha = 0.05$. In other words, at most 5 out of the 100 ineffective drugs are allowed to pass the safe test. 
-
-At the same time, we would like to avoid a type II error, that is, missing out on finding an effect, when there is one. Typically, the targetted type II error rate is $\beta = 0.20$, which implies that whenever there truly is an effect, an experiment needs to be designed in such a way that the effect is detect with $1 - \beta =$ 80% chance. <!-- In other words, whenever there is an effect, then 80 out of a 100 experiment should reject the null hypothesis of no effect. -->
-
-## Designing experiments with a known minimal clinically relevant effect size known
-Not all effects are equally important, especially, when a minimal clinically relevant effect size can be formulated. For instance, suppose that a population of interest has a population average systolic blood pressure of $\mu = 120$ mmHg (milimetre of mercury) and that the population standard deviation is $\sigma = 15$. Suppose further that all approved blood pressure drugs change the blood pressure by at least 9 mmHg, then a minimal clinically relevant effect size can be specified as $\delta_{\min} = (\mu_{\text{post}} - \mu_{\text{pre}}) / (\sqrt{2} \sigma) = 9 / (15 \sqrt{2} ) = 0.42$, where $\mu_{\text{post}}$ represents the average blood pressure after treatment and $\mu_{\text{pre}}$ the average blood pressure before treatment of the population of interest. The $\sqrt{2}$-term in the denominator is a result of the measurements being paired. 
-
-Based on a tolerable type I error rate of $\alpha = 0.05$, type II error rate of $\beta = 0.20$, and minimal clinical effect size of $\delta_{\min} \approx 0.42$, the function designSafeT allows us to design the experiment as follows.
-
-```{r}
-alpha <- 0.05
-beta <- 0.2
-deltaMin <- 9/(sqrt(2)*15)
-```
-```{r, echo = FALSE}
-# designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-#                          alternative="greater", testType="paired", seed=1, pb=FALSE)
-# save(designObj, file="safeTVignetteData/safeTDesignObject.Rdata")
-load("safeTVignetteData/safeTDesignObject.Rdata")
-```
-
-```{r, eval=FALSE}
-designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
-                         alternative="greater", testType="paired", seed=1,
-                         pb=FALSE)
-```
-```{r}
+```{r, eval=TRUE}
+library(safestats)
+sigmaTrue <- 8
+designObj <- designSafeZ(meanDiffMin=10,
+                         beta=0.2, sigma=sigmaTrue,
+                         testType="twoSample", pb=FALSE)
 designObj
 ```
-The design object defines both the parameter deltaS that will used to compute the e-value, e.g., `r designObj$parameter`, and the planned sample size(s) under optional stopping, e.g., `r designObj$nPlan`. Hence, in this case we need the pre- and post-measurements of about `r designObj$nPlan[1]` patients to detect a true effect of $\delta=\delta_{\min} \approx 0.42$. This nPlan of `r designObj$nPlan[1]` is based on continuously monitoring the e-value and stopping the experiment as soon as it exceeds $1/\alpha = 20$. Note that the event that the E-variable exceeds $1/\alpha$ is random, and the sample size at which this occurs is therefore also random. This randomness is expressed with nPlan being reported with two standard error of the mean. When it is only possible to conduct the test once, when the data are treated as a single batch, then `r designObj$nPlanBatch[1]` patients (thus `r designObj$nPlanBatch[1]-designObj$nPlan[1]` more) are needed to detect $\delta=\delta_{\min} \approx 0.42$ with 80% chance. <!--The batch planned sample size, e.g., `designObj$nPlanBatch[1]`, is non-random and serves as an upper bound for the nPlan reported above, see the [section on optional stopping](#optStopT) for further details.-->
+This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we require about 18 secondary school students in the control and the treatment group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 
 
-More details are given in the third document that is concerned with power. 
+One advantage of e-variables is that you can analyse the data as they come in. For simplicity let us assume, for the moment, that we can only analyse the data once, namely, after n1=20 and n2=20 students as described in the note, then the following code can be run:
+
+```{r, eval=TRUE}
+set.seed(1)
+treatmentGroup <- rnorm(20, mean=122, sd=sigmaTrue)
+controlGroup <- rnorm(20, mean=112, sd=sigmaTrue)
+
+resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
+                       designObj=designObj)
+resultObj
+```
+The resultObj shows that we can reject the null, as the e-value is 4600, which is much larger than 1/alpha = 20, see the next R Markdown document "I. Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between -0.52 and 23.67) for the mean difference, which is relatively wide, but it does cover the true mean difference of 10, see the R markdown document "III. Anytime-valid confidence sequences" for further details.

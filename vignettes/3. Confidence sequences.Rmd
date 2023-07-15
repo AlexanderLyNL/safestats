@@ -1,9 +1,9 @@
 ---
-title: "Interval estimation: Classical confidence intervals, (Bayesian) credible interval, and anytime-valid confidence sequences"
-author: "Alexander Ly"
+title: "III. Interval estimation: Classical confidence intervals, (Bayesian) credible interval, and anytime-valid confidence sequences"
+author: "Alexander Ly, Rosanne Turner, Udo Boehm, Rianne de Heide, Peter Grunwald"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{workshop3Intervals}
+  %\VignetteIndexEntry{III. Interval estimation: Classical confidence intervals, (Bayesian) credible interval, and anytime-valid confidence sequences}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -27,7 +27,7 @@ We illustrate the following:
 2. [Similarly, Bayesian 95\% credible intervals fail to cover the true mean with 95\% chance across time](#credibleIntervals)
 3. [The 95\% anytime-valid confidence sequence/intervals will **always** cover the true mean with at least 95\% chance](#avConfidenceSequence)
 
-For this demonstration we use function from the safestats package and the following colours:
+For this demonstration we use functions from the safestats package and the following colours:
 
 ```{r, eval=TRUE}
 library("safestats")
