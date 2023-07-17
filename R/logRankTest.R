@@ -1271,11 +1271,11 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
       ratio <- m1/m0
 
       logHazardRatio <- if (alternative=="twoSided") abs(log(hrMin)) else log(hrMin)
-      meanDiffMin <- logHazardRatio*sqrt(ratio)/(1+ratio)
+      meanDiffTrue <- logHazardRatio*sqrt(ratio)/(1+ratio)
 
       logThetaS <- if (!is.null(parameter)) log(parameter) else NULL
 
-      tempResult <- computeNPlanBatchSafeZ("meanDiffMin"=meanDiffMin, "beta"=beta,
+      tempResult <- computeNPlanBatchSafeZ("meanDiffTrue"=meanDiffTrue, "beta"=beta,
                                            "alpha"=alpha, "alternative"=alternative,
                                            "testType"="oneSample",
                                            "ratio"=ratio, "parameter"=logThetaS)
