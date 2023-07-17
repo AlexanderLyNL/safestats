@@ -23,6 +23,8 @@ In the practical sessions we will use a development version of the `safestats` p
 2. a first example on the design of experiments with safe tests/e-variables. 
 
 # 1. Installing the development version of the safestats package
+Make sure that you have the most recent version of R (>= R 4.3). On Windows you also need to install RTools. Both can be found on the [cran website](https://cran.r-project.org/)
+
 There are two ways to install the development version of the safestats package:
 
 a. [By installing the GitHub version using the `remotes` packages](#installRemotes), or

@@ -103,23 +103,26 @@ can be referred to as the effective sample size. Hence, under the null hypothesi
 The sequential use of a p-value entails computing a p-value after each observation, and claiming an effect, as soon as the p-value dips below the threshold alpha, say, alpha=0.05. This procedure therefore allows for the possibility to stop an experiment early. The problem, however, is that it is not safe, as it will lead to false rejections with more than 5\% chance. This is well-known, but we will show this with a simulation. The algorithmic description of a sequential p-value analysis is as follows: 
 
 ```{r, eval=FALSE}
-# PSEUDO CODE
-# Initiate
-n <- 1
-pValue <- 1
-
-while (pValue > alpha) {
-  pValue <- computePValueZTest(x=x[1:n], y=y[1:n])
-  
-  if (pValue < alpha) {
-    print("Reject the null")
-    stop()
-  } else {
-    print("Increase sample size and test again 
-          at the start the start of the while loop")
-    n <- n + 1
-  }
-}
+# # PSEUDO CODE
+# # 
+# #     THIS CODE DOES NOT RUN
+# # 
+# # Initiate
+# n <- 1
+# pValue <- 1
+# 
+# while (pValue > alpha) {
+#   pValue <- computePValueZTest(x=x[1:n], y=y[1:n])
+#   
+#   if (pValue < alpha) {
+#     "Reject the null"
+#     stop()
+#   } else {
+#     "Increase sample size and test again 
+#           at the start the start of the while loop"
+#     n <- n + 1
+#   }
+# }
 ```
 
 ### One sample path
@@ -245,23 +248,26 @@ A Bayes factor outcome bf10=8 is interpreted as the data being 8 times more like
 Hence, a sequential use of the subjective Bayes factor entails computing a Bayes factor after each observation, and claiming an effect, as soon as the Bayes factor bf10 in favour of the alternative over the null crosses the evidence threshold of 30. We show that this procedure is not safe in general, at it leads to false rejections with more than 5\% chance. The algorithmic description of a sequential subjective Bayes factor analysis is as follows: 
 
 ```{r, eval=FALSE}
-# PSEUDO CODE
-# Initiate
-n <- 1
-bf10 <- 1
-
-while (bf10 < 30) {
-  bf10 <- computeBfZTest(x=x[1:n], y=y[1:n])
-  
-  if (bf10 > 30) {
-    print("Reject the null")
-    stop()
-  } else {
-    print("Increase sample size and test again 
-          at the start of the while loop")
-    n <- n + 1
-  }
-}
+# # PSEUDO CODE
+# # 
+# #     THIS CODE DOES NOT RUN
+# # 
+# # Initiate
+# n <- 1
+# bf10 <- 1
+# 
+# while (bf10 < 30) {
+#   bf10 <- computeBfZTest(x=x[1:n], y=y[1:n])
+#   
+#   if (bf10 > 30) {
+#     "Reject the null"
+#     stop()
+#   } else {
+#     "Increase sample size and test again 
+#           at the start of the while loop"
+#     n <- n + 1
+#   }
+# }
 ```
 
 ### One sample path
@@ -415,24 +421,27 @@ designObj
 The sequential use of e-variables entails computing an e-value after each observation, and claiming an effect, as soon as the e-value in favour of the alternative over the null is above the evidence threshold of 1/alpha, say, 20 for alpha=0.05. This procedure is safe, as it will **never** lead to a false rejection rate of more than 5\%. The algorithmic description of the sequential e-value procedure is as follows: 
 
 ```{r, eval=FALSE}
-# PSEUDO CODE
-# Initiate
-n <- 1
-eValue <- 1
-
-while (eValue < 1/alpha) {
-  eValue <- safeZTest(x=x[1:n], y=y[1:n],
-                      designObj=designObj)
-  
-  if (eValue > 1/alpha) {
-    print("Reject the null")
-    stop()
-  } else {
-    print("Increase sample size and test again 
-          at the start of the while loop")
-    n <- n + 1
-  }
-}
+# # PSEUDO CODE
+# # 
+# #     THIS CODE DOES NOT RUN
+# # 
+# # Initiate
+# n <- 1
+# eValue <- 1
+# 
+# while (eValue < 1/alpha) {
+#   eValue <- safeZTest(x=x[1:n], y=y[1:n],
+#                       designObj=designObj)
+#   
+#   if (eValue > 1/alpha) {
+#     "Reject the null"
+#     stop()
+#   } else {
+#     "Increase sample size and test again 
+#           at the start of the while loop"
+#     n <- n + 1
+#   }
+# }
 ```
 ### One sample path
 We demonstrate this procedure for a single data set of n1=n2=100 samples, and we monitor the e-variable a 100 times, after an observation of each group.

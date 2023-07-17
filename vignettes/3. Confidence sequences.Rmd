@@ -104,7 +104,7 @@ plot(1:n, freqCi[, 1], xlim=c(0, n), ylim=c(7, 9),
 
 polygon(c(1:n, n:1), c(freqCi[, 2], rev(freqCi[, 1])),
         col=freqColours[2], border=freqColours[1], lwd=2,
-        density = 400, angle = -20)
+        density = NULL, angle = -20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 Note that between the 21st and 45th observation the true mean is outside the intervals. Hence, classical confidence intervals would lead us to the incorrect conclusion regarding muTrue, if data collection happened to stop in this range. 
@@ -184,7 +184,7 @@ plot(NULL, xlim=c(0, n), ylim=c(7, 9),
 polygon(c(1:n, n:1), c(allFreqCis[someIndex, , 2],
                        rev(allFreqCis[someIndex, , 1])),
         col=freqColours[2], border=freqColours[1], lwd=2,
-        density = 400, angle = -20)
+        density = NULL, angle = -20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 
@@ -230,7 +230,7 @@ plot(NULL, xlim=c(0, n), ylim=c(7, 9),
      cex.axis = 1.3)
 polygon(c(1:n, n:1), c(bayesCi[, 2], rev(bayesCi[, 1])),
         col=bayesColours[2], border=bayesColours[1], lwd=2,
-        density = 400, angle = 20)
+        density = NULL, angle = 20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 Note that between the 1st and 28th observation the true mean is outside the intervals. The credible intervals would lead to the incorrect conclusion that muTrue, if data collection happened to stop in this range. Better coverage is retrieved if the prior mean were set equal to the true mean. However, if the true mean was known before hand, then it would not be prior knowledge. In fact, there would be no need to do the experiment. In general, if the hyper parameter a is set close to the true mean, then the coverage will be better. Similarly, however, true values of mu far from yield bad coverage. Our point is not to open a discussion on prior choice, but about coverage across time. We will see that even if a is set to be exactly equal to muTrue, then across time a 95\% credible interval will have coverage rate below 95\%. 
@@ -310,7 +310,7 @@ plot(NULL, xlim=c(0, n), ylim=c(7, 9),
 polygon(c(1:n, n:1), c(allBayesCis[someIndex, , 2],
                        rev(allBayesCis[someIndex, , 1])),
         col=bayesColours[2], border=bayesColours[1], lwd=2,
-        density = 200, angle = 20)
+        density = NULL, angle = 20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 
@@ -348,7 +348,7 @@ plot(NULL, xlim=c(0, n), ylim=c(7, 9),
      cex.axis = 1.3)
 polygon(c(1:n, n:1), c(anytimeCi[, 2], rev(anytimeCi[, 1])),
         col=eColours[2], border=eColours[1], lwd=2,
-        density = 200, angle = -20)
+        density = NULL, angle = -20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 Note that the anytime-valid confidence sequence covers the true mean at each moment in time. The credible intervals would thus lead to the correct conclusion that muTrue is a viable value for the true mean, regardless if, whether, or why data collection is stopped. To compare the three intervals we run the following code. 
@@ -362,13 +362,13 @@ plot(NULL, xlim=c(0, n), ylim=c(7, 9),
 
 polygon(c(1:n, n:1), c(anytimeCi[, 2], rev(anytimeCi[, 1])),
         col=eColours[2], border=eColours[1], lwd=2,
-        density = 600, angle = -20)
+        density = NULL, angle = -20)
 polygon(c(1:n, n:1), c(freqCi[, 2], rev(freqCi[, 1])),
         col=freqColours[2], border=freqColours[1], lwd=2,
-        density = 50, angle = -20)
+        density = NULL, angle = -20)
 polygon(c(1:n, n:1), c(bayesCi[, 2], rev(bayesCi[, 1])),
         col=bayesColours[2], border=bayesColours[1], lwd=2,
-        density = 50, angle = 20)
+        density = NULL, angle = 20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 
@@ -446,7 +446,7 @@ plot(NULL, xlim=c(0, n), ylim=c(7, 9),
 polygon(c(1:n, n:1), c(allAnytimeCis[someIndex, , 2],
                        rev(allAnytimeCis[someIndex, , 1])),
         col=eColours[2], border=eColours[1], lwd=2,
-        density = 200, angle = 20)
+        density = NULL, angle = 20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
 
