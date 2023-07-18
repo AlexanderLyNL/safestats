@@ -245,12 +245,13 @@ When the true minimal clinically relevant effect size is larger than the minimal
 
 ```{r, eval=FALSE}
 set.seed(2)
-samplingResultLarger <- sampleStoppingTimesSafeZ(meanDiffTrue=1.3*designObj$esMin,
-                                                 sigma=sigmaTrue, 
-                                                 parameter=designObj$parameter,
-                                                 eType=designObj$eType, 
-                                                 testType=designObj$testType, 
-                                                 nMax=designObj$nPlanBatch)
+samplingResultLarger <- 
+  sampleStoppingTimesSafeZ(meanDiffTrue=1.3*designObj$esMin,
+                           sigma=sigmaTrue, 
+                           parameter=designObj$parameter,
+                           eType=designObj$eType, 
+                           testType=designObj$testType, 
+                           nMax=designObj$nPlanBatch)
 
 stoppingTimesLarger <- samplingResultLarger$stoppingTimes
 

@@ -335,7 +335,7 @@ meanVector <- 1/(1:n)*cumsum(someData)
 
 for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
-                                           phiS=designObj$"parameter",
+                                           parameter=designObj$"parameter",
                                            meanObs=meanVector[i],
                                            intervalType="eGauss")
   anytimeCi[i, ] <- tempResult
@@ -399,7 +399,7 @@ for (sim in 1:mIter) {
   for (i in 1:n) {
     tempResult <- computeConfidenceIntervalZ(nEff=i,
                                              meanObs=meanVector[i],
-                                             phiS=designObj$parameter,
+                                             parameter=designObj$parameter,
                                              intervalType="eGauss")
     allAnytimeCis[sim, i, ] <- tempResult
     
@@ -484,7 +484,7 @@ for (i in nDomain) {
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8,
-                                           phiS=designObj$parameter,
+                                           parameter=designObj$parameter,
                                            intervalType="eGauss")
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
   

@@ -274,7 +274,7 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   # result[["eType"]] <- eType
 
   result[["confSeq"]] <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
-                                                    "phiS"=designObj[["parameter"]],
+                                                    "parameter"=designObj[["parameter"]],
                                                     "sigma"=sigma, "ciValue"=ciValue,
                                                     "alternative"="twoSided")
   result[["eValue"]] <- eValue
@@ -334,7 +334,7 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #'
 #' @examples
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
-computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
+computeConfidenceIntervalZ <- function(nEff, meanObs, parameter, sigma=1, ciValue=0.95,
                                        alternative="twoSided", a=NULL, g=NULL,
                                        intervalType=c("eGauss", "grow", "freq", "credibleInterval")) {
   # TODO(Alexander): Remove in v0.9.0
@@ -377,6 +377,8 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
   }
 
   if (intervalType=="grow") {
+    phiS <- parameter
+
     shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
     lowerCS <- meanObs - shift
     upperCS <- meanObs + shift
@@ -389,15 +391,15 @@ computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.9
         stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
 
       shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
+      #
+      #
+      # (log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
       lowerCS <- meanObs - shift
       upperCS <- meanObs + shift
     } else {
       # Note(Alexander): Here normal distribution centred at the null
       # Here use GROW restricted to zero-centred normal priors
-      if (is.null(g)) {
-        meanDiffMin <- phiS
-        g <- meanDiffMin^2/sigma^2
-      }
+      g <- parameter
 
       if (alternative=="twoSided") {
         shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))

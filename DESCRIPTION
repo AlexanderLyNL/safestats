@@ -1,7 +1,7 @@
 Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
-Version: 0.8.7.1
+Version: 0.8.7.2
 Authors@R: c(
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = "aut"),
@@ -31,7 +31,7 @@ License: LGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Depends:
-  R (>= 3.6)
+  R (>= 4.2)
 Imports:
   stats (>= 3.6),
   hypergeo (>= 1.2-13),

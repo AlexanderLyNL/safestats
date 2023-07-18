@@ -296,7 +296,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
       ciValue <- 1 - designObj[["alpha"]]
 
     tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
-                                              "phiS"=phiS, "sigma"=1,
+                                              "parameter"=phiS, "sigma"=1,
                                               "ciValue"=ciValue, "alternative"="twoSided")
 
     result[["ciValue"]] <- ciValue
@@ -364,7 +364,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
                           "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1,
                           "eType"="grow")
 
-  tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs, "phiS"=phiS,
+  tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs, "parameter"=phiS,
                                             "sigma"=1, "ciValue"=ciValue, "alternative"="twoSided")
 
   result[["confSeq"]] <- exp(tempConfSeq)

@@ -57,9 +57,10 @@ install.packages(path_to_file, repos = NULL, type="source")
 The `safestats` package workflow is as follows: 
 
 ```{r, eval=FALSE}
-# PSEUDO CODE
-designObj <- designSafeAnalysis(alternative="twoSided")
-result <- safeAnalysis(x=dat$x, designObj)
+# # PSEUDO CODE
+# #   This won't work, but it just a way to explain the ideas
+# designObj <- designSafeAnalysis(alternative="twoSided")
+# result <- safeAnalysis(x=dat$x, designObj)
 ```
 
 The design object "designObj" summarises which analysis, e.g. "designSafeZ" (z-test), "designSafeT" (t-test), or "designSafeTwoProportions" (test for two proportions), is going to be performed, 
@@ -81,13 +82,14 @@ Suppose a new educational programme was developed that claims to increase second
 
 ```{r, eval=FALSE}
 library(safestats)
+set.seed(1)
 sigmaTrue <- 12
 designObj <- designSafeZ(meanDiffMin=10,
                          beta=0.2, sigma=sigmaTrue,
                          testType="twoSample")
 designObj
 ```
-This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=41 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 
+This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=38 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 
 
 One advantage of e-variables is that you can analyse the data as they come in. For simplicity let us assume, for the moment, that we can only analyse the data once, namely, after n1=n2=44 students as described in the note, then the following code can be run:
 
@@ -100,4 +102,4 @@ resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)
 resultObj
 ```
-The resultObj shows that we can reject the null, as the e-value is 310.36, which is much larger than 1/alpha = 20, see the next R Markdown document "I. Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between -14.07 and 34.02) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document "III. Anytime-valid confidence sequences" for further details.
+The resultObj shows that we can reject the null, as the e-value is 310.36, which is much larger than 1/alpha = 20, see the next R Markdown document "I. Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 2.148 and 17.80) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document "III. Anytime-valid confidence sequences" for further details.

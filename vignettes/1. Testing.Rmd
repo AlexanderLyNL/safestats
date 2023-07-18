@@ -227,15 +227,18 @@ Provided with the two sample means $\bar{x}_{1}, \bar{x}_{2}$, the sample varian
 One way to choose the 6 hyper parameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ is by using data from a comparative study, as if we're dealing with a replication attempt. Suppose that data are available of first-year Belgian psychology students in their first week of study. These data lead to an estimate of the population average IQ score of 107. Before we agree to implement the new educational programme that claims an IQ increase of 10 points in the Netherlands, we first test the null hypothesis of no effect. To do so with  the subjective Bayes factor described above, the hyper parameters could then be set as follows: 
 
 ```{r, eval=FALSE}
-# Null
+# Null hyper parameters
 a0 <- 107
 b0 <- 2
 
-# Alternative
-#   Control
+# Alternative model
+#  Hyper parameters in the control group
+# 
 a2 <- 107
 b2 <- 2
-#   Treatment
+
+#  Hyper parameters in the treatment group
+# 
 a1 <- 117
 b1 <- 4
 ```
