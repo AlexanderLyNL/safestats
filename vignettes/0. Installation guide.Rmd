@@ -46,7 +46,7 @@ library(safestats)
 ```
 
 ## b. <a name = "installDownload">Install using a downloaded tar.gz file</a>
-Download the tar.gz file from [this dropbox link](https://www.dropbox.com/scl/fi/pq2het56ibpju5d534tgo/safestats_0.8.7.tar.gz?rlkey=0yk8w1mqxomjh48ltqtu0lvlf&dl=0) and save it to a path that you can find. 
+Download the tar.gz file from [this dropbox link](https://www.dropbox.com/s/xnlaqn51m8kv2tt/safestats_0.8.7.2.tar.gz?dl=0) and save it to a path that you can find. 
 
 ```{r eval=FALSE}
 install.packages(path_to_file, repos = NULL, type="source")
