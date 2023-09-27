@@ -26,7 +26,7 @@
 #' safeTTestStat(t=3, n1=100, parameter=0.3)
 safeTTestStat <- function(t, parameter, n1, n2=NULL,
                           alternative=c("twoSided", "less", "greater"), tDensity=FALSE,
-                          paired=FALSE, ...) {
+                          paired=FALSE, eType=c("grow", "eGauss", "eCauchy", "bayarri"), ...) {
   # TODO(Alexander):
   #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
   #   1. Use Kummer's transform again (??)
@@ -46,6 +46,7 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL,
 
   alternative <- match.arg(alternative)
   deltaS <- parameter
+  eType <- match.arg(eType)
 
   if (is.null(n2) || is.na(n2) || paired==TRUE) {
     nEff <- n1
@@ -70,33 +71,70 @@ safeTTestStat <- function(t, parameter, n1, n2=NULL,
       return(1)
   }
 
-  a <- t^2/(nu+t^2)
-  expTerm <- exp((a-1)*nEff*deltaS^2/2)
+  if (eType=="grow") {
+    a <- t^2/(nu+t^2)
+    expTerm <- exp((a-1)*nEff*deltaS^2/2)
 
-  zeroIndex <- abs(expTerm) < .Machine$double.eps
-  result <- vector("numeric", length(expTerm))
+    zeroIndex <- abs(expTerm) < .Machine$double.eps
+    result <- vector("numeric", length(expTerm))
 
-  zArg <- (-1)*a*nEff*deltaS^2/2
-  zArg <- zArg[!zeroIndex]
-  # Note(Alexander): This made the vector shorter. Only there where expTerm is non-zero will we evaluate
-  # the hypergeometric functions
+    zArg <- (-1)*a*nEff*deltaS^2/2
+    zArg <- zArg[!zeroIndex]
+    # Note(Alexander): This made the vector shorter. Only there where expTerm is non-zero will we evaluate
+    # the hypergeometric functions
 
-  aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
+    aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
 
-  if (alternative=="twoSided") {
-    result[!zeroIndex] <- expTerm[!zeroIndex] * aKummerFunction
-  } else {
-    bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu)[!zeroIndex] *
-      Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
-    result[!zeroIndex] <- expTerm[!zeroIndex]*(aKummerFunction + bKummerFunction)
+    if (alternative=="twoSided") {
+      result[!zeroIndex] <- expTerm[!zeroIndex] * aKummerFunction
+    } else {
+      bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu)[!zeroIndex] *
+        Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
+      result[!zeroIndex] <- expTerm[!zeroIndex]*(aKummerFunction + bKummerFunction)
+    }
+
+    if (result < 0) {
+      warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
+      result <- safeTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
+                                      "nEff"=nEff, "alternative"=alternative)
+    }
+    return(result)
+  } else if (eType=="eCauchy") {
+    kappa1 <- parameter
+
+    if (alternative=="twoSided") {
+      integrand <- function(u){
+        exp(-1/2*log(1+kappa1^2*nEff/u)+(nu+1)/2*(log(1+t^2/nu)-log(1+t^2/(nu*(1+kappa1^2*nEff/u))))+dgamma(u, shape=1/2, rate=1/2, log=TRUE))
+      }
+      tempResult <- integrate(integrand, 0, Inf)
+
+      if (inherits(tempResult, "try-error"))
+        return(NA)
+
+      return(tempResult[["value"]])
+    } else {
+      stop("Not yet implemented")
+    }
+  } else if (eType=="eGauss") {
+    g <- parameter
+    if (alternative=="twoSided") {
+      logResult <- -1/2*log(1+nEff*g)+((nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g))))
+      return(exp(logResult))
+    } else {
+      stop("Not yet implemented")
+    }
+  } else if (eType=="bayarri") {
+    if (alternative=="twoSided") {
+      tempResult <- try(log(1-(1+t^2/(nEff^2-1))^((2-nEff)/2)))
+
+      if (is.na(tempResult))
+        return(1)
+
+      logResult <- log((nEff-1)/(nEff-2))+1/2*log(1+nEff)-log(t^2)+nEff/2*log(1+t^2/nu)+tempResult
+      result <- exp(logResult)
+      return(result)
+    }
   }
-
-  if (result < 0) {
-    warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
-    result <- safeTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
-                                    "nEff"=nEff, "alternative"=alternative)
-  }
-  return(result)
 }
 
 #' safeTTestStat() based on t-densities
@@ -172,7 +210,9 @@ safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha,
 
   alternative <- match.arg(alternative)
 
-  safeTTestStat("t"=t, "parameter"=parameter, "n1"=n1, "n2"=n2, "alternative"=alternative, "tDensity"=tDensity) - 1/alpha
+  safeTTestStat("t"=t, "parameter"=parameter,
+                "n1"=n1, "n2"=n2, "alternative"=alternative,
+                "tDensity"=tDensity, "eType"="grow") - 1/alpha
 }
 
 
@@ -337,7 +377,8 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
   names(tStat) <- "t"
 
   eValue <- safeTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
-                          "n2"=n2, "alternative"=alternative, "paired"=paired)
+                          "n2"=n2, "alternative"=alternative, "paired"=paired,
+                          "eType"=eType)
 
   if (is.null(y))
     dataName <- as.character(sys.call())[2]
@@ -981,7 +1022,8 @@ computeNPlanBatchSafeT <- function(deltaMin, alpha=0.05, beta=0.2,
     for (i in seq_along(n1Vector)) {
       qBeta <- sqrt(stats::qf("p"=beta, "df1"=1, "df2"=nuVector[i], "ncp"=nEffVector[i]*deltaTrue^2))
 
-      eValue <- safeTTestStat("t"=qBeta, "parameter"=deltaMin, "n1"=n1Vector[i], "n2"=n2Vector[i])
+      eValue <- safeTTestStat("t"=qBeta, "parameter"=deltaMin, "n1"=n1Vector[i], "n2"=n2Vector[i],
+                              "eType"="grow")
 
       if (eValue > 1/alpha) {
         n1Plan <- n1Vector[i]
@@ -994,7 +1036,7 @@ computeNPlanBatchSafeT <- function(deltaMin, alpha=0.05, beta=0.2,
       qBeta <- stats::qt("p"=beta, "df"=nuVector[i], "ncp"=sqrt(nEffVector[i])*deltaTrue)
 
       eValue <- safeTTestStat("t"=qBeta, "parameter"=deltaMin, "n1"=n1Vector[i],
-                              "n2"=n2Vector[i], "alternative"="greater")
+                              "n2"=n2Vector[i], "alternative"="greater", "eType"="grow")
 
       if (eValue > 1/alpha) {
         n1Plan <- n1Vector[i]
@@ -1070,7 +1112,7 @@ computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
     for (i in seq_along(n1Vector)) {
       qBeta <- sqrt(stats::qf("p"=beta, "df1"=1, "df2"=nuVector[i], "ncp"=nEffVector[i]*deltaTrue^2))
 
-      eValue <- safeTTestStat("t"=qBeta, "parameter"=deltaMin, "n1"=n1Vector[i], "n2"=n2Vector[i])
+      eValue <- safeTTestStat("t"=qBeta, "parameter"=deltaMin, "n1"=n1Vector[i], "n2"=n2Vector[i], "eType"="grow")
 
       if (eValue > 1/alpha) {
         n1Plan <- n1Vector[i]
@@ -1083,7 +1125,7 @@ computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
       qBeta <- stats::qt("p"=beta, "df"=nuVector[i], "ncp"=sqrt(nEffVector[i])*deltaTrue)
 
       eValue <- safeTTestStat("t"=qBeta, "parameter"=deltaMin, "n1"=n1Vector[i],
-                              "n2"=n2Vector[i], "alternative"="greater")
+                              "n2"=n2Vector[i], "alternative"="greater", "eType"="grow")
 
       if (eValue > 1/alpha) {
         n1Plan <- n1Vector[i]
@@ -1114,13 +1156,14 @@ computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
 
 # Sampling functions for design ----
 
-#' Simulate stopping times for the safe z-test
+#' Simulate stopping times for the safe t-test
 #'
 #' @inheritParams designSafeT
 #' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
 #' This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
+#' @param wantSamplePaths logical. If \code{TRUE} then output the (stopped) sample paths. Default \code{TRUE}.
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies that in corresponding stopping
@@ -1129,12 +1172,13 @@ computeEsMinSafeT <- function(nPlan, alpha=0.05, beta=0.2,
 #' @export
 #'
 #' @examples
-#' sampleStoppingTimesSafeT(0.7, nSim=10)
+#' sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
 sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                                      testType=c("oneSample", "paired", "twoSample"),
                                      nSim=1e3L, nMax=1e3, ratio=1, #designObj=NULL,
                                      lowN=3L, parameter=NULL, seed=NULL,
-                                     wantEValuesAtNMax=FALSE, pb=TRUE) {
+                                     wantEValuesAtNMax=FALSE, wantSamplePaths=TRUE,
+                                     eType="grow", pb=TRUE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1147,17 +1191,23 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
+  eType <- match.arg(eType)
 
   ## Object that will be returned. A sample of stopping times
   stoppingTimes <- breakVector <- integer(nSim)
-  eValuesStopped <- eValuesAtNMax <- numeric(nSim)
+  eValuesStopped <- numeric(nSim)
 
-  # if (!is.null(designObj)) {
-  #   parameter <- designObj[["parameter"]]
-  #   nMax <- designObj[["nPlanBatch"]]
-  #   alternative <- designObj[["alternative"]]
-  #   testType <- designObj[["testType"]]
-  # }
+  eValuesAtNMax <- if (wantEValuesAtNMax) {
+    numeric(nSim)
+  } else {
+    NULL
+  }
+
+  samplePaths <- if (wantSamplePaths) {
+    matrix(nrow=nSim, ncol=nMax[1])
+  } else {
+    NULL
+  }
 
   if (!is.null(parameter)) {
     deltaS <- parameter
@@ -1201,12 +1251,6 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
       sX1Vector[badIndeces] <- 1
 
       tValues <- sqrt(nEffVector)*x1BarVector/sX1Vector
-
-      if (wantEValuesAtNMax) {
-        eValuesAtNMax[sim] <- safeTTestStat("t"=tValues[length(tValues)], "parameter"=deltaS,
-                                            "n1"=n1Max, "n2"=n2Max,
-                                            "alternative"=alternative, "paired"=FALSE)
-      }
     } else {
       x1 <- simData[["dataGroup1"]][sim, ]
       x1BarVector <- 1/(n1Vector)*cumsum(x1)
@@ -1225,29 +1269,32 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
       sPVector[badIndeces] <- 1
 
       tValues <- sqrt(nEffVector)*(x1BarVector-x2BarVector)/sPVector
+    }
 
-      if (wantEValuesAtNMax) {
-
-        eValuesAtNMax[sim] <- safeTTestStat("t"=tValues[length(tValues)], "parameter"=deltaS,
-                                            "n1"=nMax[1], n2=nMax[2],
-                                            "alternative"=alternative)
-      }
+    if (wantEValuesAtNMax) {
+      eValuesAtNMax[sim] <- safeTTestStat("t"=tValues[length(tValues)], "parameter"=deltaS,
+                                          "n1"=nMax[1], n2=nMax[2],
+                                          "alternative"=alternative, "eType"=eType)
     }
 
     for (j in seq_along(n1Vector)) {
-      evidenceNow <- if (testType %in% c("oneSample", "paired")) {
-        safeTTestStat("t"=tValues[j], "parameter"=deltaS,
-                      "n1"=n1Vector[j], n2=n2Vector[j],
-                      "alternative"=alternative, "paired"=FALSE)
-      } else {
-        safeTTestStat("t"=tValues[j], "parameter"=deltaS,
-                      "n1"=n1Vector[j], n2=n2Vector[j],
-                      "alternative"=alternative)
-      }
+      evidenceNow <- safeTTestStat("t"=tValues[j], "parameter"=deltaS,
+                                   "n1"=n1Vector[j], "n2"=n2Vector[j],
+                                   "alternative"=alternative,
+                                   "eType"=eType)
+
+      if (wantSamplePaths)
+        samplePaths[sim, j] <- evidenceNow
 
       if (evidenceNow > 1/alpha) {
         stoppingTimes[sim] <- n1Vector[j]
         eValuesStopped[sim] <- evidenceNow
+
+        if (wantSamplePaths) {
+          if (j < nMax[1]) {
+            samplePaths[sim, (j+1):nMax[1]] <- evidenceNow
+          }
+        }
         break()
       }
 
@@ -1270,7 +1317,8 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
     close(pbSafe)
 
   result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
-                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax)
+                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
+                 "samplePaths"=samplePaths, "n1Vector"=n1Vector, "ratio"=ratio)
   return(result)
 }
 
@@ -1450,7 +1498,7 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #' The designs supported are "oneSample", "paired", "twoSample".
 #'
 #' @inheritParams replicateTTests
-#' @param muTrue numeric representing the true mean for simulations with a z-test.
+#' @param meanDiffTrue numeric representing the true mean for simulations with a z-test.
 #' Default \code{NULL}
 #'
 #' @return Returns a list of two data matrices contains at least the following components:
@@ -1464,11 +1512,11 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #' @examples
 #' generateNormalData(20, 15, deltaTrue=0.3)
 generateNormalData <- function(nPlan, nSim=1000L, deltaTrue=NULL, muGlobal=0, sigmaTrue=1, paired=FALSE,
-                               seed=NULL, muTrue=NULL) {
+                               seed=NULL, meanDiffTrue=NULL) {
   stopifnot(all(nPlan > 0))
 
-  if ((is.null(deltaTrue) && is.null(muTrue)) || !is.null(deltaTrue) && !is.null(muTrue))
-    stop("Please provide either deltaTrue (t-test), or muTrue (z-test).")
+  if ((is.null(deltaTrue) && is.null(meanDiffTrue)) || !is.null(deltaTrue) && !is.null(meanDiffTrue))
+    stop("Please provide either deltaTrue (t-test), or meanDiffTrue (z-test).")
 
   result <- list("dataGroup1"=NULL, "dataGroup2"=NULL)
   set.seed(seed)
@@ -1477,25 +1525,25 @@ generateNormalData <- function(nPlan, nSim=1000L, deltaTrue=NULL, muGlobal=0, si
 
   n1Plan <- nPlan[1]
 
-  if (is.null(muTrue))
-    muTrue <- deltaTrue*sigmaTrue
+  if (is.null(meanDiffTrue))
+    meanDiffTrue <- deltaTrue*sigmaTrue
 
   if (length(nPlan)==1) {
-    dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muTrue, "sd"=sigmaTrue)
+    dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=meanDiffTrue, "sd"=sigmaTrue)
     dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nSim)
     dataGroup2 <- NULL
   } else {
     n2Plan <- nPlan[2]
 
     if (paired) {
-      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + muTrue/sqrt(2), "sd"=sigmaTrue)
+      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + meanDiffTrue/sqrt(2), "sd"=sigmaTrue)
       dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nSim)
-      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - muTrue/sqrt(2), "sd"=sigmaTrue)
+      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - meanDiffTrue/sqrt(2), "sd"=sigmaTrue)
       dataGroup2 <- matrix(dataGroup2, "ncol"=n2Plan, "nrow"=nSim)
     } else {
-      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + muTrue/2, "sd"=sigmaTrue)
+      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + meanDiffTrue/2, "sd"=sigmaTrue)
       dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nSim)
-      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - muTrue/2, "sd"=sigmaTrue)
+      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - meanDiffTrue/2, "sd"=sigmaTrue)
       dataGroup2 <- matrix(dataGroup2, "ncol"=n2Plan, "nrow"=nSim)
     }
   }
@@ -1810,7 +1858,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
       someT <- unname(stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternativeFreq,
                                     "var.equal"=TRUE, "paired"=paired)[["statistic"]])
       someS <- safeTTestStat("t"=someT, "parameter"=parameter, "n1"=n1Plan, "n2"=n2Plan, "alternative"=alternative,
-                             "paired"=paired)
+                             "paired"=paired, "eType"="grow")
 
       eValues[iter] <- someS
 
@@ -1825,7 +1873,7 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
                                       "alternative"=alternativeFreq, "var.equal"=TRUE, "paired"=paired)[["statistic"]])
 
         someS <- safeTTestStat("n1"=n1Samples[k], "n2"=n2Samples[k], "t"=someT, "parameter"=parameter,
-                               "alternative"=alternative, "paired"=paired)
+                               "alternative"=alternative, "paired"=paired, "eType"="grow")
 
         if (someS >= 1/alpha) {
           allSafeN[iter] <- n1Samples[k]

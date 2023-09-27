@@ -1,0 +1,105 @@
+---
+title: "0. Installing the safestats package"
+author: "Alexander Ly, Rosanne Turner, Udo Boehm, Rianne de Heide, Peter Grunwald"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{0. Installing the safestats package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.height = 4,
+  fig.width = 8
+)
+```
+
+In the practical sessions we will use a development version of the `safestats` package. Here we provide: 
+
+1. an installation guide, and 
+2. a first example on the design of experiments with safe tests/e-variables. 
+
+# 1. Installing the development version of the safestats package
+Make sure that you have the most recent version of R (>= R 4.3). On Windows you also need to install RTools. Both can be found on the [cran website](https://cran.r-project.org/)
+
+There are two ways to install the development version of the safestats package:
+
+a. [By installing the GitHub version using the `remotes` packages](#installRemotes), or
+b. [By installing a downloaded version of the package manually.](#installDownload) 
+
+## a. <a name = "installRemotes">Install using the remotes package</a>
+The remotes package can be installed as follows: 
+
+```{r remotes, eval=FALSE}
+install.packages("remotes")
+library("remotes")
+```
+
+This then allows you to install and load the development version of `safestats` as follows: 
+
+```{r eval=FALSE}
+remotes::install_github("AlexanderLyNL/safestats", ref = "udoStuff")
+library(safestats)
+```
+
+## b. <a name = "installDownload">Install using a downloaded tar.gz file</a>
+Download the tar.gz file from [this dropbox link](https://www.dropbox.com/s/xnlaqn51m8kv2tt/safestats_0.8.7.2.tar.gz?dl=0) and save it to a path that you can find. 
+
+```{r eval=FALSE}
+install.packages(path_to_file, repos = NULL, type="source")
+```
+
+# 2. <a name = "firstExample">First example: Designing a safe z-test experiment</a>
+
+The `safestats` package workflow is as follows: 
+
+```{r, eval=FALSE}
+# # PSEUDO CODE
+# #   This won't work, but it just a way to explain the ideas
+# designObj <- designSafeAnalysis(alternative="twoSided")
+# result <- safeAnalysis(x=dat$x, designObj)
+```
+
+The design object "designObj" summarises which analysis, e.g. "designSafeZ" (z-test), "designSafeT" (t-test), or "designSafeTwoProportions" (test for two proportions), is going to be performed, 
+- what type I error rate, i.e. alpha, is tolerated, 
+- whether the test is directional, e.g. "twoSided", "greater", or "less",
+- which type of e-variables is going to be used "eType", and
+- which test defining parameter value is set 
+
+The design function can also be provide with a minimal clinically relevant effect size, and a targeted power, 1-beta, or equivalently a tolerable type II error, beta. In that case, the design object describes how many samples the experimenter should plan for. Due to optional stopping, the actual realised sample size will typically be smaller than what one should plan for, provided that there is a true effect equal or larger than the minimal clinical relevant effect size. 
+
+<!-- Further details on optional stopping are provided in the next R Markdown document "I. Testing".  -->
+
+The safe analysis functions, e.g. "safeZTest", "safeTTest" or safeTwoProportionsTest", combine the design object at hand with the available data. In fact, the e-variable/safe test that are being discussed here can be performed after each observation and acted upon without over-inflating the chance of falsely rejecting the null hypothesis.
+
+# A first example
+To check whether the package is installed correctly, we run a safe two-sample z-test. 
+
+Suppose a new educational programme was developed that claims to increase secondary school students IQ scores by ten points. Assume further that the IQ scores are normally distributed with a population standard deviation of 12. The following code provides a design object:
+
+```{r, eval=FALSE}
+library(safestats)
+set.seed(1)
+sigmaTrue <- 12
+designObj <- designSafeZ(meanDiffMin=10,
+                         beta=0.2, sigma=sigmaTrue,
+                         testType="twoSample")
+designObj
+```
+This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=38 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 
+
+One advantage of e-variables is that you can analyse the data as they come in. For simplicity let us assume, for the moment, that we can only analyse the data once, namely, after n1=n2=44 students as described in the note, then the following code can be run:
+
+```{r, eval=FALSE}
+set.seed(1)
+treatmentGroup <- rnorm(44, mean=122, sd=sigmaTrue)
+controlGroup <- rnorm(44, mean=112, sd=sigmaTrue)
+
+resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
+                       designObj=designObj)
+resultObj
+```
+The resultObj shows that we can reject the null, as the e-value is 310.36, which is much larger than 1/alpha = 20, see the next R Markdown document "I. Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 2.148 and 17.80) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document "III. Anytime-valid confidence sequences" for further details.

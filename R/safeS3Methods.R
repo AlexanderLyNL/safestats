@@ -138,6 +138,8 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
   cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
       eValue > 1/designObj[["alpha"]])
   cat("\n")
+  cat("e-value type =", designObj[["eType"]])
+  cat("\n")
   cat("alternative hypothesis:", alternativeName, "\n")
 
   # if (!is.null(x$conf.int)) {
@@ -227,7 +229,7 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
                  "alternativeRestriction", "beta", "parameter",
-                 "alpha", "decision rule", "logImpliedTarget")) {
+                 "alpha", "decision rule", "logImpliedTarget", "eType")) {
     itemValue <- designObj[[item]]
     itemValueString <- format(itemValue, digits=digits)
 
@@ -286,6 +288,8 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
         displayList[[paste("minimal", names(itemValue))]] <- itemValueString
       } else if (item == "alternativeRestriction"){
         displayList[["alternative restriction"]] <- itemValueString
+      } else if (item == "eType"){
+        displayList[["e-variable type"]] <- itemValueString
       } else {
         displayList[[item]] <- itemValueString
       }

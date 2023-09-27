@@ -93,7 +93,7 @@ designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha, beta=beta,
 ```{r}
 designObj
 ```
-The design object defines both the parameter deltaS that will used to compute the e-value, e.g., `r designObj$parameter`, and the planned sample size(s), e.g., `r designObj$nPlan`. Hence, in this case we need the pre- and post-measurements of about `r designObj$nPlan[1]` patients to detect a true effect of $\delta=\delta_{\min} \approx 0.42$. This nPlan of `r designObj$nPlan[1]` is based on continuously monitoring the e-value and stopping the experiment as soon as it exceeds $1/\alpha = 20$. Note that the event that the E-variable exceeds $1/\alpha$ is random, and the sample size at which this occurs is therefore also random. This randomness is expressed with nPlan being reported with two standard error of the mean. When it is only possible to conduct the test once, when the data are treated as a single batch, then `r designObj$nPlanBatch[1]` patients (thus `r designObj$nPlanBatch[1]-designObj$nPlan[1]` more) are needed to detect $\delta=\delta_{\min} \approx 0.42$ with 80% chance. <!--The batch planned sample size, e.g., `designObj$nPlanBatch[1]`, is non-random and serves as an upper bound for the nPlan reported above, see the [section on optional stopping](#optStopT) for further details.-->
+The design object defines both the parameter deltaS that will used to compute the e-value, e.g., `r designObj$parameter`, and the planned sample size(s) under optional stopping, e.g., `r designObj$nPlan`. Hence, in this case we need the pre- and post-measurements of about `r designObj$nPlan[1]` patients to detect a true effect of $\delta=\delta_{\min} \approx 0.42$. This nPlan of `r designObj$nPlan[1]` is based on continuously monitoring the e-value and stopping the experiment as soon as it exceeds $1/\alpha = 20$. Note that the event that the E-variable exceeds $1/\alpha$ is random, and the sample size at which this occurs is therefore also random. This randomness is expressed with nPlan being reported with two standard error of the mean. When it is only possible to conduct the test once, when the data are treated as a single batch, then `r designObj$nPlanBatch[1]` patients (thus `r designObj$nPlanBatch[1]-designObj$nPlan[1]` more) are needed to detect $\delta=\delta_{\min} \approx 0.42$ with 80% chance. <!--The batch planned sample size, e.g., `designObj$nPlanBatch[1]`, is non-random and serves as an upper bound for the nPlan reported above, see the [section on optional stopping](#optStopT) for further details.-->
 
 ## <a name = powerplotT>Case (II):</a> Minimal clinically relevant effect size unknown, but maximum number of samples known.
 It is not always clear what the minimal clinically relevant effect size is. Suppose that the tolerable type I and type II error rates and a maximum sample size nMax, say, 100 is known due to budget constraints. In this case, the design function can be called with a reasonable range of minimal clinically relevant effect sizes, and a prospective futility analysis can be done: 
@@ -124,7 +124,7 @@ plotSafeTSampleSizeProfile$allN1PlanSafe
 ```
 
 
-The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80%, if the true effect size is at least 0.35. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for extra grant money to test an additional `r plotSafeTSampleSizeProfile$allN1PlanSafe[8]-100` patients, or decide that it's futile to conduct this experiment, and that we should spend our time and efforts on different endeavours instead. 
+The plot shows that when we have budget for at most 100 paired samples, we can only guarantee a power of 80% under optional stopping, if the true effect size is at least 0.35. If a field expert believes that an effect size of 0.3 is realistic, then the plot shows that we should either apply for extra grant money to test an additional `r plotSafeTSampleSizeProfile$allN1PlanSafe[8]-100` patients, or decide that it's futile to conduct this experiment, and that we should spend our time and efforts on different endeavours instead. 
 
 # 2. <a name = "optStopT">Inference with safe tests: Optional stopping</a>
 In this section we illustrate the operational characteristics of the safe t-test under optional stopping. The [next section](#optContT) studies the operational characteristics of this test under optional continuation. Robustness to these both optional stopping and continuation demonstrate that if the null hypothesis of no effect holds true, then there is less than $\alpha$ chance that the E-variable will _ever_ reject the null. After illustrating the operational characteristics of the safe test under the null, we then demonstrate its performance under the alternative. 
@@ -144,13 +144,13 @@ preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
 postData <- rnorm(n=designObj$nPlan[2], mean=120, sd=15)
 # Thus, the true delta is 0:
 # deltaTrue <- (120-120)/(sqrt(2)*15)
-safeTTest(x=preData, y=postData, alternative = "greater",
+safeTTest(x=preData, y=postData, 
           designObj=designObj, paired=TRUE)
 ```
 or equivalently with syntax closely resembling the standard t.test code in R:
 
 ```{r}
-safe.t.test(x=preData, y=postData, alternative = "greater",
+safe.t.test(x=preData, y=postData, 
             designObj=designObj, paired=TRUE)
 ```
 The following code replicates this simulation a 1,000 times and shows that in only a few cases will the E-variable cross the boundary of $1/\alpha$ under the null:
@@ -162,7 +162,7 @@ set.seed(1)
 eValues <- replicate(n=1000, expr={
   preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
   postData <- rnorm(n=designObj$nPlan[2], mean=120, sd=15)
-  safeTTest(x=preData, y=postData, alternative = "greater",
+  safeTTest(x=preData, y=postData, 
             designObj=designObj, paired=TRUE)$eValue}
 )
 
@@ -546,7 +546,7 @@ for (i in seq_along(eValuesRep)) {
   eValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
                           y=repData$dataGroup2[i, ], 
                           designObj=designObj,
-                          alternative="greater", paired=TRUE)$eValue
+                          paired=TRUE)$eValue
 }
 eValuesMultiply <- eValuesOri*eValuesRep
 mean(eValuesMultiply > 1/alpha)
@@ -579,7 +579,7 @@ for (i in seq_along(eValuesRep)) {
   eValuesRep[i] <- safeTTest(x=repData$dataGroup1[i, ], 
                           y=repData$dataGroup2[i, ], 
                           designObj=designObj,
-                          alternative="greater", paired=TRUE)$eValue
+                          paired=TRUE)$eValue
 }
 eValuesMulti <- eValuesOri*eValuesRep
 mean(eValuesMulti > 1/alpha)

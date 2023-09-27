@@ -5,10 +5,11 @@
 #' Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
 #'
 #' @param z numeric that represents the observed z-statistic.
-#' @param phiS numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
-#' denominator the likelihood with mean difference 0 and in the numerator an average likelihood defined by
-#' the likelihood at the parameter value. For the two sided case 1/2 at the parameter value and 1/2 at minus the
-#' parameter value.
+#' @param parameter numeric, this defines the safe test S. For eType=="grow" the safe test is a likelihood
+#' ratio of z distributions with in the denominator the likelihood with mean difference 0 and in the
+#' numerator an average likelihood defined by the likelihood at the parameter value phiS. For the two sided
+#' case 1/2 at -phiS and 1/2 phiS. For eType=="eGauss" the numerator is a mixture with meanDiff/sigma mixed
+#' over a Gaussian centred at zero and variance g.
 #' @param n1 integer that represents the size in a one-sample z-test, (n2=\code{NULL}). When n2 is not
 #' \code{NULL}, this specifies the size of the first sample for a two-sample test.
 #' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
@@ -24,11 +25,13 @@
 #' @export
 #'
 #' @examples
-#' safeZTestStat(z=1, n1=100, phiS=0.4)
-#' safeZTestStat(z=3, n1=100, phiS=0.3)
-safeZTestStat <- function(z, phiS, n1, n2=NULL,
+#' safeZTestStat(z=1, n1=100, parameter=0.4, eType="grow")
+#' safeZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
+#'
+safeZTestStat <- function(z, n1, n2=NULL, parameter,
                           alternative=c("twoSided", "less", "greater"),
-                          paired=FALSE, sigma=1, ...) {
+                          paired=FALSE, sigma=1,
+                          eType=c("eGauss", "grow", "eCauchy"), ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -39,19 +42,39 @@ safeZTestStat <- function(z, phiS, n1, n2=NULL,
   }
 
   alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
 
-  if (is.null(n2) || is.na(n2) || paired==TRUE)
+  if (is.null(n2) || is.na(n2) || paired==TRUE) {
     nEff <- n1
-  else
+  } else {
     nEff <- (1/n1+1/n2)^(-1)
+  }
 
-  phiS <- checkAndReturnsEsMinParameterSide("paramToCheck"=phiS, "alternative"=alternative,
-                                            "esMinName"="phiS")
+  if (eType=="grow") {
+    phiS <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "alternative"=alternative,
+                                              "esMinName"="phiS")
 
-  if (alternative=="twoSided") { # two-sided
-    result <- exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z)
-  } else { # one-sided
-    result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
+    if (alternative=="twoSided") { # two-sided
+      result <- exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z)
+    } else { # one-sided
+      result <- exp(-1/2*(nEff*phiS^2/sigma^2-2*sqrt(nEff)*phiS/sigma*z))
+    }
+  } else if (eType=="eGauss") {
+    g <- parameter
+
+    logResult <- -1/2*log(1+nEff*g)+nEff*g*z^2/(2*(1+nEff*g))
+
+    if (alternative=="twoSided") { # two-sided
+      result <- exp(logResult)
+    } else { # one-sided
+      if (alternative=="greater") {
+        result <- 2*exp(logResult)*
+          pnorm(-g*sqrt(nEff)*z/(1+nEff*g), lower.tail = FALSE)
+      } else {
+        result <- 2*exp(logResult)*
+          pnorm(-g*sqrt(nEff)*z/(1+nEff*g), lower.tail = TRUE)
+      }
+    }
   }
 
   if (result < 0) {
@@ -137,18 +160,24 @@ safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
 #'
 #' safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 7.7543e+20 > 1/alpha
 safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
-                      pilot=FALSE, ciValue=NULL, tol=1e-05, na.rm=FALSE, ...) {
+                      pilot=FALSE, ciValue=NULL, tol=1e-05,
+                      na.rm=FALSE, ...) {
 
   result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
                  "testType"=NULL, "dataName"=NULL, "h0"=NULL, "sigma"=NULL, "call"=sys.call())
   class(result) <- "safeTest"
 
-  if (is.null(designObj) && !pilot)
-    stop("Please provide a safe z-test design object, or run the function with pilot=TRUE. ",
-         "A design object can be obtained by running designSafeZ().")
+  if (is.null(designObj)) {
+    designObj <- designSafeZ(0.5, eType="eGauss")
+    warning("No designObj given. Use default with g=0.25")
+  }
+
+  # if (is.null(designObj) && !pilot)
+  #   stop("Please provide a safe z-test design object, or run the function with pilot=TRUE. ",
+  #        "A design object can be obtained by running designSafeZ().")
 
   if (!is.null(designObj)) {
-    if (names(designObj[["parameter"]]) != "phiS")
+    if (!(names(designObj[["parameter"]]) %in% c("phiS", "g")))
       warning("The provided design is not constructed for the z-test,",
               "please use designSafeZ() instead. The test results might be invalid.")
   }
@@ -191,21 +220,21 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
     names(n) <- c("n1", "n2")
   }
 
-  if (pilot) {
-    if (is.null(designObj)) {
-      alternative <- "twoSided"
-      alpha <- 0.05
-      sigma <- 1
-
-      nPlan <- if (is.null(n2)) n1 else c(n1, n2)
-      designObj <- designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative,
-                                    "sigma"=sigma, "paired"=paired, "tol"=tol)
-      designObj[["pilot"]] <- TRUE
-    } else {
-      warning("The pilot flag is ignored, since a designObj is given",
-              "The analysis will be run based on the designObj.")
-    }
-  }
+  # if (pilot) {
+  #   if (is.null(designObj)) {
+  #     alternative <- "twoSided"
+  #     alpha <- 0.05
+  #     sigma <- 1
+  #
+  #     nPlan <- if (is.null(n2)) n1 else c(n1, n2)
+  #     designObj <- designPilotSafeZ("alpha"=alpha, "nPlan"=nPlan, "alternative"=alternative,
+  #                                   "sigma"=sigma, "paired"=paired, "tol"=tol)
+  #     designObj[["pilot"]] <- TRUE
+  #   } else {
+  #     warning("The pilot flag is ignored, since a designObj is given",
+  #             "The analysis will be run based on the designObj.")
+  #   }
+  # }
 
   alpha <- designObj[["alpha"]]
   sigma <- designObj[["sigma"]]
@@ -229,8 +258,9 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
     warning('The test type of designObj is "', designObj[["testType"]],
             '", whereas the data correspond to a testType "', testType, '"')
 
-  eValue <- safeZTestStat("z"=zStat, "phiS"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
-                          "alternative"=alternative, "paired"=paired)
+  eValue <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]], "n1"=n1, "n2"=n2,
+                          "alternative"=alternative, "paired"=paired,
+                          "eType"=designObj[["eType"]])
 
   argumentNames <- getArgs()
   xLabel <- extractNameFromArgs(argumentNames, "x")
@@ -249,9 +279,10 @@ safeZTest <- function(x, y=NULL, paired=FALSE, designObj=NULL,
   result[["designObj"]] <- designObj
   result[["ciValue"]] <- ciValue
   result[["n"]] <- n
+  # result[["eType"]] <- eType
 
   result[["confSeq"]] <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
-                                                    "phiS"=designObj[["parameter"]],
+                                                    "parameter"=designObj[["parameter"]],
                                                     "sigma"=sigma, "ciValue"=ciValue,
                                                     "alternative"="twoSided")
   result[["eValue"]] <- eValue
@@ -298,43 +329,102 @@ safe.z.test <- function(x, y=NULL, paired=FALSE, designObj=NULL,
 #' is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis.
 #' @param g numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
 #' (of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2.
+#' @param intervalType character string, one of "eGauss", "grow", "freq", "credibleInterval".
+#' "eGauss" yields an anytime-valid confidence interval based on a Gaussian mixture. "grow" yields an
+#' anytime-valid confidence interval using a mixture of point masses at the minimal clinically relevant
+#' mean difference. This confidence interval unfortunately does not shrink as the sample size tends to
+#' infinity. "freq" yields the standard frequentist confidence interval, which is not safe.
+#' "credibleInterval" yields the credible interval based on a conjugate prior as is usual in Bayesian
+#' analysis. This interval is also not safe.
 #'
 #' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
 #' @export
 #'
 #' @examples
 #' computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
-computeConfidenceIntervalZ <- function(nEff, meanObs, phiS, sigma=1, ciValue=0.95,
-                                       alternative="twoSided", a=NULL, g=NULL) {
-  if (!is.null(a) && !is.null(g)) {
-    # Note(Alexander): Here normal distribution not centred at null
-    if (alternative != "twoSided")
-      stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
+computeConfidenceIntervalZ <- function(nEff, meanObs, parameter, sigma=1, ciValue=0.95,
+                                       alternative="twoSided", a=NULL, g=NULL,
+                                       intervalType=c("eGauss", "grow", "freq", "credibleInterval")) {
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
 
-    shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
-    lowerCS <- meanObs - shift
-    upperCS <- meanObs + shift
-  } else {
-    # Note(Alexander): Here normal distribution centred at the null
-    # Here use GROW
-    if (is.null(g)) {
-      meanDiffMin <- phiS
-      g <- meanDiffMin^2/sigma^2
+  intervalType <- match.arg(intervalType)
+
+  if (intervalType=="freq") {
+    shift <- sigma/sqrt(nEff)*qnorm((1-ciValue)/2)
+    lowerCi <- meanObs + shift
+    upperCi <- meanObs - shift
+    return(unname(c(lowerCi, upperCi)))
+  }
+
+  if (intervalType=="credibleInterval") {
+    normalisedCiLower <- qnorm((1-ciValue)/2)
+
+    if (is.null(a)) {
+      warning("Centre of normal prior not given, default to a=0")
+      a <- 0
     }
 
-    if (alternative=="twoSided") {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+    if (is.null(g)) {
+      warning("Variance of normal prior not given, default to g=1")
+      g <- 1
+    }
+
+    meanMu <- nEff*g/(nEff*g+sigma^2)*meanObs + sigma^2/(nEff*g+sigma^2)*a
+    sdMu <- sqrt(g*sigma^2)/sqrt(nEff*g + sigma^2)
+
+    lowerCi <- sdMu*normalisedCiLower+meanMu
+    upperCi <- -sdMu*(normalisedCiLower)+meanMu
+
+    return(unname(c(lowerCi, upperCi)))
+  }
+
+  if (intervalType=="grow") {
+    phiS <- parameter
+
+    shift <- sigma^2/(nEff*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
+    lowerCS <- meanObs - shift
+    upperCS <- meanObs + shift
+  }
+
+  if (intervalType=="eGauss") {
+    if (!is.null(a) && !is.null(g)) {
+      # Note(Alexander): Here normal distribution not centred at null
+      if (alternative != "twoSided")
+        stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
+
+      shift <- sqrt(sigma^2/nEff*(log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
+      #
+      #
+      # (log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
       lowerCS <- meanObs - shift
       upperCS <- meanObs + shift
     } else {
-      shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+      # Note(Alexander): Here normal distribution centred at the null
+      # Here use GROW restricted to zero-centred normal priors
+      g <- parameter
 
-      if (alternative=="greater") {
-        lowerCS <- meanObs + shift
-        upperCS <- Inf
+      if (alternative=="twoSided") {
+        shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+        lowerCS <- meanObs - shift
+        upperCS <- meanObs + shift
       } else {
-        lowerCS <- -Inf
-        upperCS <- meanObs - shift
+        shift <- sigma/(nEff*sqrt(g))*sqrt((1+nEff*g)*(log(1+nEff*g)-2*log(2*(1-ciValue))))
+
+        if (alternative=="greater") {
+          lowerCS <- meanObs + shift
+          upperCS <- Inf
+        } else if (alternative=="less") {
+          lowerCS <- -Inf
+          upperCS <- meanObs - shift
+        } else {
+          stop('Incorrect specification of the "alternative" argument.')
+        }
       }
     }
   }
@@ -578,7 +668,9 @@ designPilotSafeZ <- function(nPlan, alternative=c("twoSided", "greater", "less")
 #' approximation of the power, the number of samples for the safe z test under continuous monitoring,
 #' or for the computation of the logarithm of the implied target.
 #' @param pb logical, if \code{TRUE}, then show progress bar.
-#' @param grow logical, default set to \code{TRUE} so the grow safe test is used in the design.
+#' @param eType character one of "eGauss", "eCauchy", "grow". "eGauss" yields e-values based on
+#' a Gaussian/normal mixture. "eCauchy" based on a Cauchy mixture and "grow" based on a mixture of two
+#' point masses at the minimal clinically relevant effect size.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a safeDesign object that includes:
@@ -615,7 +707,8 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
                         sigma=1, kappa=sigma, tol=1e-5,
                         testType=c("oneSample", "paired", "twoSample"),
                         ratio=1, parameter=NULL, nSim=1e3L, nBoot=1e3L,
-                        pb=TRUE, grow=TRUE, ...) {
+                        pb=TRUE, eType=c("eGauss", "eCauchy", "grow"),
+                        wantSamplePaths=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
 
@@ -629,14 +722,31 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
+  eType <- match.arg(eType)
 
-  if (!is.null(parameter))
-    parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "esMinName"="phiS",
-                                                   "alternative"=alternative)
+  someParam <- NULL
 
-  if (!is.null(meanDiffMin))
+  if (!is.null(parameter)) {
+    if (eType=="grow") {
+      parameter <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "esMinName"="phiS",
+                                                     "alternative"=alternative)
+    } else if (eType=="eGauss") {
+      if (parameter <= 0)
+        stop('Parameter for eType="eGauss" must be postive')
+    }
+
+    someParam <- parameter
+
+    names(someParam) <- switch(eType,
+                               "grow"="phiS",
+                               "eGauss"="g")
+  }
+
+  if (!is.null(meanDiffMin)) {
     meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin",
                                                      "alternative"=alternative)
+  }
+
 
   paired <- if (testType=="paired") TRUE else FALSE
 
@@ -648,6 +758,7 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   logImpliedTarget <- logImpliedTargetTwoSe <- NULL
   betaTwoSe <- NULL
+  samplePaths <- breakVector <- NULL
 
   bootObjN1Plan <- bootObjN1Mean <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
 
@@ -655,14 +766,29 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 
   if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan)) {
     #scenario 1a: delta + power known, calculate nPlan
-    designScenario <- "1a"
-    phiS <- meanDiffMin
 
-    tempResult <- computeNPlanSafeZ("meanDiffMin"=meanDiffMin, "beta"=beta, "alpha"=alpha, "alternative"=alternative,
-                                    "sigma"=sigma, "kappa"=kappa, "ratio"=ratio, "nSim"=nSim,
-                                    "nBoot"=nBoot, "pb"=pb, "parameter"=phiS, "testType"=testType)
+    if (is.null(parameter)) {
+      someParam <- switch(eType,
+                          "grow"=meanDiffMin,
+                          "eGauss"=meanDiffMin^2/sigma^2)
+
+      names(someParam) <- switch(eType,
+                                 "grow"="phiS",
+                                 "eGauss"="g")
+    }
+
+    designScenario <- "1a"
+
+    tempResult <- computeNPlanSafeZ("meanDiffTrue"=meanDiffMin, "beta"=beta,
+                                    "alpha"=alpha, "alternative"=alternative,
+                                    "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
+                                    "nSim"=nSim, "nBoot"=nBoot, "pb"=pb,
+                                    "parameter"=someParam, "testType"=testType,
+                                    "eType"=eType, "wantSamplePaths"=wantSamplePaths)
 
     nPlanBatch <- tempResult[["nPlanBatch"]]
+    samplePaths <- tempResult[["samplePaths"]]
+    breakVector <- tempResult[["breakVector"]]
 
     bootObjN1Plan <- tempResult[["bootObjN1Plan"]]
     bootObjN1Mean <- tempResult[["bootObjN1Mean"]]
@@ -699,7 +825,6 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
       nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
       nPlanTwoSe <- c(nPlanTwoSe, ratio*nPlanTwoSe)
 
-
       nMean <- c(tempResult[["n1Mean"]], ceiling(ratio*tempResult[["n1Mean"]]))
       names(nMean) <- c("n1Mean", "n2Mean")
       nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
@@ -711,26 +836,46 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     }
   } else if (!is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
-    phiS <- meanDiffMin
 
     nPlan <- NULL
     beta <- NULL
 
     meanDiffMin <- meanDiffMin
+
+    someParam <- switch(eType,
+                        "grow"=meanDiffMin,
+                        "eGauss"=meanDiffMin^2/sigma^2)
   } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
     #scenario 1c: only nPlan known, can perform a pilot (no warning though)
     designScenario <- "1c"
 
+    # TODO(Alexander):
+    #  Change to safe Bayes factor
+    #
     return(designPilotSafeZ("nPlan"=nPlan, "alpha"=alpha, "alternative"=alternative,
                             "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired, "parameter"=parameter))
   } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
     # scenario 2: given effect size and nPlan, calculate power and implied target
     designScenario <- "2"
 
+    if (is.null(parameter)) {
+      someParam <- switch(eType,
+                          "grow"=meanDiffMin,
+                          "eGauss"=meanDiffMin^2/sigma^2)
+
+      names(someParam) <- switch(eType,
+                                 "grow"="phiS",
+                                 "eGauss"="g")
+    }
+
     nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
-    tempResult <- computeBetaSafeZ("meanDiffMin"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha, "sigma"=sigma, "kappa"=kappa,
-                                   "alternative"=alternative, "testType"=testType, "parameter"=parameter)
+    tempResult <- computeBetaSafeZ("meanDiffTrue"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha, "sigma"=sigma, "kappa"=kappa,
+                                   "alternative"=alternative, "testType"=testType, "parameter"=someParam,
+                                   "eType"=eType, "wantSamplePaths"=wantSamplePaths)
+
+    samplePaths <- tempResult[["samplePaths"]]
+    breakVector <- tempResult[["breakVector"]]
 
     beta <- tempResult[["beta"]]
     bootObjBeta <- tempResult[["bootObjBeta"]]
@@ -740,17 +885,20 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     bootObjLogImpliedTarget <- tempResult[["bootObjLogImpliedTarget"]]
     logImpliedTargetTwoSe <- 2*bootObjLogImpliedTarget[["bootSe"]]
 
-    phiS <- if (is.null(parameter)) meanDiffMin else parameter
-
   } else if (is.null(meanDiffMin) && !is.null(beta) && !is.null(nPlan)) {
     designScenario <- "3"
 
     meanDiffMin <- tryOrFailWithNA(
       computeMinEsBatchSafeZ("nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "sigma"=sigma,
                              "kappa"=kappa, "alternative"=alternative, "testType"=testType,
-                             "parameter"=parameter)
+                             "parameter"=parameter, "eType"=eType)
     )
-    phiS <- if (is.null(parameter)) meanDiffMin else parameter
+
+    if (is.null(parameter)) {
+      someParam <- switch(eType,
+                          "grow"=meanDiffMin,
+                          "eGauss"=meanDiffMin^2/sigma^2)
+    }
 
     if (is.na(meanDiffMin))
       note <- "No meanDiffMin found for the provided beta and nPlan"
@@ -779,7 +927,11 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
   }
 
-  result <- list("parameter"=phiS, "esMin"=meanDiffMin, "alpha"=alpha, "alternative"=alternative,
+  names(someParam) <- switch(eType,
+                             "grow"="phiS",
+                             "eGauss"="g")
+
+  result <- list("parameter"=someParam, "esMin"=meanDiffMin, "alpha"=alpha, "alternative"=alternative,
                  "h0"=h0, "testType"=testType, "paired"=paired, "sigma"=sigma, "kappa"=kappa,
                  "ratio"=ratio, "pilot"=FALSE,
                  "nPlan"=nPlan, "nPlanTwoSe"=nPlanTwoSe, "nPlanBatch"=nPlanBatch,
@@ -788,11 +940,11 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
                  "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
                  "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
                  "bootObjLogImpliedTarget"=bootObjLogImpliedTarget, "bootObjN1Mean"=bootObjN1Mean,
+                 "samplePaths"=samplePaths, "breakVector"=breakVector, "eType"=eType,
                  "call"=sys.call(), "timeStamp"=Sys.time(), "note"=note)
   class(result) <- "safeDesign"
 
   names(result[["h0"]]) <- "mu"
-  names(result[["parameter"]]) <- "phiS"
   return(result)
 }
 
@@ -809,11 +961,11 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 #'
 #' @return a list which contains at least nPlan and the phiS, that is, the parameter that defines
 #' the safe test.
-computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+computeNPlanBatchSafeZ <- function(meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
                                    alternative=c("twoSided", "greater", "less"),
                                    testType=c("oneSample", "paired", "twoSample"),
                                    tol=1e-5, highN=1e6, ratio=1, parameter=NULL,
-                                   grow=TRUE) {
+                                   eType=c("eGauss", "grow")) {
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -824,48 +976,84 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
 
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
+  eType <- match.arg(eType)
 
   result <- list(nPlan=NULL, phiS=NULL)
-  meanDiffMin <- abs(meanDiffMin)
+  meanDiffTrue <- abs(meanDiffTrue)
 
   n1Plan <- NULL
   n2Plan <- NULL
 
   n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
-  if (grow) {
-    phiS <- abs(meanDiffMin)
+  if (is.null(parameter)) {
+    if (eType=="grow") {
+      phiS <- abs(meanDiffTrue)
+    } else if (eType=="eGauss") {
+      g <- meanDiffTrue^2/sigma^2
+    }
+  } else {
+    # The distinction is made by eType
+    phiS <- g <- parameter
+  }
 
+  if (eType=="grow") {
     if (alternative == "twoSided") {
       criterionFunction <- function(n) {
-        lowerTail <- sigma^4/(n*kappa^2*meanDiffMin^2)*acosh(exp((n*meanDiffMin^2)/(2*sigma^2))/alpha)^2
-        stats::pchisq(q=lowerTail, df=1, ncp=n*meanDiffMin^2/kappa^2)-beta
+        upperBoundOfIntegral <- sigma^4/(n*kappa^2*meanDiffTrue^2)*
+          acosh(exp((n*meanDiffTrue^2)/(2*sigma^2))/alpha)^2
+        stats::pchisq(q=upperBoundOfIntegral, df=1, ncp=n*meanDiffTrue^2/kappa^2)-beta
       }
 
-      highN <- 2*sigma^2/meanDiffMin^2*log(1e100)
-      tempResult <- stats::uniroot(criterionFunction, interval=c(1, highN))
+      highNCandidate <- 2*sigma^2/meanDiffTrue^2*log(1e100)
+      tempResult <- try(stats::uniroot(criterionFunction, interval=c(1, highNCandidate)))
+
+      if (isTryError(tempResult))
+        tempResult <- try(stats::uniroot(criterionFunction, interval=c(1, highN)))
+
+      if (isTryError(tempResult))
+        stop("Can't compute the batched planned sample size")
+
       nEff <- tempResult[["root"]]
     } else {
       qB <- qnorm(beta)
 
-      nEff <- exp(2*(log(kappa)-log(meanDiffMin))) *
+      nEff <- exp(2*(log(kappa)-log(meanDiffTrue))) *
         (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))+2*kappa^2/sigma^2*log(1/alpha))
     }
 
-    if (testType == "twoSample") {
-      n1Plan <- ceiling(nEff * n1OverNEffRatio)
-      n2Plan <- ceiling(nEff * n1OverNEffRatio * ratio)
-    } else {
-      n1Plan <- ceiling(nEff)
-      n2Plan <- if (testType == "paired") n1Plan else NULL
-    }
+    phiS <- meanDiffTrue
+  } else if (eType=="eGauss") {
+    if (alternative == "twoSided") {
+      criterionFunction <- function(n) {
+        upperBoundOfIntegral <- 2*(1+n*g)/(n*g)*log((1+n*g)^(1/2)/alpha)
+        stats::pchisq(q=upperBoundOfIntegral, df=1, ncp=n*meanDiffTrue^2/kappa^2)-beta
+      }
 
-    phiS <- meanDiffMin
+      highNCandidate <- 2*sigma^2/meanDiffTrue^2*log(1e100)
+
+      tempResult <- try(stats::uniroot(criterionFunction, interval=c(1, highNCandidate)))
+
+      if (isTryError(tempResult))
+        tempResult <- try(stats::uniroot(criterionFunction, interval=c(1, highN)))
+
+      if (isTryError(tempResult)) {
+        tempResult <- list("root"=1e5)
+        warning("Could not compute the planned batch size: Used nPlan =", 1e5)
+      }
+
+
+      nEff <- tempResult[["root"]]
+    } else {
+      stop('One sided design for "eGauss" not yet implemented')
+    }
   } else {
+    # Note(Alexander): The grow case with phiS not fixed in advanced
+    #     Redo code if we put this in production
     # Note(Alexander): Compute one-sided nExact. This provides us with a lower bound on
     # the two-sided test.
     #
-    nEffExact <- tryOrFailWithNA(((sigma*sqrt(2*log(1/alpha))-kappa*qnorm(beta))/meanDiffMin)^2)
+    nEffExact <- tryOrFailWithNA(((sigma*sqrt(2*log(1/alpha))-kappa*qnorm(beta))/meanDiffTrue)^2)
 
     if (is.na(nEffExact))
       stop("Something went wrong, couldn't design based on the given input.")
@@ -892,7 +1080,7 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
         nEff <- ceiling(nEffExact)
       }
 
-      qBeta <- kappa/sigma*qnorm(beta) + sqrt(nEff)*meanDiffMin/sigma
+      qBeta <- kappa/sigma*qnorm(beta) + sqrt(nEff)*meanDiffTrue/sigma
       discriminantD <- max(qBeta^2-2*log(1/alpha), 0)
 
       phiS <- sigma/sqrt(nEff)*(qBeta + sqrt(discriminantD))
@@ -900,7 +1088,7 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
       # twoSided
 
       nEffExactUpper <- tryOrFailWithNA(
-        ((sigma*sqrt(2*log(2/alpha))-kappa*qnorm(beta))/meanDiffMin)^2
+        ((sigma*sqrt(2*log(2/alpha))-kappa*qnorm(beta))/meanDiffTrue)^2
       )
 
       # Note(Alexander): Translate to lower and upper bound in terms of n1
@@ -925,7 +1113,7 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
 
         zArg <- sigma^4/(kappa^2*n*parameter^2)*(acosh(exp(n*parameter^2/(2*sigma^2))/alpha))^2
 
-        result <- (stats::pchisq(zArg, df=1, ncp=n*meanDiffMin^2/kappa^2) <= beta)
+        result <- (stats::pchisq(zArg, df=1, ncp=n*meanDiffTrue^2/kappa^2) <= beta)
 
         if (is.null(parameter))
           result <- !result
@@ -970,7 +1158,7 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
       # Candidate parameters ---
       phiUmp <- sqrt(2/(sigma^2*nEff)*log(2/alpha))
 
-      chiSqInverseBeta <- stats::qchisq(beta, df=1, ncp=nEff*meanDiffMin^2/kappa^2)
+      chiSqInverseBeta <- stats::qchisq(beta, df=1, ncp=nEff*meanDiffTrue^2/kappa^2)
       discriminantD <- max(chiSqInverseBeta-sigma^2/kappa^2*2*log(2/alpha), 0)
 
       phiSApprox <-kappa/sqrt(nEff)*(sqrt(chiSqInverseBeta)+sqrt(discriminantD))
@@ -978,8 +1166,8 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
       # Random lower bound for phi
       # TODO(Alexander): Get a better bounds perhaps
       #
-      lowPhi <- min(phiUmp, phiSApprox, meanDiffMin/2)
-      highPhi <- if (beta < 1/2) meanDiffMin else 2*meanDiffMin
+      lowPhi <- min(phiUmp, phiSApprox, meanDiffTrue/2)
+      highPhi <- if (beta < 1/2) meanDiffTrue else 2*meanDiffTrue
 
       candidatePhis <- seq(lowPhi, highPhi, "by"=tol)
 
@@ -995,6 +1183,15 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
       phiS <- - phiS
   }
 
+  # Two-sample/paired stuff
+  if (testType == "twoSample") {
+    n1Plan <- ceiling(nEff * n1OverNEffRatio)
+    n2Plan <- ceiling(nEff * n1OverNEffRatio * ratio)
+  } else {
+    n1Plan <- ceiling(nEff)
+    n2Plan <- if (testType == "paired") n1Plan else NULL
+  }
+
   if (is.null(n2Plan)) {
     result[["nPlan"]] <- n1Plan
     names(result[["nPlan"]]) <- "n1Plan"
@@ -1004,19 +1201,21 @@ computeNPlanBatchSafeZ <- function(meanDiffMin, alpha=0.05, beta=0.2, sigma=1, k
   }
 
   result[["phiS"]] <- phiS
+  result[["g"]] <- g
 
   return(result)
 }
+
 
 #' Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.
 #'
 #' @inheritParams designSafeZ
 #'
 #' @return numeric that represents the type II error
-computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa=sigma,
+computeBetaBatchSafeZ <- function(meanDiffTrue, nPlan, alpha=0.05, sigma=1, kappa=sigma,
                               alternative=c("twoSided", "greater", "less"),
                               testType=c("oneSample", "paired", "twoSample"),
-                              parameter=NULL) {
+                              parameter=NULL, eType=c("eGauss", "grow")) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1027,24 +1226,44 @@ computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa
   }
 
   alternative <- match.arg(alternative)
-
   testType <- match.arg(testType)
+  eType <- match.arg(eType)
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
 
-  if (is.null(parameter))
-    parameter <- meanDiffMin
-
-  if (alternative=="twoSided") {
-    lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(parameter)) *
-      (acosh(exp(nEff*parameter^2/(2*sigma^2))/alpha))^2
-
-    result <- stats::pchisq(lowerTail, df=1, ncp=nEff*meanDiffMin^2/kappa^2, lower.tail = TRUE)
+  if (is.null(parameter)) {
+    if (eType=="grow") {
+      phiS <- abs(meanDiffTrue)
+    } else if (eType=="eGauss") {
+      g <- meanDiffTrue^2/sigma^2
+    }
   } else {
-    lowerTail <- sqrt(nEff)*(parameter-2*meanDiffMin)/(2*kappa) -
-      sigma^2*log(alpha)/(kappa*sqrt(nEff))*1/parameter
+    # The distinction is made by eType
+    phiS <- g <- parameter
+  }
 
-    result <- stats::pnorm(lowerTail, lower.tail = TRUE)
+  if (eType=="grow") {
+    if (alternative=="twoSided") {
+      upperBoundOfIntegral <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(phiS)) *
+        (acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha))^2
+
+      result <- stats::pchisq(upperBoundOfIntegral, df=1, ncp=nEff*meanDiffTrue^2/kappa^2, lower.tail = TRUE)
+    } else {
+      upperBoundOfIntegral <- sqrt(nEff)*(phiS-2*meanDiffTrue)/(2*kappa) -
+        sigma^2*log(alpha)/(kappa*sqrt(nEff))*1/phiS
+
+      result <- stats::pnorm(upperBoundOfIntegral, lower.tail = TRUE)
+    }
+  } else if (eType=="eGauss") {
+    if (alternative=="twoSided") {
+      upperBoundOfIntegral <- (1+n*g)/(n*g)*(log(1+n*g)-2*log(alpha))
+
+      result <- stats::pchisq(upperBoundOfIntegral, df=1,
+                              ncp=nEff*meanDiffTrue^2/kappa^2,
+                              lower.tail = TRUE)
+    } else {
+      stop("Not yet implemented")
+    }
   }
 
   return(result)
@@ -1060,7 +1279,7 @@ computeBetaBatchSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, sigma=1, kappa
 computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
                                     alternative=c("twoSided", "greater", "less"),
                                     testType=c("oneSample", "paired", "twoSample"),
-                                    parameter=NULL, maxIter=10) {
+                                    parameter=NULL, maxIter=10, eType=c("eGauss", "grow")) {
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -1070,53 +1289,57 @@ computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=s
   }
 
   alternative <- match.arg(alternative)
-
+  eType <- match.arg(eType)
   testType <- match.arg(testType)
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
 
-  if (alternative=="twoSided") {
-    if (is.null(parameter)) {
-      criterionFunction <- function(x) {
-        lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(x)) *
-          (acosh(exp(nEff*x^2/(2*sigma^2))/alpha))^2
+  if (eType=="grow") {
+    if (alternative=="twoSided") {
+      if (is.null(parameter)) {
+        criterionFunction <- function(x) {
+          lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(x)) *
+            (acosh(exp(nEff*x^2/(2*sigma^2))/alpha))^2
 
-        stats::pchisq(lowerTail, 1, nEff*x^2/kappa^2)-beta
+          stats::pchisq(lowerTail, 1, nEff*x^2/kappa^2)-beta
+        }
+      } else {
+        criterionFunction <- function(x) {
+          lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(parameter)) *
+            (acosh(exp(nEff*parameter^2/(2*sigma^2))/alpha))^2
+
+          stats::pchisq(lowerTail, 1, nEff*x^2/kappa^2)-beta
+        }
       }
-    } else {
-      criterionFunction <- function(x) {
-        lowerTail <- exp(4*log(sigma)-log(nEff)-2*log(kappa)-2*log(parameter)) *
-          (acosh(exp(nEff*parameter^2/(2*sigma^2))/alpha))^2
 
-        stats::pchisq(lowerTail, 1, nEff*x^2/kappa^2)-beta
+      mIter <- 1
+      tempResult <- 1
+      class(tempResult) <- "try-error"
+
+      while (isTryError(tempResult) && mIter <= maxIter) {
+        tempResult <- try(uniroot(criterionFunction, c(0, 4*4^(-mIter+1))), silent=TRUE)
+
+        if (isTryError(tempResult))
+          mIter <- mIter + 1
+        else
+          break()
       }
-    }
 
-    mIter <- 1
-    tempResult <- 1
-    class(tempResult) <- "try-error"
-
-    while (isTryError(tempResult) && mIter <= maxIter) {
-      tempResult <- try(uniroot(criterionFunction, c(0, 4*4^(-mIter+1))), silent=TRUE)
-
-      if (isTryError(tempResult))
-        mIter <- mIter + 1
+      if (mIter > maxIter || isTryError(tempResult))
+        stop("uniroot couldn't find meanDiffTrue. Perhaps maxIter not big enough, ",
+             "but most likely pchisq underflow")
       else
-        break()
-    }
-
-    if (mIter > maxIter || isTryError(tempResult))
-      stop("uniroot couldn't find meanDiffMin. Perhaps maxIter not big enough, ",
-           "but most likely pchisq underflow")
-    else
-      result <- tempResult[["root"]]
-  } else {
-    if (is.null(parameter)) {
-      D <- kappa^2*qnorm(beta)^2 - 2 * sigma^2*log(alpha)
-      result <- 1/sqrt(nEff)*(-kappa*qnorm(beta) + sqrt(D))
+        result <- tempResult[["root"]]
     } else {
-      result <- parameter/2-sigma^2*log(alpha)/(nEff*parameter)-kappa/(sqrt(nEff))*qnorm(beta)
+      if (is.null(parameter)) {
+        D <- kappa^2*qnorm(beta)^2 - 2 * sigma^2*log(alpha)
+        result <- 1/sqrt(nEff)*(-kappa*qnorm(beta) + sqrt(D))
+      } else {
+        result <- parameter/2-sigma^2*log(alpha)/(nEff*parameter)-kappa/(sqrt(nEff))*qnorm(beta)
+      }
     }
+  } else if (eType=="eGauss") {
+    stop("not yet implemented")
   }
 
   if (alternative=="less")
@@ -1131,7 +1354,9 @@ computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=s
 #'
 #' @inheritParams designSafeZ
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
-#' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
+#' @param wantEValuesAtNMax logical. If \code{TRUE}, then compute eValues at nMax. Default \code{FALSE}.
+#' @param wantSamplePaths logical. If \code{TRUE}, then output the (stopped) sample paths. Default \code{TRUE}.
+#' @param wantSimData logical. If \code{TRUE}, then output the simulated data.
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies that in corresponding stopping
@@ -1140,11 +1365,12 @@ computeMinEsBatchSafeZ <- function(nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=s
 #' @export
 #'
 #' @examples
-#' sampleStoppingTimesSafeZ(0.7, nSim=10)
-sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("twoSided", "less", "greater"),
+#' sampleStoppingTimesSafeZ(0.7, nSim=10, nMax=20)
+sampleStoppingTimesSafeZ <- function(meanDiffTrue, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                                      sigma=1, kappa=sigma, nSim=1e3L, nMax=1e3, ratio=1,
                                      testType=c("oneSample", "paired", "twoSample"), parameter=NULL,
-                                     wantEValuesAtNMax=FALSE, pb=TRUE) {
+                                     wantEValuesAtNMax=FALSE, pb=TRUE, wantSamplePaths=TRUE,
+                                     eType=c("eGauss", "grow"), wantSimData=FALSE) {
   stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1156,28 +1382,45 @@ sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("t
   }
 
   alternative <- match.arg(alternative)
-
   testType <- match.arg(testType)
+  eType <- match.arg(eType)
 
   ## Object that will be returned. A sample of stopping times
   stoppingTimes <- breakVector <- integer(nSim)
-  eValuesStopped <- eValuesAtNMax <- numeric(nSim)
+  eValuesStopped <- numeric(nSim)
 
-  if (!is.null(parameter)) {
-    phiS <- parameter
+  eValuesAtNMax <- if (wantEValuesAtNMax) {
+    numeric(nSim)
   } else {
-    meanDiffMin <- checkAndReturnsEsMinParameterSide(meanDiffMin, "alternative"=alternative, "esMinName"="meanDiffMin")
-    phiS <- meanDiffMin
+    NULL
+  }
+
+  samplePaths <- if (wantSamplePaths) {
+    matrix(nrow=nSim, ncol=nMax[1])
+  } else {
+    NULL
+  }
+
+  if (is.null(parameter)) {
+    if (eType=="grow") {
+      parameter <- meanDiffTrue
+      parameter <- checkAndReturnsEsMinParameterSide(parameter, "alternative"=alternative, "esMinName"="meanDiffTrue")
+    } else if (eType=="eGauss") {
+      parameter <- meanDiffTrue^2/sigma^2
+    }
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
     nMax <- c(nMax, ceiling(ratio*nMax))
-  } else if (testType=="paired" && length(nMax)==2) {
-    nMax <- nMax[1]
-  }
-
-  if (length(nMax)==2)
+    n1Max <- nMax[1]
+    n2Max <- nMax[2]
     ratio <- nMax[2]/nMax[1]
+  } else if (testType %in% c("paired", "oneSample")){
+    n1Max <- nMax[1]
+    n2Max <- NULL
+    nMax <- n1Max
+    ratio <- 1
+  }
 
   if (pb)
     pbSafe <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
@@ -1188,19 +1431,14 @@ sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("t
   n2Vector <- tempN[["n2"]]
   nEffVector <- tempN[["nEff"]]
 
-  simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "muTrue"=meanDiffMin, "sigmaTrue"=kappa,
+  simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "meanDiffTrue"=meanDiffTrue, "sigmaTrue"=kappa,
                                 "paired"=FALSE)
 
   for (sim in seq_along(stoppingTimes)) {
     if (testType %in% c("oneSample", "paired")) {
       x1 <- simData[["dataGroup1"]][sim, ]
-      zVector <- 1/sqrt(n1Vector)*cumsum(x1)
-
-      if (wantEValuesAtNMax) {
-        eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)], "phiS"=phiS,
-                                            "n1"=nMax[1], n2=NULL,
-                                            "alternative"=alternative, "sigma"=sigma)
-      }
+      x1BarVector <- 1/(n1Vector)*cumsum(x1)
+      zVector <- sqrt(n1Vector)*x1BarVector
     } else {
       x1 <- simData[["dataGroup1"]][sim, ]
       x1BarVector <- 1/(n1Vector)*cumsum(x1)
@@ -1211,26 +1449,35 @@ sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("t
       x2BarVector <- 1/n2Vector*x2Cumsum
 
       zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
+    }
 
-      if (wantEValuesAtNMax) {
-        eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)], "phiS"=phiS,
-                                            "n1"=nMax[1], n2=nMax[2],
-                                            "alternative"=alternative, "sigma"=sigma)
-      }
+    if (wantEValuesAtNMax) {
+      eValuesAtNMax[sim] <- safeZTestStat("z"=zVector[length(zVector)],
+                                          "parameter"=parameter,
+                                          "n1"=nMax[1], n2=nMax[2],
+                                          "alternative"=alternative, "sigma"=sigma,
+                                          "eType"=eType)
     }
 
     for (j in seq_along(n1Vector)) {
-      evidenceNow <- if (testType %in% c("oneSample", "paired")) {
-        safeZTestStat("z"=zVector[j], "phiS"=phiS, "n1"=n1Vector[j], n2=NULL,
-                      "alternative"=alternative, "sigma"=sigma)
-      } else {
-        safeZTestStat("z"=zVector[j], "phiS"=phiS, "n1"=n1Vector[j], "n2"=n2Vector[j],
-                      "alternative"=alternative, "sigma"=sigma)
-      }
+      evidenceNow <- safeZTestStat("z"=zVector[j], "parameter"=parameter,
+                                   "n1"=n1Vector[j], "n2"=n2Vector[j],
+                                   "alternative"=alternative, "sigma"=sigma,
+                                   "eType"=eType)
+
+      if (wantSamplePaths)
+        samplePaths[sim, j] <- evidenceNow
 
       if (evidenceNow > 1/alpha) {
         stoppingTimes[sim] <- n1Vector[j]
         eValuesStopped[sim] <- evidenceNow
+
+        if (wantSamplePaths) {
+          if (j < nMax[1]) {
+            samplePaths[sim, (j+1):nMax[1]] <- evidenceNow
+          }
+        }
+
         break()
       }
 
@@ -1250,9 +1497,15 @@ sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("t
   }
 
   result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
-                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax)
+                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
+                 "samplePaths"=samplePaths, "n1Vector"=n1Vector, "ratio"=ratio)
+
+  if (isTRUE(wantSimData))
+    result[["simData"]] <- simData
+
   return(result)
 }
+
 
 
 #' Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
@@ -1264,10 +1517,11 @@ sampleStoppingTimesSafeZ <- function(meanDiffMin, alpha=0.05, alternative = c("t
 #' @export
 #'
 #' @examples
-#' computeBetaSafeZ(meanDiffMin=0.7, 20, nSim=10)
-computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("twoSided", "greater", "less"),
+#' computeBetaSafeZ(meanDiffTrue=0.7, 20, nSim=10)
+computeBetaSafeZ <- function(meanDiffTrue, nPlan, alpha=0.05, alternative=c("twoSided", "greater", "less"),
                              sigma=1, kappa=sigma, testType=c("oneSample", "paired", "twoSample"),
-                             parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L) {
+                             parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L, wantSamplePaths=TRUE,
+                             eType=c("eGauss", "grow")) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1278,7 +1532,7 @@ computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("twoS
   }
 
   alternative <- match.arg(alternative)
-
+  eType <- match.arg(eType)
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan) == 2) nPlan[2]/nPlan[1] else 1
@@ -1290,18 +1544,21 @@ computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("twoS
   }
 
   if (!is.null(parameter)) {
-    phiS <- parameter
+    someParam <- parameter
   } else {
-    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "alternative"=alternative,
+    meanDiffTrue <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffTrue, "alternative"=alternative,
                                                      "esMinName"="meanDiffMin")
-    phiS <- meanDiffMin
+    someParam <- switch(eType,
+                        "grow"=meanDiffTrue,
+                        "eGauss"=meanDiffTrue^2/sigma^2)
   }
 
-  tempResult <- sampleStoppingTimesSafeZ("meanDiffMin"=meanDiffMin, "alpha"=alpha,
+  tempResult <- sampleStoppingTimesSafeZ("meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
                                          "alternative" = alternative, "sigma"=sigma,
                                          "kappa"=kappa, "nSim"=nSim, "nMax"=nPlan,
                                          "ratio"=ratio, "testType"=testType,
-                                         "parameter"=phiS, "pb"=pb, "wantEValuesAtNMax"=TRUE)
+                                         "parameter"=someParam, "pb"=pb, "wantEValuesAtNMax"=TRUE,
+                                         "wantSamplePaths"=wantSamplePaths, "eType"=eType)
 
   times <- tempResult[["stoppingTimes"]]
 
@@ -1321,7 +1578,9 @@ computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("twoS
   result <- list("beta" = bootObjBeta[["t0"]],
                  "bootObjBeta" = bootObjBeta,
                  "logImpliedTarget"=bootObjLogImpliedTarget[["t0"]],
-                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget)
+                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
+                 "samplePaths"=tempResult[["samplePaths"]],
+                 "breakVector"=tempResult[["breakVector"]])
 
   return(result)
 }
@@ -1340,9 +1599,10 @@ computeBetaSafeZ <- function(meanDiffMin, nPlan, alpha=0.05, alternative=c("twoS
 #'
 #' @examples
 #' computeNPlanSafeZ(0.7, 0.2, nSim=10)
-computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c("twoSided", "less", "greater"),
+computeNPlanSafeZ <- function(meanDiffTrue, beta=0.2, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                               testType=c("oneSample", "paired", "twoSample"), sigma=1, kappa=sigma,
-                              ratio=1, nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE, nMax=1e8) {
+                              ratio=1, nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE, nMax=1e8,
+                              eType=c("eGauss", "grow"), wantSamplePaths=TRUE) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1353,29 +1613,33 @@ computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
   }
 
   alternative <- match.arg(alternative)
-
   testType <- match.arg(testType)
+  eType <- match.arg(eType)
 
   if (!is.null(parameter)) {
-    phiS <- parameter
+    someParam <- parameter
   } else {
-    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "alternative"=alternative,
+    meanDiffTrue <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffTrue, "alternative"=alternative,
                                                      "esMinName"="meanDiffMin")
-    phiS <- meanDiffMin
+    someParam <- switch(eType,
+                        "grow"=meanDiffTrue,
+                        "eGauss"=meanDiffTrue^2/sigma^2)
   }
 
-  tempObj <- computeNPlanBatchSafeZ("meanDiffMin"=meanDiffMin, "alpha"=alpha,
-                                           "beta"=beta, "sigma"=sigma, "kappa"=kappa,
-                                           "alternative"=alternative, "testType"=testType,
-                                           "parameter"=parameter, "ratio"=ratio)
+  tempObj <- computeNPlanBatchSafeZ("meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
+                                    "beta"=beta, "sigma"=sigma, "kappa"=kappa,
+                                    "alternative"=alternative, "testType"=testType,
+                                    "parameter"=someParam, "ratio"=ratio, "eType"=eType)
   nPlanBatch <- tempObj[["nPlan"]]
 
-  samplingResults <- sampleStoppingTimesSafeZ("meanDiffMin"=meanDiffMin, "alpha"=alpha, "alternative" = alternative,
-                                              "sigma"=sigma, "kappa"=kappa, "nSim"=nSim, "testType"=testType,
-                                              "ratio"=ratio, "nMax"=nPlanBatch, "parameter"=phiS,
-                                              "pb"=pb)
+  samplingResults <- sampleStoppingTimesSafeZ("meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
+                                              "alternative" = alternative, "sigma"=sigma,
+                                              "kappa"=kappa, "nSim"=nSim, "testType"=testType,
+                                              "ratio"=ratio, "nMax"=nPlanBatch, "parameter"=someParam,
+                                              "pb"=pb, "wantSamplePaths"=wantSamplePaths)
 
   times <- samplingResults[["stoppingTimes"]]
+  breakVector <- samplingResults[["breakVector"]]
 
   bootObjN1Plan <- computeBootObj("values"=times, "objType"="nPlan", "beta"=beta, "nBoot"=nBoot)
 
@@ -1387,7 +1651,9 @@ computeNPlanSafeZ <- function(meanDiffMin, beta=0.2, alpha=0.05, alternative = c
 
   result <- list("n1Plan" = n1Plan, "bootObjN1Plan" = bootObjN1Plan,
                  "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
-                 "nPlanBatch"=nPlanBatch)
+                 "nPlanBatch"=nPlanBatch,
+                 "samplePaths"=samplingResults[["samplePaths"]],
+                 "breakVector"=samplingResults[["breakVector"]])
 
   return(result)
 }
@@ -1435,4 +1701,210 @@ computeNEff <- function(n, testType=c("oneSample", "paired", "twoSample"), silen
     nEff <- (1/n1+1/n2)^(-1)
   }
   return(nEff)
+}
+
+
+
+# Workshop functions -----
+
+#' @rdname pValueZTest
+#' @export
+pValueFromZStat <- function(z,
+                            alternative=c("twoSided", "less", "greater"),
+                            ...) {
+
+  alternative <- match.arg(alternative)
+
+  pValue <- 1-pnorm(abs(z), mean=0, sd=1)
+
+  if (alternative=="twoSided") { # two-sided
+    pValue <- 2*pValue
+  } else if (alternative=="less") { # one-sided
+    if (z >= 0)
+      pValue <- 1-pValue
+  } else if (alternative=="greater") {
+    if (z <= 0)
+      pValue <- 1-pValue
+  }
+
+  return(unname(pValue))
+}
+
+#' Computes the p-value for the z-test
+#'
+#'
+#' @aliases pValueZTest
+#' @inheritParams safeZTest
+#'
+#' @return pValueTest object
+#' @export
+#'
+#' @examples
+#' pValueZTest(rnorm(10))
+pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
+                        alpha=0.05, na.rm=FALSE, sigma=1, h0=0,
+                        alternative=c("twoSided", "greater", "less"), ...) {
+
+  result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
+                 "testType"=NULL, "dataName"=NULL, "h0"=NULL, "sigma"=NULL, "call"=sys.call())
+  class(result) <- "pValueTest"
+
+  alternative <- match.arg(alternative)
+
+  if (is.null(y)) {
+    testType <- "oneSample"
+    n <- nEff <- n1 <- length(x)
+    n2 <- NULL
+
+    if (paired)
+      stop("Data error: Paired analysis requested without specifying the second variable")
+
+    meanObs <- estimate <- mean(x, "na.rm"=na.rm)
+
+    names(estimate) <- "mean of x"
+    names(n) <- "n1"
+  } else {
+    nEff <- n1 <- length(x)
+    n2 <- length(y)
+
+    if (paired) {
+      if (n1 != n2)
+        stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
+             "but the two samples are not of the same size.")
+
+      testType <- "paired"
+
+      meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
+      names(estimate) <- "mean of the differences"
+    } else {
+      testType <- "twoSample"
+
+      nEff <- (1/n1+1/n2)^(-1)
+      estimate <- c(mean(x, "na.rm"=na.rm), mean(y, "na.rm"=na.rm))
+      names(estimate) <- c("mean of x", "mean of y")
+      meanObs <- estimate[1]-estimate[2]
+    }
+
+    n <- c(n1, n2)
+    names(n) <- c("n1", "n2")
+  }
+
+  if (is.null(ciValue))
+    ciValue <- 1-alpha
+
+  if (ciValue < 0 || ciValue > 1)
+    stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
+
+  zStat <- tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sigma)
+
+  if (is.na(zStat))
+    stop("Could not compute the z-statistic")
+
+  names(zStat) <- "z"
+
+  pValue <- pValueFromZStat(zStat, "alternative"=alternative)
+
+  argumentNames <- getArgs()
+  xLabel <- extractNameFromArgs(argumentNames, "x")
+
+  if (is.null(y)) {
+    dataName <- xLabel
+  } else {
+    yLabel <- extractNameFromArgs(argumentNames, "y")
+    dataName <- paste(xLabel, "and", yLabel)
+  }
+
+  result[["testType"]] <- testType
+  result[["statistic"]] <- zStat
+  result[["estimate"]] <- estimate
+  result[["dataName"]] <- dataName
+  result[["ciValue"]] <- ciValue
+  result[["n"]] <- n
+
+  result[["confInt"]] <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
+                                                    "sigma"=sigma, "ciValue"=ciValue,
+                                                    "alternative"=alternative, "intervalType"="freq")
+  result[["pValue"]] <- pValue
+
+  names(result[["statistic"]]) <- "z"
+
+  return(result)
+}
+
+#' Logarithmic marginal likelihood of the normal with conjugate priors
+#'
+#' @inheritParams subjectiveBfZStat
+#' @param n integer, sample size
+#' @param x numeric, sample mean
+#' @param s2 numeric > 0, sample variance
+#' @param a numeric, prior mean of the population mean mu
+#' @param b numeric > 0, prior standard deviation of the population mean mu
+#'
+#'
+#' @return numeric, the logarithm of the marginal likelihood
+#' @export
+#'
+#' @examples
+#' zMarg(12, 0.3, 2)
+zMarg <- function(n, x, s2, a=0, b=1, sigma=1) {
+  if (n > 1) {
+    result <- -n/2*log(2*pi)+(1-n)*log(sigma)-1/2*log(n*b^2+sigma^2) -
+      (n-1)*s2/(2*sigma^2)-n*(x-a)^2/(2*(n*b^2+sigma^2))
+  } else {
+    result <- -n/2*log(2*pi)+(1-n)*log(sigma)-1/2*log(n*b^2+sigma^2) -
+      n*(x-a)^2/(2*(n*b^2+sigma^2))
+  }
+
+  return(result)
+}
+
+#' A subjective Bayes factor for the two-sample z-test
+#'
+#' Based on conjugate priors with a total of 6 hyperparameters.
+#'
+#' @param x1 numeric, sample mean of group 1
+#' @param s21 numeric, sample variance of group 1
+#' @param n1 integer sample size of group 1
+#' @param x2 numeric, sample mean of group 2
+#' @param s22 numeric, sample variance of group 2
+#' @param n2 integer sample size of group 2
+#' @param sigma numeric > 0, population standard deviation
+#' @param a1 numeric, prior mean of the population mean mu1 of group 1
+#' @param b1 numeric > 0, prior standard deviation of the population mean mu1 of group 1
+#' @param a2 numeric, prior mean of the population mean mu2 of group 2
+#' @param b2 numeric > 0, prior standard deviation of the population mean mu2 of group 2
+#' @param a0 numeric, prior mean of the overall population mean mu0 of both groups
+#' @param b0 numeric > 0, prior standard deviation of the population mean mu0 of both groups
+#' @param log logical, default FALSE, if TRUE then return logarithm of the subjective Bayes factor outcome
+#'
+#' @return numeric > 0 representing the subjective Bayes factor outcome in favour of the alternative over the null
+#' @export
+#'
+#' @examples
+#' subjectiveBfZStat(5.2, 2, 3, 3.4, 2, 12)
+subjectiveBfZStat <- function(x1, s21, n1, x2, s22, n2, sigma=1,
+                              a1=5, b1=2, a2=-5, b2=2, a0=0, b0=1,
+                              log=FALSE) {
+  nTotal <- n1+n2
+  xTotal <- (n1*x1+n2*x2)/nTotal
+
+  if (n1 <= 1 && n2 <= 1) {
+    s2Total <- var(c(x1, x2))
+    s21 <- 0
+    s22 <- 0
+  } else {
+    s2Total <- ((n1-1)*s21+n1*x1^2+(n2-1)*s22+n2*x2^2-(nTotal)*xTotal^2)/(nTotal-1)
+  }
+
+  logMarg1 <- zMarg("n"=n1, "x"=x1, "s2"=s21, "a"=a1, "b"=b1, "sigma"=sigma) +
+    zMarg("n"=n2, "x"=x2, "s2"=s22, "a"=a2, "b"=b2, "sigma"=sigma)
+  logMarg0 <- zMarg("n"=nTotal, "x"=xTotal, "s2"=s2Total, "a"=a0, "b"=b0, "sigma"=sigma)
+
+  logBf10 <- logMarg1 - logMarg0
+
+  if (isTRUE(log)) {
+    return(logBf10)
+  } else {
+    return(exp(logBf10))
+  }
 }

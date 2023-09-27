@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{sampleStoppingTimesSafeT}
 \alias{sampleStoppingTimesSafeT}
-\title{Simulate stopping times for the safe z-test}
+\title{Simulate stopping times for the safe t-test}
 \usage{
 sampleStoppingTimesSafeT(
   deltaTrue,
@@ -16,6 +16,9 @@ sampleStoppingTimesSafeT(
   parameter = NULL,
   seed = NULL,
   wantEValuesAtNMax = FALSE,
+  wantSamplePaths = FALSE,
+  eType = "grow",
+  kappa1 = 0.5,
   pb = TRUE
 )
 }
@@ -48,6 +51,8 @@ optional stopping. Default lowN is set 1.}
 
 \item{wantEValuesAtNMax}{logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.}
 
+\item{wantSamplePaths}{logical. If \code{TRUE} then output the (stopped) sample paths. Default \code{FALSE}.}
+
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 }
 \value{
@@ -56,7 +61,7 @@ due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies th
 time is Inf.
 }
 \description{
-Simulate stopping times for the safe z-test
+Simulate stopping times for the safe t-test
 }
 \examples{
 sampleStoppingTimesSafeT(0.7, nSim=10)

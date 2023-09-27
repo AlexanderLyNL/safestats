@@ -289,13 +289,14 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     zStat <- zStat - sqrt(nEff)*(log(h0))
 
     eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff,
-                            "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1)
+                            "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1,
+                            "eType"="grow")
 
     if (is.null(ciValue))
       ciValue <- 1 - designObj[["alpha"]]
 
     tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
-                                              "phiS"=phiS, "sigma"=1,
+                                              "parameter"=phiS, "sigma"=1,
                                               "ciValue"=ciValue, "alternative"="twoSided")
 
     result[["ciValue"]] <- ciValue
@@ -360,9 +361,10 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
   phiS <- log(designObj[["parameter"]])
 
   eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff, "n2"=NULL,
-                          "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1)
+                          "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1,
+                          "eType"="grow")
 
-  tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs, "phiS"=phiS,
+  tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs, "parameter"=phiS,
                                             "sigma"=1, "ciValue"=ciValue, "alternative"="twoSided")
 
   result[["confSeq"]] <- exp(tempConfSeq)
@@ -1269,11 +1271,11 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
       ratio <- m1/m0
 
       logHazardRatio <- if (alternative=="twoSided") abs(log(hrMin)) else log(hrMin)
-      meanDiffMin <- logHazardRatio*sqrt(ratio)/(1+ratio)
+      meanDiffTrue <- logHazardRatio*sqrt(ratio)/(1+ratio)
 
       logThetaS <- if (!is.null(parameter)) log(parameter) else NULL
 
-      tempResult <- computeNPlanBatchSafeZ("meanDiffMin"=meanDiffMin, "beta"=beta,
+      tempResult <- computeNPlanBatchSafeZ("meanDiffTrue"=meanDiffTrue, "beta"=beta,
                                            "alpha"=alpha, "alternative"=alternative,
                                            "testType"="oneSample",
                                            "ratio"=ratio, "parameter"=logThetaS)

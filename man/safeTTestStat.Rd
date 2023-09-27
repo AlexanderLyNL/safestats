@@ -12,6 +12,8 @@ safeTTestStat(
   alternative = c("twoSided", "less", "greater"),
   tDensity = FALSE,
   paired = FALSE,
+  eType = "grow",
+  kappa1 = parameter,
   ...
 )
 }

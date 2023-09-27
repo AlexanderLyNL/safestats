@@ -80,7 +80,8 @@ extractNameFromArgs <- function(list, name) {
 checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSided", "greater", "less"),
                                               esMinName=c("noName", "meanDiffMin", "phiS",
                                                           "deltaMin", "deltaS",
-                                                          "hrMin", "thetaS", "deltaTrue"),
+                                                          "hrMin", "thetaS", "deltaTrue",
+                                                          "g", "kappa1"),
                                               paramDomain=NULL) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -120,10 +121,12 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSi
   } else if (paramName=="thetaS" || esMinName=="hrMin") {
     hypParamName <- "theta"
     paramDomain <- "positiveNumbers"
+  } else if (paramName=="g" || paramName=="kappa1") {
+    hypParamName <- "g"
+    paramDomain <- "positiveNumbers"
   } else {
     hypParamName <- "testRelevantParameter"
   }
-
 
   if (paramDomain=="unknown") {
     nullValue <- "nullValue"
