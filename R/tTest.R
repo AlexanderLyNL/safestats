@@ -26,7 +26,7 @@
 #' safeTTestStat(t=3, n1=100, parameter=0.3)
 safeTTestStat <- function(t, parameter, n1, n2=NULL,
                           alternative=c("twoSided", "less", "greater"), tDensity=FALSE,
-                          paired=FALSE, eType="grow", ...) {
+                          paired=FALSE, eType=c("grow", "eGauss", "eCauchy", "bayarri"), ...) {
   # TODO(Alexander):
   #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
   #   1. Use Kummer's transform again (??)

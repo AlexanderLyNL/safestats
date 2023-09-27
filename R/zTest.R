@@ -27,11 +27,11 @@
 #' @examples
 #' safeZTestStat(z=1, n1=100, parameter=0.4, eType="grow")
 #' safeZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
+#'
 safeZTestStat <- function(z, n1, n2=NULL, parameter,
                           alternative=c("twoSided", "less", "greater"),
                           paired=FALSE, sigma=1,
                           eType=c("eGauss", "grow", "eCauchy"), ...) {
-
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -44,10 +44,11 @@ safeZTestStat <- function(z, n1, n2=NULL, parameter,
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
-  if (is.null(n2) || is.na(n2) || paired==TRUE)
+  if (is.null(n2) || is.na(n2) || paired==TRUE) {
     nEff <- n1
-  else
+  } else {
     nEff <- (1/n1+1/n2)^(-1)
+  }
 
   if (eType=="grow") {
     phiS <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "alternative"=alternative,
@@ -61,11 +62,18 @@ safeZTestStat <- function(z, n1, n2=NULL, parameter,
   } else if (eType=="eGauss") {
     g <- parameter
 
+    logResult <- -1/2*log(1+nEff*g)+nEff*g*z^2/(2*(1+nEff*g))
+
     if (alternative=="twoSided") { # two-sided
-      logResult <- -1/2*log(1+nEff*g)+nEff*g*z^2/(2*(1+nEff*g))
       result <- exp(logResult)
     } else { # one-sided
-      stop("Not yet implemented")
+      if (alternative=="greater") {
+        result <- 2*exp(logResult)*
+          pnorm(-g*sqrt(nEff)*z/(1+nEff*g), lower.tail = FALSE)
+      } else {
+        result <- 2*exp(logResult)*
+          pnorm(-g*sqrt(nEff)*z/(1+nEff*g), lower.tail = TRUE)
+      }
     }
   }
 
