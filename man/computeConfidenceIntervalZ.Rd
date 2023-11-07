@@ -7,13 +7,14 @@
 computeConfidenceIntervalZ(
   nEff,
   meanObs,
-  phiS,
+  parameter,
   sigma = 1,
   ciValue = 0.95,
   alternative = "twoSided",
   a = NULL,
   g = NULL,
-  intervalType = c("eGauss", "grow", "freq", "credibleInterval")
+  intervalType = c("eCauchy", "eGauss", "grow", "freq", "credibleInterval"),
+  maxRoot = 10
 )
 }
 \arguments{
@@ -21,7 +22,7 @@ computeConfidenceIntervalZ(
 
 \item{meanObs}{numeric, the observed mean. For two sample tests this is difference of the means.}
 
-\item{phiS}{numeric > 0, the safe test defining parameter.}
+\item{parameter}{numeric > 0, the safe test defining parameter.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
@@ -43,6 +44,8 @@ mean difference. This confidence interval unfortunately does not shrink as the s
 infinity. "freq" yields the standard frequentist confidence interval, which is not safe.
 "credibleInterval" yields the credible interval based on a conjugate prior as is usual in Bayesian
 analysis. This interval is also not safe.}
+
+\item{maxRoot}{Used to determine the maximum width for the z statistic whenever intervalType="eCauchy"}
 }
 \value{
 numeric vector that contains the upper and lower bound of the safe confidence sequence
@@ -51,5 +54,5 @@ numeric vector that contains the upper and lower bound of the safe confidence se
 Helper function: Computes the safe confidence sequence for a z-test
 }
 \examples{
-computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
+computeConfidenceIntervalZ(nEff=15, meanObs=0.3, parameter=0.2)
 }

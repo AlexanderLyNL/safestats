@@ -12,7 +12,7 @@ generateNormalData(
   sigmaTrue = 1,
   paired = FALSE,
   seed = NULL,
-  muTrue = NULL
+  meanDiffTrue = NULL
 )
 }
 \arguments{
@@ -32,7 +32,7 @@ for the test.This parameter treated is treated as a nuisance.}
 
 \item{seed}{To set the seed for the simulated data.}
 
-\item{muTrue}{numeric representing the true mean for simulations with a z-test.
+\item{meanDiffTrue}{numeric representing the true mean for simulations with a z-test.
 Default \code{NULL}}
 }
 \value{

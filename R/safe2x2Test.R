@@ -199,6 +199,7 @@ designSafeTwoProportions <- function(na, nb,
   }
 
   testType <- "2x2"
+  testName <- "Two Proportions"
   h0 <- 0
 
   result <- list("nPlan"=nPlan,
@@ -213,6 +214,7 @@ designSafeTwoProportions <- function(na, nb,
                  "esMin" = delta,
                  "h0"= h0,
                  "testType"=testType,
+                 "testName"=testName,
                  "alternativeRestriction" = alternativeRestriction,
                  "alternative" = alternative,
                  "pilot" = pilot,

@@ -6,7 +6,7 @@
 standardised mean difference and nPlan.}
 \usage{
 computeBetaSafeT(
-  deltaMin,
+  deltaTrue,
   nPlan,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
@@ -15,12 +15,15 @@ computeBetaSafeT(
   parameter = NULL,
   pb = TRUE,
   nSim = 1000L,
-  nBoot = 1000L
+  nBoot = 1000L,
+  eType = c("eCauchy", "eGauss", "grow"),
+  wantSamplePaths = TRUE,
+  ...
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
-we would the experiment to be able to detect.}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
+This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
 
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
@@ -34,7 +37,15 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{seed}{integer, seed number.}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of the
+non-central t-distributions with in the denominator the likelihood with non-centrality
+parameter set to 0, and in the numerator an average likelihood defined by the likelihood
+at the non-centrality parameter value deltaS. For the two sided
+case 1/2 at -deltaS and 1/2 deltaS.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
@@ -44,6 +55,14 @@ for the safe z test under continuous monitoring.}
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
 approximation of the power, the number of samples for the safe z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant standardised effect size.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
+\item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
 a list which contains at least beta and an adapted bootObject of class
@@ -54,5 +73,5 @@ Helper function: Computes the type II error of the safeTTest based on the minima
 standardised mean difference and nPlan.
 }
 \examples{
-computeBetaSafeT(deltaMin=0.7, 27, nSim=10)
+computeBetaSafeT(deltaTrue=0.7, 27, nSim=10)
 }

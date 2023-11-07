@@ -9,17 +9,17 @@ sampleStoppingTimesSafeT(
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
+  parameter = NULL,
+  eType = c("eCauchy", "eGauss", "grow"),
   nSim = 1000L,
-  nMax = 1000,
+  nMax = 1000L,
   ratio = 1,
   lowN = 3L,
-  parameter = NULL,
   seed = NULL,
   wantEValuesAtNMax = FALSE,
-  wantSamplePaths = FALSE,
-  eType = "grow",
-  kappa1 = 0.5,
-  pb = TRUE
+  pb = TRUE,
+  wantSamplePaths = TRUE,
+  wantSimData = FALSE
 )
 }
 \arguments{
@@ -34,6 +34,20 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of the
+non-central t-distributions with in the denominator the likelihood with non-centrality
+parameter set to 0, and in the numerator an average likelihood defined by the likelihood
+at the non-centrality parameter value deltaS. For the two sided
+case 1/2 at -deltaS and 1/2 deltaS.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant standardised effect size.}
+
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the safe z test under continuous monitoring.}
 
@@ -45,15 +59,15 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 \item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
 optional stopping. Default lowN is set 1.}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
-
 \item{seed}{integer, seed number.}
 
 \item{wantEValuesAtNMax}{logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.}
 
-\item{wantSamplePaths}{logical. If \code{TRUE} then output the (stopped) sample paths. Default \code{FALSE}.}
-
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{wantSamplePaths}{logical. If \code{TRUE} then output the (stopped) sample paths. Default \code{TRUE}.}
+
+\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
@@ -64,5 +78,5 @@ time is Inf.
 Simulate stopping times for the safe t-test
 }
 \examples{
-sampleStoppingTimesSafeT(0.7, nSim=10)
+sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
 }

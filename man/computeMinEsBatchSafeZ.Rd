@@ -14,7 +14,8 @@ computeMinEsBatchSafeZ(
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  maxIter = 10
+  maxIter = 10,
+  eType = c("eGauss", "grow", "eCauchy")
 )
 }
 \arguments{
@@ -37,9 +38,20 @@ and "phiS". Note that 1-beta defines the power.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of z distributions with in the
+denominator the likelihood with mean difference 0 and in the numerator an average
+likelihood defined by the likelihood at the parameter value phiS. For the two sided
+case 1/2 at -phiS and 1/2 phiS.}
 
 \item{maxIter}{maximum number of iterations in the optimisation process for two-sided designs}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
 }
 \value{
 numeric > 0 that represents the minimal detectable mean difference

@@ -6,24 +6,18 @@
 \usage{
 safeTTestStat(
   t,
-  parameter,
   n1,
   n2 = NULL,
+  parameter,
   alternative = c("twoSided", "less", "greater"),
   tDensity = FALSE,
   paired = FALSE,
-  eType = "grow",
-  kappa1 = parameter,
+  eType = c("eCauchy", "eGauss", "bayarri", "grow"),
   ...
 )
 }
 \arguments{
 \item{t}{numeric that represents the observed t-statistic.}
-
-\item{parameter}{numeric this defines the safe test S, i.e., a likelihood ratio of t distributions with in
-the denominator the likelihood with delta = 0 and in the numerator an average likelihood defined by
-1/2 time the likelihood at the non-centrality parameter sqrt(nEff)*parameter and 1/2 times the likelihood at
-the non-centrality parameter -sqrt(nEff)*parameter.}
 
 \item{n1}{integer that represents the size in a one-sample t-test, (n2=\code{NULL}). When n2 is not \code{NULL},
 this specifies the size of the first sample for a two-sample test.}
@@ -31,12 +25,19 @@ this specifies the size of the first sample for a two-sample test.}
 \item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 \code{NULL} it implies that the t-statistic is based on one-sample.}
 
+\item{parameter}{numeric this defines the safe test S, i.e., a likelihood ratio of t distributions with in
+the denominator the likelihood with delta = 0 and in the numerator an average likelihood defined by
+1/2 time the likelihood at the non-centrality parameter sqrt(nEff)*parameter and 1/2 times the likelihood at
+the non-centrality parameter -sqrt(nEff)*parameter.}
+
 \item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
 then the alternative specified by the design object is used instead.}
 
 \item{tDensity}{Uses the the representation of the safe t-test as the likelihood ratio of t densities.}
 
 \item{paired}{a logical indicating whether you want a paired t-test.}
+
+\item{eType}{character, type of e-value: "eCauchy" (default), "eGauss", or "grow"}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

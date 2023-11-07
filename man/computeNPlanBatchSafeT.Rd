@@ -6,19 +6,21 @@
 relevant standardised effect size, alpha and beta.}
 \usage{
 computeNPlanBatchSafeT(
-  deltaMin,
+  deltaTrue,
   alpha = 0.05,
   beta = 0.2,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
+  eType = c("eCauchy", "eGauss", "grow"),
+  parameter = NULL,
   lowN = 3,
   highN = 1e+06,
   ratio = 1
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
-we would the experiment to be able to detect.}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
+This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
@@ -30,6 +32,20 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant standardised effect size.}
+
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of the
+non-central t-distributions with in the denominator the likelihood with non-centrality
+parameter set to 0, and in the numerator an average likelihood defined by the likelihood
+at the non-centrality parameter value deltaS. For the two sided
+case 1/2 at -deltaS and 1/2 deltaS.}
 
 \item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
 optional stopping. Default lowN is set 1.}

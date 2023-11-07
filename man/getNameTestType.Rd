@@ -4,12 +4,13 @@
 \alias{getNameTestType}
 \title{Gets the Label of the Test}
 \usage{
-getNameTestType(testType, parameterName)
+getNameTestType(testType, testName)
 }
 \arguments{
 \item{testType}{A character string. For the t-tests: "oneSample", "paired", "twoSample".}
 
-\item{parameterName}{The name of the parameter to identify test performed}
+\item{testName}{The name of the analysis that is performed such as "Z-Test",
+and "Test of Two Proportions".}
 }
 \value{
 Returns a character string with the name of the analysis.

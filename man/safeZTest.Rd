@@ -84,5 +84,5 @@ x <- rnorm(100)
 y <- rnorm(100)
 safeZTest(x, y, designObj=designObj)      #
 
-safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 7.7543e+20 > 1/alpha
+safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 3.033e+78 > 1/alpha
 }

@@ -21,6 +21,11 @@ pValueZTest(
 )
 }
 \arguments{
+\item{z}{numeric that represents the observed z-statistic.}
+
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
+"greater" or "less".}
+
 \item{...}{further arguments to be passed to or from methods.}
 
 \item{x}{a (non-empty) numeric vector of data values.}
@@ -31,8 +36,15 @@ pValueZTest(
 
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
 
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+
 \item{na.rm}{a logical value indicating whether \code{NA} values should be stripped before
 the computation proceeds.}
+
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+
+\item{h0}{numeric, represents the null hypothesis, default h0=0.}
 }
 \value{
 pValueTest object

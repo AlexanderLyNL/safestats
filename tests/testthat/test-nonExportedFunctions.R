@@ -66,7 +66,7 @@ test_that("extractNameFromArgs returns the arguments correctly", {
 })
 
 test_that("getNameTestType returns the correct name", {
-  result <- safestats:::getNameTestType("oneSample", "deltaS")
+  result <- safestats:::getNameTestType("oneSample", "T-Test")
   expect_equal(object=result, expected="Safe One Sample T-Test")
 })
 
@@ -94,27 +94,34 @@ test_that("defineTTestN returns correct list", {
 })
 
 test_that("computeNPlanBatchSafeZ returns correct list", {
-  result <- safestats:::computeNPlanBatchSafeZ(0.4)
+  result <- safestats:::computeNPlanBatchSafeZ(0.4, eType="grow")
 
   nPlan <- 85
+  parameter <- 0.4
+
   names(nPlan) <- "n1Plan"
-  expectedResult <- list(nPlan=nPlan, phiS=0.4)
+  names(parameter) <- "phiS"
+
+  expectedResult <- list(nPlan=nPlan, parameter=parameter)
 
   expect_equal(object=result, expected=expectedResult)
 
-  result <- safestats:::computeNPlanBatchSafeZ(0.4, grow=FALSE)
+  result <- safestats:::computeNPlanBatchSafeZ(0.4, eType="eGauss")
 
-  nPlan <- 80
+  nPlan <- 96
+  parameter <- 0.4^2
+
   names(nPlan) <- "n1Plan"
+  names(parameter) <- "g"
 
-  expectedResult <- list(nPlan=nPlan, phiS=0.2691, lowN=67, highN=80, lowParam=0.2, highParam=0.4)
+  expectedResult <- list(nPlan=nPlan, parameter=parameter)
 
   expect_equal(object=result, expected=expectedResult)
 })
 
 
 test_that("computeBetaBatchSafeZ returns correct batch beta", {
-  result <- safestats:::computeBetaBatchSafeZ(meanDiffMin=0.9, nPlan=12)
+  result <- safestats:::computeBetaBatchSafeZ(meanDiffTrue=0.9, nPlan=12, eType="grow")
   expectedResult <- 0.35359335
   expect_equal(object=result, expected=expectedResult)
 })

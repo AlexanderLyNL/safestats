@@ -81,7 +81,7 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSi
                                               esMinName=c("noName", "meanDiffMin", "phiS",
                                                           "deltaMin", "deltaS",
                                                           "hrMin", "thetaS", "deltaTrue",
-                                                          "g", "kappa1"),
+                                                          "g", "kappaG"),
                                               paramDomain=NULL) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -121,7 +121,7 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSi
   } else if (paramName=="thetaS" || esMinName=="hrMin") {
     hypParamName <- "theta"
     paramDomain <- "positiveNumbers"
-  } else if (paramName=="g" || paramName=="kappa1") {
+  } else if (paramName=="g" || paramName=="kappaG") {
     hypParamName <- "g"
     paramDomain <- "positiveNumbers"
   } else {

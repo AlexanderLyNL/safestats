@@ -5,29 +5,47 @@
 \title{Simulate stopping times for the safe z-test}
 \usage{
 sampleStoppingTimesSafeZ(
-  meanDiffMin,
+  meanDiffTrue,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
+  testType = c("oneSample", "paired", "twoSample"),
+  parameter = NULL,
+  eType = c("eCauchy", "eGauss", "grow"),
   sigma = 1,
   kappa = sigma,
   nSim = 1000L,
-  nMax = 1000,
+  nMax = 1000L,
   ratio = 1,
-  testType = c("oneSample", "paired", "twoSample"),
-  parameter = NULL,
   wantEValuesAtNMax = FALSE,
-  pb = TRUE
+  pb = TRUE,
+  seed = NULL,
+  wantSamplePaths = TRUE,
+  wantSimData = FALSE
 )
 }
 \arguments{
-\item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
-that we would like to detect.}
+\item{meanDiffTrue}{numeric, data governing parameter value}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
+
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
+
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of z distributions with in the
+denominator the likelihood with mean difference 0 and in the numerator an average
+likelihood defined by the likelihood at the parameter value phiS. For the two sided
+case 1/2 at -phiS and 1/2 phiS.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
@@ -41,13 +59,15 @@ for the safe z test under continuous monitoring.}
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{testType}{either one of "oneSample", "paired", "twoSample".}
-
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
-
-\item{wantEValuesAtNMax}{logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.}
+\item{wantEValuesAtNMax}{logical. If \code{TRUE}, then compute eValues at nMax. Default \code{FALSE}.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{seed}{integer, seed number.}
+
+\item{wantSamplePaths}{logical. If \code{TRUE}, then output the (stopped) sample paths. Default \code{TRUE}.}
+
+\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
@@ -58,5 +78,5 @@ time is Inf.
 Simulate stopping times for the safe z-test
 }
 \examples{
-sampleStoppingTimesSafeZ(0.7, nSim=10)
+sampleStoppingTimesSafeZ(0.7, nSim=10, nMax=20)
 }

@@ -288,7 +288,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     # but to avoid rounding erros zStat is used instead
     zStat <- zStat - sqrt(nEff)*(log(h0))
 
-    eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff,
+    eValue <- safeZTestStat("z"=unname(zStat), "parameter"=phiS, "n1"=nEff,
                             "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1,
                             "eType"="grow")
 
@@ -360,7 +360,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 
   phiS <- log(designObj[["parameter"]])
 
-  eValue <- safeZTestStat("z"=zStat, "phiS"=phiS, "n1"=nEff, "n2"=NULL,
+  eValue <- safeZTestStat("z"=unname(zStat), "parameter"=phiS, "n1"=nEff, "n2"=NULL,
                           "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1,
                           "eType"="grow")
 

@@ -23,6 +23,8 @@ designSafeT(
   parameter = NULL,
   pb = TRUE,
   seed = NULL,
+  eType = c("eCauchy", "eGauss", "grow"),
+  wantSamplePaths = TRUE,
   ...
 )
 }
@@ -69,11 +71,25 @@ for the safe z test under continuous monitoring.}
 approximation of the power, the number of samples for the safe z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of the
+non-central t-distributions with in the denominator the likelihood with non-centrality
+parameter set to 0, and in the numerator an average likelihood defined by the likelihood
+at the non-centrality parameter value deltaS. For the two sided
+case 1/2 at -deltaS and 1/2 deltaS.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{seed}{integer, seed number.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant standardised effect size.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }

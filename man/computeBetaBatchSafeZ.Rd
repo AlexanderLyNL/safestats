@@ -5,19 +5,19 @@
 \title{Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.}
 \usage{
 computeBetaBatchSafeZ(
-  meanDiffMin,
+  meanDiffTrue,
   nPlan,
   alpha = 0.05,
   sigma = 1,
   kappa = sigma,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  parameter = NULL
+  parameter = NULL,
+  eType = c("eCauchy", "eGauss", "grow")
 )
 }
 \arguments{
-\item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
-that we would like to detect.}
+\item{meanDiffTrue}{numeric, data governing parameter value}
 
 \item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the safe test
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
@@ -35,7 +35,18 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of z distributions with in the
+denominator the likelihood with mean difference 0 and in the numerator an average
+likelihood defined by the likelihood at the parameter value phiS. For the two sided
+case 1/2 at -phiS and 1/2 phiS.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
 }
 \value{
 numeric that represents the type II error

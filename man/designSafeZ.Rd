@@ -20,7 +20,9 @@ designSafeZ(
   nSim = 1000L,
   nBoot = 1000L,
   pb = TRUE,
-  eType = c("eGauss", "eCauchy", "grow"),
+  seed = NULL,
+  eType = c("eCauchy", "eGauss", "grow"),
+  wantSamplePaths = TRUE,
   ...
 )
 }
@@ -54,7 +56,14 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{parameter}{optional test defining parameter. Default set to \code{NULL}.}
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of z distributions with in the
+denominator the likelihood with mean difference 0 and in the numerator an average
+likelihood defined by the likelihood at the parameter value phiS. For the two sided
+case 1/2 at -phiS and 1/2 phiS.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the safe z test under continuous monitoring.}
@@ -65,9 +74,13 @@ or for the computation of the logarithm of the implied target.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
-\item{eType}{character one of "eGauss", "eCauchy", "grow". "eGauss" yields e-values based on
-a Gaussian/normal mixture. "eCauchy" based on a Cauchy mixture and "grow" based on a mixture of two
-point masses at the minimal clinically relevant effect size.}
+\item{seed}{integer, seed number.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

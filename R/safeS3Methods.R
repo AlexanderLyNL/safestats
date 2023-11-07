@@ -5,25 +5,24 @@
 #' Helper function that outputs the name of the analysis.
 #'
 #' @param testType A character string. For the t-tests: "oneSample", "paired", "twoSample".
-#' @param parameterName The name of the parameter to identify test performed
+#' @param testName The name of the analysis that is performed such as "Z-Test",
+#' and "Test of Two Proportions".
 #'
 #' @return Returns a character string with the name of the analysis.
-getNameTestType <- function(testType, parameterName) {
-  nameChar <- switch(testType,
-                     "oneSample"="Safe One Sample",
-                     "paired"="Safe Paired Sample",
-                     "twoSample"="Safe Two Sample",
-                     "gLogrank"="Safe Gaussian",
-                     "eLogrank"="Safe Exact",
-                     "logrank"="Safe",
-                     "2x2" = "Safe Test of Two Proportions")
+getNameTestType <- function(testType, testName) {
 
-  testName <- switch(parameterName,
-                     "phiS"="Z-Test",
-                     "deltaS"="T-Test",
-                     "thetaS"="Logrank Test")
+  testTypeChar <- switch(testType,
+                     "oneSample"="One Sample",
+                     "paired"="Paired Sample",
+                     "twoSample"="Two Sample",
+                     "gLogrank"="Gaussian",
+                     "eLogrank"="Exact",
+                     "logrank"="",
+                     "2x2" = "Test of Two Proportions")
+  analysisName <- paste("Safe", testTypeChar, testName)
+  return(analysisName)
 
-  return(paste(nameChar, testName))
+  # return(paste(nameChar, testName))
 }
 
 #' Gets the Label of the Alternative Hypothesis
@@ -78,7 +77,8 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
 
   testType <- designObj[["testType"]]
 
-  analysisName <- getNameTestType("testType"=testType, "parameterName"=names(designObj[["parameter"]]))
+  analysisName <- getNameTestType("testType"=testType,
+                                  "testName"=designObj[["testName"]])
   alternativeName <- getNameAlternative("alternative"=designObj[["alternative"]],
                                         "testType"=testType, "h0"=designObj[["h0"]])
 
@@ -214,10 +214,10 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
 print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
   testType <- designObj[["testType"]]
-  parameterName <- names(designObj[["parameter"]])
+  testName <- designObj[["testName"]]
 
   note <- designObj[["note"]]
-  analysisName <- paste(getNameTestType("testType"=testType, "parameterName"=parameterName), "Design")
+  analysisName <- paste(getNameTestType("testType"=testType, "testName"=testName), "Design")
 
   cat("\n")
   cat(strwrap(analysisName, prefix = prefix), sep = "\n")
@@ -336,7 +336,7 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' simObj <- simulate(designObj, nSim=10)
 #' print(simObj)
 print.safeTSim <- function(x, ...) {
-  analysisName <- getNameTestType("testType" = x[["testType"]], "parameterName"=names(x[["parameter"]]))
+  analysisName <- getNameTestType("testType" = x[["testType"]], "testName"=x[["testName"]])
 
   if(!is.null(x[["safeSim"]])) {
     cat("\n")

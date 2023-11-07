@@ -6,23 +6,18 @@
 \usage{
 safeZTestStat(
   z,
-  phiS,
   n1,
   n2 = NULL,
+  parameter,
   alternative = c("twoSided", "less", "greater"),
   paired = FALSE,
   sigma = 1,
-  eType = c("grow", "eGauss", "eCauchy"),
+  eType = c("eGauss", "grow", "eCauchy"),
   ...
 )
 }
 \arguments{
 \item{z}{numeric that represents the observed z-statistic.}
-
-\item{phiS}{numeric this defines the safe test S, i.e., a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average likelihood defined by
-the likelihood at the parameter value. For the two sided case 1/2 at the parameter value and 1/2 at minus the
-parameter value.}
 
 \item{n1}{integer that represents the size in a one-sample z-test, (n2=\code{NULL}). When n2 is not
 \code{NULL}, this specifies the size of the first sample for a two-sample test.}
@@ -30,12 +25,25 @@ parameter value.}
 \item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 \code{NULL} it implies that the z-statistic is based on one-sample.}
 
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of z distributions with in the
+denominator the likelihood with mean difference 0 and in the numerator an average
+likelihood defined by the likelihood at the parameter value phiS. For the two sided
+case 1/2 at -phiS and 1/2 phiS.}
+
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
-\item{paired}{a logical, if \code{TRUE} ignores n2, and indicates that a paired z-test is performed.}
+\item{paired}{a logical indicating whether you want the paired z-test.}
 
-\item{sigma}{numeric, the assumed known standard deviation, default 1.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -46,6 +54,7 @@ Returns an e-value.
 Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
 }
 \examples{
-safeZTestStat(z=1, n1=100, phiS=0.4)
-safeZTestStat(z=3, n1=100, phiS=0.3)
+safeZTestStat(z=1, n1=100, parameter=0.4, eType="grow")
+safeZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
+safeZTestStat(z=3, n1=100, parameter=0.4, eType="eCauchy")
 }
