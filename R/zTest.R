@@ -1055,11 +1055,13 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
 #'
 #' @return a list which contains at least nPlan and the phiS, that is, the parameter that defines
 #' the safe test.
-computeNPlanBatchSafeZ <- function(meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
-                                   alternative=c("twoSided", "greater", "less"),
-                                   testType=c("oneSample", "paired", "twoSample"),
-                                   tol=1e-5, highN=1e6, ratio=1, parameter=NULL,
-                                   eType=c("eCauchy", "eGauss", "grow")) {
+computeNPlanBatchSafeZ <- function(
+    meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+    alternative=c("twoSided", "greater", "less"),
+    testType=c("oneSample", "paired", "twoSample"),
+    tol=1e-5, highN=1e6, ratio=1, parameter=NULL,
+    eType=c("eCauchy", "eGauss", "grow")) {
+
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -1073,7 +1075,6 @@ computeNPlanBatchSafeZ <- function(meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, 
   eType <- match.arg(eType)
 
   result <- list(nPlan=NULL, parameter=NULL)
-  meanDiffTrue <- abs(meanDiffTrue)
 
   n1Plan <- NULL
   n2Plan <- NULL
@@ -1100,10 +1101,37 @@ computeNPlanBatchSafeZ <- function(meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, 
   if (eType=="grow" && alternative %in% c("greater", "less") && parameter==abs(meanDiffTrue)) {
     nEff <- nTemp
   } else {
-    targetFunction <- function(n) {
-      safeZTestStat(qnorm("p"=beta, "mean"=sqrt(n)*meanDiffTrue, "sd"=kappa/sigma),
-                    "n1"=n, "parameter"=parameter,
-                    "alternative"=alternative, "eType"=eType)$eValue-1/alpha
+
+    if (testType=="twoSample") {
+      if (alternative=="twoSided") {
+        targetFunction <- function(nEff) {
+          safeZTestStat(qnorm("p"=beta, "mean"=sqrt(nEff)*meanDiffTrue, "sd"=kappa/sigma),
+                        "n1"=(1+ratio)/ratio*nEff, "n2"=(1+ratio)*nEff,
+                        "parameter"=parameter,
+                        "alternative"="twoSided", "eType"=eType)$eValue-1/alpha
+        }
+      } else if (alternative %in% c("greater", "less")) {
+        targetFunction <- function(nEff) {
+          safeZTestStat(qnorm("p"=beta, "mean"=sqrt(nEff)*meanDiffTrue, "sd"=kappa/sigma),
+                        "n1"=(1+ratio)/ratio*nEff, "n2"=(1+ratio)*nEff,
+                        "parameter"=parameter,
+                        "alternative"="greater", "eType"=eType)$eValue-1/alpha
+        }
+      }
+    } else if (testType %in% c("oneSample", "paired")) {
+      if (alternative=="twoSided") {
+        targetFunction <- function(nEff) {
+          safeZTestStat(qnorm("p"=beta, "mean"=sqrt(nEff)*meanDiffTrue, "sd"=kappa/sigma),
+                        "n1"=nEff, "parameter"=parameter,
+                        "alternative"="twoSided", "eType"=eType)$eValue-1/alpha
+        }
+      } else if (alternative %in% c("greater", "less")) {
+        targetFunction <- function(nEff) {
+          safeZTestStat(qnorm("p"=beta, "mean"=sqrt(nEff)*meanDiffTrue, "sd"=kappa/sigma),
+                        "n1"=nEff, "parameter"=parameter,
+                        "alternative"="greater", "eType"=eType)$eValue-1/alpha
+        }
+      }
     }
 
     tempResult <- try(stats::uniroot(targetFunction, interval=c(nTemp/2, 3*nTemp)))
