@@ -79,7 +79,10 @@ test_that("computeNPlanBatchSafeT returns the correct batch sample size", {
   result <- safestats:::computeNPlanBatchSafeT(0.4)
   nPlan <- 88
   names(nPlan) <- "n1Plan"
-  expectedResult <- list(nPlan=nPlan, deltaS=0.4)
+  parameter <- 0.4
+  names(parameter) <- "deltaS"
+
+  expectedResult <- list(nPlan=nPlan, parameter=parameter)
   expect_equal(object=result, expected=expectedResult)
 })
 

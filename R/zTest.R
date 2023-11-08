@@ -40,8 +40,9 @@ safeZTestStat <- function(z, n1, n2=NULL, parameter,
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
 
   if (eType=="grow") {
-    phiS <- checkAndReturnsEsMinParameterSide("paramToCheck"=parameter, "alternative"=alternative,
-                                              "esMinName"="phiS")
+    phiS <- checkAndReturnsEsMinParameterSide(
+      "paramToCheck"=parameter, "alternative"=alternative,
+      "esMinName"="phiS")
 
     if (alternative=="twoSided") { # two-sided
       result <- list("eValue"=exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z))
@@ -552,8 +553,9 @@ designFreqZ <- function(meanDiffMin, alternative=c("twoSided", "greater", "less"
                  "h0"=h0)
   class(result) <- "freqZDesign"
 
-  meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "alternative"=alternative,
-                                                   "esMinName"="meanDiffMin")
+  meanDiffMin <- checkAndReturnsEsMinParameterSide(
+    "paramToCheck"=meanDiffMin, "alternative"=alternative,
+    "esMinName"="meanDiffMin")
 
   n1Plan <- NULL
   n2Plan <- NULL
@@ -833,8 +835,9 @@ designSafeZ <- function(meanDiffMin=NULL, beta=NULL, nPlan=NULL,
   }
 
   if (!is.null(meanDiffMin)) {
-    meanDiffMin <- checkAndReturnsEsMinParameterSide("paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin",
-                                                     "alternative"=alternative)
+    meanDiffMin <- checkAndReturnsEsMinParameterSide(
+      "paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin",
+      "alternative"=alternative)
   }
 
 
@@ -1056,7 +1059,7 @@ computeNPlanBatchSafeZ <- function(meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, 
                                    alternative=c("twoSided", "greater", "less"),
                                    testType=c("oneSample", "paired", "twoSample"),
                                    tol=1e-5, highN=1e6, ratio=1, parameter=NULL,
-                                   eType=c("eGauss", "grow", "eCauchy")) {
+                                   eType=c("eCauchy", "eGauss", "grow")) {
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -1078,15 +1081,16 @@ computeNPlanBatchSafeZ <- function(meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, 
   n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
   if (is.null(parameter)) {
-    if (eType %in% c("grow", "eCauchy")) {
-      parameter <- abs(meanDiffTrue)
-    } else if (eType=="eGauss") {
-      parameter <- meanDiffTrue^2/sigma^2
-    } else if (eType=="eCauchy") {
-      parameter <- abs(meanDiffTrue/sigma)
-    }
+    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
+      "paramToCheck"=meanDiffTrue, "alternative"=alternative,
+      "esMinName"="meanDiffMin")
+    parameter <- switch(eType,
+                        "eCauchy"=abs(meanDiffTrue/sigma),
+                        "eGauss"=meanDiffTrue^2/sigma^2,
+                        "grow"=abs(meanDiffTrue))
   }
 
+  meanDiffTrue <- abs(meanDiffTrue)
   qB <- qnorm(beta)
 
   nTemp <- exp(2*(log(kappa)-log(meanDiffTrue))) *
@@ -1338,7 +1342,9 @@ sampleStoppingTimesSafeZ <- function(meanDiffTrue, alpha=0.05, alternative = c("
   if (is.null(parameter)) {
     if (eType=="grow") {
       parameter <- meanDiffTrue
-      parameter <- checkAndReturnsEsMinParameterSide(parameter, "alternative"=alternative, "esMinName"="meanDiffTrue")
+      parameter <- checkAndReturnsEsMinParameterSide(
+        parameter, "alternative"=alternative,
+        "esMinName"="phiS")
     } else if (eType=="eGauss") {
       parameter <- meanDiffTrue^2/sigma^2
     } else if (eType=="eCauchy") {
@@ -1557,7 +1563,7 @@ computeNPlanSafeZ <- function(meanDiffTrue, beta=0.2, alpha=0.05, alternative=c(
   if (is.null(parameter)) {
     meanDiffTrue <- checkAndReturnsEsMinParameterSide(
       "paramToCheck"=meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffTrue")
+      "esMinName"="meanDiffMin")
     parameter <- switch(eType,
                         "grow"=meanDiffTrue,
                         "eGauss"=meanDiffTrue^2/sigma^2,

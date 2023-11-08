@@ -49,7 +49,7 @@ safeTTestStat <- function(t, n1, n2=NULL, parameter,
   eType <- match.arg(eType)
 
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
-  nu <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1-1 else n1+n2-1
+  nu <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1-1 else n1+n2-2
 
   # TODO(Alexander): This is not necessarily correct, since the correct one is
   # (2*(y1-y2))^(-1)*(1+sign(y1-y2)*
@@ -89,7 +89,7 @@ safeTTestStat <- function(t, n1, n2=NULL, parameter,
       eValues[!zeroIndex] <- expTerm[!zeroIndex]*(aKummerFunction + bKummerFunction)
     }
 
-    if (result < 0) {
+    if (eValues < 0) {
       warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
       eValues <- safeTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
                                        "nEff"=nEff, "alternative"=alternative)
@@ -936,7 +936,7 @@ designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("twoSided", "gr
 
   result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=NULL, "alpha"=alpha, "beta"=NULL,
                  "alternative"=alternative, "testType"=testType, "paired"=paired,
-                 "h0"=h0, "sigma"=sigma, "kappa"=kappa, "testType"=testType,
+                 "h0"=h0, "testType"=testType,
                  "ratio"=ratio, "lowParam"=NULL, "highParam"=NULL,
                  "pilot"=FALSE, "call"=sys.call(), "timeStamp"=Sys.time())
   class(result) <- "safeDesign"
