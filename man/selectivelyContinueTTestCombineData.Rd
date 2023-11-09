@@ -74,20 +74,23 @@ oldData <- generateNormalData(nPlan=designObj$nPlan, deltaTrue=0, nSim=mIter, se
 eValues <- vector("numeric", length=mIter)
 
 for (i in seq_along(eValues)) {
-  eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
+  tempResult <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)
+  tempResult$eValue
+  eValues[i] <- tempResult$eValue
 }
 
-# First run: 8 false null rejections
+
+# First run: 3 false null rejections
 sum(eValues > 1/alpha)
 
 continuedSafe <- selectivelyContinueTTestCombineData(
   oldValues=eValues, designObj=designObj, oldData=oldData,
   deltaTrue=0, seed=2)
 
-# Second run: 1 false null rejections
+# Second run: 2 false null rejections
 sum(continuedSafe$newValues > 1/alpha)
 
-# Third run: 0 false null rejections
+# Third run: 1 false null rejections
 eValues <- continuedSafe$newValues
 oldData <- continuedSafe$combinedData
 continuedSafe <- selectivelyContinueTTestCombineData(

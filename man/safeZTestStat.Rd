@@ -12,7 +12,7 @@ safeZTestStat(
   alternative = c("twoSided", "less", "greater"),
   paired = FALSE,
   sigma = 1,
-  eType = c("eGauss", "grow", "eCauchy"),
+  eType = c("eCauchy", "eGauss", "grow"),
   ...
 )
 }

@@ -314,31 +314,36 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
 #' eValues <- vector("numeric", length=mIter)
 #'
 #' for (i in seq_along(eValues)) {
-#'   eValues[i] <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)$eValue
+#'   tempResult <- safeTTest(x=oldData$dataGroup1[i, ], designObj=designObj)
+#'   tempResult$eValue
+#'   eValues[i] <- tempResult$eValue
 #' }
 #'
-#' # First run: 8 false null rejections
+#'
+#' # First run: 3 false null rejections
 #' sum(eValues > 1/alpha)
 #'
 #' continuedSafe <- selectivelyContinueTTestCombineData(
 #'   oldValues=eValues, designObj=designObj, oldData=oldData,
 #'   deltaTrue=0, seed=2)
 #'
-#' # Second run: 1 false null rejections
+#' # Second run: 2 false null rejections
 #' sum(continuedSafe$newValues > 1/alpha)
 #'
-#' # Third run: 0 false null rejections
+#' # Third run: 1 false null rejections
 #' eValues <- continuedSafe$newValues
 #' oldData <- continuedSafe$combinedData
 #' continuedSafe <- selectivelyContinueTTestCombineData(
 #'   oldValues=eValues, designObj=designObj, oldData=oldData,
 #'   deltaTrue=0, seed=3)
 #' sum(continuedSafe$newValues > 1/alpha)
-selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues", "pValues"), designObj=NULL,
-                                                alternative=c("twoSided", "greater", "less"),
-                                                oldData, deltaTrue, alpha=NULL,
-                                                n1Extra=NULL, n2Extra=NULL, seed=NULL, paired=FALSE,
-                                                muGlobal=0, sigmaTrue=1, moreMainText="") {
+selectivelyContinueTTestCombineData <- function(
+    oldValues, valuesType=c("eValues", "pValues"), designObj=NULL,
+    alternative=c("twoSided", "greater", "less"),
+    oldData, deltaTrue, alpha=NULL,
+    n1Extra=NULL, n2Extra=NULL, seed=NULL, paired=FALSE,
+    muGlobal=0, sigmaTrue=1, moreMainText="") {
+
   valuesType <- match.arg(valuesType)
 
   # TODO(Alexander): Remove in v0.9.0
@@ -396,9 +401,9 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues
     tempNPlan <- c(n1Extra, n2Extra)
 
   newData <- generateNormalData("nPlan"=tempNPlan,
-                               "deltaTrue"=deltaTrue, "nSim"=length(notRejectedIndex),
-                               "paired"=paired, "seed"=seed,
-                               "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue)
+                                "deltaTrue"=deltaTrue, "nSim"=length(notRejectedIndex),
+                                "paired"=paired, "seed"=seed,
+                                "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue)
 
   dataGroup1 <- cbind(oldDataGroup1, newData[["dataGroup1"]])
   dataGroup2 <- cbind(oldDataGroup2, newData[["dataGroup2"]])
@@ -408,8 +413,8 @@ selectivelyContinueTTestCombineData <- function(oldValues, valuesType=c("eValues
   if (valuesType=="eValues") {
     for (i in seq_along(newValues)) {
       newValues[i] <- try(safeTTest("x"=dataGroup1[i, ], "y"=dataGroup2[i, ],
-                                "designObj"=designObj, "alternative"=alternative,
-                                "paired"=paired)$eValue)
+                                    "designObj"=designObj, "alternative"=alternative,
+                                    "paired"=paired)$eValue)
     }
 
     minX <- log(min(oldValues, newValues))

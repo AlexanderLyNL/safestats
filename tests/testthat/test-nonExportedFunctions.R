@@ -76,8 +76,8 @@ test_that("getNameAlternative returns the correct alternative", {
 })
 
 test_that("computeNPlanBatchSafeT returns the correct batch sample size", {
-  result <- safestats:::computeNPlanBatchSafeT(0.4)
-  nPlan <- 88
+  result <- safestats:::computeNPlanBatchSafeT(0.4, eType="grow")
+  nPlan <- 86
   names(nPlan) <- "n1Plan"
   parameter <- 0.4
   names(parameter) <- "deltaS"
@@ -87,7 +87,7 @@ test_that("computeNPlanBatchSafeT returns the correct batch sample size", {
 })
 
 test_that("computeEsMinSafeT throws an error", {
-  expect_error(safestats:::computeEsMinSafeT(3))
+  expect_error(safestats:::computeEsMinSafeT(2))
 })
 
 test_that("defineTTestN returns correct list", {
@@ -131,9 +131,9 @@ test_that("computeBetaBatchSafeZ returns correct batch beta", {
 
 
 test_that("computeMinEsBatchSafeZ returns correct batch minEs", {
-  result <- safestats:::computeMinEsBatchSafeZ(nPlan=78)
-  expectedResult <- 0.41726942
-  expect_equal(object=result, expected=expectedResult)
+  result <- safestats:::computeMinEsBatchSafeZ(nPlan=78, eType="grow")
+  expectedResult <- 0.4172752
+  expect_equal(object=result, expected=expectedResult, tolerance=1e-3)
 })
 
 

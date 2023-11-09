@@ -49,6 +49,6 @@ A summary stats version of \code{\link{safeTTest}()} with the data replaced by t
 design object by deltaS.
 }
 \examples{
-safeTTestStat(t=1, n1=100, 0.4)
+safeTTestStat(t=1, n1=100, parameter=0.4)
 safeTTestStat(t=3, n1=100, parameter=0.3)
 }

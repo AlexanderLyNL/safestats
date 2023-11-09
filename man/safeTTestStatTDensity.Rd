@@ -43,6 +43,6 @@ This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is
 pilot designs.
 }
 \examples{
-safeTTestStat(t=1, n1=100, 0.4)
+safeTTestStat(t=1, n1=100, parameter=0.4)
 safeTTestStat(t=3, n1=100, parameter=0.3)
 }

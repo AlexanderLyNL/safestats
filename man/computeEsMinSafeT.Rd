@@ -11,9 +11,8 @@ computeEsMinSafeT(
   beta = 0.2,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  lowN = 3,
-  highN = 1e+06,
-  ratio = 1
+  parameter = NULL,
+  eType = c("eCauchy", "eGauss", "grow")
 )
 }
 \arguments{
@@ -30,14 +29,19 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default lowN is set 1.}
+\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
+For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
+over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
+the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
+zero and variance g. For eType=="grow" the safe test is a likelihood ratio of the
+non-central t-distributions with in the denominator the likelihood with non-centrality
+parameter set to 0, and in the numerator an average likelihood defined by the likelihood
+at the non-centrality parameter value deltaS. For the two sided
+case 1/2 at -deltaS and 1/2 deltaS.}
 
-\item{highN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default highN is set 1e6.}
-
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant standardised effect size.}
 }
 \value{
 a list which contains at least nPlan and the phiS the parameter that defines the safe test

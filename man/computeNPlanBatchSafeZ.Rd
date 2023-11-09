@@ -17,7 +17,7 @@ computeNPlanBatchSafeZ(
   highN = 1e+06,
   ratio = 1,
   parameter = NULL,
-  eType = c("eGauss", "grow", "eCauchy")
+  eType = c("eCauchy", "eGauss", "grow")
 )
 }
 \arguments{

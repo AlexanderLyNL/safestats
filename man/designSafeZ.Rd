@@ -114,11 +114,11 @@ If a tolerable type II error, i.e., beta, is provided then nPlan can be sampled.
 the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
 }
 \examples{
-designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.08, beta=0.01, alternative="greater")
+designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.2, beta=0.2,
+                         alternative="greater", nSim=1e2)
 
-#nPlan known:
-designObj <- designSafeZ(nPlan = 100, alpha=0.05)
-
+# Detectable relevant mean difference
+designObj <- designSafeZ(nPlan = 100, beta=0.2)
 }
 \references{
 Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>

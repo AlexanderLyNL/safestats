@@ -15,7 +15,7 @@ computeMinEsBatchSafeZ(
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
   maxIter = 10,
-  eType = c("eGauss", "grow", "eCauchy")
+  eType = c("eCauchy", "eGauss", "grow")
 )
 }
 \arguments{

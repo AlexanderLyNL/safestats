@@ -78,5 +78,17 @@ size(s), which are fixed ahead of time. Outputs a list that includes the deltaS,
 safe test defining parameter.
 }
 \examples{
-designPilotSafeT(nPlan=30)
+designObj <- designSafeT(deltaMin=0.8, alpha=0.03, alternative="greater")
+designObj
+
+# "Scenario 1.a": Minimal clinically relevant standarised mean difference and tolerable type
+# II error also known. Goal: find nPlan.
+designObj <- designSafeT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
+designObj
+
+# "Scenario 2": Minimal clinically relevant standarised mean difference and nPlan known.
+# Goal: find the power, hence, the type II error of the procedure under optional stopping.
+
+designObj <- designSafeT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
+designObj
 }
