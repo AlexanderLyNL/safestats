@@ -451,7 +451,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
 designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
                               alternative=c("twoSided", "greater", "less"),
-                              alpha=0.05, ratio=1, exact=TRUE, tol=1e-5,
+                              alpha=0.05, ratio=1, exact=TRUE,
                               m0=50000L, m1=50000L, nSim=1e3L, nBoot=1e4L,
                               parameter=NULL, groupSizePerTimeFunction=returnOne,
                               pb=TRUE, ...) {
@@ -594,8 +594,6 @@ designSafeLogrank <- function(hrMin=NULL, beta=NULL, nEvents=NULL, h0=1,
       #       Do we have a PILOT version for this?
 
       warning("Designs without minimal clinically relevant hazard ratios not yet implemented")
-      # return(designPilotSafeZ("nPlan"=nPlan, "alpha"=alpha, "alternative"=alternative,
-      #                         "sigma"=sigma, "kappa"=kappa, "tol"=tol, "paired"=paired))
     } else if (!is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
       designScenario <- "2"
 

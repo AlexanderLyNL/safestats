@@ -10,22 +10,12 @@ safeZTest(
   y = NULL,
   paired = FALSE,
   designObj = NULL,
-  pilot = FALSE,
   ciValue = NULL,
-  tol = 1e-05,
   na.rm = FALSE,
   ...
 )
 
-safe.z.test(
-  x,
-  y = NULL,
-  paired = FALSE,
-  designObj = NULL,
-  pilot = FALSE,
-  tol = 1e-05,
-  ...
-)
+safe.z.test(x, y = NULL, paired = FALSE, designObj = NULL, pilot = FALSE, ...)
 }
 \arguments{
 \item{x}{a (non-empty) numeric vector of data values.}
@@ -36,19 +26,16 @@ safe.z.test(
 
 \item{designObj}{an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
-\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
-To change these default values, please use \code{\link{designSafeZ}()}.}
-
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
-
-\item{tol}{numeric > 0, only used if pilot equals \code{TRUE}, as it then specifies the mesh used to find the test
-defining parameter to construct a pilot design object.}
 
 \item{na.rm}{a logical value indicating whether \code{NA} values should be stripped before
 the computation proceeds.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
+samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
+To change these default values, please use \code{\link{designSafeZ}()}.}
 }
 \value{
 Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
@@ -84,5 +71,5 @@ x <- rnorm(100)
 y <- rnorm(100)
 safeZTest(x, y, designObj=designObj)      #
 
-safeZTest(1:10, y = c(7:20), pilot=TRUE, alternative="less")      # s = 3.033e+78 > 1/alpha
+safeZTest(1:10, y = c(7:20), alternative="less")      # s = 3.033e+78 > 1/alpha
 }

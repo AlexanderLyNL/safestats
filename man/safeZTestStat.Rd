@@ -54,7 +54,7 @@ Returns an e-value.
 Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
 }
 \examples{
-safeZTestStat(z=1, n1=100, parameter=0.4, eType="grow")
+safeZTestStat(z=3, n1=100, parameter=0.4, eType="grow")
 safeZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
 safeZTestStat(z=3, n1=100, parameter=0.4, eType="eCauchy")
 }

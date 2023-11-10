@@ -219,37 +219,6 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
   return(result)
 }
 
-#' safeTTestStat() Subtracted with 1/alpha.
-#'
-#' This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is used for root finding for
-#' pilot designs.
-#'
-#' @inheritParams safeTTest
-#' @inherit safeTTestStat
-#'
-#' @return Returns a numeric that represent the e10 - 1/alpha, that is, the e-value in favour of the
-#' alternative over the null - 1/alpha.
-#'
-safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha,
-                               alternative=c("twoSided", "greater", "less"),
-                               tDensity=FALSE) {
-
-  # TODO(Alexander): Remove in v0.9.0
-  #
-  if (length(alternative)==1 && alternative=="two.sided") {
-    warning('The option alternative="two.sided" is deprecated;',
-            'Please use alternative="twoSided" instead')
-    alternative <- "twoSided"
-  }
-
-  alternative <- match.arg(alternative)
-
-  safeTTestStat("t"=t, "parameter"=parameter,
-                "n1"=n1, "n2"=n2, "alternative"=alternative,
-                "tDensity"=tDensity, "eType"="grow") - 1/alpha
-}
-
-
 #' Safe Student's T-Test.
 #'
 #' A safe t-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample t-tests on vectors of data.
@@ -301,66 +270,79 @@ safeTTestStatAlpha <- function(t, parameter, n1, n2=NULL, alpha,
 #' y <- rnorm(100)
 #' safeTTest(x, y, designObj=designObj)      #0.2959334
 #'
-#' safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
-safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
-                      pilot=FALSE, alpha=NULL, alternative=NULL, ciValue=NULL,
-                      na.rm=FALSE, ...) {
+#' safeTTest(1:10, y = c(7:20))      # s = 658.69 > 1/alpha
+safeTTest <- function(
+    x, y=NULL, paired=FALSE, designObj=NULL,
+    varEqual=TRUE, ciValue=NULL,
+    na.rm=FALSE, ...) {
 
-  result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
-                 "alternative"=NULL, "testType"=NULL, "dataName"=NULL, "stderr"=NULL,
-                 "call"=sys.call())
-  class(result) <- "safeTest"
+  result <- constructSafeTestObj("Z-Test")
 
-  if (is.null(designObj) && !pilot) {
-    stop("No design given and not indicated that this is a pilot study. Run design first and provide ",
-         "this to safeTTest/safe.t.test, or run safeTTest with pilot=TRUE")
-  }
-
-  if (!is.null(designObj)) {
-    checkDoubleArgumentsDesignObject(designObj, "alternative"=alternative, "alpha"=alpha)
-
-    if (designObj[["testName"]] != "T-Test")
-      warning("The provided design is not constructed for the t-test,",
-              "please use designSafeT() instead. The test results might be invalid.")
-  }
-
-  n1 <- length(x)
-
+  ## Def: test type -------
   if (is.null(y)) {
     testType <- "oneSample"
-    n <- nEff <- n1
+  } else {
+    if (paired) {
+      testType <- "paired"
+    } else {
+      testType <- "twoSample"
+    }
+  }
+
+  ## Check: designObj ----
+  if (is.null(designObj)) {
+    designObj <- designSafeT(0.5, "eType"="eCauchy",
+                             "testType"=testType)
+    designObj[["pilot"]] <- TRUE
+
+    warningMessage <- paste("No designObj given. Default test computed based",
+                            "a Cauchy prior with scale 1/2.")
+    warning(warningMessage)
+  }
+
+  if (designObj[["testName"]] != "T-Test")
+    warning("The provided design is not constructed for the t-test,",
+            "please use designSafeT() instead. The test results might be invalid.")
+
+  if (designObj[["testType"]] != testType)
+    warning('The test type of designObj is "', designObj[["testType"]],
+            '", whereas the data correspond to a testType "', testType, '"')
+
+  ## Check: Data -----
+  #
+  if (is.null(y)) {
+    # One-sample
+    if (isTRUE(paired))
+      stop("Data error: Paired analysis requested without specifying the second variable")
+
+    n <- nEff <- n1 <- length(x)
     n2 <- NULL
     nu <- n-1
 
-    if (paired)
-      stop("Data error: Paired analysis requested without specifying the second variable")
-
     meanObs <- estimate <- mean(x, "na.rm"=na.rm)
+
     sdObs <- sd(x, "na.rm"=na.rm)
 
     names(estimate) <- "mean of x"
     names(n) <- "n1"
   } else {
+    n1 <- length(x)
     n2 <- length(y)
 
     if (paired) {
+      # Paired
       if (n1 != n2)
         stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
              "but the two samples are not of the same size.")
-
-      testType <- "paired"
-
       nEff <- n1
       nu <- n1-1
-
       meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
       sdObs <- sd(x-y, "na.rm"=na.rm)
       names(estimate) <- "mean of the differences"
     } else {
-      testType <- "twoSample"
-
-      nu <- n1+n2-2
+      # Two-sample
       nEff <- (1/n1+1/n2)^(-1)
+      nu <- n1+n2-2
 
       sPooledSquared <- ((n1-1)*var(x, "na.rm"=na.rm)+(n2-1)*var(y, "na.rm"=na.rm))/nu
 
@@ -375,31 +357,9 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
     names(n) <- c("n1", "n2")
   }
 
-  if (pilot) {
-    if (is.null(alternative))
-      alternative <- "twoSided"
-    else {
-      if (!(alternative %in% c("twoSided", "greater", "less")))
-        stop('Provided alternative must be one of "twoSided", "greater", or "less".')
-    }
-
-    if (is.null(alpha))
-      alpha <- 0.05
-
-    designObj <- designSafeT("deltaMin"=1/2, "alpha"=alpha,
-                             "alternative"=alternative, "paired"=paired,
-                             "eType"="eCauchy")
-    warning("Default test used with scale 1/sqrt(2) and a Cauchy prior.")
-  }
-
-  if (designObj[["testType"]] != testType)
-    warning('The test type of designObj is "', designObj[["testType"]],
-            '", whereas the data correspond to a testType "', testType, '"')
-
+  alpha <- designObj[["alpha"]]
   alternative <- designObj[["alternative"]]
   h0 <- designObj[["h0"]]
-  alpha <- designObj[["alpha"]]
-  eType <- designObj[["eType"]]
 
   if (is.null(ciValue))
     ciValue <- 1-alpha
@@ -414,19 +374,31 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
 
   names(tStat) <- "t"
 
-  tempResult <- safeTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
+  # Compute: eValue ----
+  #
+  testResult <- safeTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
                               "n2"=n2, "alternative"=alternative, "paired"=paired,
-                              "eType"=eType)
-  eValue <- tempResult[["eValue"]]
-  eValueApproxError <- tempResult[["eValueApproxError"]]
+                              "eType"=designObj[["eType"]])
 
-  if (is.null(y))
-    dataName <- as.character(sys.call())[2]
-  else
-    dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
+  # Compute: confSeq ----
+  #
+  result[["confSeq"]] <- computeConfidenceIntervalT("meanObs"=meanObs-h0, "sdObs"=sdObs,
+                                                    "nEff"=nEff, "nu"=nu,
+                                                    "deltaS"=designObj[["parameter"]],
+                                                    "ciValue"=ciValue)
+
+  # Fill: Result -----
+  argumentNames <- getArgs()
+  xLabel <- extractNameFromArgs(argumentNames, "x")
+
+  if (is.null(y)) {
+    dataName <- xLabel
+  } else {
+    yLabel <- extractNameFromArgs(argumentNames, "y")
+    dataName <- paste(xLabel, "and", yLabel)
+  }
 
   result[["statistic"]] <- tStat
-  # result[["parameter"]] <- designObj[["deltaS"]]
   result[["estimate"]] <- estimate
   result[["stderr"]] <- sdObs/nEff
   result[["dataName"]] <- dataName
@@ -435,13 +407,10 @@ safeTTest <- function(x, y=NULL, designObj=NULL, paired=FALSE, varEqual=TRUE,
   result[["n"]] <- n
   result[["ciValue"]] <- ciValue
 
-  result[["confSeq"]] <- computeConfidenceIntervalT("meanObs"=meanObs-h0, "sdObs"=sdObs,
-                                                    "nEff"=nEff, "nu"=nu,
-                                                    "deltaS"=designObj[["parameter"]],
-                                                    "ciValue"=ciValue)
+  result[["eValue"]] <- testResult[["eValue"]]
+  result[["eValueApproxError"]] <- testResult[["eValueApproxError"]]
 
-  result[["eValue"]] <- eValue
-  result[["eValueApproxError"]] <- eValueApproxError
+  names(result[["statistic"]]) <- "t"
 
   return(result)
 }
@@ -897,175 +866,6 @@ designSafeT <- function(
 
   names(result[["esMin"]]) <- "standardised mean difference"
   names(result[["h0"]]) <- "mu"
-  return(result)
-}
-
-
-#' Designs a Safe T-Test Based on Planned Samples nPlan
-#'
-#' Designs a safe experiment for a prespecified tolerable type I error based on planned sample
-#' size(s), which are fixed ahead of time. Outputs a list that includes the deltaS, i.e., the
-#' safe test defining parameter.
-#'
-#' @inheritParams designSafeT
-#' @param nPlan the planned sample size(s).
-#' @param inverseMethod logical, always \code{TRUE} for the moment.
-#' @param paired logical, if \code{TRUE} then paired t-test.
-#' @param logging logical, if \code{TRUE}, then add invSToTThresh to output.
-#' @param maxIter numeric > 0, the maximum number of iterations of adjustment to the candidate set from
-#' lowParam to highParam, if the minimum is not found.
-#' @inheritParams replicateTTests
-#' @inherit designSafeT
-#'
-#' @export
-#'
-designPilotSafeT <- function(nPlan=50, alpha=0.05, alternative=c("twoSided", "greater", "less"),
-                             h0=0, lowParam=0.01, highParam=1.2, tol=0.01, inverseMethod=TRUE,
-                             logging=FALSE, paired=FALSE, maxIter=10) {
-  # TODO(Alexander): Check relation with forward method, that is, the least conservative test and maximally powered
-  # Perhaps trade-off? "inverseMethod" refers to solving minimum of deltaS \mapsto S_{deltaS}^{-1}(1/alpha)
-  #
-  #
-  # TODO(Alexander):
-  #       - Add warning when deltaS == lowParam
-  #       - Better: Characterise deltaS as a funciton of alpha and n using asymptotic approximation of 1F1
-  #
-  # TODO(Alexander): Add some bounds on L, or do a presearch
-  #
-  # stopifnot(n >= 3)
-  #
-  #     Trick bound the estimation error using Chebyshev: Note do this on log (safeTTestStat)
-  #
-
-  # TODO(Alexander): Remove in v0.9.0
-  #
-  if (length(alternative)==1 && alternative=="two.sided") {
-    warning('The option alternative="two.sided" is deprecated;',
-            'Please use alternative="twoSided" instead')
-    alternative <- "twoSided"
-  }
-
-  alternative <- match.arg(alternative)
-  stopifnot(all(nPlan > 0))
-
-  n1 <- nPlan[1]
-  n2 <- NULL
-  ratio <- 1
-
-  if (length(nPlan)==1) {
-    if (isTRUE(paired)) {
-      warning("Paired designed specified, but n2 not provided. n2 is set to n1")
-      n2 <- n1
-      nPlan <- c(n1, n2)
-      names(nPlan) <- c("n1Plan", "n2Plan")
-      testType <- "paired"
-    } else {
-      names(nPlan) <- "n1Plan"
-      testType <- "oneSample"
-    }
-  } else if (length(nPlan)==2) {
-    n2 <- nPlan[2]
-    ratio <- n2/n1
-
-    if (paired) {
-      if (n1 != n2) {
-        stop("Paired design specified, but nPlan[1] not equal nPlan[2]")
-      }
-      testType <- "paired"
-    } else {
-      testType <- "twoSample"
-    }
-    names(nPlan) <- c("n1Plan", "n2Plan")
-  }
-
-  names(h0) <- "mu"
-
-  result <- list("nPlan"=nPlan, "parameter"=NULL, "esMin"=NULL, "alpha"=alpha, "beta"=NULL,
-                 "alternative"=alternative, "testType"=testType, "paired"=paired,
-                 "h0"=h0, "testType"=testType,
-                 "ratio"=ratio, "lowParam"=NULL, "highParam"=NULL,
-                 "pilot"=FALSE, "call"=sys.call(), "timeStamp"=Sys.time())
-  class(result) <- "safeDesign"
-
-  #
-  #
-  # result <- list("n1Plan"=n1, "n2Plan"=n2, "deltaS"=NA,
-  #                "deltaMin"=NULL, "alpha"=alpha, "beta"=NULL,
-  #                "lowParam"=lowParam, "highParam"=highParam, "tol"=tol,
-  #                "lowN"=NULL, "highN"=NULL, "alternative"=alternative, "testType"=testType,
-  #                "ratio"=ratio, "pilot"=TRUE, "call"=sys.call())
-  #
-  # class(result) <- "safeTDesign"
-
-  if (inverseMethod) {
-    invSafeTTestStatAlpha <- function(x) {
-      stats::uniroot("f"=safeTTestStatAlpha, "lower"=0, "upper"=3e10, "tol"=1e-9, "parameter"=x,
-                     "n1"=n1, "n2"=n2, "alpha"=alpha, "alternative"=alternative)
-    }
-
-    # Note(Alexander): tryOrFAilWithNA fixes the problem that there's a possibility
-    #   that deltaS too small, the function values are then both negative or both positive.
-    #
-    invSafeTTestStatAlphaRoot <- function(x){tryOrFailWithNA(invSafeTTestStatAlpha(x)$root)}
-
-    candidateDeltas <- seq(lowParam, highParam, by=tol)
-
-    invSToTThresh <- rep(NA, length(candidateDeltas))
-
-    iter <- 1
-
-    while (all(is.na(invSToTThresh)) && iter <= maxIter) {
-      invSToTThresh <- purrr::map_dbl(candidateDeltas, invSafeTTestStatAlphaRoot)
-
-      if (all(is.na(invSToTThresh))) {
-        candidateDeltas <- seq(highParam, "length.out"=2*length(candidateDeltas), "by"=tol)
-        lowParam <- highParam
-        highParam <- candidateDeltas[length(candidateDeltas)]
-        iter <- iter + 1
-      }
-    }
-
-    mPIndex <- which(invSToTThresh==min(invSToTThresh, na.rm=TRUE))
-
-    if (iter > 1) {
-      result[["lowParam"]] <- lowParam
-      result[["highParam"]] <- highParam
-    }
-
-    if (mPIndex==length(candidateDeltas)) {
-      # Note(Alexander): Check that mPIndex is not the last one.
-      errorMsg <- "The test defining deltaS is equal to highParam. Rerun with do.call on the output object"
-      lowParam <- highParam
-      highParam <- (length(candidateDeltas)-1)*tol+lowParam
-      result[["lowParam"]] <- lowParam
-      result[["highParam"]] <- highParam
-    } else if (mPIndex==1) {
-      errorMsg <- "The test defining deltaS is equal to lowParam. Rerun with do.call on the output object"
-      highParam <- lowParam
-      lowParam <- highParam-(length(candidateDeltas)-1)*tol
-      result[["lowParam"]] <- lowParam
-      result[["highParam"]] <- highParam
-    }
-
-    if (isTRUE(logging))
-      result[["invSToTThresh"]] <- invSToTThresh
-
-    deltaS <- candidateDeltas[mPIndex]
-
-    if (alternative=="less")
-      deltaS <- -deltaS
-
-    result[["parameter"]] <- deltaS
-    result[["error"]] <- invSafeTTestStatAlpha(candidateDeltas[mPIndex])$estim.prec
-  } else {
-    # TODO(Alexander): Check relation with forward method, that is, the least conservative test and maximally powered
-    # Perhaps trade-off? "inverseMethod" refers to solving minimum of deltaS \mapsto S_{deltaS}^{-1}(1/alpha)
-  }
-  # TODO(Alexander): By some monotonicity can we only look at the largest or the smallest?
-  #
-  # designFreqT(deltaMin=deltaMin, alpha=alpha, beta=beta, lowN=lowN, highN=highN)
-
-  names(result[["parameter"]]) <- "deltaS"
   return(result)
 }
 

@@ -13,16 +13,15 @@ designSafeZ(
   alternative = c("twoSided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
-  tol = 1e-05,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
-  nSim = 1000L,
-  nBoot = 1000L,
-  pb = TRUE,
-  seed = NULL,
   eType = c("eCauchy", "eGauss", "grow"),
   wantSamplePaths = TRUE,
+  pb = TRUE,
+  seed = NULL,
+  nSim = 1000L,
+  nBoot = 1000L,
   ...
 )
 }
@@ -49,8 +48,6 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
-
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
@@ -65,22 +62,22 @@ denominator the likelihood with mean difference 0 and in the numerator an averag
 likelihood defined by the likelihood at the parameter value phiS. For the two sided
 case 1/2 at -phiS and 1/2 phiS.}
 
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{seed}{integer, seed number.}
+
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the safe z test under continuous monitoring.}
 
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
 approximation of the power, the number of samples for the safe z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
-
-\item{pb}{logical, if \code{TRUE}, then show progress bar.}
-
-\item{seed}{integer, seed number.}
-
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
-
-\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }
@@ -101,7 +98,6 @@ Returns a safeDesign object that includes:
   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
   ratio between the planned randomisation of condition 2 over condition 1.}
-  \item{tol}{the step size between parameter values in the candidate space.}
   \item{pilot}{logical, specifying whether it's a pilot design.}
   \item{call}{the expression with which this function is called.}
 }

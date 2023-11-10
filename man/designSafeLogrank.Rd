@@ -13,7 +13,6 @@ designSafeLogrank(
   alpha = 0.05,
   ratio = 1,
   exact = TRUE,
-  tol = 1e-05,
   m0 = 50000L,
   m1 = 50000L,
   nSim = 1000L,
@@ -53,8 +52,6 @@ ignores m1 and m0.}
 
 \item{exact}{a logical indicating whether the design should be based on the exact safe logrank test based on the
 hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the design is based on a  safe z-test.}
-
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
 \item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
 

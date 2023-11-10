@@ -77,12 +77,12 @@ extractNameFromArgs <- function(list, name) {
 #' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
 #'
 #' @return paramToCheck after checking, perhaps with a change in sign
-checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSided", "greater", "less"),
-                                              esMinName=c("noName", "meanDiffMin", "phiS",
-                                                          "deltaMin", "deltaS",
-                                                          "hrMin", "thetaS", "deltaTrue",
-                                                          "g", "kappaG"),
-                                              paramDomain=NULL) {
+checkAndReturnsEsMinParameterSide <- function(
+    paramToCheck, alternative=c("twoSided", "greater", "less"),
+    esMinName=c("noName", "meanDiffMin", "phiS",
+                "deltaMin", "deltaS",
+                "hrMin", "thetaS", "deltaTrue",
+                "g", "kappaG"), paramDomain=NULL) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -108,6 +108,8 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSi
   else
     paramName <- esMinName
 
+  error <- NULL
+
   if (is.null(paramName)) {
     paramName <- "the safe test defining parameter"
     hypParamName <- "test relevant parameter"
@@ -121,12 +123,24 @@ checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSi
   } else if (paramName=="thetaS" || esMinName=="hrMin") {
     hypParamName <- "theta"
     paramDomain <- "positiveNumbers"
-  } else if (paramName=="g" || paramName=="kappaG") {
+
+    error <- if (paramToCheck < 0) "thetaS and hrMin must be positive"
+  } else if (paramName=="g") {
     hypParamName <- "g"
     paramDomain <- "positiveNumbers"
+
+    error <- if (paramToCheck < 0) "The parameter g must be positive"
+  } else if (paramName=="kappaG") {
+    hypParamName <- "kappaG"
+    paramDomain <- "positiveNumbers"
+
+    error <- if (paramToCheck < 0) "The parameter kappaG must be positive"
   } else {
     hypParamName <- "testRelevantParameter"
   }
+
+  if (!is.null(error))
+    stop(error)
 
   if (paramDomain=="unknown") {
     nullValue <- "nullValue"

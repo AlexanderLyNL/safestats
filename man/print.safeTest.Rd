@@ -22,6 +22,5 @@ No returned value, called for side effects.
 Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.htest}()}.
 }
 \examples{
-safeTTest(rnorm(19), pilot=TRUE)
-safeZTest(rnorm(19), pilot=TRUE)
+safeTTest(rnorm(19))
 }

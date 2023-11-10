@@ -8,12 +8,9 @@
 safeTTest(
   x,
   y = NULL,
-  designObj = NULL,
   paired = FALSE,
+  designObj = NULL,
   varEqual = TRUE,
-  pilot = FALSE,
-  alpha = NULL,
-  alternative = NULL,
   ciValue = NULL,
   na.rm = FALSE,
   ...
@@ -36,22 +33,13 @@ safe.t.test(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
+\item{paired}{a logical indicating whether you want a paired t-test.}
+
 \item{designObj}{an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot
 equals  \code{TRUE}.}
 
-\item{paired}{a logical indicating whether you want a paired t-test.}
-
 \item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
 the moment, this is always \code{TRUE}.}
-
-\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that
-the number of samples is exactly as planned.}
-
-\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then
-the alpha of the design object is used instead in constructing the decision rule S > 1/alpha.}
-
-\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
-then the alternative specified by the design object is used instead.}
 
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
 and ciValue = 1 - alpha}
@@ -63,6 +51,15 @@ the computation proceeds.}
 
 \item{var.equal}{a logical variable indicating whether to treat the two variances as being equal. For the moment,
 this is always \code{TRUE}.}
+
+\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that
+the number of samples is exactly as planned.}
+
+\item{alpha}{numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then
+the alpha of the design object is used instead in constructing the decision rule S > 1/alpha.}
+
+\item{alternative}{a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
+then the alternative specified by the design object is used instead.}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -95,7 +92,7 @@ x <- rnorm(100)
 y <- rnorm(100)
 safeTTest(x, y, designObj=designObj)      #0.2959334
 
-safeTTest(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
+safeTTest(1:10, y = c(7:20))      # s = 658.69 > 1/alpha
 designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
                          testType="twoSample", ratio=1.2)
 

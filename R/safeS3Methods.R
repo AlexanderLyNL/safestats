@@ -25,6 +25,76 @@ getNameTestType <- function(testType, testName) {
   # return(paste(nameChar, testName))
 }
 
+#' Construct a  safe design object to be set in the design function
+#'
+#' @inheritParams getNameTestType
+#'
+#' @return a safe design object
+#' @export
+#'
+#' @examples
+#' obj <- constructSafeDesignObj("Z-Test")
+constructSafeDesignObj <- function(testName) {
+  result <- list(
+    "parameter"=NULL, "esMin"=NULL, "alpha"=NULL,
+    "alternative"=NULL, "h0"=NULL, "pilot"=FALSE,
+    "eType"=NULL, "testType"=NULL, "testName"=NULL,
+    "nPlanBatch"=NULL,
+    "nPlan"=NULL, "nPlanTwoSe"=NULL, "bootObjN1Plan"=NULL,
+    "nMean"=NULL, "nMeanTwoSe"=NULL, "bootObjN1Mean"=NULL,
+    "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
+    "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
+    "bootObjLogImpliedTarget"=NULL,
+    "samplePaths"=NULL, "breakVector"=NULL,
+    "call"=NULL, "timeStamp"=Sys.time(), "note"=NULL)
+
+  testSpecificList <- list()
+
+  if (testName=="Z-Test") {
+    testSpecificList <- list("sigma"=NULL, "kappa"=NULL, "ratio"=NULL, "testName"=testName)
+  } else if (testName=="T-Test") {
+    testSpecificList <- list("ratio"=NULL, "testName"=testName)
+  } else if (testName=="Logrank") {
+    testSpecificList <- list("exact"=NULL)
+  }
+
+  result <- utils::modifyList(result, testSpecificList)
+  class(result) <- "safeDesign"
+  return(result)
+}
+
+
+#' Construct a safe test object to be set in the safe testing function
+#'
+#' @inheritParams getNameTestType
+#'
+#' @return a safe test object
+#' @export
+#'
+#' @examples
+#' obj <- constructSafeTestObj("Z-Test")
+constructSafeTestObj <- function(testName) {
+  result <- list(
+    "statistic"=NULL, "n"=NULL, "eValue"=NULL,
+    "confSeq"=NULL, "estimate"=NULL, "ciValue"=FALSE,
+    "dataName"=NULL, "alternative"=NULL,
+    "testType"=NULL, "designObj"=NULL, "h0"=NULL,
+    "eValueApproxError"=NULL, "call"=NULL, "note"=NULL)
+
+  testSpecificList <- list()
+
+  if (testName=="Z-Test") {
+    testSpecificList <- list("sigma"=NULL, "testName"=testName)
+  } else if (testName=="T-Test") {
+    testSpecificList <- list("stderr"=NULL, "testName"=testName)
+  } else if (testName=="Logrank") {
+    testSpecificList <- list("sumStats"=NULL, "testName"=testName)
+  }
+
+  result <- utils::modifyList(result, testSpecificList)
+  class(result) <- "safeTest"
+  return(result)
+}
 #' Gets the Label of the Alternative Hypothesis
 #'
 #' Helper function that outputs the alternative hypothesis of the analysis.
@@ -67,10 +137,14 @@ getNameAlternative <- function(alternative=c("twoSided", "greater", "less"), tes
 #' @export
 #'
 #' @examples
-#' safeTTest(rnorm(19), pilot=TRUE)
-#' safeZTest(rnorm(19), pilot=TRUE)
+#' safeTTest(rnorm(19))
 print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x[["designObj"]]
+
+  if (is.null(designObj)) {
+    print.default(x)
+    return()
+  }
 
   if (!is.null(x[["testType"]]) && x[["testType"]] != designObj[["testType"]])
     designObj[["testType"]] <- x[["testType"]]
@@ -123,6 +197,7 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
   statValue <- x[["statistic"]]
   parameter <- designObj[["parameter"]]
   eValue <- x[["eValue"]]
+  eValueApproxError <- x[["eValueApproxError"]]
 
   alphaString <- format(designObj[["alpha"]], digits = max(1L, digits - 2L))
   eValueString <- format(eValue, digits = max(1L, digits - 2L))
@@ -134,11 +209,18 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
     out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
 
   out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
+
+  if (!is.null(designObj[["eType"]]))
+    out <- c(out, paste("type", "=", designObj[["eType"]]))
+
   cat(paste0("test: ", paste(out, collapse = ", "), sep="\n"))
   cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
       eValue > 1/designObj[["alpha"]])
   cat("\n")
-  cat("e-value type =", designObj[["eType"]])
+  if (!is.null(eValueApproxError))
+    cat("e-value: approx. error = ",
+        format(eValueApproxError/eValue*100, digits = max(1L, digits - 2L)),
+        "%. ", sep="")
   cat("\n")
   cat("alternative hypothesis:", alternativeName, "\n")
 
@@ -213,8 +295,14 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
 #' designSafeLogrank(hrMin=0.7)
 print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
-  testType <- designObj[["testType"]]
+
+  if (is.null(designObj[["parameter"]])) {
+    print.default(x)
+    return()
+  }
+
   testName <- designObj[["testName"]]
+  testType <- designObj[["testType"]]
 
   note <- designObj[["note"]]
   analysisName <- paste(getNameTestType("testType"=testType, "testName"=testName), "Design")

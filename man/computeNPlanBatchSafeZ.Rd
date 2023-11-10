@@ -13,7 +13,6 @@ computeNPlanBatchSafeZ(
   kappa = sigma,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  tol = 1e-05,
   highN = 1e+06,
   ratio = 1,
   parameter = NULL,
@@ -37,8 +36,6 @@ and "phiS". Note that 1-beta defines the power.}
 "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
-
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
 
 \item{highN}{integer that defines the largest n of our search space for n. This might be the
 largest n that we are able to fund.}
