@@ -86,7 +86,7 @@ set.seed(1)
 sigmaTrue <- 12
 designObj <- designSafeZ(meanDiffMin=10,
                          beta=0.2, sigma=sigmaTrue,
-                         testType="twoSample")
+                         testType="twoSample", eType="grow")
 designObj
 ```
 This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=38 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 

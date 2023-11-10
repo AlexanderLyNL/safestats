@@ -12,17 +12,18 @@ safeZTest(
   designObj = NULL,
   ciValue = NULL,
   na.rm = FALSE,
+  maxRoot = 10,
   ...
 )
 
-safe.z.test(x, y = NULL, paired = FALSE, designObj = NULL, pilot = FALSE, ...)
+safe.z.test(x, y = NULL, paired = FALSE, designObj = NULL, ...)
 }
 \arguments{
 \item{x}{a (non-empty) numeric vector of data values.}
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{paired}{a logical indicating whether you want the paired z-test.}
+\item{paired}{a logical indicating whether you want the paired Z-test.}
 
 \item{designObj}{an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
@@ -31,11 +32,10 @@ safe.z.test(x, y = NULL, paired = FALSE, designObj = NULL, pilot = FALSE, ...)
 \item{na.rm}{a logical value indicating whether \code{NA} values should be stripped before
 the computation proceeds.}
 
-\item{...}{further arguments to be passed to or from methods.}
+\item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
+whenever eType="eCauchy"}
 
-\item{pilot}{a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
-samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
-To change these default values, please use \code{\link{designSafeZ}()}.}
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
@@ -58,7 +58,7 @@ following components:
 }
 }
 \description{
-Safe one and two sample z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
+Safe one and two sample Z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
 }
 \examples{
 

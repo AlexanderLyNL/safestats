@@ -416,7 +416,7 @@ To run `safeZTest` a design object needs to be created. When provided with a min
 ```{r, eval=FALSE}
 designObj <- designSafeZ(meanDiffMin=10,
                          testType="twoSample",
-                         sigma=sigmaTrue)
+                         sigma=sigmaTrue, eType="grow")
 designObj
 ```
 
@@ -510,7 +510,7 @@ for (sim in 1:mIter) {
     currentEValue <- safeZTestStat(zVector[i], 
                                    parameter=designObj$parameter, 
                                    n1=n1Vector[i], n2=n2Vector[i], 
-                                   sigma=sigmaTrue, eType=designObj$eType)
+                                   sigma=sigmaTrue, eType=designObj$eType)$eValue
     
     allEValues[sim, i] <- currentEValue
     

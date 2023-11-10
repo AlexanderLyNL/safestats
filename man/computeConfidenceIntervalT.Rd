@@ -2,16 +2,18 @@
 % Please edit documentation in R/tTest.R
 \name{computeConfidenceIntervalT}
 \alias{computeConfidenceIntervalT}
-\title{Helper function: Computes the safe confidence sequence for the mean in a t-test}
+\title{Helper function: Computes the safe confidence sequence for the mean in a T-test}
 \usage{
 computeConfidenceIntervalT(
   meanObs,
   sdObs,
   nEff,
   nu,
-  deltaS,
+  parameter,
+  eType = c("eCauchy", "eGauss", "grow"),
+  alternative = c("twoSided", "greater", "less"),
   ciValue = 0.95,
-  g = NULL
+  maxRoot = 10
 )
 }
 \arguments{
@@ -24,19 +26,25 @@ of the pooled variance.}
 
 \item{nu}{numeric > 0, the degrees of freedom.}
 
-\item{deltaS}{numeric > 0, the safe test defining parameter.}
+\item{parameter}{numeric > 0, the safe test defining parameter.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95.}
+\item{eType}{character, type of e-value: "eCauchy" (default), "eGauss", or "grow"}
 
-\item{g}{numeric > 0, used as the variance of the normal prior on the population delta
-Default is \code{NULL} in which case g=delta^2.}
+\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
+"greater" or "less".}
+
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
+and ciValue = 1 - alpha}
+
+\item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
+whenever eType="eCauchy"}
 }
 \value{
 numeric vector that contains the upper and lower bound of the safe confidence sequence
 }
 \description{
-Helper function: Computes the safe confidence sequence for the mean in a t-test
+Helper function: Computes the safe confidence sequence for the mean in a T-test
 }
 \examples{
-computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, deltaS=0.4)
+computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, parameter=0.4)
 }

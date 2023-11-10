@@ -13,10 +13,10 @@ computeNPlanBatchSafeZ(
   kappa = sigma,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  highN = 1e+06,
-  ratio = 1,
+  eType = c("eCauchy", "eGauss", "grow"),
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow")
+  highN = 1e+06,
+  ratio = 1
 )
 }
 \arguments{
@@ -37,11 +37,9 @@ and "phiS". Note that 1-beta defines the power.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{highN}{integer that defines the largest n of our search space for n. This might be the
-largest n that we are able to fund.}
-
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
 
 \item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
 For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
@@ -52,9 +50,11 @@ denominator the likelihood with mean difference 0 and in the numerator an averag
 likelihood defined by the likelihood at the parameter value phiS. For the two sided
 case 1/2 at -phiS and 1/2 phiS.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{highN}{integer that defines the largest n of our search space for n. This might be the
+largest n that we are able to fund.}
+
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
+is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 }
 \value{
 a list which contains at least nPlan and the phiS, that is, the parameter that defines

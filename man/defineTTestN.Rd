@@ -12,11 +12,9 @@ defineTTestN(
 )
 }
 \arguments{
-\item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default lowN is set 1.}
+\item{lowN}{integer that defines the smallest n of our search space for n.}
 
-\item{highN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default highN is set 1e6.}
+\item{highN}{integer largest sample size of the (first) sample. Default set to 100.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
@@ -27,6 +25,6 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 Returns the sample sizes and degrees of freedom.
 }
 \description{
-Helper function that outputs the sample sizes, effective sample sizes and the degrees of
-freedom depending on the type of t-test. Also used for z-tests.
+Helper function that outputs a sequence of sample sizes, effective sample sizes,
+and the degrees of freedom depending on the type of T-test. Also used for Z-tests.
 }

@@ -130,7 +130,7 @@ sigmaTrue <- 12
 
 set.seed(0)
 designObj <- designSafeZ(meanDiffMin=meanDiffMin, beta=beta,
-                         testType="twoSample",
+                         testType="twoSample", eType="grow",
                          sigma=sigmaTrue)
 designObj
 ```

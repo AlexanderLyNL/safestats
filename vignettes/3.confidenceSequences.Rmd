@@ -46,7 +46,7 @@ X_{i} \overset{\text{iid}}{\sim} \mathcal{N}(\mu, \sigma^{2}).
 
 <!-- Both the anytime-valid confidence interval and credible interval depend on a Gaussian/normal distribution that is centred at zero and a variance g. To highlight their difference we clarify how they act very differently with varying mixture/prior variance g. -->
 
-For all three examples we use the `computeConfidenceIntervalZ` function from the safestats package, which produces (1) classical confidence intervals if `intervalType="freq"`, (2) credible intervals if `intervalType="credibleInterval"`, and (3) an anytime-valid confidence sequence if `intervalType="eGaussian"`. 
+For all three examples we use the `computeConfidenceIntervalZ` function from the safestats package, which produces (1) classical confidence intervals if `eType="freq"`, (2) credible intervals if `eType="credibleInterval"`, and (3) an anytime-valid confidence sequence if `eType="eGauss"`. 
 
 To assess the quality of these intervals across time, we fix a true data generating mean, say, muTrue=8. For simplicity we take n=100 and generate data as follows: 
 
@@ -92,7 +92,7 @@ meanVector <- 1/(1:n)*cumsum(someData)
 for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
                                           meanObs=meanVector[i],
-                                          intervalType="freq")
+                                          eType="freq")
   freqCi[i, ] <- tempResult
 }
 
@@ -138,7 +138,7 @@ for (sim in 1:mIter) {
   for (i in 1:n) {
     tempResult <- computeConfidenceIntervalZ(nEff=i,
                                              meanObs=meanVector[i],
-                                             intervalType="freq")
+                                             eType="freq")
     allFreqCis[sim, i, ] <- tempResult
     
     if ((tempResult[1] > muTrue || tempResult[2] < muTrue) && 
@@ -219,7 +219,7 @@ for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
                                            meanObs=meanVector[i],
                                            a=someA, g=someG,
-                                           intervalType="credibleInterval")
+                                           eType="credibleInterval")
   bayesCi[i, ] <- tempResult
 }
 
@@ -264,7 +264,7 @@ for (sim in 1:mIter) {
     tempResult <- computeConfidenceIntervalZ(nEff=i,
                                              meanObs=meanVector[i],
                                              a=someA, g=someG, 
-                                             intervalType="credibleInterval")
+                                             eType="credibleInterval")
     allBayesCis[sim, i, ] <- tempResult
     
     if ((tempResult[1] > muTrue || tempResult[2] < muTrue) && 
@@ -321,7 +321,7 @@ The anytime-valid confidence sequence is based on the **inversion** of the e-var
 ```{r, eval=FALSE}
 designObj <- designSafeZ(meanDiffMin=0.5,
                          testType="twoSample",
-                         sigma=sigmaTrue)
+                         sigma=sigmaTrue, eType="grow")
 designObj
 ```
 
@@ -337,7 +337,7 @@ for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
                                            parameter=designObj$"parameter",
                                            meanObs=meanVector[i],
-                                           intervalType="eGauss")
+                                           eType="eGauss")
   anytimeCi[i, ] <- tempResult
 }
 
@@ -397,10 +397,10 @@ for (sim in 1:mIter) {
   meanVector <- 1/(1:n)*cumsum(someData)
   
   for (i in 1:n) {
-    tempResult <- computeConfidenceIntervalZ(nEff=i,
-                                             meanObs=meanVector[i],
-                                             parameter=designObj$parameter,
-                                             intervalType="eGauss")
+    tempResult <- computeConfidenceIntervalZ(
+      nEff=i, meanObs=meanVector[i],
+      parameter=designObj$parameter,eType="eGauss")
+    
     allAnytimeCis[sim, i, ] <- tempResult
     
     if ((tempResult[1] > muTrue || tempResult[2] < muTrue) && 
@@ -475,17 +475,17 @@ anytimeCiWidth <- credibleIntervalWidth <- freqCiWidth <- numeric(30)
 
 for (i in nDomain) {
   tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8, 
-                                           intervalType="freq")
+                                           eType="freq")
   freqCiWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8, a=someA,
                                            g=someG, 
-                                           intervalType="credibleInterval")
+                                           eType="credibleInterval")
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8,
                                            parameter=designObj$parameter,
-                                           intervalType="eGauss")
+                                           eType="eGauss")
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
   
 }
@@ -513,13 +513,13 @@ anytimeCiWidth <- credibleIntervalWidth <- numeric(30)
 for (i in seq_along(gDomain)) {
   tempResult <- computeConfidenceIntervalZ(nEff=3, meanObs=8, 
                                            a=0, g=gDomain[i],
-                                           intervalType="credibleInterval")
+                                           eType="credibleInterval")
   
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(nEff=3, meanObs=8,
                                            a=0, g=gDomain[i],
-                                           intervalType="eGauss")
+                                           eType="eGauss")
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
 }
 

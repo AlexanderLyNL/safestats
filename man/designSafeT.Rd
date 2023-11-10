@@ -11,20 +11,17 @@ designSafeT(
   alpha = 0.05,
   h0 = 0,
   alternative = c("twoSided", "greater", "less"),
-  lowN = 3L,
-  highN = 1000000L,
-  lowParam = 0.01,
-  highParam = 1.5,
-  tol = 0.01,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
-  nSim = 1000L,
-  nBoot = 1000L,
   parameter = NULL,
-  pb = TRUE,
-  seed = NULL,
   eType = c("eCauchy", "eGauss", "grow"),
   wantSamplePaths = TRUE,
+  lowEsTrue = 0.01,
+  highEsTrue = 3,
+  pb = TRUE,
+  seed = NULL,
+  nSim = 1000L,
+  nBoot = 1000L,
   ...
 )
 }
@@ -45,31 +42,10 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
-\item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default lowN is set 1.}
-
-\item{highN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default highN is set 1e6.}
-
-\item{lowParam}{numeric defining the smallest delta of the search space for the test-defining deltaS
-for scenario 3. Currently not yet in use.}
-
-\item{highParam}{numeric defining the largest delta of the search space for the test-defining deltaS
-for scenario 3. Currently not yet in use.}
-
-\item{tol}{a number that defines the stepsizes between the lowParam and highParam.}
-
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
-
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the safe z test under continuous monitoring.}
-
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
-approximation of the power, the number of samples for the safe z test under continuous monitoring,
-or for the computation of the logarithm of the implied target.}
 
 \item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
 For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
@@ -81,15 +57,30 @@ parameter set to 0, and in the numerator an average likelihood defined by the li
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
 
-\item{pb}{logical, if \code{TRUE}, then show progress bar.}
-
-\item{seed}{integer, seed number.}
-
 \item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
 a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 two point masses at the minimal clinically relevant standardised effect size.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
+\item{lowEsTrue}{numeric, lower bound for the candidate set of the
+targeted minimal clinically relevant effect size.
+Design scenario 3: nPlan and beta given, goal find deltaMin.}
+
+\item{highEsTrue}{numeric, upper bound for the candidate set of the
+targeted minimal clinically relevant effect size.
+Design scenario 3: nPlan and beta given, goal find deltaMin.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{seed}{integer, seed number.}
+
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
+approximation of the power, the number of samples for the safe z test under continuous monitoring,
+or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
@@ -110,11 +101,6 @@ following components:
   whether it was a one-sample or a two-sample test.}
   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
   ratio between the planned randomisation of condition 2 over condition 1.}
-  \item{lowN}{the smallest n of the search space for n provided by the user.}
-  \item{highN}{the largest n of the search space for n provided by the user.}
-  \item{lowParam}{the smallest delta of the search space for delta provided by the user.}
-  \item{highParam}{the largest delta of the search space for delta provided by the user.}
-  \item{tol}{the step size between lowParam and highParam provided by the user.}
   \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
   \item{call}{the expression with which this function is called.}
 }

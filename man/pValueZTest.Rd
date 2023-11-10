@@ -3,7 +3,7 @@
 \name{pValueFromZStat}
 \alias{pValueFromZStat}
 \alias{pValueZTest}
-\title{Computes the p-value for the z-test}
+\title{Computes the p-value for the Z-test}
 \usage{
 pValueFromZStat(z, alternative = c("twoSided", "less", "greater"), ...)
 
@@ -32,7 +32,7 @@ pValueZTest(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{paired}{a logical indicating whether you want the paired z-test.}
+\item{paired}{a logical indicating whether you want the paired Z-test.}
 
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
 
@@ -50,7 +50,7 @@ the computation proceeds.}
 pValueTest object
 }
 \description{
-Computes the p-value for the z-test
+Computes the p-value for the Z-test
 }
 \examples{
 pValueZTest(rnorm(10))

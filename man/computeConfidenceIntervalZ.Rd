@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{computeConfidenceIntervalZ}
 \alias{computeConfidenceIntervalZ}
-\title{Helper function: Computes the safe confidence sequence for a z-test}
+\title{Helper function: Computes the safe confidence sequence for a Z-test}
 \usage{
 computeConfidenceIntervalZ(
   nEff,
@@ -13,7 +13,7 @@ computeConfidenceIntervalZ(
   alternative = "twoSided",
   a = NULL,
   g = NULL,
-  intervalType = c("eCauchy", "eGauss", "grow", "freq", "credibleInterval"),
+  eType = c("eCauchy", "eGauss", "grow", "freq", "credibleInterval"),
   maxRoot = 10
 )
 }
@@ -26,32 +26,35 @@ computeConfidenceIntervalZ(
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95.}
+\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
-\item{a}{numeric, the centre of the normal prior on population mean (of the normal data). Default
-is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis.}
+\item{a}{numeric, only used for eType="credibleInterval". a specifies the centre of the Gaussian
+prior on population mean.}
 
-\item{g}{numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
-(of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2.}
+\item{g}{numeric > 0, only used for eType="credibleInterval". g specifies the variance of
+the Gaussian prior on population mean.}
 
-\item{intervalType}{character string, one of "eGauss", "grow", "freq", "credibleInterval".
-"eGauss" yields an anytime-valid confidence interval based on a Gaussian mixture. "grow" yields an
-anytime-valid confidence interval using a mixture of point masses at the minimal clinically relevant
-mean difference. This confidence interval unfortunately does not shrink as the sample size tends to
-infinity. "freq" yields the standard frequentist confidence interval, which is not safe.
-"credibleInterval" yields the credible interval based on a conjugate prior as is usual in Bayesian
-analysis. This interval is also not safe.}
+\item{eType}{character string, one of "eCauchy", "eGauss", "grow", "freq", "credibleInterval".
+This is somewhat a misnomer as "freq" and "credibleInterval" do not correspond to e-value tests.
+"eCauchy" yields an anytime-valid confidence interval based on a Cauchy mixture,
+whereas "eGauss" yields an anytime-valid confidence interval based on a Gaussian mixture.
+"grow" yields an anytime-valid confidence interval based on a mixture of point masses
+at the minimal clinically relevant mean difference. This confidence interval unfortunately
+does not shrink as the sample size tends to infinity. "freq" yields the standard unsafe frequentist
+confidence interval, which is not safe. "credibleInterval" yields the Bayesian credible interval
+based on a conjugate prior as is usual in Bayesian analysis. This interval is also not safe.}
 
-\item{maxRoot}{Used to determine the maximum width for the z statistic whenever intervalType="eCauchy"}
+\item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
+whenever eType="eCauchy"}
 }
 \value{
 numeric vector that contains the upper and lower bound of the safe confidence sequence
 }
 \description{
-Helper function: Computes the safe confidence sequence for a z-test
+Helper function: Computes the safe confidence sequence for a Z-test
 }
 \examples{
 computeConfidenceIntervalZ(nEff=15, meanObs=0.3, parameter=0.2)

@@ -5,16 +5,14 @@
 #' A summary stats version of \code{\link{safeTTest}()} with the data replaced by t, n1 and n2, and the
 #' design object by deltaS.
 #'
+#' @inheritParams designSafeT
 #' @param t numeric that represents the observed t-statistic.
-#' @param parameter numeric this defines the safe test S, i.e., a likelihood ratio of t distributions with in
-#' the denominator the likelihood with delta = 0 and in the numerator an average likelihood defined by
-#' 1/2 time the likelihood at the non-centrality parameter sqrt(nEff)*parameter and 1/2 times the likelihood at
-#' the non-centrality parameter -sqrt(nEff)*parameter.
-#' @param n1 integer that represents the size in a one-sample t-test, (n2=\code{NULL}). When n2 is not \code{NULL},
+#' @param parameter numeric > 0, the safe test defining parameter.
+#' @param n1 integer that represents the size in a one-sample T-test, (n2=\code{NULL}). When n2 is not \code{NULL},
 #' this specifies the size of the first sample for a two-sample test.
 #' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 #' \code{NULL} it implies that the t-statistic is based on one-sample.
-#' @param tDensity Uses the the representation of the safe t-test as the likelihood ratio of t densities.
+#' @param tDensity Uses the the representation of the safe T-test as the likelihood ratio of t densities.
 #' @param eType character, type of e-value: "eCauchy" (default), "eGauss", or "grow"
 #' @inherit safeTTest
 #'
@@ -31,17 +29,6 @@ safeTTestStat <- function(
     tDensity=FALSE,
     paired=FALSE, eType=c("eCauchy", "eGauss", "bayarri", "grow"), ...) {
 
-  # TODO(Alexander):
-  #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
-  #   1. Use Kummer's transform again (??)
-  #   2. Switch to numerical integration. Boundary case
-  #
-  # safeTTestStat(t=-3.1878, parameter=0.29, n1=315, alternative="greater")
-  # safeTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
-  # safeTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
-
-  # TODO(Alexander): Remove in v0.9.0
-  #
   if (length(alternative)==1 && alternative=="two.sided") {
     warning('The option alternative="two.sided" is deprecated;',
             'Please use alternative="twoSided" instead')
@@ -54,14 +41,35 @@ safeTTestStat <- function(
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
   nu <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1-1 else n1+n2-2
 
-  # TODO(Alexander): This is not necessarily correct, since the correct one is
-  # (2*(y1-y2))^(-1)*(1+sign(y1-y2)*
-  #   (pnorm(deltaS/2, sd=1/sqrt(2))-pnorm(-deltaS/2, sd=1/sqrt(2))) #erf(deltaS/2)
-  #
-  #
-  # Problem: t=0, n=1
-  #
-  # PERHAPS add warning and assume t is then y2-y1, otherwise t must be Inf
+  result <- safeTTestStatNEffNu(
+    "t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+    "alternative"=alternative, "tDensity"=tDensity,
+    "paired"=paired, "eType"=eType, ...)
+
+  return(result)
+}
+
+
+#' SafeTTestStat based on the t-statistic, nEff and nu
+#'
+#' @rdname safeTTestStat
+#' @inheritParams computeConfidenceIntervalT
+#'
+#' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
+#' @param nu numeric > 0, the degrees of freedom.
+#'
+#' @export
+safeTTestStatNEffNu <- function(
+    t, nEff, nu, parameter,
+    alternative=c("twoSided", "less", "greater"),
+    tDensity=FALSE,
+    paired=FALSE, eType=c("eCauchy", "eGauss", "bayarri", "grow"), ...) {
+
+  stopifnot(nEff >= 0, nu >= 0)
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+
   if (nu == 0) {
     if (t==0)
       return(list("eValue"=1))
@@ -70,6 +78,18 @@ safeTTestStat <- function(
   }
 
   if (eType=="grow") {
+    # TODO(Alexander):
+    #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
+    #   1. Use Kummer's transform again (??)
+    #   2. Switch to numerical integration. Boundary case
+    #
+    # safeTTestStat(t=-3.1878, parameter=0.29, n1=315, alternative="greater")
+    # safeTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
+    # safeTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
+
+    # TODO(Alexander): Remove in v0.9.0
+    #
+
     deltaS <- parameter
     a <- t^2/(nu+t^2)
     expTerm <- exp((a-1)*nEff*deltaS^2/2)
@@ -112,10 +132,10 @@ safeTTestStat <- function(
       tempResult <- integrate(twoSidedCauchyIntegrand, 0, Inf)
     } else {
       oneSidedCauchyIntegrand <- function(delta) {
-        exp(
+        2/kappaG*exp(
           dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
           -dt(t, df=nu, ncp=0, log=TRUE)
-          +dt(delta, df=1, ncp=0, log=TRUE)
+          +dt(delta/kappaG, df=1, ncp=0, log=TRUE)
         )
       }
 
@@ -138,7 +158,7 @@ safeTTestStat <- function(
       return(list("eValue"=exp(logResult)))
     } else {
       oneSidedGaussIntegrand <- function(delta) {
-        exp(
+        2*exp(
           dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
           -dt(t, df=nu, ncp=0, log=TRUE)
           +dnorm(delta, mean=0, sd=sqrt(g), log=TRUE)
@@ -171,16 +191,15 @@ safeTTestStat <- function(
   }
 }
 
+
 #' safeTTestStat() based on t-densities
 #'
-#' This is basically just \code{\link{safeTTestStat}()} - 1/alpha. This function is used for root finding for
-#' pilot designs.
+#' This is \code{\link{safeTTestStat}()} based on t-densities instead of
+#' hypergeometric functions.
 #'
 #' @inheritParams safeTTest
-#' @inherit safeTTestStat
-#' @param nu numeric > 0 representing the degrees of freedom.
-#' @param nEff numeric > 0 representing the effective sample size in a two-sample problem. For one-sample
-#' problems this is equal to the sample size.
+#' @inheritParams safeTTestStatNEffNu
+#' @rdname safeTTestStat
 #'
 #' @return Returns a numeric that represent the e10, that is, the e-value in favour of the
 #' alternative over the null.
@@ -221,25 +240,21 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 
 #' Safe Student's T-Test.
 #'
-#' A safe t-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample t-tests on vectors of data.
+#' A safe T-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
 #'
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
 #' @param designObj an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot
 #' equals  \code{TRUE}.
-#' @param paired a logical indicating whether you want a paired t-test.
+#' @param paired a logical indicating whether you want a paired T-test.
 #' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For
 #' the moment, this is always \code{TRUE}.
-#' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that
-#' the number of samples is exactly as planned.
-#' @param alpha numeric > 0 only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE}, then
-#' the alpha of the design object is used instead in constructing the decision rule S > 1/alpha.
-#' @param alternative a character only used if pilot equals \code{TRUE}. If pilot equals \code{FALSE},
-#' then the alternative specified by the design object is used instead.
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
 #' and ciValue = 1 - alpha
 #' @param na.rm a logical value indicating whether \code{NA} values should be stripped before
 #' the computation proceeds.
+#' @param maxRoot Used to bound the candidate set of width of the confidence interval,
+#' whenever eType="eCauchy"
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -274,9 +289,9 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 safeTTest <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
     varEqual=TRUE, ciValue=NULL,
-    na.rm=FALSE, ...) {
+    na.rm=FALSE, maxRoot=10, ...) {
 
-  result <- constructSafeTestObj("Z-Test")
+  result <- constructSafeTestObj("T-Test")
 
   ## Def: test type -------
   if (is.null(y)) {
@@ -296,7 +311,7 @@ safeTTest <- function(
     designObj[["pilot"]] <- TRUE
 
     warningMessage <- paste("No designObj given. Default test computed based",
-                            "a Cauchy prior with scale 1/2.")
+                            "on a Cauchy prior with scale 1/2.")
     warning(warningMessage)
   }
 
@@ -382,10 +397,11 @@ safeTTest <- function(
 
   # Compute: confSeq ----
   #
-  result[["confSeq"]] <- computeConfidenceIntervalT("meanObs"=meanObs-h0, "sdObs"=sdObs,
-                                                    "nEff"=nEff, "nu"=nu,
-                                                    "deltaS"=designObj[["parameter"]],
-                                                    "ciValue"=ciValue)
+  result[["confSeq"]] <- computeConfidenceIntervalT(
+    "meanObs"=meanObs, "sdObs"=sdObs,
+    "nEff"=nEff, "nu"=nu,
+    "parameter"=designObj[["parameter"]],
+    "eType"=designObj[["eType"]], "ciValue"=ciValue, "maxRoot"=maxRoot)
 
   # Fill: Result -----
   argumentNames <- getArgs()
@@ -419,7 +435,6 @@ safeTTest <- function(
 #' Alias for safeTTest()
 #'
 #' @rdname safeTTest
-#'
 #' @param var.equal a logical variable indicating whether to treat the two variances as being equal. For the moment,
 #' this is always \code{TRUE}.
 #'
@@ -435,60 +450,102 @@ safeTTest <- function(
 #' safe.t.test(x, y, alternative="greater", designObj=designObj)      #0.2959334
 #'
 #' safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
-safe.t.test <- function(x, y=NULL, designObj=NULL, paired=FALSE, var.equal=TRUE,
-                        pilot=FALSE, alpha=NULL, alternative=NULL, ...) {
-  result <- safeTTest("x"=x, "y"=y, "designObj"=designObj, "paired"=paired, "varEqual"=var.equal,
-                      "pilot"=pilot, "alpha"=alpha, "alternative"=alternative, ...)
-  if (is.null(y))
-    dataName <- as.character(sys.call())[2]
-  else
-    dataName <- paste(as.character(sys.call())[2], "and", as.character(sys.call())[3])
+safe.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, var.equal=TRUE,
+                        ciValue=NULL, na.rm=FALSE, ...) {
+  result <- safeTTest("x"=x, "y"=y, "designObj"=designObj,
+                      "paired"=paired, "varEqual"=var.equal,
+                      "na.rm"=na.rm, ...)
+
+  argumentNames <- getArgs()
+  xLabel <- extractNameFromArgs(argumentNames, "x")
+
+  if (is.null(y)) {
+    dataName <- xLabel
+  } else {
+    yLabel <- extractNameFromArgs(argumentNames, "y")
+    dataName <- paste(xLabel, "and", yLabel)
+  }
 
   result[["dataName"]] <- dataName
   return(result)
 }
 
 
-#' Helper function: Computes the safe confidence sequence for the mean in a t-test
+#' Helper function: Computes the safe confidence sequence for the mean in a T-test
 #'
-#' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
-#' @param nu numeric > 0, the degrees of freedom.
+#' @inheritParams safeTTestStatNEffNu
+#' @inheritParams safeTTest
+#' @inheritParams designSafeT
+#'
 #' @param meanObs numeric, the observed mean. For two sample tests this is difference of the means.
 #' @param sdObs numeric, the observed standard deviation. For a two-sample test this is the root
 #' of the pooled variance.
-#' @param deltaS numeric > 0, the safe test defining parameter.
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95.
-#' @param g numeric > 0, used as the variance of the normal prior on the population delta
-#' Default is \code{NULL} in which case g=delta^2.
 #'
 #' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
 #' @export
 #'
 #' @examples
-#' computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, deltaS=0.4)
-computeConfidenceIntervalT <- function(meanObs, sdObs, nEff, nu, deltaS,
-                                       ciValue=0.95, g=NULL) {
-  if (is.null(g)) g <- deltaS^2
+#' computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, parameter=0.4)
+computeConfidenceIntervalT <- function(
+    meanObs, sdObs, nEff, nu, parameter,
+    eType=c("eCauchy", "eGauss", "grow"),
+    alternative=c("twoSided", "greater", "less"),
+    ciValue=0.95, maxRoot=10) {
+
+  eType <- match.arg(eType)
+  alternative <- match.arg(alternative)
 
   trivialConfInt <- c(-Inf, Inf)
 
-  if (nu <= 0) return(trivialConfInt)
+  if (eType=="eGauss" && alternative=="twoSided") {
+    g <- parameter
 
-  alpha <- 1-ciValue
+    if (nu <= 0) return(trivialConfInt)
 
-  numeratorW <- nu*(((1+nEff*g)/alpha^2)^(1/(nu+1))-1)
-  denominatorW <- 1-((1+nEff*g)/alpha^2)^(1/(nu+1))/(1+nEff*g)
+    alpha <- 1-ciValue
 
-  W <- numeratorW/denominatorW
+    numeratorW <- nu*(((1+nEff*g)/alpha^2)^(1/(nu+1))-1)
+    denominatorW <- 1-((1+nEff*g)/alpha^2)^(1/(nu+1))/(1+nEff*g)
 
-  if (W < 0) return(trivialConfInt)
+    W <- numeratorW/denominatorW
 
-  shift <- sdObs/sqrt(nEff)*sqrt(W)
+    if (W < 0) return(trivialConfInt)
 
-  lowerCs <- meanObs - shift
-  upperCs <- meanObs + shift
+    width <- sdObs/sqrt(nEff)*sqrt(W)
+  } else {
 
-  return(unname(c(lowerCs, upperCs)))
+    if (alternative=="twoSided") {
+      ciLogPenaltyFunc <- function(ciValue) 1/(1-ciValue)
+    } else if (alternative %in% c("greater", "less")) {
+      ciLogPenaltyFunc <- function(ciValue) 1/(2*(1-ciValue))
+    }
+
+    targetFunction <- function(t) {
+      safeTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+                          "eType"=eType)$eValue-ciLogPenaltyFunc(ciValue)
+    }
+
+    tempResult <- try(stats::uniroot(targetFunction, c(0, maxRoot)))
+
+    if (isTryError(tempResult))
+      stop("Can't compute the width of the interval")
+
+    width <- sdObs/sqrt(nEff)*tempResult$root
+  }
+
+
+  if (alternative=="twoSided") {
+    lowerCS <- meanObs - width
+    upperCS <- meanObs + width
+  } else if (alternative=="greater") {
+    lowerCS <- meanObs + width
+    upperCS <- Inf
+  } else if (alternative=="less") {
+    lowerCS <- -Inf
+    upperCS <- meanObs - width
+  }
+
+  return(unname(c(lowerCS, upperCS)))
 }
 
 
@@ -496,7 +553,7 @@ computeConfidenceIntervalT <- function(meanObs, sdObs, nEff, nu, deltaS,
 
 #' Design a Frequentist T-Test
 #'
-#' Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test.
+#' Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist T-test.
 #'
 #' @inheritParams designSafeT
 #'
@@ -583,15 +640,6 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' "greater" or "less".
 #' @param nPlan vector of max length 2 representing the planned sample sizes.
 #' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.
-#' @param lowN integer minimal sample size of the (first) sample when computing the power due to
-#' optional stopping. Default lowN is set 1.
-#' @param highN integer minimal sample size of the (first) sample when computing the power due to
-#' optional stopping. Default highN is set 1e6.
-#' @param lowParam numeric defining the smallest delta of the search space for the test-defining deltaS
-#' for scenario 3. Currently not yet in use.
-#' @param highParam numeric defining the largest delta of the search space for the test-defining deltaS
-#' for scenario 3. Currently not yet in use.
-#' @param tol a number that defines the stepsizes between the lowParam and highParam.
 #' @param testType either one of "oneSample", "paired", "twoSample".
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 #' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
@@ -604,6 +652,12 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' parameter set to 0, and in the numerator an average likelihood defined by the likelihood
 #' at the non-centrality parameter value deltaS. For the two sided
 #' case 1/2 at -deltaS and 1/2 deltaS.
+#' @param lowEsTrue numeric, lower bound for the candidate set of the
+#' targeted minimal clinically relevant effect size.
+#' Design scenario 3: nPlan and beta given, goal find deltaMin.
+#' @param highEsTrue numeric, upper bound for the candidate set of the
+#' targeted minimal clinically relevant effect size.
+#' Design scenario 3: nPlan and beta given, goal find deltaMin.
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
 #' for the safe z test under continuous monitoring.
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
@@ -633,11 +687,6 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #'   whether it was a one-sample or a two-sample test.}
 #'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
 #'   ratio between the planned randomisation of condition 2 over condition 1.}
-#'   \item{lowN}{the smallest n of the search space for n provided by the user.}
-#'   \item{highN}{the largest n of the search space for n provided by the user.}
-#'   \item{lowParam}{the smallest delta of the search space for delta provided by the user.}
-#'   \item{highParam}{the largest delta of the search space for delta provided by the user.}
-#'   \item{tol}{the step size between lowParam and highParam provided by the user.}
 #'   \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
@@ -658,13 +707,13 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' designObj <- designSafeT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
 #' designObj
 designSafeT <- function(
-    deltaMin=NULL, beta=NULL, nPlan=NULL, alpha=0.05, h0=0,
-    alternative=c("twoSided", "greater", "less"),
-    lowN=3L, highN=1e6L, lowParam=0.01, highParam=1.5, tol=0.01,
-    testType=c("oneSample", "paired", "twoSample"), ratio=1,
-    nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE, seed=NULL,
-    eType=c("eCauchy", "eGauss", "grow"), wantSamplePaths=TRUE,
-    ...) {
+    deltaMin=NULL, beta=NULL, nPlan=NULL,
+    alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
+    testType=c("oneSample", "paired", "twoSample"),
+    ratio=1, parameter=NULL, eType=c("eCauchy", "eGauss", "grow"),
+    wantSamplePaths=TRUE,
+    lowEsTrue=0.01, highEsTrue=3,
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
 
   stopifnot(alpha > 0, alpha < 1)
 
@@ -680,139 +729,45 @@ designSafeT <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  if (!is.null(parameter))
-    parameter <- checkAndReturnsEsMinParameterSide(
-      "paramToCheck"=parameter, "esMinName"="deltaS",
-      "alternative"=alternative)
+  result <- constructSafeDesignObj("T-Test")
 
-  if (!is.null(deltaMin))
+  if (!is.null(parameter)) {
+    if (eType=="grow") {
+      parameter <- checkAndReturnsEsMinParameterSide(
+        "paramToCheck"=parameter, "esMinName"="deltaS",
+        "alternative"=alternative)
+    } else if (eType %in% "eGauss") {
+      parameter <- checkAndReturnsEsMinParameterSide(
+        "paramToCheck"=parameter, "esMinName"="g",
+        "alternative"=alternative)
+    } else if (eType=="eCauchy") {
+      parameter <- checkAndReturnsEsMinParameterSide(
+        "paramToCheck"=parameter, "esMinName"="kappaG",
+        "alternative"=alternative)
+    }
+  }
+
+  if (!is.null(deltaMin)) {
     deltaMin <- checkAndReturnsEsMinParameterSide(
       "paramToCheck"=deltaMin, "esMinName"="deltaMin",
       "alternative"=alternative)
-
-  paired <- if (testType=="paired") TRUE else FALSE
+  }
 
   designScenario <- NULL
-  note <- NULL
-
-  nPlanBatch <- nPlanTwoSe <- NULL
-  nMean <- nMeanTwoSe <- NULL
-
-  logImpliedTarget <- logImpliedTargetTwoSe <- NULL
-  betaTwoSe <- NULL
-
-  bootObjN1Plan <- bootObjN1Mean <- bootObjBeta <- bootObjLogImpliedTarget <- NULL
 
   tempResult <- list()
 
-  names(h0) <- "mu"
-
   if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan)) {
-    #scenario 1a: delta + power known, calculate nPlan
     designScenario <- "1a"
 
-    tempResult <- computeNPlanSafeT("deltaTrue"=deltaMin, "beta"=beta, "alpha"=alpha, "alternative"=alternative,
-                                    "testType"=testType, "lowN"=lowN, "highN"=highN, "ratio"=ratio,
-                                    "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, "parameter"=NULL, "pb"=pb,
-                                    "eType"=eType, "wantSamplePaths"=wantSamplePaths)
-
-    nPlanBatch <- tempResult[["nPlanBatch"]]
-    parameter <- tempResult[["parameter"]]
-
-    bootObjN1Plan <- tempResult[["bootObjN1Plan"]]
-    bootObjN1Mean <- tempResult[["bootObjN1Mean"]]
-
-    if (testType=="oneSample") {
-      nPlan <- tempResult[["n1Plan"]]
-      names(nPlan) <- "nPlan"
-      nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
-
-      nMean <- tempResult[["n1Mean"]]
-      names(nMean) <- "nMean"
-      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
-
-      note <- paste0("If it is only possible to look at the data once, ",
-                     "then nPlan = ", nPlanBatch, ".")
-    } else if (testType=="paired") {
-      nPlan <- c(tempResult[["n1Plan"]], tempResult[["n1Plan"]])
-      names(nPlan) <- c("n1Plan", "n2Plan")
-
-      nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
-      nPlanTwoSe <- c(nPlanTwoSe, nPlanTwoSe)
-
-      nMean <- c(tempResult[["n1Mean"]], tempResult[["n1Mean"]])
-      names(nMean) <- c("n1Mean", "n2Mean")
-      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
-      nMeanTwoSe <- c(nMeanTwoSe, nMeanTwoSe)
-
-      note <- paste0("If it is only possible to look at the data once, ",
-                     "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
-                     nPlanBatch[2], ".")
-    } else if (testType=="twoSample") {
-      nPlan <- c(tempResult[["n1Plan"]], ceiling(ratio*tempResult[["n1Plan"]]))
-      names(nPlan) <- c("n1Plan", "n2Plan")
-      nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
-      nPlanTwoSe <- c(nPlanTwoSe, ratio*nPlanTwoSe)
-
-
-      nMean <- c(tempResult[["n1Mean"]], ceiling(ratio*tempResult[["n1Mean"]]))
-      names(nMean) <- c("n1Mean", "n2Mean")
-      nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
-      nMeanTwoSe <- c(nMeanTwoSe, ratio*nMeanTwoSe)
-
-      note <- paste0("If it is only possible to look at the data once, ",
-                     "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
-                     nPlanBatch[2], ".")
-    }
+    tempResult <- designSafeT1aWantNPlan(
+      "deltaMin"=deltaMin, "beta"=beta,
+      "alpha"=alpha, "alternative"=alternative,
+      "ratio"=ratio, "parameter"=parameter, testType=testType,
+      "eType"=eType, "wantSamplePaths"=wantSamplePaths,
+      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, ...)
   } else if (!is.null(deltaMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
-
-    parameter <- switch(eType,
-                        "eCauchy"=abs(deltaMin),
-                        "eGauss"=deltaMin^2,
-                        "grow"=deltaMin)
-
-    nPlan <- NULL
-    beta <- NULL
-    deltaMin <- deltaMin
-  } else if (is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
-    #scenario 1c: only nPlan known, can perform a pilot (no warning though)
-    designScenario <- "1c"
-
-    stop("Still need to do Judith's W function")
-  } else if (!is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
-    # scenario 2: given effect size and nPlan, calculate power and implied target
-    designScenario <- "2"
-
-    parameter <- switch(eType,
-                        "eCauchy"=abs(deltaMin),
-                        "eGauss"=deltaMin^2,
-                        "grow"=deltaMin)
-
-    nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
-
-    tempResult <- computeBetaSafeT("deltaTrue"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
-                                   "alternative"=alternative, "testType"=testType, "parameter"=parameter,
-                                   "pb"=pb, "nSim"=nSim, "nBoot"=nBoot, "seed"=seed,
-                                   "eType"=eType, "wantSamplePaths"=wantSamplePaths)
-
-    parameter <- tempResult[["parameter"]]
-
-    beta <- tempResult[["beta"]]
-    bootObjBeta <- tempResult[["bootObjBeta"]]
-    betaTwoSe <- 2*bootObjBeta[["bootSe"]]
-
-    logImpliedTarget <- tempResult[["logImpliedTarget"]]
-    bootObjLogImpliedTarget <- tempResult[["bootObjLogImpliedTarget"]]
-    logImpliedTargetTwoSe <- 2*bootObjLogImpliedTarget[["bootSe"]]
-  } else if (is.null(deltaMin) && !is.null(beta) && !is.null(nPlan)) {
-    designScenario <- "3"
-
-    deltaMin <- tryOrFailWithNA(
-      computeEsMinSafeT("nPlan"=nPlan, "alpha"=alpha, "beta"=beta,
-                        "alternative"=alternative, "testType"=testType,
-                        "parameter"=parameter, "eType"=eType)
-    )
 
     if (is.null(parameter)) {
       parameter <- switch(eType,
@@ -821,10 +776,32 @@ designSafeT <- function(
                           "eCauchy"=abs(deltaMin))
     }
 
-    if (is.na(deltaMin))
-      note <- "No deltaMin found for the provided beta and nPlan"
-    else
-      note <- "The reported deltaMin is based on the batch analysis."
+    tempResult <- list("parameter"=parameter, "esMin"=deltaMin)
+  } else if (is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
+    #scenario 1c: only nPlan known, can perform a pilot (no warning though)
+    designScenario <- "1c"
+    stop("Still need to do Judith's W function")
+
+    tempResult <- list("note"="TODO")
+
+  } else if (!is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
+    # scenario 2: given effect size and nPlan, calculate power and implied target
+    designScenario <- "2"
+
+    tempResult <- designSafeT2WantBeta(
+      "deltaMin"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
+      "alternative"=alternative, "testType"=testType,
+      "ratio"=ratio, "parameter"=parameter, "eType"=eType,
+      "wantSamplePaths"=wantSamplePaths,
+      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, ...)
+  } else if (is.null(deltaMin) && !is.null(beta) && !is.null(nPlan)) {
+    designScenario <- "3"
+
+    tempResult <- designSafeT3WantEsMin(
+      "beta"=beta, "nPlan"=nPlan, "alpha"=alpha,
+      "alternative"=alternative, "testType"=testType,
+      "parameter"=parameter, "eType"=eType,
+      "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue)
   }
 
   if (is.null(designScenario)) {
@@ -836,42 +813,200 @@ designSafeT <- function(
          "(3) NULL deltaMin, non-null beta, and non-null nPlan.")
   }
 
-  if (is.na(deltaMin))
-    deltaMin <- NULL
+  # Fill and name ----
+  result <- utils::modifyList(result, tempResult)
 
-  if (designScenario %in% 2:3) {
-    n2Plan <- nPlan[2]
+  result[["alpha"]] <- alpha
+  result[["alternative"]] <- alternative
+  result[["testType"]] <- testType
+  result[["ratio"]] <- ratio
+  result[["eType"]] <- eType
 
-    names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
+  ## Name esMin ----
+  esMin <- result[["esMin"]]
+
+  if (is.na(esMin))
+    esMin <- NULL
+
+  if (!is.null(esMin))
+    names(esMin) <- "standardised mean difference"
+
+  result[["esMin"]] <- esMin
+
+  ## Name nPlan ----
+  nPlan <- result[["nPlan"]]
+
+  if (!is.null(nPlan)) {
+    if (designScenario %in% 2:3) {
+      n2Plan <- nPlan[2]
+
+      names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
+    }
   }
 
-  if (is.null(names(parameter))) {
+  result[["nPlan"]] <- nPlan
+
+  ## Name parameter ----
+  parameter <- result[["parameter"]]
+
+  if (!is.null(parameter) && is.null(names(parameter))) {
     names(parameter) <- switch(eType,
-                               "eCauchy"="kappaG",
+                               "grow"="deltaS",
                                "eGauss"="g",
-                               "grow"="deltaS")
+                               "eCauchy"="kappaG")
   }
 
-  result <- list("parameter"=parameter, "esMin"=deltaMin,"alpha"=alpha, "alternative"=alternative,
-                 "h0"=h0, "testType"=testType, "paired"=paired, "testName"="T-Test",
-                 "ratio"=ratio, "pilot"=FALSE, "eType"=eType,
-                 "nPlan"=nPlan, "nPlanTwoSe"=nPlanTwoSe, "nPlanBatch"=nPlanBatch,
-                 "nMean"=nMean, "nMeanTwoSe"=nMeanTwoSe,
-                 "beta"=beta, "betaTwoSe"=betaTwoSe,
-                 "logImpliedTarget"=logImpliedTarget, "logImpliedTargetTwoSe"=logImpliedTargetTwoSe,
-                 "bootObjN1Plan"=bootObjN1Plan, "bootObjBeta"=bootObjBeta,
-                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget, "bootObjN1Mean"=bootObjN1Mean,
-                 "call"=sys.call(), "timeStamp"=Sys.time(), "note"=note)
-  class(result) <- "safeDesign"
+  result[["parameter"]] <- parameter
 
-  names(result[["esMin"]]) <- "standardised mean difference"
-  names(result[["h0"]]) <- "mu"
+  ## Name h0 -----
+  names(h0) <- "mu"
+  result[["h0"]] <- h0
+
+  result[["call"]] <- sys.call()
   return(result)
 }
 
+
+#' Helper function to designing a T-test (output nPlan)
+#'
+#' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
+#'
+#' @inheritParams designSafeT
+#'
+#' @return A list with the parameter and the targeted nPlan amongst other items
+#' @export
+#'
+#' @examples
+#' designSafeT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+designSafeT1aWantNPlan <- function(
+    deltaMin, beta, alpha=0.05,
+    alternative=c("twoSided", "greater", "less"),
+    testType=c("oneSample", "paired", "twoSample"),
+    ratio=1, parameter=NULL,
+    eType=c("eCauchy", "eGauss", "grow"),
+    wantSamplePaths=TRUE,
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+  testType <- match.arg(testType)
+
+  samplingResult <- computeNPlanSafeT(
+    "deltaTrue"=deltaMin, "beta"=beta, "alpha"=alpha,
+    "alternative"=alternative, "ratio"=ratio,
+    "parameter"=parameter, "testType"=testType, "eType"=eType,
+    "wantSamplePaths"=wantSamplePaths,
+    "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot)
+
+
+  result <- designSafe1aHelper("samplingResult"=samplingResult,
+                               "esMin"=deltaMin, "beta"=beta,
+                               "ratio"=ratio, "testType"=testType)
+  return(result)
+}
+
+#' Helper function to designing a T-test (output beta)
+#'
+#' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
+#'
+#' @inheritParams designSafeT
+#'
+#' @return A list with the parameter and beta amongst other items
+#' @export
+#'
+#' @examples
+#' designSafeT2WantBeta(deltaMin=0.9, nPlan=7, nSim=10)
+designSafeT2WantBeta <- function(
+    deltaMin, nPlan,
+    alpha=0.05, alternative=c("twoSided", "greater", "less"),
+    testType=c("oneSample", "paired", "twoSample"),
+    ratio=1, parameter=NULL,
+    eType=c("eCauchy", "eGauss", "grow"),
+    wantSamplePaths=TRUE,
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+  testType <- match.arg(testType)
+
+  ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
+  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+
+  samplingResult <- computeBetaSafeT(
+    "deltaTrue"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
+    "alternative"=alternative,
+    "testType"=testType, "parameter"=parameter,
+    "eType"=eType, "wantSamplePaths"=wantSamplePaths,
+    "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
+
+  result <- designSafe2Helper("samplingResult"=samplingResult,
+                              "esMin"=deltaMin, "nPlan"=nPlan, "ratio"=ratio,
+                              "testType"=c("oneSample", "paired","twoSample"))
+  return(result)
+}
+
+#' Helper function to designing a T-test (output esMin)
+#'
+#' Finds the parameter and esMin when provided with only alpha, beta, and nPlan
+#'
+#' @inheritParams designSafeT
+#'
+#' @return A list with the parameter and the targeted esMin amongst other items
+#' @export
+#'
+#' @examples
+#' designSafeT3WantEsMin(beta=0.7, nPlan=10)
+designSafeT3WantEsMin <- function(
+    beta, nPlan,
+    alpha=0.05, alternative=c("twoSided", "greater", "less"),
+    testType=c("oneSample", "paired", "twoSample"),
+    parameter=NULL, eType=c("eCauchy", "eGauss", "grow"),
+    lowEsTrue=0.01, highEsTrue=3, ...) {
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+  testType <- match.arg(testType)
+
+  ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
+
+  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+
+  result <- list("parameter"=NULL, "esMin"=NULL,
+                 "nPlan"=nPlan, "beta"=beta, "ratio"=ratio,
+                 "note"=NULL)
+
+  args(computeMinEsBatchSafeT)
+
+  deltaMin <- tryOrFailWithNA(
+    computeMinEsBatchSafeT(
+      "nPlan"=nPlan, "alpha"=alpha, "beta"=beta,
+      "alternative"=alternative, "testType"=testType,
+      "parameter"=parameter, "eType"=eType,
+      "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue)
+  )
+
+  if (is.null(parameter)) {
+    parameter <- switch(eType,
+                        "grow"=deltaMin,
+                        "eGauss"=deltaMin^2,
+                        "eCauchy"=abs(deltaMin))
+  }
+
+  result[["parameter"]] <- parameter
+  result[["esMin"]] <- deltaMin
+
+  if (is.na(deltaMin))
+    result[["note"]] <- "No deltaMin found for the provided beta and nPlan"
+  else
+    result[["note"]] <- "The reported deltaMin is based on the batch analysis."
+
+  return(result)
+}
+
+
 # Batch design fnts ------
 
-#' Helper function: Computes the planned sample size for the safe t-test based on the minimal clinically
+#' Helper function: Computes the planned sample size for the safe T-test based on the minimal clinically
 #' relevant standardised effect size, alpha and beta.
 #'
 #' @inheritParams designSafeT
@@ -882,8 +1017,8 @@ computeNPlanBatchSafeT <- function(
     deltaTrue, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    eType=c("eCauchy", "eGauss", "grow"), parameter=NULL,
-    lowN=3, highN=1e6, ratio=1) {
+    eType=c("eCauchy", "eGauss", "grow"),
+    parameter=NULL, ratio=1) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -916,9 +1051,9 @@ computeNPlanBatchSafeT <- function(
 
   deltaTrue <- abs(deltaTrue)
 
-  # Sample size of greater sided z-test as lower/upper bound for
+  # Sample size of greater sided Z-test as lower/upper bound for
   # the candidate set of nEff
-  qB <- qnorm(beta)
+  qB <- stats::qnorm(beta)
 
   nTemp <- exp(-2*log(deltaTrue))*
     (2*qB^2 - 2*qB*sqrt(qB^2+2*log(1/alpha))
@@ -987,19 +1122,22 @@ computeNPlanBatchSafeT <- function(
   return(result)
 }
 
-
-#' Helper function: Computes the minimal clinically relevant standardised mean difference for the safe t-test
-#' nPlan and beta.
+#' Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
+#' sample size
 #'
 #' @inheritParams  designSafeT
 #'
-#' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
-computeEsMinSafeT <- function(
+#' @return numeric > 0 that represents the minimal detectable mean difference
+#' @export
+#'
+#' @examples
+#' computeMinEsBatchSafeT(27)
+computeMinEsBatchSafeT <- function(
     nPlan, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
-    eType=c("eCauchy", "eGauss", "grow")) {
+    parameter=NULL, eType=c("eCauchy", "eGauss", "grow"),
+    lowEsTrue=0.01, highEsTrue=3, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1025,29 +1163,36 @@ computeEsMinSafeT <- function(
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
 
-  if (testType=="twoSample") {
-    n1Func <- function(nEff) nEff
-    n2Func <- function(nEff) NULL
-    nuFunc <- function(nEff) nEff-1
-  } else if (testType %in% c("oneSample", "paired")) {
-    n1Func <- function(nEff) (1+ratio)/ratio*nEff
-    n2Func <- function(nEff) (1+ratio)*nEff
-    nuFunc <- function(nEff) (1+ratio)^2/ratio*nEff-2
-  }
-
   tempAlternative <- switch(alternative,
                             "twoSided"="twoSided",
                             "greater"="greater",
                             "less"="greater")
 
+  if (testType %in% c("oneSample", "paired")) {
+    n1 <- nPlan[1]
+    n2 <- NULL
+    nu <- n1-1
+  } else if (testType=="twoSample") {
+    n1 <- nPlan[1]
+    n2 <- nPlan[2]
+    nu <- n1+n2-2
+  }
+
   targetFunction <- function(deltaTrue) {
     safeTTestStat(
-      stats::qt("p"=beta, "df"=nuFunc(nEff), "ncp"=sqrt(nEff)*deltaTrue),
-      "n1"=n1Func(nEff), "n2"=n2Func(nEff), "parameter"=paramFunc(deltaTrue),
+      stats::qt("p"=beta, "df"=nu, "ncp"=sqrt(nEff)*deltaTrue),
+      "n1"=n1, "n2"=n2, "parameter"=paramFunc(deltaTrue),
       "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
   }
 
-  tempResult <- try(stats::uniroot(targetFunction, interval=c(0.01, 3)))
+  if (eType=="grow")  {
+    gaussResult <- computeMinEsBatchSafeT(
+      "nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "alternative"=tempAlternative,
+      testType=testType, eType="eGauss")
+  }
+
+  tempResult <- try(stats::uniroot(targetFunction, interval=c(lowEsTrue, highEsTrue)))
+
   result <- tempResult[["root"]]
 
   if (alternative=="less")
@@ -1058,7 +1203,7 @@ computeEsMinSafeT <- function(
 
 # Sampling functions for design ----
 
-#' Simulate stopping times for the safe t-test
+#' Simulate stopping times for the safe T-test
 #'
 #' @inheritParams designSafeT
 #' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
@@ -1067,6 +1212,7 @@ computeEsMinSafeT <- function(
 #' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
 #' @param wantSamplePaths logical. If \code{TRUE} then output the (stopped) sample paths. Default \code{TRUE}.
 #' @param wantSimData logical. If \code{TRUE}, then output the simulated data.
+#' @param lowN integer, smallest sample size (of the first group).
 #'
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies that in corresponding stopping
@@ -1240,11 +1386,14 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
 #'
 #' @examples
 #' computeBetaSafeT(deltaTrue=0.7, 27, nSim=10)
-computeBetaSafeT <- function(deltaTrue, nPlan, alpha=0.05, alternative=c("twoSided", "greater", "less"),
-                             testType=c("oneSample", "paired", "twoSample"), seed=NULL,
-                             parameter=NULL, pb=TRUE, nSim=1e3L, nBoot=1e3L,
-                             eType=c("eCauchy", "eGauss", "grow"),
-                             wantSamplePaths=TRUE, ...) {
+computeBetaSafeT <- function(
+    deltaTrue, nPlan, alpha=0.05,
+    alternative=c("twoSided", "greater", "less"),
+    testType=c("oneSample", "paired", "twoSample"),
+    parameter=NULL,
+    eType=c("eCauchy", "eGauss", "grow"),
+    wantSamplePaths=TRUE,
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1266,52 +1415,34 @@ computeBetaSafeT <- function(deltaTrue, nPlan, alpha=0.05, alternative=c("twoSid
             'times nPlan[1] = ', nPlan[2])
   }
 
+  deltaTrue <- checkAndReturnsEsMinParameterSide(
+    "paramToCheck"=deltaTrue, "alternative"=alternative,
+    "esMinName"="deltaTrue")
+
   if (is.null(parameter)) {
-    deltaTrue <- checkAndReturnsEsMinParameterSide(
-      "paramToCheck"=deltaTrue, "alternative"=alternative,
-      "esMinName"="deltaTrue")
     parameter <- switch(eType,
                         "grow"=deltaTrue,
                         "eGauss"=deltaTrue^2,
                         "eCauchy"=abs(deltaTrue))
   }
 
-  tempResult <- sampleStoppingTimesSafeT("deltaTrue"=deltaTrue, "alpha"=alpha,
-                                         "alternative" = alternative,
-                                         "nSim"=nSim, "nMax"=nPlan, "ratio"=ratio,
-                                         "testType"=testType, "parameter"=parameter,
-                                         "pb"=pb, "wantEValuesAtNMax"=TRUE,
-                                         "seed"=seed, "wantSamplePaths"=wantSamplePaths,
-                                         "eType"=eType)
+  samplingResult <- sampleStoppingTimesSafeT(
+    "deltaTrue"=deltaTrue, "alpha"=alpha,
+    "alternative" = alternative, "testType"=testType,
+    "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
+    "eType"=eType,
+    "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
+    "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
 
-  times <- tempResult[["stoppingTimes"]]
-
-  # Note(Alexander): Break vector is 1 whenever the sample path did not stop
-  breakVector <- tempResult[["breakVector"]]
-
-  # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
-  times[as.logical(breakVector)] <- Inf
-
-  bootObjBeta <- computeBootObj("values"=times, "objType"="beta", "nPlan"=nPlan[1], "nBoot"=nBoot)
-
-  eValuesAtNMax <- tempResult[["eValuesAtNMax"]]
-
-  bootObjLogImpliedTarget <- computeBootObj("values"=eValuesAtNMax, "objType"="logImpliedTarget",
-                                            "nBoot"=nBoot)
-
-  result <- list("beta" = bootObjBeta[["t0"]],
-                 "bootObjBeta" = bootObjBeta,
-                 "logImpliedTarget"=bootObjLogImpliedTarget[["t0"]],
-                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
-                 "samplePaths"=tempResult[["samplePaths"]],
-                 "breakVector"=tempResult[["breakVector"]],
-                 "parameter"=parameter)
+  result <- computeBetaBootstrapper(samplingResult=samplingResult,
+                                    parameter=parameter, nPlan=nPlan,
+                                    nBoot=nBoot)
 
   return(result)
 }
 
 
-#' Helper function: Computes the planned sample size of the safe t-test based on the
+#' Helper function: Computes the planned sample size of the safe T-test based on the
 #' minimal clinical relevant standardised mean difference.
 #'
 #'
@@ -1324,11 +1455,15 @@ computeBetaSafeT <- function(deltaTrue, nPlan, alpha=0.05, alternative=c("twoSid
 #'
 #' @examples
 #' computeNPlanSafeT(0.7, 0.2, nSim=10)
-computeNPlanSafeT <- function(deltaTrue, beta=0.2, alpha=0.05, alternative = c("twoSided", "less", "greater"),
-                              testType=c("oneSample", "paired", "twoSample"), lowN=3,
-                              highN=1e6, ratio=1, nSim=1e3L, nBoot=1e3L, parameter=NULL, pb=TRUE,
-                              nMax=1e6, seed=NULL, eType=c("eCauchy", "eGauss", "grow"), wantSamplePaths=TRUE,
-                              ...) {
+computeNPlanSafeT <- function(
+    deltaTrue, beta=0.2, alpha=0.05,
+    alternative = c("twoSided", "less", "greater"),
+    testType=c("oneSample", "paired", "twoSample"),
+    ratio=1, parameter=NULL, nMax=1e8,
+    eType=c("eCauchy", "eGauss", "grow"),
+    wantSamplePaths=TRUE,
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -1341,53 +1476,45 @@ computeNPlanSafeT <- function(deltaTrue, beta=0.2, alpha=0.05, alternative = c("
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  if (is.null(parameter)) {
-    deltaTrue <- checkAndReturnsEsMinParameterSide(
-      "paramToCheck"=deltaTrue, "alternative"=alternative,
-      "esMinName"="deltaTrue")
-  }
+  deltaTrue <- checkAndReturnsEsMinParameterSide(
+    "paramToCheck"=deltaTrue, "alternative"=alternative,
+    "esMinName"="deltaTrue")
 
-  tempObj <- computeNPlanBatchSafeT("deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
-                                    "alternative"=alternative, "testType"=testType, "lowN"=lowN,
-                                    "highN"=highN, "ratio"=ratio, "eType"=eType)
+  tempObj <- computeNPlanBatchSafeT(
+    "deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
+    "alternative"=alternative, "testType"=testType,
+    "parameter"=parameter, "ratio"=ratio, "eType"=eType)
+
   nPlanBatch <- tempObj[["nPlan"]]
   parameter <- tempObj[["parameter"]]
 
-  samplingResults <- sampleStoppingTimesSafeT("deltaTrue"=deltaTrue, "alpha"=alpha,
-                                              "alternative" = alternative, "seed"=seed,
-                                              "nSim"=nSim, "nMax"=nPlanBatch, "ratio"=ratio,
-                                              "testType"=testType, "parameter"=parameter, "pb"=pb,
-                                              "eType"=eType, "wantSamplePaths"=wantSamplePaths)
+  samplingResult <- sampleStoppingTimesSafeT(
+    "deltaTrue"=deltaTrue, "alpha"=alpha,
+    "alternative" = alternative, "testType"=testType,
+    "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
+    "eType"=eType,
+    "wantSamplePaths"=wantSamplePaths,
+    "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
 
-  times <- samplingResults[["stoppingTimes"]]
-
-  bootObjN1Plan <- computeBootObj("values"=times, "objType"="nPlan", "beta"=beta, "nBoot"=nBoot)
-
-  n1Plan <- ceiling(bootObjN1Plan[["t0"]])
-
-  bootObjN1Mean <- computeBootObj("values"=times, "objType"="nMean", "nPlan"=n1Plan, "nBoot"=nBoot)
-
-  n1Mean <- ceiling(bootObjN1Mean[["t0"]])
-
-  result <- list("n1Plan" = n1Plan, "bootObjN1Plan" = bootObjN1Plan,
-                 "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
-                 "nPlanBatch"=nPlanBatch, "parameter"=parameter,
-                 "samplePaths"=samplingResults[["samplePaths"]],
-                 "breakVector"=samplingResults[["breakVector"]])
-
+  result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
+                                     "parameter"=parameter, "beta"=beta,
+                                     "nPlanBatch"=nPlanBatch, "nBoot"=nBoot)
   return(result)
 }
+
 
 # Helper fnts ------
 
 #' Computes a Sequence of (Effective) Sample Sizes
 #'
-#' Helper function that outputs the sample sizes, effective sample sizes and the degrees of
-#' freedom depending on the type of t-test. Also used for z-tests.
+#' Helper function that outputs a sequence of sample sizes, effective sample sizes,
+#' and the degrees of freedom depending on the type of T-test. Also used for Z-tests.
 #'
 #'
 #' @inheritParams designSafeT
 #' @inheritParams replicateTTests
+#'
+#' @param highN integer largest sample size of the (first) sample. Default set to 100.
 #'
 #' @return Returns the sample sizes and degrees of freedom.
 defineTTestN <- function(lowN=3, highN=100, ratio=1,
@@ -1416,7 +1543,7 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #' The designs supported are "oneSample", "paired", "twoSample".
 #'
 #' @inheritParams replicateTTests
-#' @param meanDiffTrue numeric representing the true mean for simulations with a z-test.
+#' @param meanDiffTrue numeric representing the true mean for simulations with a Z-test.
 #' Default \code{NULL}
 #'
 #' @return Returns a list of two data matrices contains at least the following components:
@@ -1434,7 +1561,7 @@ generateNormalData <- function(nPlan, nSim=1000L, deltaTrue=NULL, muGlobal=0, si
   stopifnot(all(nPlan > 0))
 
   if ((is.null(deltaTrue) && is.null(meanDiffTrue)) || !is.null(deltaTrue) && !is.null(meanDiffTrue))
-    stop("Please provide either deltaTrue (t-test), or meanDiffTrue (z-test).")
+    stop("Please provide either deltaTrue (T-test), or meanDiffTrue (Z-test).")
 
   result <- list("dataGroup1"=NULL, "dataGroup2"=NULL)
   set.seed(seed)
@@ -1544,7 +1671,7 @@ simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, mu
 #'
 #' @inheritParams designSafeT
 #' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
-#' @param muGlobal numeric, the true global mean of a paired or two-sample t-test. Its value should not
+#' @param muGlobal numeric, the true global mean of a paired or two-sample T-test. Its value should not
 #' matter for the test. This parameter is treated as a nuisance.
 #' @param sigmaTrue numeric > 0,the true standard deviation of the data. Its value should not  matter
 #' for the test.This parameter treated is treated as a nuisance.
@@ -1556,7 +1683,7 @@ simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, mu
 #' @param freqOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for
 #' the frequentist test.
 #' @param nPlanFreq the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}()}.
-#' @param paired logical, if \code{TRUE} then paired t-test.
+#' @param paired logical, if \code{TRUE} then paired T-test.
 #' @param seed To set the seed for the simulated data.
 #' @param logging logical, if \code{TRUE}, then return the simulated data.
 #' @param pb logical, if \code{TRUE}, then show progress bar.
@@ -1569,9 +1696,9 @@ simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, mu
 #'   \item{nPlan}{the planned sample size(s).}
 #'   \item{deltaTrue}{the value of the true standardised effect size (test-relevant parameter) provided by
 #'   the user.}
-#'   \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
+#'   \item{muGlobal}{the true global mean of a paired or two-sample T-test (nuisance parameter) provided by
 #'   the user.}
-#'   \item{paired}{if \code{TRUE} then paired t-test.}
+#'   \item{paired}{if \code{TRUE} then paired T-test.}
 #'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
 #'   \item{nSim}{the number of replications of the experiment.}
@@ -1693,13 +1820,13 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
 
   if (safeOptioStop) {
     if (is.null(parameter)) {
-      stop("To simulate safe t-tests results under optional stopping, this function 'replicateTTests' requires ",
+      stop("To simulate safe T-tests results under optional stopping, this function 'replicateTTests' requires ",
            "the specification of the safe test with a parameter. This parameter can be acquired by running ",
            "the 'designSafeT()' function")
     }
 
     if (paired && n1Plan != n2Plan)
-      stop("For a paired t-test n2Plan needs to equal n1Plan")
+      stop("For a paired T-test n2Plan needs to equal n1Plan")
 
     safeSim <- list("powerOptioStop"=NA, "powerAtN1Plan"=NA, "nMean"=NA, "probLeqN1PlanFreq"=NA,
                     "probLessNDesign"=NA, "lowN"=NA)
@@ -1734,19 +1861,19 @@ replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FA
     # Note(Alexander): This means that n1Plan and n2Plan refer to the planned samples of the safe tests
 
     if (is.null(n1PlanFreq)) {
-      stop("To simulate frequentist t-tests results under optional stopping, this ",
+      stop("To simulate frequentist T-tests results under optional stopping, this ",
            "function 'replicateTTests' requires the specification of n1PlanFreq. To figure out how many ",
            "samples one requires in a frequentist test, please run the 'designFreqT' function.")
     }
 
     if (!is.null(n2Plan) && is.null(n2PlanFreq)) {
-      stop("To simulate a two-sample frequentist t-tests results under optional stopping, this",
+      stop("To simulate a two-sample frequentist T-tests results under optional stopping, this",
            "function 'replicateTTests' requires the specification of n1PlanFreq. To figure out how many ",
            "samples one requires in a frequentist test, please run the 'designFreqT' function.")
     }
 
     if (paired && n1PlanFreq != n2PlanFreq)
-      stop("For a paired t-test n2PlanFreq needs to equal n1PlanFreq")
+      stop("For a paired T-test n2PlanFreq needs to equal n1PlanFreq")
 
     freqSim <- list("powerOptioStop"=NA, "powerAtN1Plan"=NA, "nMean"=NA, "probLessNDesign"=NA, "lowN"=NA)
 

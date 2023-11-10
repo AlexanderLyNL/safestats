@@ -18,6 +18,8 @@ designSafeZ(
   parameter = NULL,
   eType = c("eCauchy", "eGauss", "grow"),
   wantSamplePaths = TRUE,
+  lowEsTrue = 0.01,
+  highEsTrue = 3,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
@@ -67,6 +69,14 @@ a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based 
 two point masses at the minimal clinically relevant effect size.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
+\item{lowEsTrue}{numeric, lower bound for the candidate set of the
+targeted minimal clinically relevant effect size.
+Design scenario 3: nPlan and beta given, goal find meanDiffMin}
+
+\item{highEsTrue}{numeric, upper bound for the candidate set of the
+targeted minimal clinically relevant effect size.
+Design scenario 3: nPlan and beta given, goal find meanDiffMin}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 

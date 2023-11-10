@@ -19,25 +19,18 @@ safeZTestStat(
 \arguments{
 \item{z}{numeric that represents the observed z-statistic.}
 
-\item{n1}{integer that represents the size in a one-sample z-test, (n2=\code{NULL}). When n2 is not
+\item{n1}{integer that represents the size in a one-sample Z-test, (n2=\code{NULL}). When n2 is not
 \code{NULL}, this specifies the size of the first sample for a two-sample test.}
 
 \item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 \code{NULL} it implies that the z-statistic is based on one-sample.}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the safe test is a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average
-likelihood defined by the likelihood at the parameter value phiS. For the two sided
-case 1/2 at -phiS and 1/2 phiS.}
+\item{parameter}{numeric > 0, the safe test defining parameter.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
-\item{paired}{a logical indicating whether you want the paired z-test.}
+\item{paired}{a logical indicating whether you want the paired Z-test.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 

@@ -55,7 +55,7 @@ returns a 'freqZDesign' object.
 }
 \description{
 Computes the number of samples necessary to reach a tolerable type I and type II error for the
-frequentist z-test.
+frequentist Z-test.
 }
 \examples{
 freqDesign <- designFreqZ(meanDiffMin = 0.5, highN = 100)

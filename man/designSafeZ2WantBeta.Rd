@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{designSafeZ2WantBeta}
 \alias{designSafeZ2WantBeta}
-\title{Helper function to designing a z-test (output beta)}
+\title{Helper function to designing a Z-test (output beta)}
 \usage{
 designSafeZ2WantBeta(
   meanDiffMin,
@@ -75,7 +75,7 @@ or for the computation of the logarithm of the implied target.}
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
-A list with the parameter and beta amongst others
+A list with the parameter and beta amongst other items
 }
 \description{
 Finds the parameter and beta when provided with only alpha, esMin, and nPlan

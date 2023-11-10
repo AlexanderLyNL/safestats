@@ -11,13 +11,13 @@ computeBetaSafeT(
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  seed = NULL,
   parameter = NULL,
-  pb = TRUE,
-  nSim = 1000L,
-  nBoot = 1000L,
   eType = c("eCauchy", "eGauss", "grow"),
   wantSamplePaths = TRUE,
+  pb = TRUE,
+  seed = NULL,
+  nSim = 1000L,
+  nBoot = 1000L,
   ...
 )
 }
@@ -35,8 +35,6 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{seed}{integer, seed number.}
-
 \item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
 For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
 over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
@@ -47,7 +45,15 @@ parameter set to 0, and in the numerator an average likelihood defined by the li
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
 
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant standardised effect size.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{seed}{integer, seed number.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the safe z test under continuous monitoring.}
@@ -55,12 +61,6 @@ for the safe z test under continuous monitoring.}
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
 approximation of the power, the number of samples for the safe z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
-
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant standardised effect size.}
-
-\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }

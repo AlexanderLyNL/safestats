@@ -47,9 +47,9 @@ If \code{NULL}, and valuesType equals "eValues", then n2Extra equals \code{desig
 
 \item{seed}{To set the seed for the simulated data.}
 
-\item{paired}{logical, if \code{TRUE} then paired t-test.}
+\item{paired}{logical, if \code{TRUE} then paired T-test.}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample T-test. Its value should not
 matter for the test. This parameter is treated as a nuisance.}
 
 \item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter

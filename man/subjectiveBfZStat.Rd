@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{subjectiveBfZStat}
 \alias{subjectiveBfZStat}
-\title{A subjective Bayes factor for the two-sample z-test}
+\title{A subjective Bayes factor for the two-sample Z-test}
 \usage{
 subjectiveBfZStat(
   x1,

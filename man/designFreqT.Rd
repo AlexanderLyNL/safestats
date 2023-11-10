@@ -48,7 +48,7 @@ following components:
 }
 }
 \description{
-Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist t-test.
+Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist T-test.
 }
 \examples{
 designFreqT(0.5)

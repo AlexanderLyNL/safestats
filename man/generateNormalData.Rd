@@ -22,17 +22,17 @@ generateNormalData(
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample T-test. Its value should not
 matter for the test. This parameter is treated as a nuisance.}
 
 \item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
 for the test.This parameter treated is treated as a nuisance.}
 
-\item{paired}{logical, if \code{TRUE} then paired t-test.}
+\item{paired}{logical, if \code{TRUE} then paired T-test.}
 
 \item{seed}{To set the seed for the simulated data.}
 
-\item{meanDiffTrue}{numeric representing the true mean for simulations with a z-test.
+\item{meanDiffTrue}{numeric representing the true mean for simulations with a Z-test.
 Default \code{NULL}}
 }
 \value{

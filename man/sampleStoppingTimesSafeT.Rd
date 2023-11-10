@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{sampleStoppingTimesSafeT}
 \alias{sampleStoppingTimesSafeT}
-\title{Simulate stopping times for the safe t-test}
+\title{Simulate stopping times for the safe T-test}
 \usage{
 sampleStoppingTimesSafeT(
   deltaTrue,
@@ -56,8 +56,7 @@ for the safe z test under continuous monitoring.}
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default lowN is set 1.}
+\item{lowN}{integer, smallest sample size (of the first group).}
 
 \item{seed}{integer, seed number.}
 
@@ -75,7 +74,7 @@ due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies th
 time is Inf.
 }
 \description{
-Simulate stopping times for the safe t-test
+Simulate stopping times for the safe T-test
 }
 \examples{
 sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)

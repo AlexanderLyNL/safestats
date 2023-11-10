@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{computeNPlanBatchSafeT}
 \alias{computeNPlanBatchSafeT}
-\title{Helper function: Computes the planned sample size for the safe t-test based on the minimal clinically
+\title{Helper function: Computes the planned sample size for the safe T-test based on the minimal clinically
 relevant standardised effect size, alpha and beta.}
 \usage{
 computeNPlanBatchSafeT(
@@ -13,8 +13,6 @@ computeNPlanBatchSafeT(
   testType = c("oneSample", "paired", "twoSample"),
   eType = c("eCauchy", "eGauss", "grow"),
   parameter = NULL,
-  lowN = 3,
-  highN = 1e+06,
   ratio = 1
 )
 }
@@ -47,12 +45,6 @@ parameter set to 0, and in the numerator an average likelihood defined by the li
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
 
-\item{lowN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default lowN is set 1.}
-
-\item{highN}{integer minimal sample size of the (first) sample when computing the power due to
-optional stopping. Default highN is set 1e6.}
-
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 }
@@ -60,6 +52,6 @@ is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 a list which contains at least nPlan and the phiS the parameter that defines the safe test
 }
 \description{
-Helper function: Computes the planned sample size for the safe t-test based on the minimal clinically
+Helper function: Computes the planned sample size for the safe T-test based on the minimal clinically
 relevant standardised effect size, alpha and beta.
 }

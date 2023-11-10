@@ -31,7 +31,7 @@
 \item{deltaTrue}{numeric, if NULL, then the minimally clinically relevant standardised effect size is used
 as the true data generating effect size deltaTrue.}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
+\item{muGlobal}{numeric, the true global mean of a paired or two-sample T-test. Its value should not
 matter for the test. This parameter is treated as a nuisance.}
 
 \item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
@@ -63,9 +63,9 @@ least the following components:
   \item{nPlan}{the planned sample size(s).}
   \item{deltaTrue}{the value of the true standardised effect size (test-relevant parameter) provided by
   the user.}
-  \item{muGlobal}{the true global mean of a paired or two-sample t-test (nuisance parameter) provided by
+  \item{muGlobal}{the true global mean of a paired or two-sample T-test (nuisance parameter) provided by
   the user.}
-  \item{paired}{if \code{TRUE} then paired t-test.}
+  \item{paired}{if \code{TRUE} then paired T-test.}
   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
   \item{nSim}{the number of replications of the experiment.}
