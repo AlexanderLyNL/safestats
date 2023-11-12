@@ -103,7 +103,7 @@ approximation to sampling distribution of the logrank test derived by Schoenfeld
 }
 \examples{
 designSafeLogrank(hrMin=0.7)
-designSafeLogrank(hrMin=0.7, zApprox=TRUE)
+designSafeLogrank(hrMin=0.7, exact=FALSE)
 designSafeLogrank(hrMin=0.7, beta=0.3, nSim=10)
 designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
 }

@@ -320,7 +320,7 @@ mean(pValuesBatch1 > alpha)
 sum(pValuesBatch1 < alpha)
 ```
 
-Hence, after a first batch of data, we get `r sum(pValuesBatch1 < alpha)` incorrect null rejections out of a `r nSim` experiments (`r mean(pValuesBatch1 < alpha)*100`%). 
+Hence, after a first batch of data, we get `r sum(pValuesBatch1 < alpha)` incorrect null rejections out of `r nSim` experiments (`r mean(pValuesBatch1 < alpha)*100`%). 
 
 The following code continues only the non-significant `r round(mean(pValuesBatch1 > alpha)*nSim)` experiments with a second batch of data all also generated under the null, and plots two histograms. <!--In blue the histogram of all the non-significant results (954 experiments), and in red the histogram of p-values over the combined data set. -->
 

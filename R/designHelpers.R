@@ -323,3 +323,29 @@ computeBetaBootstrapper <- function(
 
   return(result)
 }
+
+#' Construct a list to be set in the sampleStoppingTimes... function
+#'
+#' @return a list with names
+#' @export
+#'
+#' @examples
+#' obj <- constructSampleStoppingTimesObj()
+#'
+constructSampleStoppingTimesObj <- function(nSim=1e3L, nMax=1e3L,
+                                            wantEValuesAtNMax=FALSE,
+                                            wantSamplePaths=TRUE) {
+
+  stoppingTimes <- breakVector <- integer(nSim)
+  eValuesStopped <- numeric(nSim)
+
+  eValuesAtNMax <- if (wantEValuesAtNMax) numeric(nSim) else NULL
+  samplePaths <- if (wantSamplePaths) matrix(nrow=nSim, ncol=nMax[1]) else NULL
+
+  result <- list("parameter"=NULL,
+                 "stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
+                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
+                 "samplePaths"=samplePaths, "n1Vector"=NULL, "ratio"=NULL,
+                 "simData"=NULL)
+  return(result)
+}

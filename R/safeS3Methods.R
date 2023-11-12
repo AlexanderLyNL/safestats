@@ -18,7 +18,7 @@ getNameTestType <- function(testType, testName) {
                      "gLogrank"="Gaussian",
                      "eLogrank"="Exact",
                      "logrank"="",
-                     "2x2" = "Test of Two Proportions")
+                     "2x2" = "Test of ")
   analysisName <- paste("Safe", testTypeChar, testName)
   return(analysisName)
 
