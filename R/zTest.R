@@ -104,9 +104,9 @@ safeZTestStat <- function(
                      "eValueApproxError"=tempResult[["abs.error"]])
     }
   } else if (eType=="mom") {
-    if (alternative=="twoSided") { # two-sided
-      g <- parameter
+    g <- parameter
 
+    if (alternative=="twoSided") { # two-sided
       logResult <- - 3/2*log(1+nEff*g) +
         log(1+nEff*g/(1+nEff*g)*z^2) + nEff*g/(1+nEff*g)*z^2/2
 
@@ -115,49 +115,44 @@ safeZTestStat <- function(
       } else { # one-sided
         result <- list("eValue"=exp(logResult))
       }
+    } else if (alternative %in% c("greater", "less")) {
+      momIntegrand <- function(delta) {
+        2*g^(-1)*delta^2*
+          exp(sqrt(nEff)*z*delta-nEff/2*delta^2+
+               dnorm(delta, mean=0, sd=sqrt(g), log=TRUE))
+      }
+
+      upperBound <- if (alternative=="greater") Inf else 0
+      lowerBound <- if (alternative=="greater") 0 else -Inf
+
+      tempResult <- integrate(momIntegrand,
+                              lowerBound, upperBound)
+      result <- list("eValue"=tempResult[["value"]],
+                     "eValueApproxError"=tempResult[["abs.error"]])
     }
   } else if (eType=="imom") {
     tau <- parameter
 
-    integrandIMom <- function(d) {
-      exp(
-        sqrt(nEff)*z*d-nEff/2*d^2 +
-          1/2*log(tau)-lgamma(1/2)-log(abs(d))-tau^2/d^2
+    someConstant <- if (alternative=="twoSided") 1 else 2
+
+    integrandIMom <- function(delta) {
+      someConstant*exp(
+        sqrt(nEff)*z*delta-nEff/2*delta^2 +
+          1/2*log(tau)-lgamma(1/2)-log(abs(delta))-tau^2/delta^2
       )
     }
 
-    if (alternative=="twoSided") { # two-sided
-      tempResult <- integrate(integrandIMom, -Inf, Inf)
-      result <- list("eValue"=tempResult[["value"]],
-                     "eValueApproxError"=tempResult[["abs.error"]])
-    }
+    upperBound <- if (alternative=="less") 0 else Inf
+    lowerBound <- if (alternative=="greater") 0 else -Inf
+
+    tempResult <- integrate(integrandIMom, lowerBound, upperBound)
+
+    result <- list("eValue"=tempResult[["value"]],
+                   "eValueApproxError"=tempResult[["abs.error"]])
   }
 
   return(result)
 }
-
-#' Computes the Inverse of the Two-Sided Safe Z-Test
-#'
-#' This helper function is used in \code{\link{designSafeZ}()} to find parameter. The function is the (two-sided)
-#' inverse of 'safeZTestStat'.
-#'
-#' @inheritParams safeZTestStat
-#' @inheritParams designSafeZ
-#'
-#' @param nEff numeric > 0, the effective sample size.
-#'
-#' @return A number that represents a z-value. The function's domain is the positive real line and the range
-#' is the real line, i.e., the outcome space of the z-statistic.
-#' @export
-#'
-#' @examples
-#'safeZ10Inverse(0.4, n=13)
-safeZ10Inverse <- function(parameter, nEff, sigma=1, alpha=0.05) {
-  phiS <- parameter
-  sigma/(sqrt(nEff)*phiS)*acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
-}
-
-
 
 #' Safe Z-Test
 #'
@@ -302,6 +297,8 @@ safeZTest <- function(
                               "n1"=n1, "n2"=n2, "sigma"=sigma,
                               "alternative"=alternative, "paired"=paired,
                               "eType"=designObj[["eType"]])
+
+  browser()
 
   # Compute: confSeq ----
   result[["confSeq"]] <- computeConfidenceIntervalZ(
@@ -1200,6 +1197,8 @@ computeMinEsBatchSafeZ <- function(
     paramFunc <- function(meanDiffTrue) meanDiffTrue^2/sigma^2
   } else if (eType=="eCauchy") {
     paramFunc <- function(meanDiffTrue) abs(meanDiffTrue/sigma)
+  } else if (eType=="mom") {
+    paramFunc <- function(meanDiffTrue) abs(meanDiffTrue/sigma)^2/2
   }
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
