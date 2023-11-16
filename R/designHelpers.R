@@ -325,13 +325,17 @@ computeBetaBootstrapper <- function(
 }
 
 #' Construct a list to be set in the sampleStoppingTimes... function
+#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
+#' for the safe z test under continuous monitoring.
+#' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
+#' @param wantEValuesAtNMax logical. If \code{TRUE}, then compute eValues at nMax. Default \code{FALSE}.
+#' @param wantSamplePaths logical. If \code{TRUE}, then output the (stopped) sample paths. Default \code{TRUE}.
 #'
 #' @return a list with names
 #' @export
 #'
 #' @examples
 #' obj <- constructSampleStoppingTimesObj()
-#'
 constructSampleStoppingTimesObj <- function(nSim=1e3L, nMax=1e3L,
                                             wantEValuesAtNMax=FALSE,
                                             wantSamplePaths=TRUE) {

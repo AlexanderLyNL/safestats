@@ -14,7 +14,7 @@ designSafeZ1aWantNPlan(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("eCauchy", "eGauss", "grow", "mom", "imom"),
   wantSamplePaths = TRUE,
   pb = TRUE,
   seed = NULL,

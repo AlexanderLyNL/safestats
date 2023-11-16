@@ -13,7 +13,7 @@ computeConfidenceIntervalZ(
   alternative = "twoSided",
   a = NULL,
   g = NULL,
-  eType = c("eCauchy", "eGauss", "grow", "freq", "credibleInterval"),
+  eType = c("eCauchy", "eGauss", "grow", "mom", "imom", "freq", "credibleInterval"),
   maxRoot = 10
 )
 }

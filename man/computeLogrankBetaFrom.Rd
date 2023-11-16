@@ -8,15 +8,21 @@ ratio and the maximum number of nEvents.}
 computeLogrankBetaFrom(
   hrMin,
   nEvents,
-  m0 = 50000L,
-  m1 = 50000L,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
-  nSim = 1000L,
-  nBoot = 10000L,
-  groupSizePerTimeFunction = returnOne,
+  m0 = 50000L,
+  m1 = 50000L,
+  testType = c("oneSample", "paired", "twoSample"),
+  ratio = 1,
   parameter = NULL,
-  pb = TRUE
+  eType = c("eCauchy", "eGauss", "grow"),
+  wantSamplePaths = TRUE,
+  groupSizePerTimeFunction = returnOne,
+  pb = TRUE,
+  seed = NULL,
+  nSim = 1000L,
+  nBoot = 1000L,
+  ...
 )
 }
 \arguments{
@@ -24,10 +30,6 @@ computeLogrankBetaFrom(
 detect.}
 
 \item{nEvents}{numeric > 0, targetted number of events.}
-
-\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
-
-\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
@@ -41,20 +43,40 @@ lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than
 hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
 thus, lambda2 > lambda1, hence, harm.}
 
+\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
+
+\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
+
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
+
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 (Treatment) over condition 1 (Placebo),
+thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
+ignores m1 and m0.}
+
+\item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
+algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
+
+\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
+a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
+two point masses at the minimal clinically relevant effect size.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
+\item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
+of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
+step.}
+
+\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{seed}{integer, seed number.}
+
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
 safe logrank test under continuous monitoring}
 
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
 power or nEvents for the exact safe logrank test under continuous monitoring}
 
-\item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
-of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
-step.}
-
-\item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
-algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
-
-\item{pb}{logical, if \code{TRUE}, then show progress bar.}
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.

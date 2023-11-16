@@ -10,7 +10,7 @@ computeConfidenceIntervalT(
   nEff,
   nu,
   parameter,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
   alternative = c("twoSided", "greater", "less"),
   ciValue = 0.95,
   maxRoot = 10

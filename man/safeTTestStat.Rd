@@ -14,7 +14,7 @@ safeTTestStat(
   alternative = c("twoSided", "less", "greater"),
   tDensity = FALSE,
   paired = FALSE,
-  eType = c("eCauchy", "eGauss", "bayarri", "grow"),
+  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
   ...
 )
 
@@ -26,7 +26,7 @@ safeTTestStatNEffNu(
   alternative = c("twoSided", "less", "greater"),
   tDensity = FALSE,
   paired = FALSE,
-  eType = c("eCauchy", "eGauss", "bayarri", "grow"),
+  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
   ...
 )
 

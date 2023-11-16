@@ -13,7 +13,7 @@ computeBetaBatchSafeZ(
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow")
+  eType = c("eCauchy", "eGauss", "grow", "mom", "imom")
 )
 }
 \arguments{

@@ -10,7 +10,7 @@ sampleStoppingTimesSafeT(
   alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
   nSim = 1000L,
   nMax = 1000L,
   ratio = 1,

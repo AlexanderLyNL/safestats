@@ -15,7 +15,7 @@ computeLogrankNEvents(
   nSim = 1000L,
   nBoot = 1000L,
   groupSizePerTimeFunction = returnOne,
-  nMax = Inf,
+  nMax = 1000L,
   parameter = NULL,
   digits = getOption("digits"),
   pb = TRUE

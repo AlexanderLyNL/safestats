@@ -11,7 +11,7 @@ computeNPlanBatchSafeT(
   beta = 0.2,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
   parameter = NULL,
   ratio = 1
 )

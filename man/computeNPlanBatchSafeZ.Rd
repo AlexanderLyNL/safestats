@@ -13,7 +13,7 @@ computeNPlanBatchSafeZ(
   kappa = sigma,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("eCauchy", "eGauss", "grow", "mom", "imom"),
   parameter = NULL,
   highN = 1e+06,
   ratio = 1

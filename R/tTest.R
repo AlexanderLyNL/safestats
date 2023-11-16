@@ -27,7 +27,9 @@ safeTTestStat <- function(
     t, n1, n2=NULL, parameter,
     alternative=c("twoSided", "less", "greater"),
     tDensity=FALSE,
-    paired=FALSE, eType=c("eCauchy", "eGauss", "bayarri", "grow"), ...) {
+    paired=FALSE,
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
+    ...) {
 
   if (length(alternative)==1 && alternative=="two.sided") {
     warning('The option alternative="two.sided" is deprecated;',
@@ -63,7 +65,9 @@ safeTTestStatNEffNu <- function(
     t, nEff, nu, parameter,
     alternative=c("twoSided", "less", "greater"),
     tDensity=FALSE,
-    paired=FALSE, eType=c("eCauchy", "eGauss", "bayarri", "grow"), ...) {
+    paired=FALSE,
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
+    ...) {
 
   stopifnot(nEff >= 0, nu >= 0)
 
@@ -188,6 +192,21 @@ safeTTestStatNEffNu <- function(
       result <- exp(logResult)
       return(result)
     }
+  } else if (eType=="mom") {
+    g <- parameter
+
+    momIntegrand <- function(delta) {
+      exp(
+        dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
+        -dt(t, df=nu, ncp=0, log=TRUE)
+        +dnorm(delta, mean=0, sd=sqrt(g), log=TRUE)
+      )*delta^2/g
+    }
+    tempResult <- integrate(momIntegrand, -Inf, Inf)
+
+    result <- list("eValue"=tempResult[["value"]],
+                   "eValueApproxError"=tempResult[["abs.error"]])
+    return(result)
   }
 }
 
@@ -488,7 +507,7 @@ safe.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, var.equal=TRUE,
 #' computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, parameter=0.4)
 computeConfidenceIntervalT <- function(
     meanObs, sdObs, nEff, nu, parameter,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     alternative=c("twoSided", "greater", "less"),
     ciValue=0.95, maxRoot=10) {
 
@@ -710,7 +729,8 @@ designSafeT <- function(
     deltaMin=NULL, beta=NULL, nPlan=NULL,
     alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL, eType=c("eCauchy", "eGauss", "grow"),
+    ratio=1, parameter=NULL,
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
@@ -883,7 +903,7 @@ designSafeT1aWantNPlan <- function(
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
 
@@ -921,7 +941,7 @@ designSafeT2WantBeta <- function(
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
 
@@ -960,7 +980,8 @@ designSafeT3WantEsMin <- function(
     beta, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL, eType=c("eCauchy", "eGauss", "grow"),
+    parameter=NULL,
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     lowEsTrue=0.01, highEsTrue=3, ...) {
 
   alternative <- match.arg(alternative)
@@ -1017,7 +1038,7 @@ computeNPlanBatchSafeT <- function(
     deltaTrue, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     parameter=NULL, ratio=1) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1046,7 +1067,8 @@ computeNPlanBatchSafeT <- function(
     parameter <- switch(eType,
                         "grow"=abs(deltaTrue),
                         "eGauss"=deltaTrue^2,
-                        "eCauchy"=abs(deltaTrue))
+                        "eCauchy"=abs(deltaTrue),
+                        "mom"=deltaTrue^2/2)
   }
 
   deltaTrue <- abs(deltaTrue)
@@ -1065,13 +1087,13 @@ computeNPlanBatchSafeT <- function(
                             "less"="greater")
 
   if (testType=="twoSample") {
-    n1Func <- function(nEff) nEff
-    n2Func <- function(nEff) NULL
-    nuFunc <- function(nEff) nEff-1
-  } else if (testType %in% c("oneSample", "paired")) {
     n1Func <- function(nEff) (1+ratio)/ratio*nEff
     n2Func <- function(nEff) (1+ratio)*nEff
     nuFunc <- function(nEff) (1+ratio)^2/ratio*nEff-2
+  } else if (testType %in% c("oneSample", "paired")) {
+    n1Func <- function(nEff) nEff
+    n2Func <- function(nEff) NULL
+    nuFunc <- function(nEff) nEff-1
   }
 
   targetFunction <- function(nEff) {
@@ -1136,7 +1158,8 @@ computeMinEsBatchSafeT <- function(
     nPlan, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL, eType=c("eCauchy", "eGauss", "grow"),
+    parameter=NULL,
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     lowEsTrue=0.01, highEsTrue=3, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1224,7 +1247,7 @@ computeMinEsBatchSafeT <- function(
 #' sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
 sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("twoSided", "less", "greater"),
                                      testType=c("oneSample", "paired", "twoSample"), parameter=NULL,
-                                     eType=c("eCauchy", "eGauss", "grow"),
+                                     eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
                                      nSim=1e3L, nMax=1e3L, ratio=1,
                                      lowN=3L, seed=NULL,
                                      wantEValuesAtNMax=FALSE, pb=TRUE,
@@ -1391,7 +1414,7 @@ computeBetaSafeT <- function(
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
 
@@ -1460,7 +1483,7 @@ computeNPlanSafeT <- function(
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL, nMax=1e8,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
 

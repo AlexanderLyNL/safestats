@@ -14,7 +14,7 @@ designSafeT(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
   wantSamplePaths = TRUE,
   lowEsTrue = 0.01,
   highEsTrue = 3,

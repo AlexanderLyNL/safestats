@@ -12,7 +12,7 @@ computeBetaSafeT(
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
   wantSamplePaths = TRUE,
   pb = TRUE,
   seed = NULL,

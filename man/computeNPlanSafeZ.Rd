@@ -16,7 +16,7 @@ computeNPlanSafeZ(
   ratio = 1,
   parameter = NULL,
   nMax = 1e+08,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("eCauchy", "eGauss", "grow", "mom", "imom"),
   wantSamplePaths = TRUE,
   pb = TRUE,
   seed = NULL,
