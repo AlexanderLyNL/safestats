@@ -828,11 +828,11 @@ simulateOptionalStoppingScenarioTwoProportions <- function(safeDesign,
   for (i in 1:M) {
     #For every m, draw a sample of max streamlength and record the time
     #at which we would have stopped
-    ya <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
+    ya <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
                  size = safeDesign[["nPlan"]]["na"],
                  prob = thetaA
     )
-    yb <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
+    yb <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
                  size = safeDesign[["nPlan"]]["nb"],
                  prob = thetaB
     )
@@ -905,8 +905,8 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
   for (m in 1:M) {
 
     #simulate data
-    ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaA)
-    yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
+    ya <- stats::rbinom(n = maxSimStoptime, size = na, prob = thetaA)
+    yb <- stats::rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
 
     successAVec <- cumsum(ya)
     successBVec <- cumsum(yb)
@@ -921,7 +921,7 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
       failB <- failBVec[i]
 
       #Fisher's exact test with all data seen so far
-      pVal <- tryCatch(fisher.test(matrix(data = c(successA, failA, successB, failB), nrow = 2, byrow = TRUE))$p.value,
+      pVal <- tryCatch(stats::fisher.test(matrix(data = c(successA, failA, successB, failB), nrow = 2, byrow = TRUE))$p.value,
                        error = function(e){return(1)})
 
       #if first significant result, record stopping time
@@ -1117,8 +1117,8 @@ simulateCoverageDifferenceTwoProportions <- function(successProbabilityA,
   trueDeltaIncluded <- logical(M)
 
   for (simulationNumber in 1:M) {
-    yaSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityA)
-    ybSim <- rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityB)
+    yaSim <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityA)
+    ybSim <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityB)
     confidenceInterval <- computeConfidenceBoundsForDifferenceTwoProportions(
       ya = yaSim,
       yb = ybSim,
@@ -1196,7 +1196,7 @@ createStartEWithRestrictionTwoProportions <- function(na, nb,
   #do not start at 0/ end at 1, because using log/ exp trick on calcualtions
   #later for precision and log(0) raises error
   rhoGrid <- seq(1/gridSize, 1 - 1/gridSize, length.out = gridSize)
-  rhoGridDensity <- dbeta(x = rhoGrid, shape1 = betaA1, shape2 = betaA2)
+  rhoGridDensity <- stats::dbeta(x = rhoGrid, shape1 = betaA1, shape2 = betaA2)
   densityStart <- rhoGridDensity/sum(rhoGridDensity)
 
   #calculate marginal pred. prob
@@ -1652,8 +1652,8 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
     for (i in 1:M) {
       #For every m, draw a sample of max streamlength and record the time
       #at which we would have stopped
-      ya <- rbinom(n = maxSimStoptime, size = na, prob = thetaA)
-      yb <- rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
+      ya <- stats::rbinom(n = maxSimStoptime, size = na, prob = thetaA)
+      yb <- stats::rbinom(n = maxSimStoptime, size = nb, prob = thetaB)
       simResult <- calculateSequential2x2E(
         aSample = ya, bSample = yb,
         priorValues = priorValues,
@@ -1677,7 +1677,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
     if (expectedStopTime) {
       currentQuantile <- mean(stoppingTimes)
     } else {
-      currentQuantile <- quantile(stoppingTimes, probs = 1 - beta)
+      currentQuantile <- stats::quantile(stoppingTimes, probs = 1 - beta)
     }
     currentPower <- mean(stopEs >= 1/alpha)
 

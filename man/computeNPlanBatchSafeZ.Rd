@@ -13,10 +13,11 @@ computeNPlanBatchSafeZ(
   kappa = sigma,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  eType = c("eCauchy", "eGauss", "grow", "mom", "imom"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   parameter = NULL,
   highN = 1e+06,
-  ratio = 1
+  ratio = 1,
+  ...
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ largest n that we are able to fund.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 a list which contains at least nPlan and the phiS, that is, the parameter that defines

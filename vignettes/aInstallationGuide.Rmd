@@ -41,12 +41,14 @@ library("remotes")
 This then allows you to install and load the development version of `safestats` as follows: 
 
 ```{r eval=FALSE}
-remotes::install_github("AlexanderLyNL/safestats", ref = "udoStuff")
+remotes::install_github("AlexanderLyNL/safestats", ref = "088")
 library(safestats)
 ```
 
+If this is successful then please skip the next subsection and continue with the [first example](#firstExample).
+
 ## b. <a name = "installDownload">Install using a downloaded tar.gz file</a>
-Download the tar.gz file from [this dropbox link](https://www.dropbox.com/s/xnlaqn51m8kv2tt/safestats_0.8.7.2.tar.gz?dl=0) and save it to a path that you can find. 
+Download the tar.gz file from [this dropbox link](https://www.dropbox.com/s/0961a8e3epqfbwg/safestats_0.8.8.tar.gz?dl=0) and save it to a folder that you can easily find. 
 
 ```{r eval=FALSE}
 install.packages(path_to_file, repos = NULL, type="source")
@@ -89,17 +91,17 @@ designObj <- designSafeZ(meanDiffMin=10,
                          testType="twoSample", eType="grow")
 designObj
 ```
-This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=38 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 
+This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=33 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 
 
-One advantage of e-variables is that you can analyse the data as they come in. For simplicity let us assume, for the moment, that we can only analyse the data once, namely, after n1=n2=44 students as described in the note, then the following code can be run:
+One advantage of e-variables is that you can analyse the data as they come in. For simplicity let us assume, for the moment, that we can only analyse the data once, namely, after n1=n2=40 students as described in the note, then the following code can be run:
 
 ```{r, eval=FALSE}
 set.seed(1)
-treatmentGroup <- rnorm(44, mean=122, sd=sigmaTrue)
-controlGroup <- rnorm(44, mean=112, sd=sigmaTrue)
+treatmentGroup <- rnorm(40, mean=122, sd=sigmaTrue)
+controlGroup <- rnorm(40, mean=112, sd=sigmaTrue)
 
 resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)
 resultObj
 ```
-The resultObj shows that we can reject the null, as the e-value is 310.36, which is much larger than 1/alpha = 20, see the next R Markdown document "I. Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 2.148 and 17.80) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document "III. Anytime-valid confidence sequences" for further details.
+The resultObj shows that we can reject the null, as the e-value is 368.13, which is much larger than 1/alpha = 20, see the next R Markdown document "I. Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 2.097 and 17.409) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document "III. Anytime-valid confidence sequences" for further details.

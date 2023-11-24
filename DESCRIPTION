@@ -36,6 +36,7 @@ Depends:
   R (>= 4.2)
 Imports:
   stats (>= 3.6),
+  lamW (>= 2.2.1),
   hypergeo (>= 1.2-13),
   survival (>= 3.2-13),
   BiasedUrn (>= 1.07),

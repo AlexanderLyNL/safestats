@@ -13,7 +13,7 @@ computeBetaSafeZ(
   kappa = sigma,
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow", "mom", "imom"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
   pb = TRUE,
   seed = NULL,

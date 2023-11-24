@@ -4,7 +4,8 @@ title: 'Safe Tests and Confidence Intervals for Tests of Two Proportions: Practi
 author: "Rosanne Turner, Alexander Ly and Peter Grünwald"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{contingency-tables-vignette}
+  %\VignetteIndexEntry{Safe Tests and Confidence Intervals for Tests of Two Proportions: Practical
+  Scenarios}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

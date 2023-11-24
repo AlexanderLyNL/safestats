@@ -13,7 +13,7 @@ designSafeZ3WantEsMin(
   kappa = sigma,
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow", "mom", "imom"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   lowEsTrue = 0.01,
   highEsTrue = 3,
   ...

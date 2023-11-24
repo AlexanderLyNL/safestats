@@ -18,22 +18,21 @@ generateNormalData(
 \arguments{
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
-\item{nSim}{the number of replications, that is, experiments with max samples nPlan.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
+for the safe z test under continuous monitoring.}
 
-\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
+This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample T-test. Its value should not
-matter for the test. This parameter is treated as a nuisance.}
+\item{muGlobal}{numeric, population grand mean}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
-for the test.This parameter treated is treated as a nuisance.}
+\item{sigmaTrue}{numeric > 0, population standard deviation}
 
-\item{paired}{logical, if \code{TRUE} then paired T-test.}
+\item{paired}{a logical indicating whether you want a paired T-test.}
 
-\item{seed}{To set the seed for the simulated data.}
+\item{seed}{integer, seed number.}
 
-\item{meanDiffTrue}{numeric representing the true mean for simulations with a Z-test.
-Default \code{NULL}}
+\item{meanDiffTrue}{numeric, data governing parameter value}
 }
 \value{
 Returns a list of two data matrices contains at least the following components:

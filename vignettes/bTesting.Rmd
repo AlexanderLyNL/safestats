@@ -307,7 +307,7 @@ plot(1:n1, bfVector, type="l", lwd=2, xlab="n", ylab="BF10",
 lines(c(1, n1), c(30, 30), lwd=2, lty=3)
 lines(c(1, n1), c(1/alpha, 1/alpha), lwd=2, lty=2)
 ```
-This Bayes factor sample path exceeds both evidence thresholds of 20 (1/alpha) and 30 ("strong evidence"). We will see that this procedure also yields a type I error  larger than alpha. 
+This Bayes factor sample path exceeds both evidence thresholds of 20 (1/alpha) and 30 ("strong evidence"). We will see that this procedure also yields a type I error larger than alpha. 
 
 ### The behaviour of the subjective Bayes factor procedure under multiple use 
 The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 subjective Bayes factor outcomes. We now repeat the procedure, but over 1,000 data sets/experiments. And the code below stores 1,000 times 100 Bayes factor outcomes in the variable `allBfValues`. 
@@ -416,7 +416,7 @@ To run `safeZTest` a design object needs to be created. When provided with a min
 ```{r, eval=FALSE}
 designObj <- designSafeZ(meanDiffMin=10,
                          testType="twoSample",
-                         sigma=sigmaTrue, eType="grow")
+                         sigma=sigmaTrue)
 designObj
 ```
 
@@ -482,7 +482,9 @@ The following code stores 1,000 times 100 e-values:
 ```{r, eval=FALSE}
 mIter <- 1000
 
-allData <- generateNormalData(c(n1, n2), muGlobal=muGlobal, nSim=mIter,
+allData <- generateNormalData(c(n1, n2),
+                              muGlobal=muGlobal,
+                              nSim=mIter,
                               meanDiffTrue=0, seed=1, sigmaTrue=sigmaTrue)
 allEValues <- matrix(nrow=mIter, ncol=n1)
 
@@ -539,14 +541,14 @@ plot(1:n1, 100*eValueFalseRejects, type="l",
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
-Hence, after n1=n2=100 observations, i.e. looks at the data, we falsely reject 19 out of the 1,000 times the null (1.9\%). This is well below the tolerable alpha of 5\%. 
+Hence, after n1=n2=100 observations, i.e. looks at the data, we falsely reject 36 out of the 1,000 times the null (3.6\%). This is still below the tolerable alpha level of 5\%. 
 
-We would like to highlight two points. Firstly, the type I error control that e-values provide is independent of *any* maximum sample size. If we increase it to n1=n2=200, we get 3 additional false rejections resulting in a total of 22 out of 1,000 false rejections (2.2\%) still below the 5\%. One might wonder whether the chance of a false rejection will **ever** cross the tolerable 5\% by simply further increasing the sample sizes. In a very general framework, Grunwald, de Heide and Koolen (2019) showed that this will not occur, even if we sample indefinitely under the null. 
+We would like to highlight two points. Firstly, the type I error control that e-values provide is independent of *any* maximum sample size. If we increase it to n1=n2=200, we get 2 additional false rejections resulting in a total of 38 out of 1,000 false rejections (3.8\%) still below the 5\%. One might wonder whether the chance of a false rejection will **ever** cross the tolerable 5\% by simply further increasing the sample sizes. In a very general framework, Grunwald, de Heide and Koolen (2019) showed that this will not occur, even if we sample indefinitely under the null. 
 
-Secondly, type I error control holds for any hyper parameter g that was set by design object. The next document provides some insights in how we can select g. 
+Secondly, type I error control holds for any (hyper) parameter gMom that was set by design object. The next document provides some insights in how gMom was set. 
 
 # Concluding remarks
-The following plot summarise the false rejections rates of the three procedures after n1=n2=100 observations/looks: In red the sequential p-value procedure resulting in a type I error of 38.4\%, in brown the subjective Bayes factor procedure resulting in a type I error of 17.7\%, and the e-value procedure resulting in a type I error of 1.9\%: 
+The following plot summarise the false rejections rates of the three procedures after n1=n2=100 observations/looks: In red the sequential p-value procedure resulting in a type I error of 38.4\%, in brown the subjective Bayes factor procedure resulting in a type I error of 17.7\%, and the e-value procedure resulting in a type I error of 3.6\%: 
 
 ```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
@@ -555,8 +557,9 @@ plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n",
      bty="n", lwd=2, ylim=c(0, 40), col=freqColours[1])
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 lines(1:n1, 100*subjectiveBfValueFalseRejects,
-      col=bayesColours[1])
-lines(1:n1, 100*eValueFalseRejects, col=eColours[1])
+      col=bayesColours[1], lwd=2)
+lines(1:n1, 100*eValueFalseRejects, col=eColours[1], 
+      lwd=2)
 ```
 By simulating under the null, we showed that the sequential use of classical p-values and a subjectively derived Bayes factor can lead to early stopping at the high cost of drawing incorrect conclusions. 
 

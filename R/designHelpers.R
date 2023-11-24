@@ -202,7 +202,7 @@ computeBootObj <- function(
     times <- values
     bootObj <- boot::boot(times,
                           function(x, idx) {
-                            quantile(x[idx], prob=1-beta, names=FALSE)
+                            stats::quantile(x[idx], prob=1-beta, names=FALSE)
                           }, R = nBoot)
   } else if (objType=="nMean") {
     if (is.null(nPlan[1]) || nPlan[1] <= 0)
@@ -232,7 +232,7 @@ computeBootObj <- function(
                           }, R = nBoot)
   }
 
-  bootObj[["bootSe"]] <- sd(bootObj[["t"]])
+  bootObj[["bootSe"]] <- stats::sd(bootObj[["t"]])
   return(bootObj)
 }
 
@@ -335,8 +335,8 @@ computeBetaBootstrapper <- function(
 #' @export
 #'
 #' @examples
-#' obj <- constructSampleStoppingTimesObj()
-constructSampleStoppingTimesObj <- function(nSim=1e3L, nMax=1e3L,
+#' obj <- constructSampleStoppingTimesList()
+constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
                                             wantEValuesAtNMax=FALSE,
                                             wantSamplePaths=TRUE) {
 

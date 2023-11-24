@@ -130,23 +130,23 @@ safeTTestStatNEffNu <- function(
     if (alternative=="twoSided") {
       twoSidedCauchyIntegrand <- function(g) {
         exp(-1/2*log(1+nEff*g)+(nu+1)/2*(log(1+t^2/nu)-log(1+t^2/(nu*(1+nEff*g))))
-            - 2*log(g) + dgamma(x=1/g, shape=1/2, rate=kappaG^2/2, log=TRUE))
+            - 2*log(g) + stats::dgamma(x=1/g, shape=1/2, rate=kappaG^2/2, log=TRUE))
       }
 
-      tempResult <- integrate(twoSidedCauchyIntegrand, 0, Inf)
+      tempResult <- stats::integrate(twoSidedCauchyIntegrand, 0, Inf)
     } else {
       oneSidedCauchyIntegrand <- function(delta) {
         2/kappaG*exp(
-          dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
-          -dt(t, df=nu, ncp=0, log=TRUE)
-          +dt(delta/kappaG, df=1, ncp=0, log=TRUE)
+          stats::dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
+          -stats::dt(t, df=nu, ncp=0, log=TRUE)
+          +stats::dt(delta/kappaG, df=1, ncp=0, log=TRUE)
         )
       }
 
       if (alternative=="greater") {
-        tempResult <- integrate(oneSidedCauchyIntegrand, 0, Inf)
+        tempResult <- stats::integrate(oneSidedCauchyIntegrand, 0, Inf)
       } else if (alternative=="less") {
-        tempResult <- integrate(oneSidedCauchyIntegrand, -Inf, 0)
+        tempResult <- stats::integrate(oneSidedCauchyIntegrand, -Inf, 0)
       }
     }
 
@@ -163,16 +163,16 @@ safeTTestStatNEffNu <- function(
     } else {
       oneSidedGaussIntegrand <- function(delta) {
         2*exp(
-          dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
-          -dt(t, df=nu, ncp=0, log=TRUE)
-          +dnorm(delta, mean=0, sd=sqrt(g), log=TRUE)
+          stats::dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
+          -stats::dt(t, df=nu, ncp=0, log=TRUE)
+          +stats::dnorm(delta, mean=0, sd=sqrt(g), log=TRUE)
         )
       }
 
       if (alternative=="greater") {
-        tempResult <- integrate(oneSidedGaussIntegrand, 0, Inf)
+        tempResult <- stats::integrate(oneSidedGaussIntegrand, 0, Inf)
       } else if (alternative=="less") {
-        tempResult <- integrate(oneSidedGaussIntegrand, -Inf, 0)
+        tempResult <- stats::integrate(oneSidedGaussIntegrand, -Inf, 0)
       }
     }
 
@@ -197,12 +197,12 @@ safeTTestStatNEffNu <- function(
 
     momIntegrand <- function(delta) {
       exp(
-        dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
-        -dt(t, df=nu, ncp=0, log=TRUE)
-        +dnorm(delta, mean=0, sd=sqrt(g), log=TRUE)
+        stats::dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
+        -stats::dt(t, df=nu, ncp=0, log=TRUE)
+        +stats::dnorm(delta, mean=0, sd=sqrt(g), log=TRUE)
       )*delta^2/g
     }
-    tempResult <- integrate(momIntegrand, -Inf, Inf)
+    tempResult <- stats::integrate(momIntegrand, -Inf, Inf)
 
     result <- list("eValue"=tempResult[["value"]],
                    "eValueApproxError"=tempResult[["abs.error"]])
@@ -355,7 +355,7 @@ safeTTest <- function(
 
     meanObs <- estimate <- mean(x, "na.rm"=na.rm)
 
-    sdObs <- sd(x, "na.rm"=na.rm)
+    sdObs <- stats::sd(x, "na.rm"=na.rm)
 
     names(estimate) <- "mean of x"
     names(n) <- "n1"
@@ -371,14 +371,14 @@ safeTTest <- function(
       nEff <- n1
       nu <- n1-1
       meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
-      sdObs <- sd(x-y, "na.rm"=na.rm)
+      sdObs <- stats::sd(x-y, "na.rm"=na.rm)
       names(estimate) <- "mean of the differences"
     } else {
       # Two-sample
       nEff <- (1/n1+1/n2)^(-1)
       nu <- n1+n2-2
 
-      sPooledSquared <- ((n1-1)*var(x, "na.rm"=na.rm)+(n2-1)*var(y, "na.rm"=na.rm))/nu
+      sPooledSquared <- ((n1-1)*stats::var(x, "na.rm"=na.rm)+(n2-1)*stats::var(y, "na.rm"=na.rm))/nu
 
       sdObs <- sqrt(sPooledSquared)
 
@@ -791,9 +791,11 @@ designSafeT <- function(
 
     if (is.null(parameter)) {
       parameter <- switch(eType,
-                          "grow"=deltaMin,
+                          "mom"=deltaMin^2/2,
                           "eGauss"=deltaMin^2,
-                          "eCauchy"=abs(deltaMin))
+                          "imom"=abs(deltaMin),
+                          "eCauchy"=abs(deltaMin),
+                          "grow"=deltaMin)
     }
 
     tempResult <- list("parameter"=parameter, "esMin"=deltaMin)
@@ -1008,9 +1010,11 @@ designSafeT3WantEsMin <- function(
 
   if (is.null(parameter)) {
     parameter <- switch(eType,
-                        "grow"=deltaMin,
+                        "mom"=deltaMin^2/2,
                         "eGauss"=deltaMin^2,
-                        "eCauchy"=abs(deltaMin))
+                        "imom"=abs(deltaMin),
+                        "eCauchy"=abs(deltaMin),
+                        "grow"=deltaMin)
   }
 
   result[["parameter"]] <- parameter
@@ -1064,11 +1068,13 @@ computeNPlanBatchSafeT <- function(
     deltaTrue <- checkAndReturnsEsMinParameterSide(
       "paramToCheck"=deltaTrue, "alternative"=alternative,
       "esMinName"="deltaTrue")
+
     parameter <- switch(eType,
-                        "grow"=abs(deltaTrue),
+                        "mom"=deltaTrue^2/2,
                         "eGauss"=deltaTrue^2,
+                        "imom"=abs(deltaTrue),
                         "eCauchy"=abs(deltaTrue),
-                        "mom"=deltaTrue^2/2)
+                        "grow"=abs(deltaTrue))
   }
 
   deltaTrue <- abs(deltaTrue)
@@ -1176,12 +1182,16 @@ computeMinEsBatchSafeT <- function(
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
 
-  if (eType=="grow") {
-    paramFunc <- function(deltaTrue) deltaTrue
+  if (eType=="mom") {
+    paramFunc <- function(deltaTrue) deltaTrue^2/2
   } else if (eType=="eGauss") {
     paramFunc <- function(deltaTrue) deltaTrue^2
+  } else if (eType=="imom") {
+    paramFunc <- function(deltaTrue) abs(deltaTrue)
   } else if (eType=="eCauchy") {
     paramFunc <- function(deltaTrue) abs(deltaTrue)
+  } else if (eType=="grow") {
+    paramFunc <- function(deltaTrue) deltaTrue
   }
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
@@ -1229,8 +1239,7 @@ computeMinEsBatchSafeT <- function(
 #' Simulate stopping times for the safe T-test
 #'
 #' @inheritParams designSafeT
-#' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
-#' This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`
+#' @inheritParams generateNormalData
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
 #' @param wantSamplePaths logical. If \code{TRUE} then output the (stopped) sample paths. Default \code{TRUE}.
@@ -1245,15 +1254,19 @@ computeMinEsBatchSafeT <- function(
 #'
 #' @examples
 #' sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
-sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("twoSided", "less", "greater"),
-                                     testType=c("oneSample", "paired", "twoSample"), parameter=NULL,
-                                     eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
-                                     nSim=1e3L, nMax=1e3L, ratio=1,
-                                     lowN=3L, seed=NULL,
-                                     wantEValuesAtNMax=FALSE, pb=TRUE,
-                                     wantSamplePaths=TRUE, wantSimData=FALSE) {
+sampleStoppingTimesSafeT <- function(
+    deltaTrue, alpha=0.05,
+    alternative = c("twoSided", "less", "greater"),
+    testType=c("oneSample", "paired", "twoSample"),
+    ratio=1, parameter=NULL, lowN=3L, nMax=1e8L,
+    eType=c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
+    wantEValuesAtNMax=FALSE,
+    wantSamplePaths=TRUE, wantSimData=FALSE,
+    pb=TRUE, seed=NULL, nSim=1e3L, ...) {
 
-  stopifnot(alpha > 0, alpha <= 1, is.finite(nMax))
+  stopifnot(alpha > 0, alpha <= 1,
+            is.finite(nMax),
+            is.finite(deltaTrue))
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1267,21 +1280,22 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  ## Object that will be returned. A sample of stopping times
-  stoppingTimes <- breakVector <- integer(nSim)
-  eValuesStopped <- numeric(nSim)
-
-  eValuesAtNMax <- if (wantEValuesAtNMax) numeric(nSim) else NULL
-  samplePaths <- if (wantSamplePaths) matrix(nrow=nSim, ncol=nMax[1]) else NULL
+  result <- constructSampleStoppingTimesList(
+    "nSim"=nSim, "nMax"=nMax,
+    "wantEValuesAtNMax"=wantEValuesAtNMax,
+    "wantSamplePaths"=wantSamplePaths)
 
   if (is.null(parameter)) {
     deltaTrue <- checkAndReturnsEsMinParameterSide(
       "paramToCheck"=deltaTrue, "alternative"=alternative,
       "esMinName"="deltaTrue")
+
     parameter <- switch(eType,
-                        "grow"=deltaTrue,
+                        "mom"=deltaTrue^2/2,
                         "eGauss"=deltaTrue^2,
-                        "eCauchy"=deltaTrue)
+                        "imom"=abs(deltaTrue),
+                        "eCauchy"=abs(deltaTrue),
+                        "grow"=deltaTrue)
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
@@ -1308,7 +1322,7 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=deltaTrue,
                                 "sigmaTrue"=1, "paired"=FALSE, "seed"=seed)
 
-  for (sim in seq_along(stoppingTimes)) {
+  for (sim in seq_along(result[["stoppingTimes"]])) {
     if (testType %in% c("oneSample", "paired")) {
       x1 <- simData[["dataGroup1"]][sim, ]
       x1BarVector <- 1/n1Vector*cumsum(x1)
@@ -1340,10 +1354,11 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
     }
 
     if (wantEValuesAtNMax) {
-      tempResult <- safeTTestStat("t"=tValues[length(tValues)], "parameter"=parameter,
+      tempResult <- safeTTestStat("t"=tValues[length(tValues)],
+                                  "parameter"=parameter,
                                   "n1"=nMax[1], n2=nMax[2],
                                   "alternative"=alternative, "eType"=eType)
-      eValuesAtNMax[sim] <- tempResult[["eValue"]]
+      result[["eValuesAtNMax"]][sim] <- tempResult[["eValue"]]
     }
 
     for (j in seq_along(n1Vector)) {
@@ -1354,16 +1369,14 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
       evidenceNow <- tempResult[["eValue"]]
 
       if (wantSamplePaths)
-        samplePaths[sim, j] <- evidenceNow
+        result[["samplePaths"]][sim, j] <- evidenceNow
 
       if (evidenceNow > 1/alpha) {
-        stoppingTimes[sim] <- n1Vector[j]
-        eValuesStopped[sim] <- evidenceNow
+        result[["stoppingTimes"]][sim] <- n1Vector[j]
+        result[["eValuesStopped"]][sim] <- evidenceNow
 
         if (wantSamplePaths) {
-          if (j < nMax[1]) {
-            samplePaths[sim, (j+1):nMax[1]] <- evidenceNow
-          }
+          result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
         }
         break()
       }
@@ -1372,9 +1385,9 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
       #   For power calculations if beyond nPlan[1], then set to Inf, doesn't matter for the quantile
       #
       if (n1Vector[j] >= nMax[1]) {
-        stoppingTimes[sim] <- n1Vector[j]
-        breakVector[sim] <- 1
-        eValuesStopped[sim] <- evidenceNow
+        result[["stoppingTimes"]][sim] <- n1Vector[j]
+        result[["breakVector"]][sim] <- 1
+        result[["eValuesStopped"]][sim] <- evidenceNow
         break()
       }
     }
@@ -1386,9 +1399,10 @@ sampleStoppingTimesSafeT <- function(deltaTrue, alpha=0.05, alternative = c("two
   if (pb)
     close(pbSafe)
 
-  result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
-                 "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
-                 "samplePaths"=samplePaths, "n1Vector"=n1Vector, "ratio"=ratio)
+
+  result[["parameter"]] <- parameter
+  result[["n1Vector"]] <- n1Vector
+  result[["ratio"]] <- ratio
 
   if (isTRUE(wantSimData))
     result[["simData"]] <- simData
@@ -1444,9 +1458,11 @@ computeBetaSafeT <- function(
 
   if (is.null(parameter)) {
     parameter <- switch(eType,
-                        "grow"=deltaTrue,
+                        "mom"=deltaTrue^2/2,
                         "eGauss"=deltaTrue^2,
-                        "eCauchy"=abs(deltaTrue))
+                        "imom"=abs(deltaTrue),
+                        "eCauchy"=abs(deltaTrue),
+                        "grow"=deltaTrue)
   }
 
   samplingResult <- sampleStoppingTimesSafeT(
@@ -1535,8 +1551,8 @@ computeNPlanSafeT <- function(
 #'
 #'
 #' @inheritParams designSafeT
-#' @inheritParams replicateTTests
 #'
+#' @param lowN integer that defines the smallest n of our search space for n.
 #' @param highN integer largest sample size of the (first) sample. Default set to 100.
 #'
 #' @return Returns the sample sizes and degrees of freedom.
@@ -1565,9 +1581,16 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #'
 #' The designs supported are "oneSample", "paired", "twoSample".
 #'
-#' @inheritParams replicateTTests
+#' @inheritParams designSafeT
+#' @inheritParams safeTTest
+#'
 #' @param meanDiffTrue numeric representing the true mean for simulations with a Z-test.
 #' Default \code{NULL}
+#' @param muGlobal numeric, population grand mean
+#' @param sigmaTrue numeric > 0, population standard deviation
+#' @param meanDiffTrue numeric, data governing parameter value
+#' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
+#' This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`
 #'
 #' @return Returns a list of two data matrices contains at least the following components:
 #'
@@ -1579,7 +1602,9 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #'
 #' @examples
 #' generateNormalData(20, 15, deltaTrue=0.3)
-generateNormalData <- function(nPlan, nSim=1000L, deltaTrue=NULL, muGlobal=0, sigmaTrue=1, paired=FALSE,
+generateNormalData <- function(nPlan, nSim=1000L,
+                               deltaTrue=NULL, muGlobal=0, sigmaTrue=1,
+                               paired=FALSE,
                                seed=NULL, meanDiffTrue=NULL) {
   stopifnot(all(nPlan > 0))
 
@@ -1619,646 +1644,3 @@ generateNormalData <- function(nPlan, nSim=1000L, deltaTrue=NULL, muGlobal=0, si
   return(list("dataGroup1"=dataGroup1, "dataGroup2"=dataGroup2))
 }
 
-# Vignette helper fnts ------
-
-#' Simulate Early Stopping Experiments for the T Test
-#'
-#' Applied to a 'safeDesign' object this function empirically shows the performance of safe experiments under
-#' optional stopping.
-#'
-#' @param object A safeDesign obtained obtained from \code{\link{designSafeT}()}.
-#' @param nSim integer, number of iterations.
-#' @param nsim integer, formally the number of iterations, but by default nsim=nSim
-#' @param seed integer, seed number.
-#' @param deltaTrue numeric, if NULL, then the minimally clinically relevant standardised effect size is used
-#' as the true data generating effect size deltaTrue.
-#' @inherit replicateTTests
-#'
-#' @import stats
-#' @export
-#'
-#' @examples
-#' # Design safe test
-#' alpha <- 0.05
-#' beta <- 0.20
-#' deltaMin <- 1
-#' designObj <- designSafeT(deltaMin, alpha=alpha, beta=beta, nSim=100)
-#'
-#' # Design frequentist test
-#' freqObj <- designFreqT(deltaMin, alpha=alpha, beta=beta)
-#'
-#' # Simulate based on deltaTrue=deltaMin
-#' simResultsDeltaTrueIsDeltaMin <- simulate(object=designObj, nSim=100)
-#'
-#' # Simulate based on deltaTrue > deltaMin
-#' simResultsDeltaTrueIsLargerThanDeltaMin <- simulate(
-#'   object=designObj, nSim=100, deltaTrue=2)
-#'
-#' # Simulate under the null deltaTrue = 0
-#' simResultsDeltaTrueIsNull <- simulate(
-#'   object=designObj, nSim=100, deltaTrue=0)
-#'
-#' simulate(object=designObj, deltraTrue=0, nSim=100, freqOptioStop=TRUE,
-#'          nPlanFreq=freqObj$nPlan)
-simulate.safeDesign <- function(object, nsim=nSim, seed=NULL, deltaTrue=NULL, muGlobal=0, sigmaTrue=1, lowN=3,
-                                safeOptioStop=TRUE, freqOptioStop=FALSE, nPlanFreq=NULL,
-                                logging=TRUE, pb=TRUE, nSim=1, ...) {
-
-  if (object[["pilot"]])
-    stop("No simulation for unplanned pilot designs")
-
-  if (object[["testType"]] %in% c("oneSample", "paired", "twoSample")) {
-    if (is.null(deltaTrue))
-      deltaTrue <- object[["parameter"]]
-
-    paired <- if (object[["testType"]]=="paired") TRUE else FALSE
-
-    result <- replicateTTests("nPlan"=object[["nPlan"]], "deltaTrue"=deltaTrue,
-                              "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired,
-                              "alternative"=object[["alternative"]], "lowN"=lowN, "nSim"=nsim,
-                              "alpha"=object[["alpha"]], "beta"=object[["beta"]],
-                              "safeOptioStop"=safeOptioStop, "parameter"=object[["parameter"]],
-                              "freqOptioStop"=freqOptioStop, "nPlanFreq"=nPlanFreq,
-                              "logging"=logging, "seed"=seed, "pb"=pb, ...)
-
-    object <- utils::modifyList(object, result)
-    class(object) <- "safeTSim"
-    return(object)
-  }
-}
-
-
-#' Simulate Early Stopping Experiments
-#'
-#' Simulate multiple data sets to show the effects of optional testing for safe (and frequentist) tests.
-#'
-#' @inheritParams designSafeT
-#' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
-#' @param muGlobal numeric, the true global mean of a paired or two-sample T-test. Its value should not
-#' matter for the test. This parameter is treated as a nuisance.
-#' @param sigmaTrue numeric > 0,the true standard deviation of the data. Its value should not  matter
-#' for the test.This parameter treated is treated as a nuisance.
-#' @param lowN integer that defines the smallest n of our search space for n.
-#' @param nSim the number of replications, that is, experiments with max samples nPlan.
-#' @param safeOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for
-#' the safe test.
-#' @param parameter numeric, the safe test defining parameter, i.e., deltaS (use designSafeT to find this).
-#' @param freqOptioStop logical, \code{TRUE} implies that optional stopping simulation is performed for
-#' the frequentist test.
-#' @param nPlanFreq the frequentist sample size(s) to plan for. Acquired from \code{\link{designFreqT}()}.
-#' @param paired logical, if \code{TRUE} then paired T-test.
-#' @param seed To set the seed for the simulated data.
-#' @param logging logical, if \code{TRUE}, then return the simulated data.
-#' @param pb logical, if \code{TRUE}, then show progress bar.
-#' @param ... further arguments to be passed to or from methods.
-#'
-#' @return Returns an object of class "safeTSim". An object of class "safeTSim" is a list containing at
-#' least the following components:
-#'
-#' \describe{
-#'   \item{nPlan}{the planned sample size(s).}
-#'   \item{deltaTrue}{the value of the true standardised effect size (test-relevant parameter) provided by
-#'   the user.}
-#'   \item{muGlobal}{the true global mean of a paired or two-sample T-test (nuisance parameter) provided by
-#'   the user.}
-#'   \item{paired}{if \code{TRUE} then paired T-test.}
-#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-#'   \item{lowN}{the smallest number of samples (first group) at which monitoring of the tests begins.}
-#'   \item{nSim}{the number of replications of the experiment.}
-#'   \item{alpha}{the tolerable type I error provided by the user.}
-#'   \item{beta}{the tolerable type II error provided by the user.}
-#'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-#'   \item{parameter}{the parameter (point prior) used in the safe test derived from the design.
-#'   Acquired from \code{\link{designSafeT}()}.}
-#'   \item{nPlanFreq}{the frequentist planned sample size(s). Acquired from \code{\link{designFreqT}}()}
-#'   \item{safeSim}{list with the simulation results of the safe test under optional stopping.}
-#'   \item{freqSim}{list with the simulation results of the frequentist test under optional stopping.}
-#'}
-#'
-#' @export
-#'
-#' @examples
-#'
-#' # Design safe test
-#' alpha <- 0.05
-#' beta <- 0.20
-#' designObj <- designSafeT(1, alpha=alpha, beta=beta)
-#'
-#' # Design frequentist test
-#' freqObj <- designFreqT(1, alpha=alpha, beta=beta)
-#'
-#' # Simulate under the alternative with deltaTrue=deltaMin
-#' simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1, parameter=designObj$parameter,
-#'                               nPlanFreq=freqObj$nPlan, beta=beta, nSim=250)
-#'
-#' # Should be about 1-beta
-#' simResults$safeSim$powerAtN1Plan
-#'
-#' # This is higher due to optional stopping
-#' simResults$safeSim$powerOptioStop
-#'
-#' # Optional stopping allows us to do better than n1PlanFreq once in a while
-#' simResults$safeSim$probLeqN1PlanFreq
-#' graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-#'                breaks=seq.int(designObj$nPlan[1]))
-#'
-#' # Simulate under the alternative with deltaTrue > deltaMin
-#' simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=1.5, parameter=designObj$parameter,
-#'                               nPlanFreq=freqObj$nPlan, beta=beta, nSim=250)
-#'
-#' # Should be larger than 1-beta
-#' simResults$safeSim$powerAtN1Plan
-#'
-#' # This is even higher due to optional stopping
-#' simResults$safeSim$powerOptioStop
-#'
-#' # Optional stopping allows us to do better than n1PlanFreq once in a while
-#' simResults$safeSim$probLeqN1PlanFreq
-#' graphics::hist(simResults$safeSim$allN, main="Histogram of stopping times", xlab="n1",
-#'                breaks=seq.int(designObj$nPlan[1]))
-#'
-#' # Under the null deltaTrue=0
-#' simResults <- replicateTTests(nPlan=designObj$nPlan, deltaTrue=0, parameter=designObj$parameter,
-#'                               nPlanFreq=freqObj$nPlan, freqOptioStop=TRUE, beta=beta, nSim=250)
-#'
-#' # Should be lower than alpha, because if the null is true, P(S > 1/alpha) < alpha for all n
-#' simResults$safeSim$powerAtN1Plan
-#'
-#' # This is a bit higher due to optional stopping, but if the null is true,
-#' # then still P(S > 1/alpha) < alpha for all n
-#' simResults$safeSim$powerOptioStop
-#'
-#' # Should be lowr than alpha, as the experiment is performed as was planned
-#' simResults$freqSim$powerAtN1Plan
-#'
-#' # This is larger than alpha, due to optional stopping.
-#' simResults$freqSim$powerOptioStop
-#' simResults$freqSim$powerOptioStop > alpha
-replicateTTests <- function(nPlan, deltaTrue, muGlobal=0, sigmaTrue=1, paired=FALSE,
-                            alternative=c("twoSided", "greater", "less"), lowN=3,
-                            nSim=1000L, alpha=0.05, beta=0.2,
-                            safeOptioStop=TRUE, parameter=NULL,
-                            freqOptioStop=FALSE, nPlanFreq=NULL,
-                            logging=TRUE, seed=NULL, pb=TRUE, ...) {
-
-  stopifnot(all(nPlan > lowN), lowN > 0, nSim > 0, alpha > 0, alpha < 1,
-            any(safeOptioStop, freqOptioStop))
-
-  # TODO(Alexander): Remove in v0.9.0
-  #
-  if (length(alternative)==1 && alternative=="two.sided") {
-    warning('The option alternative="two.sided" is deprecated;',
-            'Please use alternative="twoSided" instead')
-    alternative <- "twoSided"
-  }
-
-  alternative <- match.arg(alternative)
-
-  alternativeFreq <- alternative
-
-  if (alternative=="twoSided")
-    alternativeFreq <- "two.sided"
-
-  n1Plan <- nPlan[1]
-  n2Plan <- NULL
-
-  if (length(nPlan)==2) {
-    n2Plan <- nPlan[2]
-
-    testType <- if (paired) "paired" else "twoSample"
-  } else {
-    if (paired) {
-      warning("Paired simulations wanted, but length(nPlan)=1. Duplicate n2Plan=n1Plan")
-      n2Plan <- n1Plan
-      nPlan <- c(n1Plan, n2Plan)
-    }
-
-    testType <- if (paired) "paired" else "oneSample"
-  }
-
-  result <- list("nPlan"=nPlan, "deltaTrue"=deltaTrue, "muGlobal"=muGlobal, "paired"=paired,
-                 "alternative"=alternative, "lowN"=lowN, "nSim"=nSim, "alpha"=alpha, "beta"=beta, "testType"=testType,
-                 "parameter"=parameter, "nPlanFreq"=nPlanFreq, safeSim=list(), freqSim=list())
-  class(result) <- "safeTSim"
-
-  if (safeOptioStop) {
-    if (is.null(parameter)) {
-      stop("To simulate safe T-tests results under optional stopping, this function 'replicateTTests' requires ",
-           "the specification of the safe test with a parameter. This parameter can be acquired by running ",
-           "the 'designSafeT()' function")
-    }
-
-    if (paired && n1Plan != n2Plan)
-      stop("For a paired T-test n2Plan needs to equal n1Plan")
-
-    safeSim <- list("powerOptioStop"=NA, "powerAtN1Plan"=NA, "nMean"=NA, "probLeqN1PlanFreq"=NA,
-                    "probLessNDesign"=NA, "lowN"=NA)
-
-    allSafeN <- rep(n1Plan, "times"=nSim)
-    eValues <- safeDecisionAtN <- allSafeDecisions <- vector("mode"="integer", "length"=nSim)
-  }
-
-  if (freqOptioStop) {
-    if (!safeOptioStop) {
-      if (is.null(nPlanFreq)) {
-        warning("No nPlanFreq specified, use nPlan instead.")
-        n1PlanFreq <- n1Plan
-        n2PlanFreq <- n2Plan
-      }
-    } else {
-      n1PlanFreq <- nPlanFreq[1]
-      n2PlanFreq <- NULL
-
-      if (length(nPlanFreq)==2) {
-        n2PlanFreq <- nPlanFreq[2]
-      } else {
-        if (paired) {
-          warning("Paired simulations wanted, but length(nPlan)=1. Duplicate n2Plan=n1Plan")
-          n2PlanFreq <- n1PlanFreq
-          nPlanFreq <- c(n1PlanFreq, n2PlanFreq)
-          result[["nPlanFreq"]] <- nPlanFreq
-        }
-      }
-    }
-
-    # Note(Alexander): This means that n1Plan and n2Plan refer to the planned samples of the safe tests
-
-    if (is.null(n1PlanFreq)) {
-      stop("To simulate frequentist T-tests results under optional stopping, this ",
-           "function 'replicateTTests' requires the specification of n1PlanFreq. To figure out how many ",
-           "samples one requires in a frequentist test, please run the 'designFreqT' function.")
-    }
-
-    if (!is.null(n2Plan) && is.null(n2PlanFreq)) {
-      stop("To simulate a two-sample frequentist T-tests results under optional stopping, this",
-           "function 'replicateTTests' requires the specification of n1PlanFreq. To figure out how many ",
-           "samples one requires in a frequentist test, please run the 'designFreqT' function.")
-    }
-
-    if (paired && n1PlanFreq != n2PlanFreq)
-      stop("For a paired T-test n2PlanFreq needs to equal n1PlanFreq")
-
-    freqSim <- list("powerOptioStop"=NA, "powerAtN1Plan"=NA, "nMean"=NA, "probLessNDesign"=NA, "lowN"=NA)
-
-    allFreqN <- rep(n1PlanFreq, "times"=nSim)
-    pValues <- freqDecisionAtN <- allFreqDecisions <- vector("mode"="integer", "length"=nSim)
-  }
-
-  ratio <- if (is.null(n2Plan) || paired) 1 else n2Plan/n1Plan
-
-  someData <- generateNormalData("nPlan"=c(n1Plan, n2Plan), "nSim"=nSim, "deltaTrue"=deltaTrue,
-                                 "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed)
-
-  dataGroup1 <- someData[["dataGroup1"]]
-  dataGroup2 <- someData[["dataGroup2"]]
-
-  if (safeOptioStop) {
-    n1Samples <- seq.int(lowN, n1Plan)
-    n2Samples <- if (is.null(n2Plan)) NULL else ceiling(ratio*n1Samples)
-
-    if (pb)
-      pbSafe <- utils::txtProgressBar(style=3, title="Safe optional stopping")
-
-    for (iter in seq.int(nSim)) {
-      subData1 <- dataGroup1[iter, ]
-      subData2 <- dataGroup2[iter, ]
-
-      someT <- unname(stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternativeFreq,
-                                    "var.equal"=TRUE, "paired"=paired)[["statistic"]])
-      tempResult <- safeTTestStat("t"=someT, "parameter"=parameter, "n1"=n1Plan, "n2"=n2Plan, "alternative"=alternative,
-                                  "paired"=paired, "eType"="grow")
-      someS <- tempResult[["eValue"]]
-
-      eValues[iter] <- someS
-
-      if (someS >= 1/alpha)
-        safeDecisionAtN[iter] <- 1
-
-      for (k in seq_along(n1Samples)) {
-
-        # TODO(Alexander): Perhaps replace by custom t computing to speed things up
-        #
-        someT <- unname(stats::t.test("x"=subData1[seq.int(n1Samples[k])], "y"=subData2[seq.int(n2Samples[k])],
-                                      "alternative"=alternativeFreq, "var.equal"=TRUE, "paired"=paired)[["statistic"]])
-
-        tempResult <- safeTTestStat("n1"=n1Samples[k], "n2"=n2Samples[k], "t"=someT, "parameter"=parameter,
-                               "alternative"=alternative, "paired"=paired, "eType"="grow")
-        someS <- tempResult[["eValue"]]
-
-        if (someS >= 1/alpha) {
-          allSafeN[iter] <- n1Samples[k]
-          allSafeDecisions[iter] <- 1
-
-          eValues[iter] <- someS
-          break()
-        }
-      } # End loop lowN to n1Plan
-
-      if (pb)
-        utils::setTxtProgressBar(pbSafe, value=iter/nSim, title="Experiments")
-
-    } # End iterations
-
-    if (pb)
-      close(pbSafe)
-
-    safeSim <- list("powerOptioStop"=mean(allSafeDecisions),
-                    "powerAtN1Plan"=mean(safeDecisionAtN),
-                    "nMean"=mean(allSafeN),
-                    "probLessNDesign"=mean(allSafeN < n1Plan),
-                    "lowN"=min(allSafeN), "eValues"=eValues
-    )
-
-    safeSim[["allN"]] <- allSafeN
-    safeSim[["allSafeDecisions"]] <- allSafeDecisions
-    safeSim[["allRejectedN"]] <- allSafeN[-which(allSafeN*allSafeDecisions==0)]
-
-    if (!is.null(nPlanFreq))
-      safeSim[["probLeqN1PlanFreq"]] <- mean(allSafeN <= nPlanFreq[1])
-
-    if (isTRUE(logging)) {
-      safeSim[["dataGroup1"]] <- dataGroup1
-      safeSim[["dataGroup2"]] <- dataGroup2
-    }
-
-    result[["safeSim"]] <- safeSim
-  }
-
-  if (freqOptioStop) {
-    # Note(Alexander): Adjust data set
-    #
-    if (is.null(n2PlanFreq)) {
-      ratio <- 1
-
-      if (n1PlanFreq < n1Plan)
-        dataGroup1 <- dataGroup1[, seq.int(n1PlanFreq)]
-
-      if (n1PlanFreq > n1Plan) {
-        n1Diff <- n1PlanFreq - n1Plan
-
-        someData <- generateNormalData("nPlan"=c(n1Diff, n2Plan), "nSim"=nSim, "deltaTrue"=deltaTrue,
-                                       "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed+1)
-        dataGroup1 <- cbind(dataGroup1, someData[["dataGroup1"]])
-      }
-    } else {
-      # Note(Alexander): Two-sample case
-
-      ratio <- if (paired) 1 else n2PlanFreq/n1PlanFreq
-
-      if (n1PlanFreq < n1Plan) {
-        dataGroup1 <- dataGroup1[, seq.int(n1PlanFreq)]
-      } else if (n1PlanFreq > n1Plan) {
-        n1Diff <- n1PlanFreq - n1Plan
-
-        someData <- generateNormalData("nPlan"=c(n1Diff, n2PlanFreq), "nSim"=nSim, "deltaTrue"=deltaTrue,
-                                       "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed+1)
-        dataGroup1 <- cbind(dataGroup1, someData[["dataGroup1"]])
-      }
-
-      if (n2PlanFreq < n2Plan) {
-        dataGroup2 <- dataGroup2[, seq.int(n2PlanFreq)]
-      } else if (n2PlanFreq > n2Plan) {
-        n2Diff <- n2PlanFreq - n2Plan
-
-        someData <- generateNormalData("nPlan"=c(n1PlanFreq, n2Diff), "nSim"=nSim, "deltaTrue"=deltaTrue,
-                                       "muGlobal"=muGlobal, "sigmaTrue"=sigmaTrue, "paired"=paired, "seed"=seed+1)
-        dataGroup2 <- cbind(dataGroup2, someData[["dataGroup2"]])
-      }
-    }
-
-    n1Samples <- seq.int(lowN, n1PlanFreq)
-
-    n2Samples <- if (is.null(n2PlanFreq)) NULL else n2Samples <- ceiling(ratio*n1Samples)
-
-    if (pb)
-      pbFreq <- utils::txtProgressBar(style=3, title="Frequentist optional stopping")
-
-    for (iter in seq.int(nSim)) {
-      subData1 <- dataGroup1[iter, ]
-      subData2 <- dataGroup2[iter, ]
-      someP <- stats::t.test("x"=subData1, "y"=subData2, "alternative"=alternativeFreq,
-                             "var.equal"=TRUE, "paired"=paired)[["p.value"]]
-
-      pValues[iter] <- someP
-
-      if (someP < alpha)
-        freqDecisionAtN[iter] <- 1
-
-      for (k in seq_along(n1Samples)) {
-        someP <- stats::t.test("x"=subData1[seq.int(n1Samples[k])], "y"=subData2[seq.int(n2Samples[k])],
-                               "alternative"=alternativeFreq, "var.equal"=TRUE, "paired"=paired)[["p.value"]]
-
-        if (someP < alpha) {
-          allFreqN[iter] <- n1Samples[k]
-          allFreqDecisions[iter] <- 1
-          pValues[iter] <- someP
-          break()
-        }
-      } # End loop lowN to n1Plan
-
-      if (pb)
-        utils::setTxtProgressBar(pbFreq, value=iter/nSim, title="Experiments")
-    } # End iterations
-
-    if (pb)
-      close(pbFreq)
-
-    freqSim <- list("powerOptioStop"=mean(allFreqDecisions),
-                    "powerAtN1Plan"=mean(freqDecisionAtN),
-                    "nMean"=mean(allFreqN),
-                    "allFreqDecisions"=allFreqDecisions,
-                    "probLessNDesign"=mean(allFreqN < n1PlanFreq),
-                    "lowN"=min(allFreqN), "pValues"=pValues
-    )
-
-    freqSim[["allN"]] <- allFreqN
-
-    if (safeOptioStop)
-      freqSim[["probLeqNSafe"]] <- mean(allFreqN <= n1Plan)
-
-    if (isTRUE(logging)) {
-      freqSim[["dataGroup1"]] <- dataGroup1
-      freqSim[["dataGroup2"]] <- dataGroup2
-    }
-
-    result[["freqSim"]] <- freqSim
-  }
-  return(result)
-}
-
-
-
-#' Plots a 'safeTSim' Object
-#'
-#' @inheritParams plotHistogramDistributionStoppingTimes
-#' @param x a 'safeDesign' object acquired from \code{\link{designSafeT}()}.
-#' @param y \code{NULL}.
-#' @param ... further arguments to be passed to or from methods.
-#'
-#' @return a histogram object, and called for its side-effect to plot the histogram.
-#'
-#' @export
-#'
-#' @examples
-#'# Design safe test
-#' alpha <- 0.05
-#' beta <- 0.20
-#' designObj <- designSafeT(1, alpha=alpha, beta=beta)
-#'
-#' # Design frequentist test
-#' freqObj <- designFreqT(1, alpha=alpha, beta=beta)
-#'
-#' # Simulate under the alternative with deltaTrue=deltaMin
-#' simResults <- simulate(designObj, nSim=100)
-#'
-#' plot(simResults)
-#'
-#' plot(simResults, showOnlyNRejected=TRUE)
-plot.safeTSim <- function(x, y=NULL, showOnlyNRejected=FALSE, nBin=25, ...) {
-  plotHistogramDistributionStoppingTimes(x[["safeSim"]],
-                                         "nPlan" = x[["nPlan"]][1],
-                                         "deltaTrue" = x[["deltaTrue"]],
-                                         "showOnlyNRejected" = showOnlyNRejected, "nBin"=nBin)
-}
-
-
-
-#' Plots the Sample Sizes Necessary for a Tolerable Alpha and Beta as a Function of deltaMin
-#'
-#' For given tolerable alpha and beta, (1) the planned sample sizes to using a safe test, (2) the
-#' frequentist test, and (3) the average sample size necessary due to optional stopping are plotted
-#' as a  function of the minimal clinically relevant standardised effect size deltaMin.
-#'
-#' @inheritParams designSafeT
-#' @inheritParams replicateTTests
-#' @param nMax numeric, the maximum number of samples one has budget for to collect data.
-#' @param lowDeltaMin numeric, lowest value for deltaMin of interest
-#' @param highDeltaMin numeric, largest value for deltaMin of interest
-#' @param stepDeltaMin numeric, step size between lowDeltaMin and highDeltaMin
-#' @param freqPlot logical, if \code{TRUE} plot frequentist sample size profiles.
-#'
-#' @return Returns a list that contains the planned sample size needed for the frequentist and safe tests as a function
-#' of the minimal clinically relevant effect sizes. The returned list contains at least the following components:
-#'
-#' \describe{
-#'   \item{alpha}{the tolerable type I error provided by the user.}
-#'   \item{beta}{the tolerable type II error provided by the user.}
-#'   \item{maxN}{the largest number of samples provided by the user.}
-#'   \item{deltaDomain}{vector of the domain of deltaMin.}
-#'   \item{allN1PlanFreq}{vector of the planned sample sizes needed for the frequentist test corresponding to
-#'   alpha and beta.}
-#'   \item{allN1PlanSafe}{vector of the planned sample sizes needed for the safe test corresponding to alpha
-#'   and beta.}
-#'   \item{allDeltaS}{vector of safe test defining deltaS.}
-#' }
-#'
-#' @export
-#'
-#' @examples
-#' plotSafeTDesignSampleSizeProfile(nSim=1e2L)
-plotSafeTDesignSampleSizeProfile <- function(alpha=0.05, beta=0.2, nMax=100, lowDeltaMin=0.1, highDeltaMin=1,
-                                             stepDeltaMin=0.1, testType=c("oneSample", "paired", "twoSample"),
-                                             alternative=c("twoSided", "greater", "less"), ratio=1, nSim=1e3L,
-                                             nBoot=1e3L, seed=NULL, pb=TRUE, freqPlot=FALSE, ...) {
-  stopifnot(lowDeltaMin < highDeltaMin, alpha > 0, beta > 0, alpha < 1, beta < 1)
-
-  # Order from high to low
-  deltaDomain <- -seq(-highDeltaMin, -lowDeltaMin, by=stepDeltaMin)
-  testType <- match.arg(testType)
-
-  # TODO(Alexander): Remove in v0.9.0
-  #
-  if (length(alternative)==1 && alternative=="two.sided") {
-    warning('The option alternative="two.sided" is deprecated;',
-            'Please use alternative="twoSided" instead')
-    alternative <- "twoSided"
-  }
-
-  alternative <- match.arg(alternative)
-
-  result <- list("alpha"=alpha, "beta"=beta, "nMax"=nMax, "deltaDomain"=deltaDomain)
-
-  lastDeltaIndex <- length(deltaDomain)
-
-  if (lastDeltaIndex < 1)
-    stop("Either nMax or deltaDomain is too small. Please decrease lowDeltaMin, increase highDeltaMin, ",
-         "or decrease stepDeltaMin.")
-
-  paired <- if (testType=="paired") TRUE else FALSE
-
-  allN1Freq <- allN1PlanSafe <- allN1PlanBatchSafe <- vector("integer", lastDeltaIndex)
-
-  if (pb)
-    pbOptioStop <- utils::txtProgressBar("style"=1)
-
-  if (!is.null(seed))
-    seed <- 1:lastDeltaIndex+seed
-
-  # 1. Run simulations  ------------
-
-  for (i in seq_along(deltaDomain)) {
-    safeDesignObj <- designSafeT("deltaMin"=deltaDomain[i], "alpha"=alpha, "beta"=beta,
-                                 "alternative"=alternative, "testType"=testType, "ratio"=ratio,
-                                 "nSim"=nSim, "nBoot"=nBoot, "pb"=pb, "seed"=seed[i])
-
-    if (freqPlot) {
-      freqObj <- designFreqT("deltaMin"=deltaDomain[i], "alpha"=alpha, "beta"=beta,
-                             "alternative"=alternative, "testType"=testType)
-      allN1Freq[i] <- freqObj[["nPlan"]][1]
-    }
-
-    allN1PlanBatchSafe[i] <- safeDesignObj[["nPlanBatch"]][1]
-    allN1PlanSafe[i] <- safeDesignObj[["nPlan"]][1]
-
-    if (pb)
-      utils::setTxtProgressBar("pb"=pbOptioStop, "value"=i/lastDeltaIndex)
-
-    if (safeDesignObj[["nPlan"]][1] >= nMax) {
-      lastDeltaIndex <- i
-      break()
-    }
-  }
-
-  if (pb)
-    close(pbOptioStop)
-
-  deltaDomain <- deltaDomain[1:lastDeltaIndex]
-  allN1PlanBatchSafe <- allN1PlanBatchSafe[1:lastDeltaIndex]
-  allN1PlanSafe <- allN1PlanSafe[1:lastDeltaIndex]
-  allN1Freq <- allN1Freq[1:lastDeltaIndex]
-
-  maxDeltaDomain <- max(deltaDomain)
-  minDeltaDomain <- min(deltaDomain)
-
-  # Store in output
-  result[["deltaDomain"]] <- deltaDomain
-  result[["allN1PlanSafe"]] <- allN1PlanSafe
-  result[["allN1PlanBatchSafe"]] <- allN1PlanBatchSafe
-  result[["allN1Freq"]] <- allN1Freq
-
-
-  # 2. Plot Sim  ------
-  oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
-  on.exit(graphics::par(oldPar))
-
-  graphics::plot(deltaDomain, allN1PlanBatchSafe, type="l", col="blue", lty=2, lwd=2, xlim=c(minDeltaDomain, maxDeltaDomain),
-                 ylab="n1", xlab=expression(delta["min"]),
-                 main=bquote(~alpha == ~.(alpha) ~ "and" ~beta== ~.(beta)))
-  graphics::abline(h=nMax, col="red", lty=2)
-  graphics::lines(deltaDomain, allN1PlanSafe, col="black", lwd=2, lty=1)
-
-  if (freqPlot) {
-    graphics::lines(deltaDomain, allN1Freq, col="darkgrey", lwd=2, lty=3)
-    legendName <- c("nPlan", "nPlanBatch", "nPlanFreq", "nMax")
-    legendCol <- c("black", "blue", "darkgrey", "red")
-    legendLty <- c(1, 2, 3, 2)
-  } else {
-    legendName <- c("nPlan", "nPlanBatch", "nMax")
-    legendCol <- c("black", "blue", "red")
-    legendLty <- c(1, 2, 2)
-  }
-
-  graphics::legend("topright", legend = legendName, col = legendCol, lty=legendLty, bty="n")
-
-  return(result)
-}

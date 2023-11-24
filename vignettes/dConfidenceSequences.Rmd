@@ -316,12 +316,12 @@ lines(c(1, n), c(muTrue, muTrue), lwd=2)
 
 # 3. <a name = "avConfidenceSequence">The 95\% anytime-valid confidence sequence/intervals will **always** cover the true mean with at least 95\% chance</a>
 
-The anytime-valid confidence sequence is based on the **inversion** of the e-variable based on a Gaussian mixture centred at a=0 and variance g. In other words, the 95\% anytime-valid confidence sequence contain all parameter values mu for which the e-variable is __less__ than 1/alpha = 20. Because the e-variable itself retains a type I error rate across time, so will the resulting confidence sequence. 
+The anytime-valid confidence sequence is based on the **inversion** of the e-variable based on a non-local moment mixture centred. In other words, the 95\% anytime-valid confidence sequence contain all parameter values mu for which the e-variable is __less__ than 1/alpha = 20. Because the e-variable itself retains a type I error rate across time, so will the resulting confidence sequence. 
 
 ```{r, eval=FALSE}
 designObj <- designSafeZ(meanDiffMin=0.5,
                          testType="twoSample",
-                         sigma=sigmaTrue, eType="grow")
+                         sigma=sigmaTrue)
 designObj
 ```
 
@@ -337,7 +337,7 @@ for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
                                            parameter=designObj$"parameter",
                                            meanObs=meanVector[i],
-                                           eType="eGauss")
+                                           eType=designObj$eType)
   anytimeCi[i, ] <- tempResult
 }
 
@@ -399,7 +399,8 @@ for (sim in 1:mIter) {
   for (i in 1:n) {
     tempResult <- computeConfidenceIntervalZ(
       nEff=i, meanObs=meanVector[i],
-      parameter=designObj$parameter,eType="eGauss")
+      parameter=designObj$parameter,
+      eType=designObj$eType)
     
     allAnytimeCis[sim, i, ] <- tempResult
     
@@ -462,9 +463,9 @@ lines(1:n, 100*freqCoverageRate, col=freqColours[1], lwd=2)
 lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
 
-# Sensitivity wrt to g: Credible intervals versus anytime-valid confidence intervals
+# Sensitivity wrt to gMom: Credible intervals versus anytime-valid confidence intervals
 
-We provide some further elaboration on the how/why an anytime-valid confidence interval improves over the other intervals. Of importance is that the widths of both the classical confidence intervals and credible intervals are proportional to $1/\sqrt{n}$. On the other hand, the width of the anytime-valid confidence interval is stretched by a logarithmic function of $n$. More precisely, it is proportional to $\log(\tfrac{n g}{\alpha^{2}}/\sqrt{n}$ instead. To see this we plot the widths of the intervals as a function of n. 
+We provide some further elaboration on the how/why an anytime-valid confidence interval improves over the other intervals. Of importance is that the widths of both the classical confidence intervals and credible intervals are proportional to $1/\sqrt{n}$. On the other hand, the width of the anytime-valid confidence interval is stretched by a logarithmic function of $n$. To see this we plot the widths of the intervals as a function of n. 
 
 ```{r, eval=FALSE}
 someA <- 0
@@ -485,9 +486,8 @@ for (i in nDomain) {
   
   tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8,
                                            parameter=designObj$parameter,
-                                           eType="eGauss")
+                                           eType=designObj$eType)
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
-  
 }
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
@@ -495,31 +495,30 @@ plot(nDomain, anytimeCiWidth, col=eColours[1], type="l", lwd=2, ylim=c(0, 12))
 lines(nDomain, credibleIntervalWidth, col=bayesColours[1], lwd=2)
 lines(nDomain, freqCiWidth, col=freqColours[1], lwd=2, lty=2)
 ```
-
 Hence, the width of the credible interval behaves similarly to that of the classical confidence interval. This correspondence is exact if the hyper parameter g of the credible interval is taken to be large. In that case, the credible interval equals the classical confidence interval. 
 
-Another difference to highlight is that credible intervals and anytime-valid confidence sequences change differently depending on the hyper parameter g. An anytime-valid confidence sequence with designed with a meanDiffMin corresponds to a Gaussian distribution centred at zero and variance "g=(meanDiffMin/sigmaTrue)^2". For g small the credible interval will be more narrow around a. The prior belief that a is true mean then dominates. As noted above, as g grows then the credible interval coincides with the classical confidence interval. 
+Another difference to highlight is that credible intervals and anytime-valid confidence sequences change differently depending on the hyper parameter g and gMom. For g small the credible interval will be more narrow around a. The prior belief that a is true mean then dominates. As noted above, as g grows then the credible interval coincides with the classical confidence interval. 
 
-For anytime-valid confidence sequences the following holds. For g small, the interval becomes infinitely wide resulting in more uncertainty. For g large, the same interval again becomes infinitely wide. The following code plots the dependency of the interval widths on g. 
+For anytime-valid confidence sequences the following holds. For gMom small, the interval becomes infinitely wide resulting in more uncertainty. For gMom large, the same interval again becomes infinitely wide. The following code plots the dependency of the interval widths on g. 
 
 
 ```{r, eval=FALSE}
 someA <- 0
 
-gDomain <- seq(0.01, 5, by=0.01)
+gDomain <- seq(0.01, 100, by=0.01)
 anytimeCiWidth <- credibleIntervalWidth <- numeric(30)
 
 
 for (i in seq_along(gDomain)) {
-  tempResult <- computeConfidenceIntervalZ(nEff=3, meanObs=8, 
+  tempResult <- computeConfidenceIntervalZ(nEff=1, meanObs=8, 
                                            a=0, g=gDomain[i],
                                            eType="credibleInterval")
   
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
-  tempResult <- computeConfidenceIntervalZ(nEff=3, meanObs=8,
-                                           a=0, g=gDomain[i],
-                                           eType="eGauss")
+  tempResult <- computeConfidenceIntervalZ(nEff=1, meanObs=8,
+                                           parameter=gDomain[i],
+                                           eType="mom")
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
 }
 
@@ -528,5 +527,4 @@ plot(gDomain, anytimeCiWidth, col=eColours[1], type="l", lwd=2,
      ylim=c(0, 16), xlab="g", ylab="Interval width")
 lines(gDomain, credibleIntervalWidth, col=bayesColours[1], lwd=2)
 ```
-
-The plot provides an indication on how the widths of the two intervals differ for a range of hyper parameter values g. The increase in width of the anytime-valid confidence sequence is hardly noticeable, because it increases very slowly, whereas the width of the credible interval stabilises at the width of the classical confidence interval. 
+The plot provides an indication on how the widths of the two intervals differ for a range of hyper parameter values g and gMom set equal to g. The increase in width of the anytime-valid confidence sequence is hardly noticeable, because it increases very slowly (logarithmically), whereas the width of the credible interval stabilises at the width of the classical confidence interval. 

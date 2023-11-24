@@ -21,7 +21,7 @@ In the previous markdown document we used simulations to illustrate the behaviou
 
 A testing problem typically admits a large candidate set of e-variables. The class of all e-variables contains the procedure that always outputs the e-value one. This e-variable has the desired type I error control regardless of the sample size, because it just never rejects the null. This is not a great procedure, as it is unable to detect any effect. To select amongst a family of e-variables, we should not only be consider the null, but also the alternative hypothesis. 
 
-For the working two-sample z-test example we considered the candidate set of e-variables of type "eGauss" with parameter g. Any g > 0 defines an e-variable that we can use for inference. The selection of a particular e-variable with in this class can be guided by the alternative. In particular, when given a minimally clinically relevant effect size, the design function selects that g such that the fastest detecting "eGauss" e-variable is used for inference. 
+For the working two-sample z-test example we considered the candidate set of e-variables of type "mom" with parameter gMom. Any gMom > 0 defines an e-variable that we can use for inference. The selection of a particular e-variable within this class can be guided by the alternative. In particular, when given a minimally clinically relevant effect size, the design function selects that gMom such that the fastest detecting "mom" e-variable is used for inference. 
 
 
 <!-- Based on a minimally clinically relevant effect size the design function selects amongst this  -->
@@ -68,9 +68,9 @@ For the working two-sample z-test example we considered the candidate set of e-v
 
 
 <!-- In this document we show how this parameter g can be tuned based on the alternative hypothesis. In particular, we elaborate on design of experiments based on minimal clinically relevant effect sizes.  -->
-We will see that the choice of the minimal clinically relevant effect size and therefore g, however, is not crucial for fast inference. To illustrate this, we will elaborate on the following: 
+We will see that the choice of the minimal clinically relevant effect size and therefore gMom, however, is not crucial for fast inference. To illustrate this, we will elaborate on the following:
 
-1. In the [first section](#designZ) we give insights on the safe design function, which determines both the parameter g and the planned sample size, if it is given a minimal clinically relevant effect size, and a targeted power/tolerable type II error rate, respectively.  
+1. In the [first section](#designZ) we give insights on the safe design function, which determines both the parameter gmom and the planned sample size, if it is given a minimal clinically relevant effect size, and a targeted power/tolerable type II error rate, respectively.  
 2. We show how such an e-variable can lead to fast inference due to its capacity for early stopping in the setting where [the true effect size equals the minimal clinical relevant effect size](#effectSizeEqualMinimalRelevant).
 3. Simulations with [a true effect size larger than the minimal clinically relevant effect size](#effectSizeLargerMinimalRelevant), then show that the test is able to extract information regarding the presence of the effect even faster. 
 4. To further illustrate that a minimal clinically relevant effect size is not crucial for fast inference, we simulate under [a true effect size smaller than the minimal clinically relevant effect size](#effectSizeSmallerMinimalRelevant). 
@@ -120,7 +120,7 @@ histBorderColour <- eColours[1]
 ## One sample path
 Recall the example described in the installation guide with a minimal clinically relevant mean difference of 10 (IQ score increase) in a population with standard deviation sigmaTrue=12. In other words, a minimal clinically relevant (standardised) effect size of 10/12 = 0.83. 
 
-To sequentially detect such a minimal clinically relevant mean difference with 80\% chance/power, thus, tolerable type II error beta=0.2, we have to __plan__ an experiment with about 39 participants in both the treatment and the control group: 
+To sequentially detect such a minimal clinically relevant mean difference with 80\% chance/power, thus, tolerable type II error beta=0.2, we have to __plan__ an experiment with about 36 participants in both the treatment and the control group: 
 
 ```{r, eval=FALSE}
 alpha <- 0.05
@@ -128,13 +128,12 @@ beta <- 0.2
 meanDiffMin <- 10
 sigmaTrue <- 12
 
-set.seed(0)
 designObj <- designSafeZ(meanDiffMin=meanDiffMin, beta=beta,
-                         testType="twoSample", eType="grow",
-                         sigma=sigmaTrue)
+                         testType="twoSample", 
+                         sigma=sigmaTrue, seed=1)
 designObj
 ```
-To compute a z-test e-value the function safeZTest uses the parameter defined in the designObj, which for the e-value type "eGauss" is referred to as g. This g is the variance of a so-called Gaussian mixture distribution, similar, to a normal prior in a Bayes factor with prior variance g. The design function sets g equal to meanDiffMin^2 / sigma^2, that is, `(10 / 12)^2=0.6944`.
+To compute a z-test e-value the function safeZTest uses the parameter defined in the designObj, which for the e-value type "mom" is referred to as gMom. This gMom is the variance of a so-called non-local moment prior mixture distribution introduced by Johnson and Rossell 2010 in a Bayesian context. Unlike the normal distribution with only one top, this non-local moment distribution is zero at 0, but has "camel humps" or (two dromedary's humps) away from zero. By selecting gMom equal to 1/2*(meanDiffMin / sigma)^2, that is, `(10/12)^2/2=0.34722` these two humps are located at the minimally clinically relevant effect size `10/12`. 
 
 In the installation guide we noticed that for a particular sample generated with a true mean difference of meanDiffMin, we correctly reject the null, if we compute the e-value after observing the planned (batch) sample sizes.
 
@@ -147,7 +146,7 @@ resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)
 resultObj
 ```
-The resulting e-value of 310.36 is much larger than 1/alpha, and a natural question to ask is whether we could have rejected the null earlier. The following code shows that this is indeed the case: 
+The resulting e-value of 344.8 is much larger than 1/alpha, and a natural question to ask is whether we could have rejected the null earlier. The following code shows that this is indeed the case: 
 
 ```{r, eval=FALSE}
 n1Plan <- designObj$nPlanBatch[1]
@@ -165,12 +164,12 @@ plot(1:n1Plan, eValuesAtTime, type="l", lwd=2, xlab="n",
 lines(c(1, n1Plan), c(1/alpha, 1/alpha), lwd=2, lty=2)
 which(eValuesAtTime > 1/alpha)
 ```
-The plot shows that we could have stopped after 23 pairs of observations rather than waiting until we saw 44 pairs. Hence, this emphasises how the realised sample size is random, as it depends on the data via the e-value. The more compelling the evidence indicated by the e-value, the earlier we can stop sampling. This thus allows us to adapt to the difficulty of the problem. 
+The plot shows that we could have stopped after 23 pairs of observations rather than waiting until we saw 44 pairs. Hence, this emphasises how the realised sample size is random, as it depends on the data via the e-value. The more compelling the evidence indicated by the e-value, the earlier we can stop sampling. This thus allows us to adapt to the difficulty of the problem; When the effect is large we can stop early, and if the effect is small we have to wait a bit longer. 
 
-It is worth emphasising that the planned sample size is not a commitment, nor a promise of the number of samples we have to collect. The realised sample size at which the experiment is stopped can be smaller than planned, as was the case above. Below we see a case where it is larger. Furthermore, we also do not have to stop as soon as the e-variable crosses the threshold of 1/alpha. If a researcher wants to gather more evidence, then there are no repercussions in terms of over-inflating the type I error. In general, e-variables will have an (exponentially) fast upwards drift as a function of the sample size, whenever the alternative holds true. Hence, continue sampling, thus, yields even more evidence for an effect, whenever it holds true. 
+It is worth emphasising that the planned sample size is not a commitment, nor a promise of the number of samples we have to collect. The realised sample size at which the experiment is stopped can be smaller than planned, as was the case above. Below we see a case where it is larger. Furthermore, we also do not have to stop as soon as the e-variable crosses the threshold of 1/alpha. If a researcher wants to gather more evidence, then there are no repercussions in terms of over-inflation the type I error. In general, e-variables will have an (exponentially) fast upwards drift as a function of the sample size, whenever the alternative holds true. Hence, as we gather more data we get even more evidence for an effect, whenever there is one. 
 
 # <a name="effectSizeEqualMinimalRelevant">Early stopping: True effect size equals the minimal clinical relevant mean effect size</a>
-The planned sample sizes as reported by the design object result from a simulation under the worst case alternative. That is, when the true mean difference equals the minimal clinically relevant mean difference. The "designSafeZ" function first determines the batch sample size(s) necessary to detect the effect with 80\% power if data analysis can only be performed once. For the problem at hand, after n1PlanBatch=n2PlanBatch=44 observations. 
+The planned sample sizes as reported by the design object result from a simulation under the worst case alternative. That is, when the true mean difference equals the minimal clinically relevant mean difference. The `designSafeZ` function first determines the batch sample size(s) necessary to detect the effect with 80\% power if data analysis can only be performed once. For the problem at hand, after n1PlanBatch=n2PlanBatch=43 observations. 
 
 As multiple looks yield more opportunities to reject the null, we simulate at most up to the batch sample size. The simulation is performed by the function "sampleStoppingTimesSafeZ", which generates a 1,000 data sets of length nPlanBatch, and calculates the e-values as the data come in. The first-time at which the e-value passes the threshold of 1/alpha is then saved. The following code visualises the stopping times. 
 
@@ -181,18 +180,22 @@ oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
 hist(stoppingTimes, 
      breaks=min(stoppingTimes):max(stoppingTimes), 
      xlim=c(0, designObj$nPlanBatch[1]),col=histInnerColour, 
-     border=histBorderColour, lwd=2, main="", density=100)
+     border=histBorderColour, lwd=2, main="")
 ```
-Note the bump at nPlanBatch, which contains all experiments that yielded e-values above, but also those yielding e-values below 20. The recommended sample size to plan for to detect the minimal clinically relevant effect size with 80\% chance is the 80\% quantile of the stopping time distribution. The reported mean sample size is the average of this stopping time distribution. 
+Note the bump at nPlanBatch, which contains all experiments that yielded e-values above, but also below, 20. The recommended sample size to plan for, here, nPlan=43, is the 80\% quantile of the stopping time distribution. The reported mean sample size is the average of this stopping time distribution. 
 
 The following code shows only the first-passage times, the times at which the e-value crosses the threshold of 1/alpha, and in yellow/gold e-value sample paths underneath it. 
 
 ```{r, eval=FALSE}
-firstPassageTimes <-
-  designObj$bootObjN1Plan$data[!designObj$breakVector]
+firstPassageTimes <- 
+  designObj$bootObjN1Plan$data
+
+# These are the sample paths that did not resulted in a rejection
+firstPassageTimes[designObj$breakVector] <- Inf 
+
 firstPassageTimeHist <-
   hist(firstPassageTimes, plot=FALSE,
-       breaks=min(firstPassageTimes):max(firstPassageTimes))
+       breaks=min(firstPassageTimes):designObj$nPlanBatch[1])
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
 plot(NULL, xlim = c(0, designObj$nPlanBatch[1]),
@@ -224,8 +227,11 @@ rect(firstPassageTimeHist$breaks[-nB]+0.5, log(20),
      col = histInnerColour, border = histBorderColour, lwd=2,
      angle = 45, density = 600, lty = NULL)
 
+finiteFirstPassageTimes <- 
+  designObj$bootObjN1Plan$data[!designObj$breakVector]
+
 for (i in 1:100) {
-  stoppedTime <- firstPassageTimes[i]
+  stoppedTime <- finiteFirstPassageTimes[i]
   evidenceLine <- stoppedPaths[i, 1:stoppedTime]
 
   if (evidenceLine[stoppedTime] > 20)
@@ -241,17 +247,17 @@ for (i in 1:100) {
 ```
 
 # <a name="effectSizeLargerMinimalRelevant">Even earlier stopping: True effect size larger than the minimal clinical relevant mean effect size</a>
-When the true minimal clinically relevant effect size is larger than the minimal clinically relevant one, we can stop data collection even earlier. The following code describes a scenario where the true mean difference is 1.3 times larger than the minimal clinical relevant mean difference. For this we use the function  "sampleStoppingTimesSafeZ" with the same parameter "g" as defined by the designObj as follows:
+When the true minimal clinically relevant effect size is larger than the minimal clinically relevant one, we can stop data collection even earlier. The following code describes a scenario where the true mean difference is 1.2 times larger than the minimal clinical relevant mean difference. For this we use the function "sampleStoppingTimesSafeZ" with the same parameter "gMom" as defined by the designObj as follows:
 
 ```{r, eval=FALSE}
-set.seed(2)
 samplingResultLarger <- 
-  sampleStoppingTimesSafeZ(meanDiffTrue=1.3*designObj$esMin,
+  sampleStoppingTimesSafeZ(meanDiffTrue=1.2*designObj$esMin,
                            sigma=sigmaTrue, 
                            parameter=designObj$parameter,
                            eType=designObj$eType, 
                            testType=designObj$testType, 
-                           nMax=designObj$nPlanBatch)
+                           nMax=designObj$nPlanBatch, 
+                           seed=2)
 
 stoppingTimesLarger <- samplingResultLarger$stoppingTimes
 
@@ -263,21 +269,19 @@ hist(stoppingTimesLarger,
 quantile(stoppingTimesLarger, 0.8)
 mean(stoppingTimesLarger)
 ```
-This shows that the 80\% quantile is now at sample size n1Plan=n2Plan=23, compared to n1Plan=n2Plan=39, and in this situation the procedure takes on a mean stopping time at sample size 16.8, compared to n1=n2=24.77. Hence, the relevant quantiles moved to smaller sample sizes. 
+This shows that the 80\% quantile is now at sample size n1Plan=n2Plan=25, compared to n1Plan=n2Plan=36, and in this situation the procedure takes on a mean stopping time at sample size 17.25, compared to n1=n2=22. Hence, the relevant quantiles moved to smaller sample sizes. 
 
 # <a name="effectSizeSmallerMinimalRelevant">Optional continuation: True effect size smaller than the minimal clinical relevant mean effect size</a>
 On the other hand, the 80\% quantile of the stopping time distribution shifts to larger values whenever the true effect size is smaller than the minimal clinical relevant effect. The following code provides some insights:
 
-
 ```{r, eval=FALSE}
-set.seed(3)
-samplingResultSmaller <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.3,
+samplingResultSmaller <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.2,
                                                  sigma=sigmaTrue, 
                                                  parameter=designObj$parameter,
                                                  eType=designObj$eType, 
                                                  testType=designObj$testType, 
-                                                 nMax=designObj$nPlanBatch,
-                                                 wantSimData=TRUE)
+                                                 nMax=designObj$nPlan,
+                                                 wantSimData=TRUE, seed=3)
 
 stoppingTimesSmaller <- samplingResultSmaller$stoppingTimes
 
@@ -286,46 +290,72 @@ hist(stoppingTimesSmaller,
      breaks=min(stoppingTimesSmaller):max(stoppingTimesSmaller), 
      xlim=c(0, designObj$nPlanBatch[1]),col=histInnerColour, 
      border=histBorderColour, lwd=2, main="", density=100)
-quantile(stoppingTimesSmaller, 0.8)
 mean(stoppingTimesSmaller)
 
-nRejectedExperiments <- sum(1-samplingResultSmaller$breakVector)
+nRejectedExperiments <- 1000-sum(samplingResultSmaller$breakVector)
 nRejectedExperiments
 ```
-In this case, about 57.7% of the experiments stopped due to the e-values being larger than 1/alpha. 
+In this case, about 58% of the experiments stopped due to the e-values being larger than 1/alpha.
 
-Fortunately, with e-variables we can continue sampling without incurring a type I error. This means that whenever the null is true, we cannot nudge the e-value above 1/alpha by simply extending trials, even if the decision to extend depends on the data. To derive the derive the additional number of samples needed to reach the desired power, we can use the design function as follows: 
+Fortunately, with e-variables we can continue sampling without incurring a type I error. This means that whenever the null is true, we cannot nudge the e-value above 1/alpha by simply extending trials, even if the decision to extend depends on the data. To derive the additional number of samples needed to reach the desired power, we can use the design function as follows: 
 
 ```{r, eval=FALSE}
-set.seed(4)
-designSafeZ(meanDiffMin=designObj$esMin/1.3, beta=0.2, parameter=designObj$parameter, 
-            sigma=sigmaTrue, testType="twoSample")
+designSafeZ(meanDiffMin=designObj$esMin/1.2, beta=0.2, parameter=designObj$parameter, 
+            sigma=sigmaTrue, testType="twoSample", seed=4)
 ```
-This shows that we should have planned for about 64 samples in each group instead. Thus, by sampling an additional 25 samples. 
+This shows that we should have planned for about 53 samples in each group instead. Thus, by monitoring the e-value as 17 additional samples from groups come in. 
 
 ### Multiplying with e-values from a replication attempt 
-Instead of directly extending the study, we can also consider a replication attempt and multiply the resulting e-values. This is also will not over-inflate the type I error, even if the decision to start a new replication attempt depends on the already acquired data. In general, to reach the desired power of 80\%, however, we need replication attempts consisting of more than 25 samples in the two groups. In this case about 38 in each condition. As 577 studies yielded a rejection there are still 423 that did not. The following code simulates 423 replication attempts and multiply the resulting e-values. 
+Instead of directly extending the study, we can also consider a follow-up study, or replication attempt, and multiply the resulting e-values. This procedure is particularly useful whenever the follow-up study is performed on a different population with different nuisance parameters, which for the two-sample z-test entails a different population variance or global mean. With data from the follow-up study coming from a different population there is no reason to combine the data, but combining the evidence by multiplying the e-values does lead to a valid procedure. This procedure will also not over-inflate the type I error, even if the decision to start a new replication attempt depends on the already acquired data. 
+
+Note that if the e-value was promising in the original study, say, 10, then the multiplication of e-values imply that we only need an e-value of 2 to cross the threshold of 20 (for $\alpha=0.05$) to reject the null. 
+
+The code below shows that if we multiply the e-values from the non-rejected studies with e-values that we continuous monitor in the follow up study we require an additional study with 33 participants in both groups. 
 
 ```{r, eval=FALSE}
-# First batch of e-values
-indexNotRejectedStudies <- which(samplingResultSmaller$breakVector==1)
+nPlan2 <- 40
+nTotal <- designObj$nPlan[1]+nBatch2
 
-firstBatchEvalues <- samplingResultSmaller$eValuesStopped[indexNotRejectedStudies]
+notRejectedIndex <- which(samplingResultSmaller$breakVector==1)
 
-set.seed(5)
-secondBatch <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.3,
-                                        sigma=sigmaTrue, 
-                                        parameter=designObj$parameter,
-                                        eType=designObj$eType, 
-                                        testType=designObj$testType, 
-                                        nSim=1000-nRejectedExperiments, 
-                                        nMax=38)
+firstPassageTimes <- samplingResultSmaller$stoppingTimes
+firstPassageTimes[notRejectedIndex] <- Inf
 
-metaEValues <- firstBatchEvalues*secondBatch$eValuesStopped
-additionalNRejections <- sum(metaEValues > 20)
-additionalNRejections+nRejectedExperiments
+# This is some
+followUpStudy <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.2,
+                                          sigma=sigmaTrue, 
+                                          parameter=designObj$parameter,
+                                          eType=designObj$eType, 
+                                          testType=designObj$testType, 
+                                          nMax=nBatch2, seed=5)
 
+metaEVariablePaths <- 
+  followUpStudy$samplePaths*samplingResultSmaller$eValuesStopped
+
+for (i in notRejectedIndex) {
+  firstPassageTimes[i] <- 
+    suppressWarnings(
+      min(which(metaEVariablePaths[i, ] >= 20))+designObj$nPlan[1])
+}
+
+eReject <- integer(designObj$nPlan[1]+nBatch2)
+
+for (i in 1:(designObj$nPlan[1]+nBatch2)) {
+  eReject[i] <- 
+    mean(firstPassageTimes <= i)
+}
+
+oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
+plot(1:nTotal, 100*eReject, type="l", 
+     xlab="n", ylab="Correct rejections (%)", lwd=2,
+     col=eColours[1], ylim=c(0, 90))
+lines(c(1, nTotal), c(80, 80), lwd=2, lty=2)
+lines(c(designObj$nPlan[1], designObj$nPlan[1]), c(0, 80), col="lightgrey", lty=2)
+
+which(eReject >= 0.8)-designObj$nPlan[1]
 ```
+
+The vertical line shows the end of the first study. 
 
 # Concluding remarks
 We provide some insights in how to tune an e-variable, and we showed how inference can be sped up by exploiting the sequential nature of e-variables. 

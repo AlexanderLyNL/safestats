@@ -14,7 +14,7 @@ sampleStoppingTimesSafeZ(
   ratio = 1,
   parameter = NULL,
   nMax = 100000000L,
-  eType = c("eCauchy", "eGauss", "grow", "mom", "imom"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantEValuesAtNMax = FALSE,
   wantSamplePaths = TRUE,
   wantSimData = FALSE,

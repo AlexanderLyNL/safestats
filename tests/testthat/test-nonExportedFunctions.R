@@ -77,7 +77,7 @@ test_that("getNameAlternative returns the correct alternative", {
 
 test_that("computeNPlanBatchSafeT returns the correct batch sample size", {
   result <- safestats:::computeNPlanBatchSafeT(0.4, eType="grow")
-  nPlan <- 86
+  nPlan <- 88
   names(nPlan) <- "n1Plan"
   parameter <- 0.4
   names(parameter) <- "deltaS"

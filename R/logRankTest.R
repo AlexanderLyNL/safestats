@@ -134,12 +134,12 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
   argumentNames <- getArgs()
 
   if (!missing(formula)) {
-    formulaTerms <- terms(formula)
+    formulaTerms <- stats::terms(formula)
 
     if (length(attributes(formulaTerms)[["term.labels"]]) > 1)
       stop("Safe log rank test with covariates not yet supported")
 
-    theData <- try(model.frame(formula, data=data, ...))
+    theData <- try(stats::model.frame(formula, data=data, ...))
 
     if (isTryError(theData))
       stop("Formula could not be converted into a model.frame.")
@@ -1105,6 +1105,82 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
 
 
 # Sampling functions for design ----
+
+#' Generate Survival Data which Can Be Analysed With the `survival` Package
+#'
+#'
+#' @param nP integer > 0 representing the number of of patients in the placebo group.
+#' @param nT integer > 0 representing the number of of patients in the treatment group.
+#' @param alpha numeric > 0, representing the shape parameter of the Weibull distribution.
+#' If alpha=1, then data are generated from the exponential, i.e., constant hazard. For alpha > 1
+#' the hazard increases, if alpha < 1, the hazard decreases.
+#' @param lambdaP The (relative) hazard of the placebo group.
+#' @param lambdaT The (relative) hazard of the treatment group.
+#' @param seed A seed number.
+#' @param nDigits numeric, the number of digits to round of the random time to
+#' @param startTime numeric, adds this to the random times. Default 1, so the startTime is not 0, which
+#' is the start time of \code{\link[stats]{rweibull}}.
+#' @param endTime The endtime of the experiment.
+#' @param orderTime logical, if \code{TRUE} then put the data set in increasing order
+#' @param competeRatio The ratio of the data that is due to competing risk.
+#'
+#' @return A data set with time, status and group.
+#' @export
+#'
+#' @examples
+#' generateSurvData(800, 800, alpha=1, lambdaP=0.008, lambdaT=0.008/2)
+generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigits=0,
+                             startTime=1, endTime=180, orderTime=TRUE, competeRatio=0) {
+  stopifnot(competeRatio >=0, competeRatio < 1, is.numeric(startTime), is.numeric(endTime))
+  set.seed(seed)
+  data <- list()
+
+  if (competeRatio==0) {
+    data[["time"]] <- round(c(stats::rweibull("n" = nP, "shape" = alpha,
+                                              "scale" = lambdaP^(-1/alpha)),
+                              stats::rweibull("n" = nT, "shape" = alpha,
+                                              "scale" = lambdaT^(-1/alpha))) + startTime,
+                            "digits" = nDigits)
+    data[["status"]] <- 2  # 2 is death
+    data[["group"]] <- c(rep("P", times = nP), rep("T", times = nT))
+    data <- as.data.frame(data)
+    data[["status"]][data[["time"]] > endTime] <- 1  # 1 is censored
+    data[["time"]][data[["time"]] > endTime] <- endTime
+  } else {
+    moreNP <- ceiling((1+competeRatio)*nP)
+    moreNT <- ceiling((1+competeRatio)*nT)
+
+    data[["time"]] <- round(c(stats::rweibull("n" = moreNP, "shape" = alpha,
+                                              "scale" = lambdaP^(-1/alpha)),
+                              stats::rweibull("n" = moreNT, "shape" = alpha,
+                                              "scale" = lambdaT^(-1/alpha))) + startTime,
+                            "digits" = nDigits)
+
+    data[["status"]] <- 2  # 2 is death
+    data[["group"]] <- c(rep("P", times = moreNP), rep("T", times = moreNT))
+    data <- as.data.frame(data)
+    data[["status"]][data[["time"]] > endTime] <- 0  # 0 is censored
+    data[["time"]][data[["time"]] > endTime] <- endTime
+
+    indexOfDeaths <- which(data[["status"]]==2)
+    totalNDeaths <- length(indexOfDeaths)
+    nCompete <- floor(competeRatio*totalNDeaths)
+
+    if (nCompete < 1)
+      nCompete <- 1
+
+    indexOfCompete <- sample(indexOfDeaths, nCompete)
+
+    data[["status"]][indexOfCompete] <- 1
+    data[["status"]] <- factor(data[["status"]], 0:2, c("censored", "competing", "death"))
+  }
+
+  if (orderTime)
+    data <- data[order(data[["time"]]), ]
+
+  return(data)
+}
+
 
 #' Simulate stopping times for the exact safe logrank test
 #'

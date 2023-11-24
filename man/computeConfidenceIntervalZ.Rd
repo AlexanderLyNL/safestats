@@ -13,8 +13,8 @@ computeConfidenceIntervalZ(
   alternative = "twoSided",
   a = NULL,
   g = NULL,
-  eType = c("eCauchy", "eGauss", "grow", "mom", "imom", "freq", "credibleInterval"),
-  maxRoot = 10
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "freq", "credibleInterval"),
+  maxRoot = 20
 )
 }
 \arguments{
