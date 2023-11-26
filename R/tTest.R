@@ -270,8 +270,6 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' the moment, this is always \code{TRUE}.
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
 #' and ciValue = 1 - alpha
-#' @param na.rm a logical value indicating whether \code{NA} values should be stripped before
-#' the computation proceeds.
 #' @param maxRoot Used to bound the candidate set of width of the confidence interval,
 #' whenever eType="eCauchy"
 #' @param ... further arguments to be passed to or from methods.
@@ -308,7 +306,7 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 safeTTest <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
     varEqual=TRUE, ciValue=NULL,
-    na.rm=FALSE, maxRoot=10, ...) {
+    maxRoot=10, ...) {
 
   result <- constructSafeTestObj("T-Test")
 
@@ -325,12 +323,12 @@ safeTTest <- function(
 
   ## Check: designObj ----
   if (is.null(designObj)) {
-    designObj <- designSafeT(0.5, "eType"="eCauchy",
+    designObj <- designSafeT(0.5, "eType"="mom",
                              "testType"=testType)
     designObj[["pilot"]] <- TRUE
 
     warningMessage <- paste("No designObj given. Default test computed based",
-                            "on a Cauchy prior with scale 1/2.")
+                            "on a non-local prior at +1/2 and -1/2.")
     warning(warningMessage)
   }
 
@@ -345,44 +343,61 @@ safeTTest <- function(
   ## Check: Data -----
   #
   if (is.null(y)) {
-    # One-sample
+    ### One-sample -----
+    #
     if (isTRUE(paired))
       stop("Data error: Paired analysis requested without specifying the second variable")
+
+    dataName <- deparse1(substitute(x))
+    x <- x[!is.na(x)]
 
     n <- nEff <- n1 <- length(x)
     n2 <- NULL
     nu <- n-1
 
-    meanObs <- estimate <- mean(x, "na.rm"=na.rm)
-
-    sdObs <- stats::sd(x, "na.rm"=na.rm)
+    meanObs <- estimate <- mean(x)
+    sdObs <- stats::sd(x)
 
     names(estimate) <- "mean of x"
     names(n) <- "n1"
   } else {
+    dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
+
+    if (isTRUE(paired))
+      xGoodIndeces <- yGoodIndeces  <- complete.cases(x, y)
+    else {
+      yGoodIndeces <- !is.na(y)
+      xGoodIndeces <- !is.na(x)
+    }
+
+    x <- x[xGoodIndeces]
+    y <- y[yGoodIndeces]
+
     n1 <- length(x)
     n2 <- length(y)
 
-    if (paired) {
-      # Paired
+    ### Paired ----
+    #
+    if (isTRUE(paired)) {
       if (n1 != n2)
         stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
              "but the two samples are not of the same size.")
+
       nEff <- n1
       nu <- n1-1
-      meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
-      sdObs <- stats::sd(x-y, "na.rm"=na.rm)
+      meanObs <- estimate <- mean(x-y)
+      sdObs <- stats::sd(x-y)
       names(estimate) <- "mean of the differences"
     } else {
-      # Two-sample
+      ## Two-sample ----
       nEff <- (1/n1+1/n2)^(-1)
       nu <- n1+n2-2
 
-      sPooledSquared <- ((n1-1)*stats::var(x, "na.rm"=na.rm)+(n2-1)*stats::var(y, "na.rm"=na.rm))/nu
+      sPooledSquared <- ((n1-1)*stats::var(x)+(n2-1)*stats::var(y))/nu
 
       sdObs <- sqrt(sPooledSquared)
 
-      estimate <- c(mean(x, "na.rm"=na.rm), mean(y, "na.rm"=na.rm))
+      estimate <- c(mean(x), mean(y))
       names(estimate) <- c("mean of x", "mean of y")
       meanObs <- estimate[1]-estimate[2]
     }
@@ -423,19 +438,10 @@ safeTTest <- function(
     "eType"=designObj[["eType"]], "ciValue"=ciValue, "maxRoot"=maxRoot)
 
   # Fill: Result -----
-  argumentNames <- getArgs()
-  xLabel <- extractNameFromArgs(argumentNames, "x")
-
-  if (is.null(y)) {
-    dataName <- xLabel
-  } else {
-    yLabel <- extractNameFromArgs(argumentNames, "y")
-    dataName <- paste(xLabel, "and", yLabel)
-  }
-
+  #
   result[["statistic"]] <- tStat
   result[["estimate"]] <- estimate
-  result[["stderr"]] <- sdObs/nEff
+  result[["stderr"]] <- sdObs/sqrt(nEff)
   result[["dataName"]] <- dataName
   result[["designObj"]] <- designObj
   result[["testType"]] <- testType
@@ -470,10 +476,10 @@ safeTTest <- function(
 #'
 #' safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
 safe.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, var.equal=TRUE,
-                        ciValue=NULL, na.rm=FALSE, ...) {
+                        ciValue=NULL, ...) {
   result <- safeTTest("x"=x, "y"=y, "designObj"=designObj,
                       "paired"=paired, "varEqual"=var.equal,
-                      "na.rm"=na.rm, ...)
+                      ...)
 
   argumentNames <- getArgs()
   xLabel <- extractNameFromArgs(argumentNames, "x")
@@ -544,7 +550,9 @@ computeConfidenceIntervalT <- function(
                           "eType"=eType)$eValue-ciLogPenaltyFunc(ciValue)
     }
 
-    tempResult <- try(stats::uniroot(targetFunction, c(0, maxRoot)))
+    tempResult <- suppressWarnings(
+      try(stats::uniroot(targetFunction, c(0, maxRoot)))
+    )
 
     if (isTryError(tempResult))
       stop("Can't compute the width of the interval")
@@ -873,9 +881,12 @@ designSafeT <- function(
 
   if (!is.null(parameter) && is.null(names(parameter))) {
     names(parameter) <- switch(eType,
-                               "grow"="deltaS",
+                               "mom"="gMom",
                                "eGauss"="g",
-                               "eCauchy"="kappaG")
+                               "imom"="tau",
+                               "eCauchy"="kappaG",
+                               "grow"="phiS",
+                               "bayarri"="kappaB")
   }
 
   result[["parameter"]] <- parameter
@@ -1140,9 +1151,11 @@ computeNPlanBatchSafeT <- function(
     parameter <- -parameter
 
   names(parameter) <- switch(eType,
-                             "eCauchy"="kappaG",
+                             "mom"="gMom",
                              "eGauss"="g",
-                             "grow"="deltaS",
+                             "imom"="tau",
+                             "eCauchy"="kappaG",
+                             "grow"="phiS",
                              "bayarri"="kappaB")
 
   result[["parameter"]] <- parameter

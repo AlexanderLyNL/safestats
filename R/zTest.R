@@ -164,8 +164,6 @@ safeZTestStat <- function(
 #' @param paired a logical indicating whether you want the paired Z-test.
 #' @param designObj an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha
-#' @param na.rm a logical value indicating whether \code{NA} values should be stripped before
-#' the computation proceeds.
 #' @param maxRoot Used to bound the candidate set of width of the confidence interval,
 #' whenever eType="eCauchy"
 #' @param ... further arguments to be passed to or from methods.
@@ -204,8 +202,7 @@ safeZTestStat <- function(
 #' safeZTest(1:10, y = c(7:20), alternative="less")      # s = 3.033e+78 > 1/alpha
 safeZTest <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
-    ciValue=NULL,
-    na.rm=FALSE, maxRoot=10, ...) {
+    ciValue=NULL, maxRoot=10, ...) {
 
   result <- constructSafeTestObj("Z-Test")
 
@@ -222,12 +219,12 @@ safeZTest <- function(
 
   ## Check: designObj ----
   if (is.null(designObj)) {
-    designObj <- designSafeZ(0.5, "eType"="eCauchy",
+    designObj <- designSafeZ(0.5, "eType"="mom",
                              "testType"=testType)
     designObj[["pilot"]] <- TRUE
 
     warningMessage <- paste("No designObj given. Default test computed based",
-                            "on a Cauchy prior with scale 1/2.")
+                            "on a non-local moment prior at +1/2 and - 1/2.")
     warning(warningMessage)
   }
 
@@ -242,30 +239,51 @@ safeZTest <- function(
   ## Check: Data -----
   #
   if (is.null(y)) {
+    ### One-sample -----
+    #
     if (isTRUE(paired))
       stop("Data error: Paired analysis requested without specifying the second variable")
+
+    dataName <- deparse1(substitute(x))
+    x <- x[!is.na(x)]
 
     n <- nEff <- n1 <- length(x)
     n2 <- NULL
 
-    meanObs <- estimate <- mean(x, "na.rm"=na.rm)
+    meanObs <- estimate <- mean(x)
 
     names(estimate) <- "mean of x"
     names(n) <- "n1"
   } else {
+    dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
+
+    if (isTRUE(paired))
+      xGoodIndeces <- yGoodIndeces  <- complete.cases(x, y)
+    else {
+      yGoodIndeces <- !is.na(y)
+      xGoodIndeces <- !is.na(x)
+    }
+
+    x <- x[xGoodIndeces]
+    y <- y[yGoodIndeces]
+
     n1 <- length(x)
     n2 <- length(y)
 
-    if (paired) {
+    ### Paired ----
+    #
+    if (isTRUE(paired)) {
       if (n1 != n2)
         stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
              "but the two samples are not of the same size.")
       nEff <- n1
-      meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
+      meanObs <- estimate <- mean(x-y)
       names(estimate) <- "mean of the differences"
     } else {
+      ## Two-sample ----
+      #
       nEff <- (1/n1+1/n2)^(-1)
-      estimate <- c(mean(x, "na.rm"=na.rm), mean(y, "na.rm"=na.rm))
+      estimate <- c(mean(x), mean(y))
       names(estimate) <- c("mean of x", "mean of y")
       meanObs <- estimate[1]-estimate[2]
     }
@@ -303,16 +321,6 @@ safeZTest <- function(
     "nEff"=nEff, "meanObs"=meanObs, "parameter"=designObj[["parameter"]],
     "sigma"=sigma, "ciValue"=ciValue, "alternative"="twoSided",
     "eType"=designObj[["eType"]], "maxRoot"=maxRoot)
-
-  argumentNames <- getArgs()
-  xLabel <- extractNameFromArgs(argumentNames, "x")
-
-  if (is.null(y)) {
-    dataName <- xLabel
-  } else {
-    yLabel <- extractNameFromArgs(argumentNames, "y")
-    dataName <- paste(xLabel, "and", yLabel)
-  }
 
   # Fill: Result -----
   result[["testType"]] <- testType
@@ -482,7 +490,11 @@ computeConfidenceIntervalZ <- function(
                     "eType"=eType)$eValue-ciLogPenaltyFunc(ciValue)
     }
 
-    tempResult <- try(stats::uniroot(targetFunction, c(0, maxRoot)))
+
+
+    tempResult <- suppressWarnings(
+      try(stats::uniroot(targetFunction, c(0, maxRoot)))
+    )
 
     if (isTryError(tempResult))
       stop("Can't compute the width of the interval")
@@ -1711,7 +1723,7 @@ pValueFromZStat <- function(z,
 #' @examples
 #' pValueZTest(rnorm(10))
 pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
-                        alpha=0.05, na.rm=FALSE, sigma=1, h0=0,
+                        alpha=0.05, sigma=1, h0=0,
                         alternative=c("twoSided", "greater", "less"), ...) {
 
   result <- list("statistic"=NULL, "n"=NULL, "eValue"=NULL, "confSeq"=NULL, "estimate"=NULL,
@@ -1728,7 +1740,7 @@ pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
     if (paired)
       stop("Data error: Paired analysis requested without specifying the second variable")
 
-    meanObs <- estimate <- mean(x, "na.rm"=na.rm)
+    meanObs <- estimate <- mean(x)
 
     names(estimate) <- "mean of x"
     names(n) <- "n1"
@@ -1743,13 +1755,13 @@ pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
 
       testType <- "paired"
 
-      meanObs <- estimate <- mean(x-y, "na.rm"=na.rm)
+      meanObs <- estimate <- mean(x-y)
       names(estimate) <- "mean of the differences"
     } else {
       testType <- "twoSample"
 
       nEff <- (1/n1+1/n2)^(-1)
-      estimate <- c(mean(x, "na.rm"=na.rm), mean(y, "na.rm"=na.rm))
+      estimate <- c(mean(x), mean(y))
       names(estimate) <- c("mean of x", "mean of y")
       meanObs <- estimate[1]-estimate[2]
     }

@@ -256,7 +256,7 @@ samplingResultLarger <-
                            parameter=designObj$parameter,
                            eType=designObj$eType, 
                            testType=designObj$testType, 
-                           nMax=designObj$nPlanBatch, 
+                           nMax=designObj$nPlan[1], 
                            seed=2)
 
 stoppingTimesLarger <- samplingResultLarger$stoppingTimes
@@ -269,7 +269,7 @@ hist(stoppingTimesLarger,
 quantile(stoppingTimesLarger, 0.8)
 mean(stoppingTimesLarger)
 ```
-This shows that the 80\% quantile is now at sample size n1Plan=n2Plan=25, compared to n1Plan=n2Plan=36, and in this situation the procedure takes on a mean stopping time at sample size 17.25, compared to n1=n2=22. Hence, the relevant quantiles moved to smaller sample sizes. 
+This shows that the 80\% quantile is now at sample size n1Plan=n2Plan=25, compared to n1Plan=n2Plan=36, and in this situation the procedure takes on a mean stopping time at sample size 16.991, compared to n1=n2=22. Hence, the relevant quantiles moved to smaller sample sizes. 
 
 # <a name="effectSizeSmallerMinimalRelevant">Optional continuation: True effect size smaller than the minimal clinical relevant mean effect size</a>
 On the other hand, the 80\% quantile of the stopping time distribution shifts to larger values whenever the true effect size is smaller than the minimal clinical relevant effect. The following code provides some insights:
@@ -300,12 +300,13 @@ In this case, about 58% of the experiments stopped due to the e-values being lar
 Fortunately, with e-variables we can continue sampling without incurring a type I error. This means that whenever the null is true, we cannot nudge the e-value above 1/alpha by simply extending trials, even if the decision to extend depends on the data. To derive the additional number of samples needed to reach the desired power, we can use the design function as follows: 
 
 ```{r, eval=FALSE}
-designSafeZ(meanDiffMin=designObj$esMin/1.2, beta=0.2, parameter=designObj$parameter, 
+designSafeZ(meanDiffMin=designObj$esMin/1.2, beta=0.2,
+            parameter=designObj$parameter, 
             sigma=sigmaTrue, testType="twoSample", seed=4)
 ```
 This shows that we should have planned for about 53 samples in each group instead. Thus, by monitoring the e-value as 17 additional samples from groups come in. 
 
-### Multiplying with e-values from a replication attempt 
+## Meta-analysis e-values: Combining the evidence across studies by multiplication 
 Instead of directly extending the study, we can also consider a follow-up study, or replication attempt, and multiply the resulting e-values. This procedure is particularly useful whenever the follow-up study is performed on a different population with different nuisance parameters, which for the two-sample z-test entails a different population variance or global mean. With data from the follow-up study coming from a different population there is no reason to combine the data, but combining the evidence by multiplying the e-values does lead to a valid procedure. This procedure will also not over-inflate the type I error, even if the decision to start a new replication attempt depends on the already acquired data. 
 
 Note that if the e-value was promising in the original study, say, 10, then the multiplication of e-values imply that we only need an e-value of 2 to cross the threshold of 20 (for $\alpha=0.05$) to reject the null. 
@@ -314,23 +315,32 @@ The code below shows that if we multiply the e-values from the non-rejected stud
 
 ```{r, eval=FALSE}
 nPlan2 <- 40
-nTotal <- designObj$nPlan[1]+nBatch2
+nTotal <- designObj$nPlan[1]+nPlan2
+
+notRejectedIndex <- which(samplingResultSmaller$breakVector==1)
+
+firstPassageTimes <- nPlan2 <- 40
+nTotal <- designObj$nPlan[1]+nPlan2
 
 notRejectedIndex <- which(samplingResultSmaller$breakVector==1)
 
 firstPassageTimes <- samplingResultSmaller$stoppingTimes
 firstPassageTimes[notRejectedIndex] <- Inf
 
-# This is some
 followUpStudy <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.2,
                                           sigma=sigmaTrue, 
                                           parameter=designObj$parameter,
                                           eType=designObj$eType, 
                                           testType=designObj$testType, 
-                                          nMax=nBatch2, seed=5)
+                                          nSim=length(notRejectedIndex),
+                                          nMax=nPlan2, seed=5)
+
+# This is just to make the indeces of the original and follow-up align
+someMatrix <- matrix(nrow=1e3L, ncol=nPlan2)
+someMatrix[notRejectedIndex, ] <- followUpStudy$samplePaths
 
 metaEVariablePaths <- 
-  followUpStudy$samplePaths*samplingResultSmaller$eValuesStopped
+  someMatrix*samplingResultSmaller$eValuesStopped
 
 for (i in notRejectedIndex) {
   firstPassageTimes[i] <- 
@@ -338,9 +348,9 @@ for (i in notRejectedIndex) {
       min(which(metaEVariablePaths[i, ] >= 20))+designObj$nPlan[1])
 }
 
-eReject <- integer(designObj$nPlan[1]+nBatch2)
+eReject <- integer(designObj$nPlan[1]+nPlan2)
 
-for (i in 1:(designObj$nPlan[1]+nBatch2)) {
+for (i in 1:(designObj$nPlan[1]+nPlan2)) {
   eReject[i] <- 
     mean(firstPassageTimes <= i)
 }
@@ -350,7 +360,8 @@ plot(1:nTotal, 100*eReject, type="l",
      xlab="n", ylab="Correct rejections (%)", lwd=2,
      col=eColours[1], ylim=c(0, 90))
 lines(c(1, nTotal), c(80, 80), lwd=2, lty=2)
-lines(c(designObj$nPlan[1], designObj$nPlan[1]), c(0, 80), col="lightgrey", lty=2)
+lines(c(designObj$nPlan[1], designObj$nPlan[1]), 
+      c(0, 80), col="lightgrey", lty=2)
 
 which(eReject >= 0.8)-designObj$nPlan[1]
 ```
