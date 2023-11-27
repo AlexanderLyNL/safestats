@@ -14,7 +14,7 @@ designSafeLogrank2WantBeta(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
   groupSizePerTimeFunction = returnOne,
   pb = TRUE,

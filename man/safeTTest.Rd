@@ -2,41 +2,47 @@
 % Please edit documentation in R/tTest.R
 \name{safeTTest}
 \alias{safeTTest}
+\alias{safeTTest.default}
+\alias{safeTTest.formula}
 \alias{safe.t.test}
 \title{Safe Student's T-Test.}
 \usage{
-safeTTest(
+safeTTest(x, ...)
+
+\method{safeTTest}{default}(
   x,
   y = NULL,
-  paired = FALSE,
   designObj = NULL,
+  paired = FALSE,
   varEqual = TRUE,
   ciValue = NULL,
-  na.rm = FALSE,
   maxRoot = 10,
   ...
 )
+
+\method{safeTTest}{formula}(formula, data, subset, na.action, ...)
 
 safe.t.test(
   x,
   y = NULL,
   paired = FALSE,
   designObj = NULL,
-  var.equal = TRUE,
+  varEqual = TRUE,
   ciValue = NULL,
-  na.rm = FALSE,
   ...
 )
 }
 \arguments{
 \item{x}{a (non-empty) numeric vector of data values.}
 
-\item{y}{an optional (non-empty) numeric vector of data values.}
+\item{...}{further arguments to be passed to or from methods.}
 
-\item{paired}{a logical indicating whether you want a paired T-test.}
+\item{y}{an optional (non-empty) numeric vector of data values.}
 
 \item{designObj}{an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot
 equals  \code{TRUE}.}
+
+\item{paired}{a logical indicating whether you want a paired T-test.}
 
 \item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
 the moment, this is always \code{TRUE}.}
@@ -44,16 +50,25 @@ the moment, this is always \code{TRUE}.}
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
 and ciValue = 1 - alpha}
 
-\item{na.rm}{a logical value indicating whether \code{NA} values should be stripped before
-the computation proceeds.}
+\item{maxRoot}{Used to bound the candidate set of width of the confidence interval.}
 
-\item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
-whenever eType="eCauchy"}
+\item{formula}{a formula of the form lhs ~ rhs where lhs
+is a numeric variable giving the data values and rhs
+either 1 for a one-sample or paired test or a factor
+with two levels giving the corresponding groups. If lhs
+is of class "Pair" and rhs is 1, a paired test is done}
 
-\item{...}{further arguments to be passed to or from methods.}
+\item{data}{an optional matrix or data frame (or similar:
+see \code{\link[stats]{model.frame}()}) containing the variables in
+the formula. By default the variables are taken from
+environment(formula).}
 
-\item{var.equal}{a logical variable indicating whether to treat the two variances as being equal. For the moment,
-this is always \code{TRUE}.}
+\item{subset}{an optional vector specifying a subset of
+observations to be used.}
+
+\item{na.action}{a function which indicates what should
+happen when the data contain \code{NA}s. Defaults to
+getOption("na.action").}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -75,25 +90,56 @@ following components:
 }
 }
 \description{
-A safe T-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
+A safe T-test adapted from \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
 }
+\section{Methods (by class)}{
+\itemize{
+\item \code{safeTTest(default)}: Default S3 method
+
+\item \code{safeTTest(formula)}: S3 method for class 'formula'
+
+}}
+\section{Functions}{
+\itemize{
+\item \code{safe.t.test()}: Alias for safeTTest
+
+}}
 \examples{
-designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-                         testType="twoSample", ratio=1.2)
+# Examples taken from stats::t.test
 
-set.seed(1)
-x <- rnorm(100)
-y <- rnorm(100)
-safeTTest(x, y, designObj=designObj)      #0.2959334
+# Test without a designObj is not ideal
+safeTTest(1:10, y = c(7:20))      # e = 70.454 > 20
 
-safeTTest(1:10, y = c(7:20))      # s = 658.69 > 1/alpha
-designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-                         testType="twoSample", ratio=1.2)
+# See ?designSafeT for more info
+designObj <- designSafeT(deltaMin=0.6, alpha=0.05,
+                         alternative="twoSided",
+                         testType="twoSample")
 
-set.seed(1)
-x <- rnorm(100)
-y <- rnorm(100)
-safe.t.test(x, y, alternative="greater", designObj=designObj)      #0.2959334
+safeTTest(1:10, y = c(7:20), designObj=designObj)
 
-safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
+# Mimicking the stats::t.test interface.
+# Standard calls use the camelCased version though
+safe.t.test(1:10, y = c(7:20), designObj=designObj)
+
+## Classical example: Student's sleep data
+plot(extra ~ group, data = sleep)
+## Traditional interface
+with(sleep, safeTTest(extra[group == 1], extra[group == 2],
+                      designObj=designObj))
+
+## Formula interface
+safeTTest(extra ~ group, data = sleep, designObj=designObj)
+
+## Formula interface to one-sample test
+designObj1 <- designSafeT(deltaMin=0.6, testType="oneSample")
+
+safeTTest(extra ~ 1, data = sleep, designObj=designObj1)
+
+## Formula interface to paired test
+## The sleep data are actually paired, so could have been in wide format:
+designObjPaired <- designSafeT(deltaMin=0.6, testType="paired")
+sleep2 <- reshape(sleep, direction = "wide",
+                  idvar = "ID", timevar = "group")
+safeTTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
+          designObj=designObjPaired)
 }

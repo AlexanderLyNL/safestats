@@ -17,7 +17,7 @@ designSafeLogrank(
   ratio = 1,
   exact = TRUE,
   parameter = NULL,
-  eType = c("eCauchy", "eGauss", "grow"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
   groupSizePerTimeFunction = returnOne,
   pb = TRUE,

@@ -108,6 +108,9 @@ getNameAlternative <- function(alternative=c("twoSided", "greater", "less"), tes
 
   if (testType == "oneSample") {
     trueMeanStatement <- "true mean"
+  } else if (testType %in% c("twoSample", "paired")
+             && names(h0)!="mu") {
+    trueMeanStatement <- paste0("\n", names(h0), " is")
   } else if (testType %in% c("paired", "twoSample")) {
     trueMeanStatement <- "true difference in means ('x' minus 'y') is"
   } else if (testType == "2x2") {

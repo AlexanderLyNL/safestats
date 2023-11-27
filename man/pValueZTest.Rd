@@ -13,7 +13,6 @@ pValueZTest(
   paired = FALSE,
   ciValue = NULL,
   alpha = 0.05,
-  na.rm = FALSE,
   sigma = 1,
   h0 = 0,
   alternative = c("twoSided", "greater", "less"),
@@ -38,9 +37,6 @@ pValueZTest(
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
-
-\item{na.rm}{a logical value indicating whether \code{NA} values should be stripped before
-the computation proceeds.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 

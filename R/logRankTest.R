@@ -288,16 +288,20 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     # but to avoid rounding erros zStat is used instead
     zStat <- zStat - sqrt(nEff)*(log(h0))
 
-    eValue <- safeZTestStat("z"=unname(zStat), "parameter"=phiS, "n1"=nEff,
-                            "n2"=NULL, "alternative"=alternative, "paired"=FALSE, "sigma"=1,
-                            "eType"="grow")
+    eValue <- safeZTestStat("z"=unname(zStat),
+                            "parameter"=1/2*phiS^2, "n1"=nEff,
+                            "n2"=NULL, "alternative"=alternative,
+                            "paired"=FALSE, "sigma"=1,
+                            "eType"="mom")
 
     if (is.null(ciValue))
       ciValue <- 1 - designObj[["alpha"]]
 
-    tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
-                                              "parameter"=phiS, "sigma"=1,
-                                              "ciValue"=ciValue, "alternative"="twoSided")
+    tempConfSeq <- computeConfidenceIntervalZ(
+      "nEff"=nEff, "meanObs"=meanObs,
+      "parameter"=1/2*phiS^2, "sigma"=1,
+      "ciValue"=ciValue, "alternative"="twoSided",
+      "eType"="mom")
 
     result[["ciValue"]] <- ciValue
 
@@ -360,12 +364,15 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 
   phiS <- log(designObj[["parameter"]])
 
-  eValue <- safeZTestStat("z"=unname(zStat), "parameter"=phiS, "n1"=nEff, "n2"=NULL,
+  eValue <- safeZTestStat("z"=unname(zStat), "parameter"=phiS^2/2,
+                          "n1"=nEff, "n2"=NULL,
                           "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1,
-                          "eType"="grow")
+                          "eType"="mom")
 
-  tempConfSeq <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs, "parameter"=phiS,
-                                            "sigma"=1, "ciValue"=ciValue, "alternative"="twoSided")
+  tempConfSeq <- computeConfidenceIntervalZ(
+    "nEff"=nEff, "meanObs"=meanObs, "parameter"=1/2*phiS^2,
+    "sigma"=1, "ciValue"=ciValue, "alternative"="twoSided",
+    "eType"="mom")
 
   result[["confSeq"]] <- exp(tempConfSeq)
 
@@ -455,7 +462,7 @@ designSafeLogrank <- function(
     m0=50000L, m1=50000L,
     testType=c("exactLogrank", "gaussianLogrank"),
     ratio=1, exact=TRUE, parameter=NULL,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
@@ -685,7 +692,7 @@ designSafeLogrank2WantBeta <- function(
     m0=50000L, m1=50000L,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
@@ -1437,7 +1444,7 @@ computeLogrankBetaFrom <- function(
     m0=50000L, m1=50000L,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
-    eType=c("eCauchy", "eGauss", "grow"),
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {

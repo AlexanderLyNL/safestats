@@ -73,7 +73,7 @@ or for the computation of the logarithm of the implied target.}
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
-a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
+a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.
 }
 \description{
 Helper function: Computes the planned sample size of the safe T-test based on the

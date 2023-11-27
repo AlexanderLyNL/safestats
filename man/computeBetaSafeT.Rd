@@ -66,7 +66,7 @@ or for the computation of the logarithm of the implied target.}
 }
 \value{
 a list which contains at least beta and an adapted bootObject of class
-\code{\link[boot]{boot}}.
+\code{\link[boot]{boot}()}.
 }
 \description{
 Helper function: Computes the type II error of the safeTTest based on the minimal clinically relevant

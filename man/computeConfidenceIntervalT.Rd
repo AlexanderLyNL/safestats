@@ -36,8 +36,7 @@ of the pooled variance.}
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
 and ciValue = 1 - alpha}
 
-\item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
-whenever eType="eCauchy"}
+\item{maxRoot}{Used to bound the candidate set of width of the confidence interval.}
 }
 \value{
 numeric vector that contains the upper and lower bound of the safe confidence sequence

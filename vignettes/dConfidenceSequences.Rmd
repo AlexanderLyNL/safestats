@@ -56,8 +56,8 @@ muTrue <- 8
 sigmaTrue <- 1
   
 set.seed(4)
-someData <- rnorm(n, mean=muTrue,
-                  sd=sigmaTrue)
+someDataSingle <- rnorm(n, mean=muTrue,
+                        sd=sigmaTrue)
 ```
 
 
@@ -87,7 +87,7 @@ To assess the performance of the classical confidence interval on the data with 
 ```{r, eval=FALSE}
 freqCi <- matrix(nrow=n, ncol=2)
 
-meanVector <- 1/(1:n)*cumsum(someData)
+meanVector <- 1/(1:n)*cumsum(someDataSingle)
 
 for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
@@ -107,11 +107,20 @@ polygon(c(1:n, n:1), c(freqCi[, 2], rev(freqCi[, 1])),
         density = NULL, angle = -20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
-Note that between the 21st and 45th observation the true mean is outside the intervals. Hence, classical confidence intervals would lead us to the incorrect conclusion regarding muTrue, if data collection happened to stop in this range. 
+Note that between the 21st and 45th observation the true mean is outside the intervals. 
+
+```{r, eval = FALSE}
+# The indices where the lower bound is above muTrue
+which(freqCi[, 1] > muTrue)
+
+# No indices where the upper bound is below muTrue
+which(freqCi[, 2] < muTrue)
+```
+
+Hence, classical confidence intervals lead to incorrect conclusions regarding muTrue, if data collection happened to stop in this range. 
 
 ### The behaviour of classical confidence intervals across time under multiple use 
 The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 intervals. We now repeat the procedure, but over 1,000 data sets/experiments. The code below stores 1,000 times 100 classical confidence intervals in the variable `allFreqCis`. 
-
 We will see that far fewer than 950 out of these 1,000 data sets/repeated experiments will cover the true mean across time. 
 
 The following code stores a 1,000 times 100 p-values: 
@@ -136,13 +145,12 @@ for (sim in 1:mIter) {
   meanVector <- 1/(1:n)*cumsum(someData)
   
   for (i in 1:n) {
-    tempResult <- computeConfidenceIntervalZ(nEff=i,
-                                             meanObs=meanVector[i],
-                                             eType="freq")
+    tempResult <- computeConfidenceIntervalZ(
+      nEff=i, meanObs=meanVector[i], eType="freq")
     allFreqCis[sim, i, ] <- tempResult
     
-    if ((tempResult[1] > muTrue || tempResult[2] < muTrue) && 
-         freqCiError[sim] != 1) {
+    if ((tempResult[1] > muTrue || tempResult[2] < muTrue)
+        && freqCiError[sim] != 1) {
       freqCiError[sim] <- 1
       firstPassageTime[sim] <- i
     }
@@ -207,19 +215,17 @@ For our demonstration we set a=0 and g=1. We discuss sensitivity to the hyper pa
 ### One sample path
 To assess the performance of the credible interval on the data with muTrue=8, we run the following code: 
 
-
 ```{r, eval=FALSE}
 someA <- 0
 someG <- 1
 bayesCi <- matrix(nrow=n, ncol=2)
 
-meanVector <- 1/(1:n)*cumsum(someData)
+meanVector <- 1/(1:n)*cumsum(someDataSingle)
 
 for (i in 1:n) {
-  tempResult <- computeConfidenceIntervalZ(nEff=i,
-                                           meanObs=meanVector[i],
-                                           a=someA, g=someG,
-                                           eType="credibleInterval")
+  tempResult <- computeConfidenceIntervalZ(
+    nEff=i, meanObs=meanVector[i], 
+    a=someA, g=someG, eType="credibleInterval")
   bayesCi[i, ] <- tempResult
 }
 
@@ -233,7 +239,16 @@ polygon(c(1:n, n:1), c(bayesCi[, 2], rev(bayesCi[, 1])),
         density = NULL, angle = 20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
-Note that between the 1st and 28th observation the true mean is outside the intervals. The credible intervals would lead to the incorrect conclusion that muTrue, if data collection happened to stop in this range. Better coverage is retrieved if the prior mean were set equal to the true mean. However, if the true mean was known before hand, then it would not be prior knowledge. In fact, there would be no need to do the experiment. In general, if the hyper parameter a is set close to the true mean, then the coverage will be better. Similarly, however, true values of mu far from yield bad coverage. Our point is not to open a discussion on prior choice, but about coverage across time. We will see that even if a is set to be exactly equal to muTrue, then across time a 95\% credible interval will have coverage rate below 95\%. 
+Similar to the frequentist confidence intervals, the true mean falls outside the credible intervals between the 21st and the 45th observations, but also at the 11th and 17th obsrevations. 
+
+```{r, eval = FALSE}
+# The indices where the lower bound is above muTrue
+which(bayesCi[, 1] > muTrue)
+
+# No indices where the upper bound is below muTrue
+which(bayesCi[, 2] < muTrue)
+```
+The credible intervals thus provide incorrect information regarding the size of the true population mean, if data collection happened to stop in this range. Better coverage is retrieved if the prior mean were set equal to the true mean. However, if the true mean was known before hand, then it would not be prior knowledge. In fact, there would be no need to do the experiment. In general, if the hyper parameter "a" is set close to the true mean, then the coverage will be better. For any a priori guess "a" there are many true values of mu for which the Bayesian interval will have bad coverage. Our point is not to open a discussion on the prior choice of "a", but about coverage across time. We will see that even if "a" is set exactly equal to muTrue, then across time a 95\% credible interval will have coverage rate below 95\%. 
 
 ### The behaviour of (Bayesian) credible intervals across time under multiple use 
 The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 intervals. We now repeat the procedure, but over 1,000 data sets/experiments. The code below stores 1,000 times 100 credible intervals in the variable `allBayesCis`. 
@@ -261,14 +276,14 @@ for (sim in 1:mIter) {
   meanVector <- 1/(1:n)*cumsum(someData)
   
   for (i in 1:n) {
-    tempResult <- computeConfidenceIntervalZ(nEff=i,
-                                             meanObs=meanVector[i],
-                                             a=someA, g=someG, 
-                                             eType="credibleInterval")
+    tempResult <- computeConfidenceIntervalZ(
+      nEff=i, meanObs=meanVector[i], 
+      a=someA, g=someG, 
+      eType="credibleInterval")
     allBayesCis[sim, i, ] <- tempResult
     
-    if ((tempResult[1] > muTrue || tempResult[2] < muTrue) && 
-         bayesCiError[sim] != 1) {
+    if ((tempResult[1] > muTrue || tempResult[2] < muTrue) 
+        && bayesCiError[sim] != 1) {
       bayesCiError[sim] <- 1
       firstPassageTime[sim] <- i
     }
@@ -292,7 +307,7 @@ plot(1:n, 100*bayesCoverageRate, type="l", lwd=2, xlab="n",
      ylab="Coverage rate (%)", col=bayesColours[1], ylim=c(60, 100))
 lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
-This plot shows that the credible interval centred at the a=muTrue does indeed yield better coverage than the classical confidence intervals. However, as time goes by and with more data the coverage rate still dips below the desirable 95\%. Setting a=muTrue is not realistic and typically we just set a=0. 
+This plot shows that the credible interval centred at the a=muTrue yield worse coverage than the classical confidence intervals. <!--However, as time goes by and with more data the coverage rate still dips below the desirable 95\%. Setting a=muTrue is not realistic and typically we just set a=0. -->
 
 The following code can be run to inspect one of the failed intervals:
 
@@ -331,13 +346,12 @@ To assess the performance of the anytime-valid confidence sequence on the data w
 ```{r, eval=FALSE}
 anytimeCi <- matrix(nrow=n, ncol=2)
 
-meanVector <- 1/(1:n)*cumsum(someData)
+meanVector <- 1/(1:n)*cumsum(someDataSingle)
 
 for (i in 1:n) {
-  tempResult <- computeConfidenceIntervalZ(nEff=i,
-                                           parameter=designObj$"parameter",
-                                           meanObs=meanVector[i],
-                                           eType=designObj$eType)
+  tempResult <- computeConfidenceIntervalZ(
+    nEff=i, parameter=designObj$parameter, 
+    meanObs=meanVector[i], eType=designObj$eType)
   anytimeCi[i, ] <- tempResult
 }
 
@@ -351,7 +365,16 @@ polygon(c(1:n, n:1), c(anytimeCi[, 2], rev(anytimeCi[, 1])),
         density = NULL, angle = -20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
-Note that the anytime-valid confidence sequence covers the true mean at each moment in time. The credible intervals would thus lead to the correct conclusion that muTrue is a viable value for the true mean, regardless if, whether, or why data collection is stopped. To compare the three intervals we run the following code. 
+Note that the anytime-valid confidence sequence covers the true mean at each moment in time. 
+
+```{r, eval = FALSE}
+# No indices where the lower bound is above muTrue
+which(anytimeCi[, 1] > muTrue)
+
+# No indices where the upper bound is below muTrue
+which(anytimeCi[, 2] < muTrue)
+```
+The credible intervals would thus lead to the correct conclusion that muTrue is a viable value for the true mean, regardless if, whether, or why data collection is stopped. To compare the three intervals we run the following code. 
 
 ```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
@@ -365,12 +388,13 @@ polygon(c(1:n, n:1), c(anytimeCi[, 2], rev(anytimeCi[, 1])),
         density = NULL, angle = -20)
 polygon(c(1:n, n:1), c(freqCi[, 2], rev(freqCi[, 1])),
         col=freqColours[2], border=freqColours[1], lwd=2,
-        density = NULL, angle = -20)
+        density = 60, angle = -20)
 polygon(c(1:n, n:1), c(bayesCi[, 2], rev(bayesCi[, 1])),
         col=bayesColours[2], border=bayesColours[1], lwd=2,
-        density = NULL, angle = 20)
+        density = 40, angle = 20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
+For large sample sizes the standard confidence interval and the credible interval become indistinguishable, and the difference between them is more prominent at the start. 
 
 ### The behaviour of anytime-valid confidence sequences across time under multiple use 
 The previous code worked for a specific data set/outcome of a single experiment. Note that this 1 data set yielded 100 intervals. We now repeat the procedure, but over 1,000 data sets/experiments. The code below stores 1,000 times 100 credible intervals in the variable `allAnytimeCis`. 
@@ -404,8 +428,8 @@ for (sim in 1:mIter) {
     
     allAnytimeCis[sim, i, ] <- tempResult
     
-    if ((tempResult[1] > muTrue || tempResult[2] < muTrue) && 
-         anytimeCiError[sim] != 1) {
+    if ((tempResult[1] > muTrue || tempResult[2] < muTrue) 
+        && anytimeCiError[sim] != 1) {
       anytimeCiError[sim] <- 1
       firstPassageTime[sim] <- i
     }
@@ -425,8 +449,9 @@ anytimeCiCoverageRate <- 1-complementCoverageRate
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-plot(1:n, 100*anytimeCiCoverageRate, type="l", lwd=2, xlab="n",
-     ylab="Coverage rate (%)", col=eColours[1], ylim=c(60, 100))
+plot(1:n, 100*anytimeCiCoverageRate, type="l", lwd=2,
+     xlab="n", ylab="Coverage rate (%)", col=eColours[1],
+     ylim=c(60, 100))
 lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
 This plot shows that the anytime-valid confidence sequences cover the true mean under repeated use as promised. 
@@ -456,14 +481,16 @@ The following code can be used to see all coverage rate profiles.
 ```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-plot(1:n, 100*anytimeCiCoverageRate, type="l", lwd=2, xlab="n",
-     ylab="Coverage rate (%)", col=eColours[1], ylim=c(60, 100))
-lines(1:n, 100*bayesCoverageRate, col=bayesColours[1], lwd=2)
+plot(1:n, 100*anytimeCiCoverageRate, type="l", lwd=2,
+     xlab="n", ylab="Coverage rate (%)", col=eColours[1],
+     ylim=c(60, 100))
+lines(1:n, 100*bayesCoverageRate, col=bayesColours[1],
+      lwd=2)
 lines(1:n, 100*freqCoverageRate, col=freqColours[1], lwd=2)
 lines(c(1, n), 100*c(1-alpha, 1-alpha), lwd=2, lty=2)
 ```
 
-# Sensitivity wrt to gMom: Credible intervals versus anytime-valid confidence intervals
+# Sensitivity wrt to the parameter g and gMom: Credible intervals versus anytime-valid confidence intervals
 
 We provide some further elaboration on the how/why an anytime-valid confidence interval improves over the other intervals. Of importance is that the widths of both the classical confidence intervals and credible intervals are proportional to $1/\sqrt{n}$. On the other hand, the width of the anytime-valid confidence interval is stretched by a logarithmic function of $n$. To see this we plot the widths of the intervals as a function of n. 
 
@@ -473,31 +500,33 @@ someA <- 0
 nDomain <- 1:30
 anytimeCiWidth <- credibleIntervalWidth <- freqCiWidth <- numeric(30)
 
-
 for (i in nDomain) {
-  tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8, 
-                                           eType="freq")
+  tempResult <- computeConfidenceIntervalZ(
+    nEff=i, meanObs=8,  eType="freq")
   freqCiWidth[i] <- tempResult[2]-tempResult[1]
   
-  tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8, a=someA,
-                                           g=someG, 
-                                           eType="credibleInterval")
+  tempResult <- computeConfidenceIntervalZ(
+    nEff=i, meanObs=8, a=someA,
+    g=someG, eType="credibleInterval")
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
-  tempResult <- computeConfidenceIntervalZ(nEff=i, meanObs=8,
-                                           parameter=designObj$parameter,
-                                           eType=designObj$eType)
+  tempResult <- computeConfidenceIntervalZ(
+    nEff=i, meanObs=8, parameter=designObj$parameter,
+    eType=designObj$eType)
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
 }
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-plot(nDomain, anytimeCiWidth, col=eColours[1], type="l", lwd=2, ylim=c(0, 12))
-lines(nDomain, credibleIntervalWidth, col=bayesColours[1], lwd=2)
-lines(nDomain, freqCiWidth, col=freqColours[1], lwd=2, lty=2)
+plot(nDomain, anytimeCiWidth, col=eColours[1], type="l",
+     lwd=2, ylim=c(0, 12))
+lines(nDomain, credibleIntervalWidth, col=bayesColours[1],
+      lwd=2)
+lines(nDomain, freqCiWidth, col=freqColours[1], lwd=2,
+      lty=2)
 ```
 Hence, the width of the credible interval behaves similarly to that of the classical confidence interval. This correspondence is exact if the hyper parameter g of the credible interval is taken to be large. In that case, the credible interval equals the classical confidence interval. 
 
-Another difference to highlight is that credible intervals and anytime-valid confidence sequences change differently depending on the hyper parameter g and gMom. For g small the credible interval will be more narrow around a. The prior belief that a is true mean then dominates. As noted above, as g grows then the credible interval coincides with the classical confidence interval. 
+Another difference to highlight is that credible intervals and anytime-valid confidence sequences change differently depending on the hyper parameter g and gMom. For g small the credible interval will be more narrow around "a". The prior belief that "a" is the true mean then dominates. As noted above, as g grows then the credible interval coincides with the classical confidence interval. 
 
 For anytime-valid confidence sequences the following holds. For gMom small, the interval becomes infinitely wide resulting in more uncertainty. For gMom large, the same interval again becomes infinitely wide. The following code plots the dependency of the interval widths on g. 
 
@@ -510,21 +539,22 @@ anytimeCiWidth <- credibleIntervalWidth <- numeric(30)
 
 
 for (i in seq_along(gDomain)) {
-  tempResult <- computeConfidenceIntervalZ(nEff=1, meanObs=8, 
-                                           a=0, g=gDomain[i],
-                                           eType="credibleInterval")
+  tempResult <- computeConfidenceIntervalZ(
+    nEff=1, meanObs=8, a=0, g=gDomain[i], 
+    eType="credibleInterval")
   
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
-  tempResult <- computeConfidenceIntervalZ(nEff=1, meanObs=8,
-                                           parameter=gDomain[i],
-                                           eType="mom")
+  tempResult <- computeConfidenceIntervalZ(
+    nEff=1, meanObs=8, parameter=gDomain[i],
+    eType="mom")
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
 }
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-plot(gDomain, anytimeCiWidth, col=eColours[1], type="l", lwd=2, 
-     ylim=c(0, 16), xlab="g", ylab="Interval width")
-lines(gDomain, credibleIntervalWidth, col=bayesColours[1], lwd=2)
+plot(gDomain, anytimeCiWidth, col=eColours[1], type="l",
+     lwd=2, ylim=c(0, 16), xlab="g", ylab="Interval width")
+lines(gDomain, credibleIntervalWidth, col=bayesColours[1],
+      lwd=2)
 ```
 The plot provides an indication on how the widths of the two intervals differ for a range of hyper parameter values g and gMom set equal to g. The increase in width of the anytime-valid confidence sequence is hardly noticeable, because it increases very slowly (logarithmically), whereas the width of the credible interval stabilises at the width of the classical confidence interval. 

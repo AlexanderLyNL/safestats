@@ -49,7 +49,7 @@ case 1/2 at -deltaS and 1/2 deltaS.}
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 }
 \value{
-a list which contains at least nPlan and the phiS the parameter that defines the safe test
+a list which contains at least nPlan and the deltaS the parameter that defines the safe test
 }
 \description{
 Helper function: Computes the planned sample size for the safe T-test based on the minimal clinically

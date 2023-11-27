@@ -369,4 +369,4 @@ which(eReject >= 0.8)-designObj$nPlan[1]
 The vertical line shows the end of the first study. 
 
 # Concluding remarks
-We provide some insights in how to tune an e-variable, and we showed how inference can be sped up by exploiting the sequential nature of e-variables. 
+We provided some insights on how to tune an e-variable, and we showed how inference can be sped up by exploiting the sequential nature of e-variables. 

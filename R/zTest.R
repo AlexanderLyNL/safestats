@@ -166,6 +166,20 @@ safeZTestStat <- function(
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha
 #' @param maxRoot Used to bound the candidate set of width of the confidence interval,
 #' whenever eType="eCauchy"
+#' @param formula a formula of the form lhs ~ rhs where lhs
+#' is a numeric variable giving the data values and rhs
+#' either 1 for a one-sample or paired test or a factor
+#' with two levels giving the corresponding groups. If lhs
+#' is of class "Pair" and rhs is 1, a paired test is done
+#' @param data an optional matrix or data frame (or similar:
+#' see \code{\link[stats]{model.frame}()}) containing the variables in
+#' the formula. By default the variables are taken from
+#' environment(formula).
+#' @param subset an optional vector specifying a subset of
+#' observations to be used.
+#' @param na.action a function which indicates what should
+#' happen when the data contain \code{NA}s. Defaults to
+#' getOption("na.action").
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
@@ -190,17 +204,63 @@ safeZTestStat <- function(
 #'
 #' @examples
 #'
-#' designObj <- designSafeZ(meanDiffMin=0.6, alpha=0.008,
-#'                          alternative="greater", testType="twoSample",
-#'                          ratio=1.2)
+#' # Examples taken from stats::t.test
 #'
-#' set.seed(1)
-#' x <- rnorm(100)
-#' y <- rnorm(100)
-#' safeZTest(x, y, designObj=designObj)      #
+#' # Test without a designObj is not ideal
+#' # Especially now sigma is totally off,
+#' # because this is a z-test instead of a
+#' # t-test.
+#' safeZTest(1:10, y = c(7:20))      # e = 70.454 > 20
 #'
-#' safeZTest(1:10, y = c(7:20), alternative="less")      # s = 3.033e+78 > 1/alpha
-safeZTest <- function(
+#'
+#' # See ?designSafeZ for more info
+#' designObj <- designSafeZ(meanDiffMin=0.6, alpha=0.05,
+#'                          alternative="twoSided",
+#'                          testType="twoSample", sigma=3)
+#'
+#' safeZTest(1:10, y = c(7:20), designObj=designObj)
+#'
+#' # Mimicking the stats::t.test interface.
+#' # Standard calls use the camelCased version though
+#' safe.z.test(1:10, y = c(7:20), designObj=designObj)
+#'
+#' # Formulas versions
+#' #
+#' ## Classical example: Student's sleep data
+#' plot(extra ~ group, data = sleep)
+#' ## Traditional interface
+#' with(sleep, safeZTest(extra[group == 1], extra[group == 2],
+#'                       designObj=designObj))
+#'
+#' designObj <- designSafeZ(meanDiffMin=0.6, sigma=2,
+#'                          testType="twoSample")
+#' ## Formula interface
+#' safeZTest(extra ~ group, data = sleep, designObj=designObj)
+#'
+#' ## Formula interface to one-sample test
+#' designObj1 <- designSafeZ(meanDiffMin=0.6,
+#'                           testType="oneSample",
+#'                           sigma=2)
+#'
+#' safeZTest(extra ~ 1, data = sleep, designObj=designObj1)
+#'
+#' ## Formula interface to paired test
+#' ## The sleep data are actually paired, so could have been in wide format:
+#' designObjPaired <- designSafeZ(meanDiffMin=0.6,
+#'                                testType="paired",
+#'                                sigma=1.4)
+#' sleep2 <- reshape(sleep, direction = "wide",
+#'                   idvar = "ID", timevar = "group")
+#' safeZTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
+#'           designObj=designObjPaired)
+safeZTest <- function(x, ...) {
+  UseMethod("safeZTest")
+}
+
+#' @describeIn safeZTest Default S3 method
+#' @export
+#'
+safeZTest.default <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
     ciValue=NULL, maxRoot=10, ...) {
 
@@ -258,7 +318,8 @@ safeZTest <- function(
     dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
 
     if (isTRUE(paired))
-      xGoodIndeces <- yGoodIndeces  <- complete.cases(x, y)
+      xGoodIndeces <- yGoodIndeces  <-
+        stats::complete.cases(x, y)
     else {
       yGoodIndeces <- !is.na(y)
       xGoodIndeces <- !is.na(x)
@@ -340,10 +401,88 @@ safeZTest <- function(
   return(result)
 }
 
-#' Alias for safeZTest
+#' @describeIn safeZTest S3 method for class 'formula'
+#' @export
 #'
-#' @rdname safeZTest
-#'
+safeZTest.formula <- function(
+    formula, data, subset, na.action, ...) {
+  if (missing(formula) || (length(formula) != 3L))
+    stop("'formula' missing or incorrect")
+
+  wantTwoSample <- TRUE
+
+  if (length(attr(stats::terms(formula[-2L]), "term.labels")) != 1L)
+    if (formula[[3L]] == 1L)
+      wantTwoSample <- FALSE
+  else
+    stop("'formula' missing or incorrect")
+
+  matchedCall <- match.call(expand.dots = FALSE)
+
+  if (is.matrix(eval(matchedCall[["data"]], parent.frame())))
+    matchedCall[["data"]] <- as.data.frame(data)
+
+  # Note: Prepare calling stats::model.frame instead of safeTTest
+  #
+  matchedCall[[1L]] <- quote(stats::model.frame)
+  matchedCall[["..."]] <- NULL
+
+  # Call: stats::model.frame
+  #
+  modelFrame <- eval(matchedCall,
+                     parent.frame())
+
+  # Naming
+  dataName <- paste(names(modelFrame),
+                    collapse=" by ")
+
+  names(modelFrame) <- NULL
+  response <- attr(attr(modelFrame, "terms"),
+                   "response")
+
+  if (isTRUE(wantTwoSample)) {
+    groupingFactor <- factor(modelFrame[[-response]])
+
+    if (nlevels(groupingFactor) != 2L)
+      stop("grouping factor must have exactly 2 levels")
+
+    dataList <- split(modelFrame[[response]], groupingFactor)
+
+    result <- safeZTest("x"=dataList[[1L]], "y"=dataList[[2L]], ...)
+
+    if (length(result[["estimate"]]) == 2L) {
+      names(result[["estimate"]]) <- paste("mean in group", levels(groupingFactor))
+      names(result[["designObj"]][["h0"]]) <-
+        paste("true difference in means between",
+              paste("group", levels(groupingFactor), collapse = " and "))
+    }
+  } else {
+    respVar <- modelFrame[[response]]
+
+    if (inherits(respVar, "Pair")) {
+      result <- safeZTest("x"=respVar[, 1L], "y"=respVar[, 2L],
+                          paired=TRUE, ...)
+      firstVar <- substring(dataName,
+                            first=6,
+                            last=regexpr(",", dataName)-1)
+      secondVar <- substring(dataName,
+                             first=regexpr(",", dataName)+2,
+                             last=regexpr(")", dataName)-1)
+      names(result[["estimate"]]) <-
+        paste("mean difference between", firstVar, "and", secondVar)
+      names(result[["designObj"]][["h0"]]) <-
+        paste("true mean difference between",
+              paste(c(firstVar, secondVar), collapse = " and "))
+    } else {
+      result <- safeZTest("x"=respVar, "y"=NULL, ...)
+    }
+  }
+
+  result[["dataName"]] <- dataName
+  return(result)
+}
+
+#' @describeIn safeZTest Alias for safeZTest
 #' @export
 safe.z.test <- function(x, y=NULL, paired=FALSE,
                         designObj=NULL, ...) {

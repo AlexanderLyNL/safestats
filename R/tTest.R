@@ -43,10 +43,12 @@ safeTTestStat <- function(
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
   nu <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1-1 else n1+n2-2
 
-  result <- safeTTestStatNEffNu(
-    "t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
-    "alternative"=alternative, "tDensity"=tDensity,
-    "paired"=paired, "eType"=eType, ...)
+  result <- suppressWarnings(
+    safeTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu,
+                        "parameter"=parameter, "alternative"=alternative,
+                        "tDensity"=tDensity, "paired"=paired, "eType"=eType,
+                        ...)
+  )
 
   return(result)
 }
@@ -257,10 +259,12 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
   return(result)
 }
 
+
 #' Safe Student's T-Test.
 #'
-#' A safe T-test adapted from  \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
+#' A safe T-test adapted from \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
 #'
+#' @rdname safeTTest
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
 #' @param designObj an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot
@@ -270,8 +274,21 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' the moment, this is always \code{TRUE}.
 #' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
 #' and ciValue = 1 - alpha
-#' @param maxRoot Used to bound the candidate set of width of the confidence interval,
-#' whenever eType="eCauchy"
+#' @param maxRoot Used to bound the candidate set of width of the confidence interval.
+#' @param formula a formula of the form lhs ~ rhs where lhs
+#' is a numeric variable giving the data values and rhs
+#' either 1 for a one-sample or paired test or a factor
+#' with two levels giving the corresponding groups. If lhs
+#' is of class "Pair" and rhs is 1, a paired test is done
+#' @param data an optional matrix or data frame (or similar:
+#' see \code{\link[stats]{model.frame}()}) containing the variables in
+#' the formula. By default the variables are taken from
+#' environment(formula).
+#' @param subset an optional vector specifying a subset of
+#' observations to be used.
+#' @param na.action a function which indicates what should
+#' happen when the data contain \code{NA}s. Defaults to
+#' getOption("na.action").
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -294,17 +311,51 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' @export
 #'
 #' @examples
-#' designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-#'                          testType="twoSample", ratio=1.2)
+#' # Examples taken from stats::t.test
 #'
-#' set.seed(1)
-#' x <- rnorm(100)
-#' y <- rnorm(100)
-#' safeTTest(x, y, designObj=designObj)      #0.2959334
+#' # Test without a designObj is not ideal
+#' safeTTest(1:10, y = c(7:20))      # e = 70.454 > 20
 #'
-#' safeTTest(1:10, y = c(7:20))      # s = 658.69 > 1/alpha
-safeTTest <- function(
-    x, y=NULL, paired=FALSE, designObj=NULL,
+#' # See ?designSafeT for more info
+#' designObj <- designSafeT(deltaMin=0.6, alpha=0.05,
+#'                          alternative="twoSided",
+#'                          testType="twoSample")
+#'
+#' safeTTest(1:10, y = c(7:20), designObj=designObj)
+#'
+#' # Mimicking the stats::t.test interface.
+#' # Standard calls use the camelCased version though
+#' safe.t.test(1:10, y = c(7:20), designObj=designObj)
+#'
+#' ## Classical example: Student's sleep data
+#' plot(extra ~ group, data = sleep)
+#' ## Traditional interface
+#' with(sleep, safeTTest(extra[group == 1], extra[group == 2],
+#'                       designObj=designObj))
+#'
+#' ## Formula interface
+#' safeTTest(extra ~ group, data = sleep, designObj=designObj)
+#'
+#' ## Formula interface to one-sample test
+#' designObj1 <- designSafeT(deltaMin=0.6, testType="oneSample")
+#'
+#' safeTTest(extra ~ 1, data = sleep, designObj=designObj1)
+#'
+#' ## Formula interface to paired test
+#' ## The sleep data are actually paired, so could have been in wide format:
+#' designObjPaired <- designSafeT(deltaMin=0.6, testType="paired")
+#' sleep2 <- reshape(sleep, direction = "wide",
+#'                   idvar = "ID", timevar = "group")
+#' safeTTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
+#'           designObj=designObjPaired)
+safeTTest <- function(x, ...) {
+  UseMethod("safeTTest")
+}
+
+#' @describeIn safeTTest Default S3 method
+#' @export
+safeTTest.default <- function(
+    x, y=NULL, designObj=NULL, paired=FALSE,
     varEqual=TRUE, ciValue=NULL,
     maxRoot=10, ...) {
 
@@ -364,7 +415,8 @@ safeTTest <- function(
     dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
 
     if (isTRUE(paired))
-      xGoodIndeces <- yGoodIndeces  <- complete.cases(x, y)
+      xGoodIndeces <- yGoodIndeces  <-
+        stats::complete.cases(x, y)
     else {
       yGoodIndeces <- !is.na(y)
       xGoodIndeces <- !is.na(x)
@@ -423,13 +475,17 @@ safeTTest <- function(
 
   names(tStat) <- "t"
 
-  # Compute: eValue ----
+  ### Compute: eValue ----
   #
-  testResult <- safeTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
-                              "n2"=n2, "alternative"=alternative, "paired"=paired,
-                              "eType"=designObj[["eType"]])
+  testResult <- suppressWarnings(
+    safeTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
+                  "n2"=n2, "alternative"=alternative, "paired"=paired,
+                  "eType"=designObj[["eType"]])
 
-  # Compute: confSeq ----
+  )
+
+
+  ### Compute: confSeq ----
   #
   result[["confSeq"]] <- computeConfidenceIntervalT(
     "meanObs"=meanObs, "sdObs"=sdObs,
@@ -437,7 +493,7 @@ safeTTest <- function(
     "parameter"=designObj[["parameter"]],
     "eType"=designObj[["eType"]], "ciValue"=ciValue, "maxRoot"=maxRoot)
 
-  # Fill: Result -----
+  ### Fill: Result -----
   #
   result[["statistic"]] <- tStat
   result[["estimate"]] <- estimate
@@ -457,28 +513,95 @@ safeTTest <- function(
 }
 
 
-#' Alias for safeTTest()
-#'
-#' @rdname safeTTest
-#' @param var.equal a logical variable indicating whether to treat the two variances as being equal. For the moment,
-#' this is always \code{TRUE}.
-#'
+#' @describeIn safeTTest S3 method for class 'formula'
 #' @export
 #'
-#' @examples
-#' designObj <- designSafeT(deltaMin=0.6, alpha=0.008, alternative="greater",
-#'                          testType="twoSample", ratio=1.2)
-#'
-#' set.seed(1)
-#' x <- rnorm(100)
-#' y <- rnorm(100)
-#' safe.t.test(x, y, alternative="greater", designObj=designObj)      #0.2959334
-#'
-#' safe.t.test(1:10, y = c(7:20), pilot=TRUE)      # s = 658.69 > 1/alpha
-safe.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, var.equal=TRUE,
+safeTTest.formula <- function(
+    formula, data, subset, na.action, ...) {
+
+  if (missing(formula) || (length(formula) != 3L))
+    stop("'formula' missing or incorrect")
+
+  wantTwoSample <- TRUE
+
+  if (length(attr(stats::terms(formula[-2L]), "term.labels")) != 1L)
+    if (formula[[3L]] == 1L)
+      wantTwoSample <- FALSE
+  else
+    stop("'formula' missing or incorrect")
+
+  matchedCall <- match.call(expand.dots = FALSE)
+
+  if (is.matrix(eval(matchedCall[["data"]], parent.frame())))
+    matchedCall[["data"]] <- as.data.frame(data)
+
+  # Note: Prepare calling stats::model.frame instead of safeTTest
+  #
+  matchedCall[[1L]] <- quote(stats::model.frame)
+  matchedCall[["..."]] <- NULL
+
+  # Call: stats::model.frame
+  #
+  modelFrame <- eval(matchedCall,
+                     parent.frame())
+
+  # Naming
+  dataName <- paste(names(modelFrame),
+                    collapse=" by ")
+
+  names(modelFrame) <- NULL
+  response <- attr(attr(modelFrame, "terms"),
+                   "response")
+
+  if (isTRUE(wantTwoSample)) {
+    groupingFactor <- factor(modelFrame[[-response]])
+
+    if (nlevels(groupingFactor) != 2L)
+      stop("grouping factor must have exactly 2 levels")
+
+    dataList <- split(modelFrame[[response]], groupingFactor)
+
+    tResult <- safeTTest("x"=dataList[[1L]], "y"=dataList[[2L]], ...)
+
+    if (length(tResult[["estimate"]]) == 2L) {
+      names(tResult[["estimate"]]) <- paste("mean in group", levels(groupingFactor))
+      names(tResult[["designObj"]][["h0"]]) <-
+        paste("true difference in means between",
+              paste("group", levels(groupingFactor), collapse = " and "))
+    }
+  } else {
+    respVar <- modelFrame[[response]]
+
+    if (inherits(respVar, "Pair")) {
+      tResult <- safeTTest("x"=respVar[, 1L], "y"=respVar[, 2L],
+                           paired=TRUE, ...)
+      firstVar <- substring(dataName,
+                            first=6,
+                            last=regexpr(",", dataName)-1)
+      secondVar <- substring(dataName,
+                             first=regexpr(",", dataName)+2,
+                             last=regexpr(")", dataName)-1)
+      names(tResult[["estimate"]]) <-
+        paste("mean difference between", firstVar, "and", secondVar)
+      names(tResult[["designObj"]][["h0"]]) <-
+        paste("true mean difference between",
+              paste(c(firstVar, secondVar), collapse = " and "))
+    } else {
+      tResult <- safeTTest("x"=respVar, "y"=NULL, ...)
+    }
+  }
+
+  tResult[["dataName"]] <- dataName
+  return(tResult)
+}
+
+
+#' @describeIn safeTTest Alias for safeTTest
+#' @export
+safe.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
                         ciValue=NULL, ...) {
   result <- safeTTest("x"=x, "y"=y, "designObj"=designObj,
-                      "paired"=paired, "varEqual"=var.equal,
+                      "paired"=paired, "varEqual"=varEqual,
                       ...)
 
   argumentNames <- getArgs()
@@ -885,7 +1008,7 @@ designSafeT <- function(
                                "eGauss"="g",
                                "imom"="tau",
                                "eCauchy"="kappaG",
-                               "grow"="phiS",
+                               "grow"="deltaS",
                                "bayarri"="kappaB")
   }
 
@@ -1048,7 +1171,7 @@ designSafeT3WantEsMin <- function(
 #' @inheritParams designSafeT
 #' @inheritParams sampleStoppingTimesSafeT
 #'
-#' @return a list which contains at least nPlan and the phiS the parameter that defines the safe test
+#' @return a list which contains at least nPlan and the deltaS the parameter that defines the safe test
 computeNPlanBatchSafeT <- function(
     deltaTrue, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
@@ -1155,7 +1278,7 @@ computeNPlanBatchSafeT <- function(
                              "eGauss"="g",
                              "imom"="tau",
                              "eCauchy"="kappaG",
-                             "grow"="phiS",
+                             "grow"="deltaS",
                              "bayarri"="kappaB")
 
   result[["parameter"]] <- parameter
@@ -1375,10 +1498,13 @@ sampleStoppingTimesSafeT <- function(
     }
 
     for (j in seq_along(n1Vector)) {
-      tempResult <- safeTTestStat("t"=tValues[j], "parameter"=parameter,
-                                  "n1"=n1Vector[j], "n2"=n2Vector[j],
-                                  "alternative"=alternative,
-                                  "eType"=eType)
+      tempResult <- suppressWarnings(
+        safeTTestStat("t"=tValues[j], "parameter"=parameter,
+                      "n1"=n1Vector[j], "n2"=n2Vector[j],
+                      "alternative"=alternative,
+                      "eType"=eType)
+      )
+
       evidenceNow <- tempResult[["eValue"]]
 
       if (wantSamplePaths)
@@ -1431,7 +1557,7 @@ sampleStoppingTimesSafeT <- function(
 #' @inheritParams sampleStoppingTimesSafeT
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class
-#' \code{\link[boot]{boot}}.
+#' \code{\link[boot]{boot}()}.
 #' @export
 #'
 #' @examples
@@ -1501,7 +1627,7 @@ computeBetaSafeT <- function(
 #' @inheritParams designSafeT
 #' @inheritParams sampleStoppingTimesSafeT
 #'
-#' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.
 #'
 #' @export
 #'
