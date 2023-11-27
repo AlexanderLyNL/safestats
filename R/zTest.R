@@ -371,19 +371,19 @@ safeZTest.default <- function(
 
   names(zStat) <- "z"
 
-  # Compute: eValue ----
+  ## Compute: eValue ----
   tempResult <- safeZTestStat("z"=zStat, "parameter"=designObj[["parameter"]],
                               "n1"=n1, "n2"=n2, "sigma"=sigma,
                               "alternative"=alternative, "paired"=paired,
                               "eType"=designObj[["eType"]])
 
-  # Compute: confSeq ----
+  ## Compute: confSeq ----
   result[["confSeq"]] <- computeConfidenceIntervalZ(
     "nEff"=nEff, "meanObs"=meanObs, "parameter"=designObj[["parameter"]],
     "sigma"=sigma, "ciValue"=ciValue, "alternative"="twoSided",
     "eType"=designObj[["eType"]], "maxRoot"=maxRoot)
 
-  # Fill: Result -----
+  ## Fill: Result -----
   result[["testType"]] <- testType
   result[["statistic"]] <- zStat
   result[["estimate"]] <- estimate
@@ -576,8 +576,13 @@ computeConfidenceIntervalZ <- function(
     phiS <- parameter
 
     if (alternative=="twoSided") {
-      width <- sigma^2/(nEff*phiS)*
-        acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
+      acoshTerm <- acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
+
+      if (is.infinite(acoshTerm))
+        acoshTerm <- log(2)+nEff*phiS^2/(2*sigma^2)-log(1-ciValue)
+
+      width <- sigma^2/(nEff*phiS)*acoshTerm
+        # acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
     } else if (alternative %in% c("greater", "less")) {
       width <- sigma^2/(nEff*abs(phiS))*
         log(1/(1-ciValue))+abs(phiS)/2
