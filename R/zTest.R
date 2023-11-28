@@ -566,8 +566,8 @@ computeConfidenceIntervalZ <- function(
       g <- 1
     }
 
-    meanMu <- nEff*g/(nEff*g+sigma^2)*meanObs + sigma^2/(nEff*g+sigma^2)*a
-    sdMu <- sqrt(g*sigma^2)/sqrt(nEff*g + sigma^2)
+    meanMu <- nEff*g/(1+nEff*g)*meanObs + 1/(1+nEff*g)*a
+    sdMu <- sqrt(g*sigma^2)/sqrt(1+nEff*g)
 
     width <- sdMu*normalisedCiLower
   }
@@ -944,7 +944,7 @@ designSafeZ <- function(
          "(3) NULL meanDiffMin, non-null beta, and non-null nPlan.")
   }
 
-  # Fill and name ----
+  ## Fill and name ----
   result <- utils::modifyList(result, tempResult)
 
   result[["alpha"]] <- alpha

@@ -46,7 +46,7 @@ X_{i} \overset{\text{iid}}{\sim} \mathcal{N}(\mu, \sigma^{2}).
 
 <!-- Both the anytime-valid confidence interval and credible interval depend on a Gaussian/normal distribution that is centred at zero and a variance g. To highlight their difference we clarify how they act very differently with varying mixture/prior variance g. -->
 
-For all three examples we use the `computeConfidenceIntervalZ` function from the safestats package, which produces (1) classical confidence intervals if `eType="freq"`, (2) credible intervals if `eType="credibleInterval"`, and (3) an anytime-valid confidence sequence if `eType="eGauss"`. 
+For all three examples we use the `computeConfidenceIntervalZ` function from the safestats package, which produces (1) classical confidence intervals if `eType="freq"`, (2) credible intervals if `eType="credibleInterval"`, and (3) an anytime-valid confidence sequence if `eType="mom"`. 
 
 To assess the quality of these intervals across time, we fix a true data generating mean, say, muTrue=8. For simplicity we take n=100 and generate data as follows: 
 
@@ -351,7 +351,7 @@ meanVector <- 1/(1:n)*cumsum(someDataSingle)
 for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(
     nEff=i, parameter=designObj$parameter, 
-    meanObs=meanVector[i], eType=designObj$eType)
+    meanObs=meanVector[i])
   anytimeCi[i, ] <- tempResult
 }
 
@@ -423,8 +423,7 @@ for (sim in 1:mIter) {
   for (i in 1:n) {
     tempResult <- computeConfidenceIntervalZ(
       nEff=i, meanObs=meanVector[i],
-      parameter=designObj$parameter,
-      eType=designObj$eType)
+      parameter=designObj$parameter)
     
     allAnytimeCis[sim, i, ] <- tempResult
     
@@ -511,8 +510,7 @@ for (i in nDomain) {
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(
-    nEff=i, meanObs=8, parameter=designObj$parameter,
-    eType=designObj$eType)
+    nEff=i, meanObs=8, parameter=designObj$parameter)
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
 }
 
@@ -546,8 +544,7 @@ for (i in seq_along(gDomain)) {
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(
-    nEff=1, meanObs=8, parameter=gDomain[i],
-    eType="mom")
+    nEff=1, meanObs=8, parameter=gDomain[i])
   anytimeCiWidth[i] <- tempResult[2]-tempResult[1]
 }
 

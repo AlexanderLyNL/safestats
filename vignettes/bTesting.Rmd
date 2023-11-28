@@ -548,7 +548,7 @@ We would like to highlight two points. Firstly, the type I error control that e-
 Secondly, type I error control holds for any (hyper) parameter gMom that was set by design object. The next document provides some insights in how gMom was set. 
 
 # Concluding remarks
-The following plot summarise the false rejections rates of the three procedures after n1=n2=100 observations/looks: In red the sequential p-value procedure resulting in a type I error of 38.4\%, in brown the subjective Bayes factor procedure resulting in a type I error of 17.7\%, and the e-value procedure resulting in a type I error of 3.6\%: 
+The following plot summarises the false rejections rates of the three procedures after n1=n2=100 observations/looks: In red the sequential p-value procedure resulting in a type I error of 38.4\%, in brown the subjective Bayes factor procedure resulting in a type I error of 17.7\%, and the e-value procedure resulting in a type I error of 3.6\%: 
 
 ```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
