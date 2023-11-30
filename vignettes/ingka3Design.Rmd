@@ -1,9 +1,9 @@
 ---
-title: "II. Design of experiments: Behaviour of e-variables under alternatives"
+title: "III. Design of experiments: Behaviour of e-variables under alternatives"
 author: "Alexander Ly, Rosanne Turner, Udo Boehm, Rianne de Heide, Peter Grunwald"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{II. Design of experiments: Behaviour of e-variables under alternatives}
+  %\VignetteIndexEntry{III. Design of experiments: Behaviour of e-variables under alternatives}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-In the previous markdown document we used simulations to illustrate the behaviour of three sequential testing procedures. We saw that if data are generated under the null that the sequential use of both classical p-values and subjective Bayes factors leads to the incorrect conclusion that the null is false with chance larger than the tolerable alpha. On the other hand, with e-variables we retain type I error control uniformly across time. 
+In the previous markdown document we used simulations to illustrate the behaviour of two sequential testing procedures. We saw that if data are generated under the null that the sequential use of classical p-values leads to the incorrect conclusion that the null is false with a chance larger than the tolerable alpha. On the other hand, with e-variables we retain type I error control uniformly across time. 
 
 A testing problem typically admits a large candidate set of e-variables. The class of all e-variables contains the procedure that always outputs the e-value one. This e-variable has the desired type I error control regardless of the sample size, because it just never rejects the null. This is not a great procedure, as it is unable to detect any effect. To select amongst a family of e-variables, we should not only consider the null, but also the alternative hypothesis. 
 
@@ -73,7 +73,7 @@ histBorderColour <- eColours[1]
 
 # 1. <a name = "designZ">Designing safe z-test experiments</a>
 ## One sample path
-Recall the example described in the installation guide with a minimal clinically relevant mean difference of 10 (IQ score increase) in a population with standard deviation sigmaTrue=12. In other words, a minimal clinically relevant (standardised) effect size of 10/12 = 0.83. 
+Recall the example described in the installation guide with a minimal clinically relevant mean difference of 10 (IQ score increase) in a population with standard deviation sigmaTrue=12. In other words, a minimal clinically relevant standardised effect size of 10/12 = 0.83. 
 
 To sequentially detect such a minimal clinically relevant mean difference with 80\% chance/power, thus, tolerable type II error beta=0.2, we have to __plan__ an experiment with about 36 participants in both the treatment and the control group: 
 
@@ -100,14 +100,13 @@ deltaMin <- 10/12
 
 momCurve <- nonLocalMomentDistribution(deltaDomain, g=deltaMin^2/2)
 
-oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(deltaDomain, momCurve, type="l", lwd=2, 
      xlab="Standardised effect size",
      ylab="Density")
 lines(c(10/12, 10/12), c(0, 1), lty=3)
 lines(-c(10/12, 10/12), c(0, 1), lty=3)
 ```
-
 In the installation guide we noticed that for a particular sample generated with a true mean difference of meanDiffMin, we correctly reject the null, if we compute the e-value after observing the planned (batch) sample sizes.
 
 ```{r, eval=FALSE}
@@ -157,7 +156,7 @@ hist(stoppingTimes,
 ```
 The bump at nPlanBatch includes all the experiments that stopped there, that is, with e-values both above and below 20. The recommended sample size to plan for, here, nPlan=36, is the 80\% quantile of the stopping time distribution. The reported mean sample size is the average of this stopping time distribution. 
 
-The following code removes the experiments that did not stop, thus, pruning the last bar of the previous plot. The histogram of the remaining so-called first-passage times, the times at which the e-value actually crosses the threshold of 1/alpha, are depicted in blue, and the e-value sample paths are plotted underneath this histogram in yellow/gold. 
+The following code removes the experiments that did not stop, thus, pruning the last bar of the previous plot. The histogram of the remaining so-called first-passage times, the times at which the e-value actually crosses the threshold of 1/alpha, are depicted in blue, and the e-value sample paths are plotted underneath this histogram in (Ikea) yellow/gold. 
 
 ```{r, eval=FALSE}
 firstPassageTimes <- 
@@ -220,7 +219,7 @@ for (i in 1:100) {
 ```
 
 # <a name="effectSizeLargerMinimalRelevant">Even earlier stopping: True effect size larger than the minimal clinical relevant mean effect size</a>
-When the true minimal clinically relevant effect size is larger than the minimal clinically relevant one, we can stop data collection even earlier. The following code describes a scenario where the true mean difference is 1.2 times larger than the minimal clinical relevant mean difference. For this we use the function "sampleStoppingTimesSafeZ" with the same parameter "gMom" as defined by the designObj as follows:
+When the true minimal clinically relevant effect size is larger than the minimal clinically relevant one, we can stop data collection even earlier. The following code describes a scenario where the true mean difference is 1.2 times larger than the minimal clinical relevant mean difference. For this we use the function `sampleStoppingTimesSafeZ` with the same parameter "gMom" as defined by the designObj as follows:
 
 ```{r, eval=FALSE}
 samplingResultLarger <- 
@@ -308,7 +307,7 @@ followUpStudy <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.2,
                                           nSim=length(notRejectedIndex),
                                           nMax=nPlan2, seed=5)
 
-# This is just to make the indeces of the original and follow-up align
+# This is just to make the indices of the original and follow-up align
 someMatrix <- matrix(nrow=1e3L, ncol=nPlan2)
 someMatrix[notRejectedIndex, ] <- followUpStudy$samplePaths
 
@@ -338,9 +337,7 @@ lines(c(designObj$nPlan[1], designObj$nPlan[1]),
 
 which(eReject >= 0.8)-designObj$nPlan[1]
 ```
-
 The vertical line shows the end of the first study. 
 
 # Concluding remarks
 We provided some insights on how to design an e-variable experiment, and we showed how inference can be sped up by exploiting the sequential nature of e-variables. 
-

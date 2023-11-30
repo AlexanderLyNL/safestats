@@ -115,24 +115,23 @@ For the test we are going to perform we use the following design object:
 
 ```{r, eval=FALSE}
 library(safestats)
-set.seed(1)
 sigmaTrue <- 12
 designObj <- designSafeZ(meanDiffMin=10,
                          beta=0.2, sigma=sigmaTrue,
-                         testType="twoSample")
+                         testType="twoSample", seed=1)
 designObj
 ```
-This shows that the problem is relatively simple. If we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=37 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "II. Design" R Markdown document. 
+Now look at the output of this procedure (if necessary make the console window bigger). The output shows that the if we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=36 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "Design" R Markdown document. 
 
 One advantage of e-variables is that you can analyse the data as they come in. For simplicity let us assume, for the moment, that we can only analyse the data once, namely, after n1=n2=43 students as described in the note, then the following code can be run:
 
 ```{r, eval=FALSE}
-set.seed(1)
-treatmentGroup <- rnorm(43, mean=122, sd=sigmaTrue)
-controlGroup <- rnorm(43, mean=112, sd=sigmaTrue)
+set.seed(2)
+treatmentGroup <- rnorm(36, mean=122, sd=sigmaTrue)
+controlGroup <- rnorm(36, mean=112, sd=sigmaTrue)
 
 resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)
 resultObj
 ```
-The resultObj shows that we can reject the null, as the e-value is 344.8, which is much larger than 1/alpha = 20, see the next R Markdown document "I. Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 2.08 and 17.67) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document "III. Anytime-valid confidence sequences" for further details.
+The resultObj shows that we can reject the null, as the e-value is 93232, which is much larger than 1/alpha = 20, see the next R Markdown document on "Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 6.04 and 22.87) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document on "Anytime-valid confidence sequences" for further details.
