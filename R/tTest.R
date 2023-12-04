@@ -182,18 +182,30 @@ safeTTestStatNEffNu <- function(
                    "eValueApproxError"=tempResult[["abs.error"]])
     return(result)
   } else if (eType=="bayarri") {
-    stop("Not yet implemented")
 
-    if (alternative=="twoSided") {
-      tempResult <- try(log(1-(1+t^2/(nEff^2-1))^((2-nEff)/2)))
+    g <- parameter
 
-      if (is.na(tempResult))
-        return(1)
+    logResult <- -3/2*log(1+nEff*g) +
+      ((nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g)))) +
+      log(1+(1+nEff*g*(nu+1))/(nu*(1+nEff*g))*t^2)-log(1+t^2/(nu*(1+nEff*g)))
 
-      logResult <- log((nEff-1)/(nEff-2))+1/2*log(1+nEff)-log(t^2)+nEff/2*log(1+t^2/nu)+tempResult
-      result <- exp(logResult)
-      return(result)
-    }
+    return(list(eValue=exp(logResult)))
+
+
+
+
+    # stop("Not yet implemented")
+    #
+    # if (alternative=="twoSided") {
+    #   tempResult <- try(log(1-(1+t^2/(nEff^2-1))^((2-nEff)/2)))
+    #
+    #   if (is.na(tempResult))
+    #     return(1)
+    #
+    #   logResult <- log((nEff-1)/(nEff-2))+1/2*log(1+nEff)-log(t^2)+nEff/2*log(1+t^2/nu)+tempResult
+    #   result <- exp(logResult)
+    #   return(result)
+    # }
   } else if (eType=="mom") {
     g <- parameter
 
