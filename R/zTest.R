@@ -262,9 +262,15 @@ safeZTest <- function(x, ...) {
 #'
 safeZTest.default <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
-    ciValue=NULL, maxRoot=10, ...) {
+    ciValue=NULL, maxRoot=10, sequential=NULL, ...) {
 
   result <- constructSafeTestObj("Z-Test")
+
+  # Vars for sequential analysis
+  eValueVec <- NULL
+  confSeqMatrix <- NULL
+  n1Vec <- NULL
+  n2Vec <- NULL
 
   ## Def: test type -------
   if (is.null(y)) {
@@ -312,8 +318,23 @@ safeZTest.default <- function(
 
     meanObs <- estimate <- mean(x)
 
+
     names(estimate) <- "mean of x"
     names(n) <- "n1"
+
+    if (is.null(sequential))
+      sequential <- if (n1 <= 200) TRUE else FALSE
+
+    if (sequential) {
+      tempN <- defineTTestN("lowN"=1, "highN"=n1,
+                            "testType"="oneSample")
+
+      nEffVec <- tempN[["nEff"]]
+      n1Vec <- tempN[["n1"]]
+      n2Vec <- tempN[["n2"]]
+
+      meanObsVec <- 1/nEffVec*cumsum(x)
+    }
   } else {
     dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
 
@@ -340,6 +361,19 @@ safeZTest.default <- function(
       nEff <- n1
       meanObs <- estimate <- mean(x-y)
       names(estimate) <- "mean of the differences"
+
+      if (is.null(sequential))
+        sequential <- if (n1 <= 200) TRUE else FALSE
+
+      if (sequential) {
+        tempN <- defineTTestN("lowN"=1, "highN"=n1, testType="paired")
+
+        nEffVec <- tempN[["nEff"]]
+        n1Vec <- tempN[["n1"]]
+        n2Vec <- tempN[["n2"]]
+
+        meanObsVec <- 1/nEffVec*cumsum(x-y)
+      }
     } else {
       ## Two-sample ----
       #
@@ -347,6 +381,42 @@ safeZTest.default <- function(
       estimate <- c(mean(x), mean(y))
       names(estimate) <- c("mean of x", "mean of y")
       meanObs <- estimate[1]-estimate[2]
+
+      if (is.null(sequential))
+        sequential <- if (n1 <= 200) TRUE else FALSE
+
+      if (sequential) {
+        tempN <- defineTTestN(1, n1, n2/n1, testType="twoSample")
+
+        nEffVec <- tempN[["nEff"]]
+
+        # These now serve as an order
+        n1Vec <- tempN[["n1"]]
+        n2Vec <- tempN[["n2"]]
+
+        xMeanObsRaw <- 1/(1:n1)*cumsum(x)
+        yMeanObsRaw <- 1/(1:n2)*cumsum(y)
+
+        if (n2/n1==1) {
+          xMeanObsVec <- xMeanObsRaw
+          yMeanObsVec <- yMeanObsRaw
+        } else {
+          vecLength <- length(n1Vec)
+
+          xMeanObsVec <- yMeanObsVec <-
+            numeric(vecLength)
+
+          for (j in 1:vecLength) {
+            nowN1 <- n1Vec[j]
+            nowN2 <- n2Vec[j]
+
+            xMeanObsVec[j] <- xMeanObsRaw[nowN1]
+            yMeanObsVec[j] <- yMeanObsRaw[nowN2]
+          }
+        }
+
+        meanObsVec <- xMeanObsVec-yMeanObsVec
+      }
     }
 
     n <- c(n1, n2)
@@ -383,6 +453,32 @@ safeZTest.default <- function(
     "sigma"=sigma, "ciValue"=ciValue, "alternative"="twoSided",
     "eType"=designObj[["eType"]], "maxRoot"=maxRoot)
 
+  ## Compute: Sequential ----
+  if (sequential) {
+    zStatVec <- sqrt(nEffVec)*(meanObsVec-h0)/sigma
+
+    mIter <- length(n1Vec)
+
+    eValueVec <- numeric(mIter)
+    confSeqMatrix <- matrix(nrow=mIter, ncol=2)
+
+    for (i in seq_along(n1Vec)) {
+      brie <- safeZTestStat("z"=zStatVec[i],
+                            "parameter"=designObj[["parameter"]],
+                            "n1"=n1Vec[i], "n2"=n2Vec[i], "sigma"=sigma,
+                            "alternative"=alternative, "paired"=paired,
+                            "eType"=designObj[["eType"]])
+      eValueVec[i] <- unname(brie[["eValue"]])
+
+      kaas <- computeConfidenceIntervalZ(
+        "nEff"=nEffVec[i], "meanObs"=meanObsVec[i], "parameter"=designObj[["parameter"]],
+        "sigma"=sigma, "ciValue"=ciValue, "alternative"="twoSided",
+        "eType"=designObj[["eType"]], "maxRoot"=maxRoot)
+
+      confSeqMatrix[i, ] <- kaas
+    }
+  }
+
   ## Fill: Result -----
   result[["testType"]] <- testType
   result[["statistic"]] <- zStat
@@ -391,6 +487,12 @@ safeZTest.default <- function(
   result[["designObj"]] <- designObj
   result[["ciValue"]] <- ciValue
   result[["n"]] <- n
+
+  result[["eValueVec"]] <- eValueVec
+  result[["confSeqMatrix"]] <- confSeqMatrix
+  result[["n1Vec"]] <- n1Vec
+  result[["n2Vec"]] <- n2Vec
+
   # result[["eType"]] <- eType
 
   result[["eValue"]] <- tempResult[["eValue"]]
@@ -547,14 +649,15 @@ computeConfidenceIntervalZ <- function(
   }
 
   eType <- match.arg(eType)
+  alpha <- 1-ciValue
 
   if (eType=="freq") {
     width <- sigma/sqrt(nEff)*
-      stats::qnorm((1-ciValue)/2, lower.tail=FALSE)
+      stats::qnorm(alpha/2, lower.tail=FALSE)
   }
 
   if (eType=="credibleInterval") {
-    normalisedCiLower <- stats::qnorm((1-ciValue)/2, lower.tail=FALSE)
+    normalisedCiLower <- stats::qnorm(alpha/2, lower.tail=FALSE)
 
     if (is.null(a)) {
       warning("Centre of normal prior not given, default to a=0")
@@ -572,22 +675,16 @@ computeConfidenceIntervalZ <- function(
     width <- sdMu*normalisedCiLower
   }
 
-  if (eType=="grow") {
-    phiS <- parameter
+  ## Confidence sequences ----
 
-    if (alternative=="twoSided") {
-      acoshTerm <- acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
+  trivialConfInt <- switch(alternative,
+                           "twoSided"=c(-Inf, Inf),
+                           "greater"=c(0, Inf),
+                           "less"=c(-Inf, 0))
 
-      if (is.infinite(acoshTerm))
-        acoshTerm <- log(2)+nEff*phiS^2/(2*sigma^2)-log(1-ciValue)
+  g <- parameter
 
-      width <- sigma^2/(nEff*phiS)*acoshTerm
-        # acosh(exp(nEff*phiS^2/(2*sigma^2))/(1-ciValue))
-    } else if (alternative %in% c("greater", "less")) {
-      width <- sigma^2/(nEff*abs(phiS))*
-        log(1/(1-ciValue))+abs(phiS)/2
-    }
-  }
+  W <- (1+nEff*g)/(nEff*g)*(log(1+nEff*g)-2*log(alpha))
 
   if (eType=="eGauss") {
     if (!is.null(a) && !is.null(g)) {
@@ -596,28 +693,46 @@ computeConfidenceIntervalZ <- function(
         stop("One-sided confidence sequences for non-zero centred normal priors not implemented.")
 
       width <- sqrt(sigma^2/nEff*
-                      (log(1+nEff*g)-2*log(1-ciValue))+(meanObs-a)^2/(1+nEff*g))
+                      (log(1+nEff*g)-2*log(alpha))+(meanObs-a)^2/(1+nEff*g))
     } else {
       # Note(Alexander): Two-sided normal priors centred at the null
       # One-sided handled numerically
-      g <- parameter
 
       if (alternative=="twoSided") {
-        width <- sigma/sqrt(nEff)*
-          sqrt((1+1/nEff*g)*(log(1+nEff*g)-2*log(1-ciValue)))
+        if (W < 0) return(trivialConfInt)
+
+        width <- sigma/sqrt(nEff)*sqrt(W)
       }
+    }
+  }
+
+  if (eType=="grow") {
+    phiS <- parameter
+
+    if (alternative=="twoSided") {
+      acoshTerm <- acosh(exp(nEff*phiS^2/(2*sigma^2))/alpha)
+
+      if (is.infinite(acoshTerm))
+        acoshTerm <- log(2)+nEff*phiS^2/(2*sigma^2)-log(alpha)
+
+      width <- sigma^2/(nEff*phiS)*acoshTerm
+      # acosh(exp(nEff*phiS^2/(2*sigma^2))/(alpha))
+    } else if (alternative %in% c("greater", "less")) {
+      width <- sigma^2/(nEff*abs(phiS))*
+        log(1/alpha)+abs(phiS)/2
     }
   }
 
   if (eType=="mom" && alternative=="twoSided") {
     g <- parameter
+
     width <- sigma/sqrt(nEff)*
       sqrt((1+1/(nEff*g))*
-             (2*lamW::lambertW0((1+nEff*g)^(3/2)*exp(1/2)/(2*(1-ciValue)))-1))
+             (2*lamW::lambertW0((1+nEff*g)^(3/2)*exp(1/2)/(2*(alpha)))-1))
   }
 
   if (eType %in% c("eCauchy", "imom") ||
-      eType %in% c("eGauss", "mom") && alternative!="twoSided"){
+      (eType %in% c("eGauss", "mom") && alternative!="twoSided")) {
 
     # Note(Alexander): The target function is for the two-sided test,
     # which is why we consider alpha/2
@@ -630,18 +745,42 @@ computeConfidenceIntervalZ <- function(
 
     targetFunction <- function(z) {
       safeZTestStat(z, "n1"=nEff, "parameter"=parameter, "sigma"=sigma,
-                    alternative="twoSided", # this is why we consider 2*(1-ciValue)
+                    alternative="twoSided", # this is why we consider 2*(alpha)
                     "eType"=eType)$eValue-ciLogPenaltyFunc(ciValue)
     }
 
-
+    if (W > 0) {
+      lowerB <- max(sqrt(W)-5,0)
+      upperB <- max(sqrt(W)+5, 5)
+    } else {
+      lowerB <- 0
+      upperB <- maxRoot
+      maxRoot <- 2*maxRoot
+    }
 
     tempResult <- suppressWarnings(
-      try(stats::uniroot(targetFunction, c(0, maxRoot)))
+      tryCatch(stats::uniroot(targetFunction, c(lowerB, upperB)),
+               error=identity)
     )
 
-    if (isTryError(tempResult))
-      stop("Can't compute the width of the interval")
+    iterationN <- 1
+
+    while ( (inherits(tempResult, "simpleError") || is.null(tempResult)) && iterationN <= 15) {
+      iterationN <- iterationN+1
+
+      tempResult <- suppressWarnings(
+        tryCatch(stats::uniroot(targetFunction, c(0, maxRoot)),
+                 error=identity)
+      )
+
+      maxRoot <- maxRoot*2
+    }
+
+    if (inherits(tempResult, "simpleError")) {
+      return(trivialConfInt)
+      # browser()
+      # stop("Can't compute the width of the interval")
+    }
 
     width <- sigma/sqrt(nEff)*tempResult$root
   }
@@ -954,6 +1093,7 @@ designSafeZ <- function(
   result[["testType"]] <- testType
   result[["ratio"]] <- ratio
   result[["eType"]] <- eType
+  result[["designScenario"]] <- designScenario
 
   ## Name esMin ----
   esMin <- result[["esMin"]]
@@ -998,6 +1138,10 @@ designSafeZ <- function(
   result[["h0"]] <- h0
 
   result[["call"]] <- sys.call()
+
+  result <- Filter(Negate(is.null), result)
+  class(result) <- "safeDesign"
+
   return(result)
 }
 
@@ -2010,26 +2154,26 @@ zMarg <- function(n, x, s2, a=0, b=1, sigma=1) {
 subjectiveBfZStat <- function(x1, s21, n1, x2, s22, n2, sigma=1,
                               a1=5, b1=2, a2=-5, b2=2, a0=0, b0=1,
                               log=FALSE) {
-  nTotal <- n1+n2
-  xTotal <- (n1*x1+n2*x2)/nTotal
+  nCombined <- n1+n2
+  xCombined <- (n1*x1+n2*x2)/nCombined
 
   if (n1 <= 1 && n2 <= 1) {
-    s2Total <- stats::var(c(x1, x2))
+    s2Combined <- stats::var(c(x1, x2))
     s21 <- 0
     s22 <- 0
   } else {
-    s2Total <- ((n1-1)*s21+n1*x1^2+(n2-1)*s22+n2*x2^2-(nTotal)*xTotal^2)/(nTotal-1)
+    s2Combined <- ((n1-1)*s21+n1*x1^2+(n2-1)*s22+n2*x2^2-(nCombined)*xCombined^2)/(nCombined-1)
   }
 
   logMarg1 <- zMarg("n"=n1, "x"=x1, "s2"=s21, "a"=a1, "b"=b1, "sigma"=sigma) +
     zMarg("n"=n2, "x"=x2, "s2"=s22, "a"=a2, "b"=b2, "sigma"=sigma)
-  logMarg0 <- zMarg("n"=nTotal, "x"=xTotal, "s2"=s2Total, "a"=a0, "b"=b0, "sigma"=sigma)
+  logMarg0 <- zMarg("n"=nCombined, "x"=xCombined, "s2"=s2Combined, "a"=a0, "b"=b0, "sigma"=sigma)
 
   logBf10 <- logMarg1 - logMarg0
 
-  if (isTRUE(log)) {
+  if (isTRUE(log))
     return(logBf10)
-  } else {
+  else
     return(exp(logBf10))
-  }
+
 }

@@ -10,6 +10,7 @@
 #' @param eValuesOld Matrix of eValues of the previous studies with nSim
 #' number of rows
 #' @param eOverOld Vector of 0s and 1s, where 1 indicates that
+#' @param testName character string either "Z-Test" or "T-Test".
 #' @param trackCrossingOld Vector of same number of columns as eValuesOld
 #' providing the number of studies that got rejected at the indeced time
 #' @param firstPassageTimeOld Vector indicating the first passage time.
@@ -19,25 +20,33 @@
 #'
 #' @return a list with the new e-values amongst other
 #' @export
-selectivelyContinueZTestData <- function(
-    designObj,
-    n1New, muGlobal, sigma, meanDiffTrue=0, nSim=1e3L,
+selectivelyContinueZOrTTestData <- function(
+    designObj, deltaTrue=NULL, testName=c("Z-Test", "T-Test"),
+    n1New, muGlobal, sigma, meanDiffTrue=NULL, nSim=1e3L,
     eValuesOld, eOverOld,
     trackCrossingOld, firstPassageTimeOld,
     eStoppedOld, seed=NULL) {
 
   n1Old <- length(trackCrossingOld)
-
+  testName <- match.arg(testName)
   alpha <- designObj[["alpha"]]
+
+  if (testName=="Z-Test")
+    deltaTrue <- NULL
+
+  if (testName=="T-Test")
+    meanDiffTrue <- NULL
 
   someData <- generateNormalData(
     c(n1New, n1New), muGlobal=muGlobal,
-    nSim=nSim, meanDiffTrue=meanDiffTrue, seed=seed,
+    nSim=nSim, seed=seed,
+    meanDiffTrue=meanDiffTrue, deltaTrue=deltaTrue,
     sigmaTrue=sigma)
 
-  zMatrix <- matrix(nrow=nSim, ncol=n1New)
+  statMatrix <- matrix(nrow=nSim, ncol=n1New)
 
   n1Vector <- 1:n1New
+  nuVector <- n1Vector-1
 
   rejectedIndex <- which(eOverOld==1)
   notRejectedIndex <- which(eOverOld==0)
@@ -46,17 +55,27 @@ selectivelyContinueZTestData <- function(
     dataGroup1 <- someData$dataGroup1[sim, ]
     dataGroup2 <- someData$dataGroup2[sim, ]
 
-    meanDiffVector <-
-      1/n1Vector*cumsum(dataGroup1-dataGroup2)
+    differenceScore <- dataGroup1-dataGroup2
 
-    # The variance of the sum x + (-y) is the sum of the two variances
-    # Thus, 2*sigma^2
-    sdMeanDiff <- sqrt(2)*sigma
+    meanDiffVector <- 1/n1Vector*cumsum(differenceScore)
 
-    zMatrix[sim, ] <-
+    if (testName=="Z-Test") {
+      # The variance of the sum x + (-y) is the sum of the two variances
+      # Thus, 2*sigma^2
+      sdMeanDiff <- sqrt(2)*sigma
+    } else if (testName=="T-Test") {
+      sdMeanDiff <- sqrt(
+        1/nuVector*(cumsum(differenceScore^2)-n1Vector*meanDiffVector^2)
+      )
+    }
+
+    statMatrix[sim, ] <-
       sqrt(n1Vector)*meanDiffVector/sdMeanDiff
   }
 
+  if (testName=="T-Test") {
+    statMatrix[, 1] <- 0
+  }
 
   # Here we store all the e-values across the
   # number of simulations (nSim) and time (n1)
@@ -76,7 +95,7 @@ selectivelyContinueZTestData <- function(
 
   # We only continue the not rejected studies
   for (sim in notRejectedIndex) {
-    zVector <- zMatrix[sim, ]
+    statVector <- statMatrix[sim, ]
 
     for (i in 1:n1New) {
       # Note the multiplication with the previous e-value
@@ -86,11 +105,20 @@ selectivelyContinueZTestData <- function(
       # additional eValue of 2 to cross the threshold of
       # 1/alpha = 20
       #
-      currentEValue <- safeZTestStat(
-        zVector[i], parameter=designObj[["parameter"]],
-        n1=n1Vector[i], n2=n1Vector[i],
-        paired=TRUE,  sigma=sigma, alternative="greater",
-        eType=designObj$eType)$eValue * eStoppedOld[sim]
+
+      if (testName=="Z-Test") {
+        currentEValue <- safeZTestStat(
+          statVector[i], parameter=designObj[["parameter"]],
+          n1=n1Vector[i], n2=n1Vector[i],
+          paired=TRUE,  sigma=sigma, alternative="greater",
+          eType=designObj$eType)$eValue * eStoppedOld[sim]
+      } else if (testName=="T-Test") {
+        currentEValue <- safeTTestStat(
+          statVector[i], parameter=designObj[["parameter"]],
+          n1=n1Vector[i], n2=n1Vector[i],
+          paired=TRUE,  sigma=sigma, alternative="greater",
+          eType=designObj$eType)$eValue * eStoppedOld[sim]
+      }
 
       eValuesNew[sim, i] <- currentEValue
 

@@ -210,7 +210,7 @@ pValueFalseRejects <-numberOfDippingExperimentsAtTimeN/mIter
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n",
-     ylab="Type I error (%)",
+     ylab="False positive rate (%)",
      lwd=2, col=freqColours[1])
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
@@ -382,7 +382,7 @@ subjectiveBfValueFalseRejects <-numberOfCrossingExperimentsAtTimeN20/mIter
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:n1, 100*subjectiveBfValueFalseRejects, type="l",
-     xlab="n", ylab="Type I error (%)", 
+     xlab="n", ylab="False positive rate (%)", 
      lwd=2, col=bayesColours[1], ylim=c(0, 20))
 
 lines(1:n1, 100*subjectiveBfValueFalseRejects30, lwd=2,
@@ -537,7 +537,7 @@ eValueFalseRejects <- numberOfCrossingExperimentsAtTimeN/mIter
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:n1, 100*eValueFalseRejects, type="l", 
-     xlab="n", ylab="Type I error (%)", lwd=2,
+     xlab="n", ylab="False positive rate (%)", lwd=2,
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
@@ -553,7 +553,7 @@ The following plot summarises the false rejections rates of the three procedures
 ```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n", 
-     ylab="Type I error (%)", 
+     ylab="False positive rate (%)", 
      bty="n", lwd=2, ylim=c(0, 40), col=freqColours[1])
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 lines(1:n1, 100*subjectiveBfValueFalseRejects,

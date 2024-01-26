@@ -16,6 +16,7 @@ safeZTest(x, ...)
   designObj = NULL,
   ciValue = NULL,
   maxRoot = 10,
+  sequential = TRUE,
   ...
 )
 

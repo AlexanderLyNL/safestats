@@ -13,7 +13,7 @@ sampleStoppingTimesSafeT(
   parameter = NULL,
   lowN = 3L,
   nMax = 100000000L,
-  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   wantEValuesAtNMax = FALSE,
   wantSamplePaths = TRUE,
   wantSimData = FALSE,

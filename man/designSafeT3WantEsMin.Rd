@@ -11,7 +11,7 @@ designSafeT3WantEsMin(
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   lowEsTrue = 0.01,
   highEsTrue = 3,
   ...

@@ -10,10 +10,10 @@ computeConfidenceIntervalT(
   nEff,
   nu,
   parameter,
-  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   alternative = c("twoSided", "greater", "less"),
   ciValue = 0.95,
-  maxRoot = 10
+  maxRoot = 11
 )
 }
 \arguments{

@@ -14,7 +14,7 @@ computeNPlanSafeT(
   ratio = 1,
   parameter = NULL,
   nMax = 1e+08,
-  eType = c("mom", "imom", "eCauchy", "eGauss", "grow", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   wantSamplePaths = TRUE,
   pb = TRUE,
   seed = NULL,

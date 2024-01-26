@@ -1,11 +1,9 @@
 ---
-title: 'Safe Tests and Confidence Intervals for Tests of Two Proportions: Practical
-  Scenarios'
+title: 'Safe Tests and Confidence Intervals for Tests of Two Proportions: Practical Scenarios'
 author: "Rosanne Turner, Alexander Ly and Peter Grünwald"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Safe Tests and Confidence Intervals for Tests of Two Proportions: Practical
-  Scenarios}
+  %\VignetteIndexEntry{Safe Tests and Confidence Intervals for Tests of Two Proportions: Practical Scenarios}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
