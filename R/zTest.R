@@ -180,6 +180,8 @@ safeZTestStat <- function(
 #' @param na.action a function which indicates what should
 #' happen when the data contain \code{NA}s. Defaults to
 #' getOption("na.action").
+#' @param sequential a logical indicating whether a sequential
+#' analysis should be performed.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
@@ -778,7 +780,6 @@ computeConfidenceIntervalZ <- function(
 
     if (inherits(tempResult, "simpleError")) {
       return(trivialConfInt)
-      # browser()
       # stop("Can't compute the width of the interval")
     }
 
@@ -941,6 +942,10 @@ designFreqZ <- function(
 #' @param highEsTrue numeric, upper bound for the candidate set of the
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
+#' @param futility logical, if \code{TRUE} then impose rule to stop
+#' for futility if e < beta. Default \code{FALSE}.
+#' @param growFutility logical, if \code{TRUE} then use the grow e-value
+#' to stop for futility (e < beta). Default \code{FALSE}.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a safeDesign object that includes:
@@ -980,7 +985,8 @@ designSafeZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    futility=FALSE, growFutility=FALSE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
 
@@ -1033,7 +1039,12 @@ designSafeZ <- function(
       "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
       "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
-      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, ...)
+      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
+      "futility"=futility, "growFutility"=growFutility, ...)
+
+    if (isTRUE(futility))
+      designScenario <- ifelse(growFutility, "1aCompeting", "1aWald")
+
   } else if (!is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
 
@@ -1164,7 +1175,8 @@ designSafeZ1aWantNPlan <- function(
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    futility=FALSE, growFutility=FALSE, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1175,7 +1187,8 @@ designSafeZ1aWantNPlan <- function(
     "alternative"=alternative, "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
     "wantSamplePaths"=wantSamplePaths,
-    "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot)
+    "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
+    "futility"=futility, "growFutility"=growFutility)
 
   result <- designSafe1aHelper("samplingResult"=samplingResult,
                                "esMin"=meanDiffMin, "beta"=beta,
@@ -1202,7 +1215,7 @@ designSafeZ2WantBeta <- function(
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1286,7 +1299,7 @@ designSafeZ3WantEsMin <- function(
 #' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
 #' difference, alpha and beta.
 #'
-#' @inheritParams  designSafeZ
+#' @inheritParams designSafeZ
 #' @inheritParams sampleStoppingTimesSafeZ
 #' @param highN integer that defines the largest n of our search space for n. This might be the
 #' largest n that we are able to fund.
@@ -1649,11 +1662,15 @@ sampleStoppingTimesSafeZ <- function(
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
     sigma=1, kappa=sigma,
-    ratio=1, parameter=NULL, nMax=1e8L,
+    ratio=1, parameter=NULL, nMax=1e3L,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=FALSE,
-    pb=TRUE, seed=NULL, nSim=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
+    growFutility=FALSE, beta=NULL, ...) {
+
+  if (isTRUE(futility))
+    stopifnot(!is.null(beta), beta > 0, beta <= 1)
 
   stopifnot(alpha > 0, alpha <= 1,
             is.finite(nMax),
@@ -1687,6 +1704,23 @@ sampleStoppingTimesSafeZ <- function(
                         "imom"=(meanDiffTrue/sigma)^2,
                         "eCauchy"=abs(meanDiffTrue/sigma),
                         "grow"=meanDiffTrue)
+
+    # Only used when futility=TRUE && growFutility=TRUE
+    if (isTRUE(growFutility))
+      growParameter <- meanDiffTrue
+  } else {
+    # Only used when futility=TRUE && growFutility=TRUE
+    if (isTRUE(growFutility)) {
+      growParameter <- switch(eType,
+                              "mom"=sigma*sqrt(2*abs(parameter)),
+                              "eGauss"=sigma*sqrt(abs(parameter)),
+                              "imom"=sigma*sqrt(abs(parameter)),
+                              "eCauchy"=sigma*parameter,
+                              "grow"=parameter)
+
+      if (alternative=="less")
+        growParameter <- -growParameter
+    }
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
@@ -1753,12 +1787,46 @@ sampleStoppingTimesSafeZ <- function(
       if (evidenceNow > 1/alpha) {
         result[["stoppingTimes"]][sim] <- n1Vector[j]
         result[["eValuesStopped"]][sim] <- evidenceNow
+        result[["stoppedVector"]][sim] <- 1
 
         if (wantSamplePaths) {
           result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
         }
 
         break()
+      }
+
+      if (futility && !isTRUE(growFutility) && evidenceNow < beta) {
+        result[["stoppingTimes"]][sim] <- n1Vector[j]
+        result[["eValuesStopped"]][sim] <- evidenceNow
+        result[["stoppedVector"]][sim] <- -1
+
+        if (wantSamplePaths) {
+          result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
+        }
+
+        break()
+      }
+
+      if (futility && growFutility) {
+        growRes <- safeZTestStat("z"=zVector[j], "parameter"=growParameter,
+                                 "n1"=n1Vector[j], "n2"=n2Vector[j],
+                                 "alternative"=alternative, "sigma"=sigma,
+                                 "eType"="grow")
+
+        growEvidence <- growRes[["eValue"]]
+
+        if (growEvidence < beta) {
+          result[["stoppingTimes"]][sim] <- n1Vector[j]
+          result[["eValuesStopped"]][sim] <- growEvidence
+          result[["stoppedVector"]][sim] <- -2
+
+          if (wantSamplePaths) {
+            result[["samplePaths"]][sim, j:nMax[1]] <- growEvidence
+          }
+
+          break()
+        }
       }
 
       # Note(Alexander): If passed maximum nPlan[1] stop.
@@ -1809,7 +1877,7 @@ computeBetaSafeZ <- function(
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1851,7 +1919,9 @@ computeBetaSafeZ <- function(
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
     "eType"=eType,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
-    "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
+    "pb"=pb, "seed"=seed, "nSim"=nSim,
+    "futility"=FALSE, "growFutility"=FALSE,
+    ...)
 
   result <- computeBetaBootstrapper(samplingResult=samplingResult,
                                     parameter=parameter, nPlan=nPlan,
@@ -1882,7 +1952,9 @@ computeNPlanSafeZ <- function(
     ratio=1, parameter=NULL, nMax=1e8,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    futility=FALSE, growFutility=FALSE,
+    ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1910,13 +1982,14 @@ computeNPlanSafeZ <- function(
   parameter <- tempObj[["parameter"]]
 
   samplingResult <- sampleStoppingTimesSafeZ(
-    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
+    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha, "beta"=beta,
     "alternative"=alternative, "testType"=testType,
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
     "eType"=eType,
     "wantSamplePaths"=wantSamplePaths,
-    "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
+    "pb"=pb, "seed"=seed, "nSim"=nSim,
+    "futility"=futility, "growFutility"=growFutility, ...)
 
   result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
                                      "parameter"=parameter, "beta"=beta,
@@ -2092,7 +2165,8 @@ pValueZTest <- function(x, y=NULL, paired=FALSE, ciValue=NULL,
 
   result[["confInt"]] <- computeConfidenceIntervalZ("nEff"=nEff, "meanObs"=meanObs,
                                                     "sigma"=sigma, "ciValue"=ciValue,
-                                                    "alternative"=alternative, "eType"="freq")
+                                                    "alternative"=alternative, "eType"="freq",
+                                                    "parameter"=NULL)
   result[["pValue"]] <- pValue
 
   names(result[["statistic"]]) <- "z"

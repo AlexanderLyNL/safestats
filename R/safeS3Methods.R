@@ -427,11 +427,21 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' @param maxNBins integer, maximum number of bins of the histogram
 #' @param wantStepLines logical, if TRUE, then plot the sample paths
 #' as step functions (realistic).
-#' @param ...
+#' @param wantQuantiles a vector of numerics between zero and one
+#' representing the quantile levels
+#' @param border the color of the border around the bars.
+#' The default is to use blue
+#' @param breaks Break points of the histogram see \code{\link[graphics]{hist}()}
+#' @param lwd The line width, a positive number, defaulting to 2.
+#' @param pch An integer specifying a symbol.
+#' @param histInnerColour A colour to be used to fill the bars.
+#' @param col colour of the lines
+#' @param colQuant colour of the quantiles
+#' @param cex size of the labels and the quantile text
+#' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Nothing it only plots
 #' @export
-#'
 #'
 plot.safeDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             xlim=NULL, ylim=NULL, maxNBins=35,
@@ -663,15 +673,31 @@ plot.safeDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' @inheritParams plot.safeDesign
 #' @param fillPlot logical, if TRUE then plot the confidence
 #' sequence with a background colour
-#' @param switchNFill integer, if is.null(fillPlot), then
+#' @param switchNFill integer, if \code{is.null(fillPlot)}, then
 #' fill if the number of samples is smaller than switchNFill
 #' @param logScale logical, if TRUE then plot on the logscale
-#' @param switchNLog integer, if is.null(logScale), then
+#' @param switchNLog integer, if \code{is.null(logScale)}, then
 #' plot on the log scale if the number of samples is larger
 #' than switchNLog
-#' @param wantConfSeqPlot logical, if TRUE then plot the
+#' @param wantConfSeqPlot logical, if \code{TRUE} then plot the
 #' confidence sequence instead of the e-value progression
-#'
+#' @param add logical, default \code{FALSE} so a new plot is made.
+#' If \code{TRUE} and \code{wantConfSeqPlot==FALSE} then adds the e-value
+#' progression line to an existing plot. If TRUE and
+#' \code{wantConfSeqPlot==TRUE} then adds another anytime-valid confidence
+#' sequence.
+#' @param lineColour The colour to be used for the e-value progression.
+#' @param h0Colour Colour to indicate the null hypothesis.
+#' @param col The colour for filling the anytime-valid confidence interval.
+#' @param border The colour to draw the border.
+#' @param density the density of shading lines, in lines per inch.
+#' The default value of \code{NULL} means that no shading lines are drawn.
+#' A zero value of density means no shading nor filling whereas
+#' negative values and \code{NA} suppress shading (and so allow colour filling).
+#' @param angle the slope of shading lines, given as an angle in degrees
+#' (anti-clockwise).
+#' @param fillOddEven logical controlling the polygon shading mode: see
+#' \code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.
 #' @return Returns nothing just plots
 #' @export
 #'
@@ -679,9 +705,11 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           xlim=NULL, ylim=NULL, lwd=3, cex=1.3,
                           fillPlot=NULL, switchNFill=1e4,
                           logScale=NULL, switchNLog=30,
-                          lineColour="lemonchiffon4",
+                          h0Colour="gold", lineColour="#1F78B4E6",
                           col="#A6CEE380", border="#1F78B4E6",
-                          wantConfSeqPlot=FALSE, ...) {
+                          wantConfSeqPlot=FALSE, add=FALSE,
+                          density=NULL, angle=45,
+                          fillOddEven=FALSE, ...) {
   eValueVec <- x[["eValueVec"]]
   n1Vec <- x[["n1Vec"]]
 
@@ -720,24 +748,43 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     else if (minBound <= 0)
       lowerLine[is.infinite(lowerLine)] <- 2*minBound
 
-    oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-
     maxX <- max(n1Vec)
 
-    if (is.null(logScale))
-      logScale <- if (maxX > switchNLog) TRUE else FALSE
+    if (is.null(fillPlot))
+      fillPlot <- if (maxX <= switchNFill) TRUE else FALSE
 
-    logPlot <- if (isTRUE(logScale)) "x" else ""
+    if (isFALSE(add)) {
+      oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-    if (is.null(xlim))
-      xlim <- c(0.9, maxX)
+      if (is.null(logScale))
+        logScale <- if (maxX > switchNLog) TRUE else FALSE
 
-    if (is.null(ylim))
-      ylim <- c(minBound, maxBound)
+      logPlot <- if (isTRUE(logScale)) "x" else ""
 
-    plot(NULL, xlim=xlim, ylim=ylim,
-         type="l", xlab = "", ylab = "", cex.lab = cex,
-         cex.axis = cex, xaxt="n", yaxt="n", bty="n", log=logPlot)
+      if (is.null(xlim))
+        xlim <- c(0.9, maxX)
+
+      if (is.null(ylim))
+        ylim <- c(minBound, maxBound)
+
+      plot(NULL, xlim=xlim, ylim=ylim,
+           type="l", xlab = "", ylab = "", cex.lab = cex,
+           cex.axis = cex, xaxt="n", yaxt="n", bty="n", log=logPlot)
+
+      lines(c(1, maxX), c(h0, h0), lwd=lwd, lty=2, col=h0Colour)
+
+      axis(1)
+      axis(2)
+
+      if (is.null(ylab))
+        ylab <- switch(x[["testName"]],
+                       "Z-Test"="mu",
+                       "T-Test"="mu",
+                       "logrank"="log(hazard ratio)")
+
+      mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
+      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+    }
 
     if (is.null(fillPlot))
       fillPlot <- if (maxX <= switchNFill) TRUE else FALSE
@@ -746,25 +793,12 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       polygon(c(n1Vec, rev(n1Vec)),
               c(upperLine, rev(lowerLine)),
               col=col, border=border, lwd=lwd,
-              density = NULL)
+              density = density, angle=angle,
+              fillOddEven=fillOddEven)
     } else {
       lines(n1Vec, upperLine, col=border, lwd=lwd)
       lines(n1Vec, lowerLine, col=border, lwd=lwd)
     }
-
-    lines(c(1, maxX), c(h0, h0), lwd=lwd, lty=2, col=lineColour)
-
-    axis(1)
-    axis(2)
-
-    if (is.null(ylab))
-      ylab <- switch(x[["testName"]],
-                     "Z-Test"="mu",
-                     "T-Test"="mu",
-                     "logrank"="log(hazard ratio)")
-
-    mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
-    mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
   }
 
   # e-value plot
@@ -785,49 +819,56 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       maxEValue <- max(eValueVec)
     }
 
-    rangeEValue <- maxEValue-minEValue
+    if (!isTRUE(add)) {
 
-    if (is.null(logScale)) {
-      logScale <- FALSE
+      rangeEValue <- maxEValue-minEValue
 
-      logScale <- if (rangeEValue/(1/alpha-1) > 5) TRUE else FALSE
+      if (is.null(logScale)) {
+        logScale <- FALSE
 
-      if (abs(log(minEValue)) > abs(log(maxEValue)))
-        logScale <- TRUE
+        logScale <- if (rangeEValue/(1/alpha-1) > 5) TRUE else FALSE
+
+        if (abs(log(minEValue)) > abs(log(maxEValue)))
+          logScale <- TRUE
+      }
+
+      logPlot <- if (isTRUE(logScale)) "y" else ""
+
+      maxY <- ceiling(max(maxEValue, 1/alpha))
+      minY <- if (isTRUE(logScale)) minEValue else 0
+
+      lastIndex <- length(n1Vec)
+      maxX <- n1Vec[lastIndex]
+
+      if (is.null(xlim))
+        xlim <- c(min(n1Vec), maxX)
+
+      if (is.null(ylim))
+        ylim <- c(minY, maxY)
+
+      plot(NULL, xlim=xlim, ylim=ylim,
+           type="l", xlab = "", ylab = "", cex.lab = cex,
+           cex.axis = cex, xaxt="n", yaxt="n", bty="n", log=logPlot)
+
+      threshLine <- c(1/alpha, 1/alpha)
+      unitLine <- c(1, 1)
+
+      lines(c(1, maxX), threshLine, lwd=lwd, lty=2, col="grey40")
+
+      if (maxY/threshLine[1] < 10)
+        lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
+
+      axis(side = 1)
+      axis(side = 2)
+
+      if (is.null(ylab))
+        ylab <- "e-value"
+
+      mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
+      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
     }
 
-    logPlot <- if (isTRUE(logScale)) "y" else ""
-
-    maxY <- ceiling(max(maxEValue, 1/alpha))
-    minY <- if (isTRUE(logScale)) minEValue else 0
-
-    if (is.null(ylim))
-      ylim <- c(minY, maxY)
-
-    lastIndex <- length(n1Vec)
-    maxX <- n1Vec[lastIndex]
-
-    plot(n1Vec, eValueVec, type="l", lwd=lwd, xlab="", ylim=ylim,
-         ylab="", col=border, xaxt="n", yaxt="n", bty="n", log=logPlot)
-
-    threshLine <- c(1/alpha, 1/alpha)
-    unitLine <- c(1, 1)
-
-    lines(c(1, maxX), threshLine, lwd=lwd, lty=2, col="grey40")
-
-    if (maxY/threshLine[1] < 10)
-      lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
-
-    axis(side = 1)
-    axis(side = 2)
-
-
-    if (is.null(ylab))
-      ylab <- "e-value"
-
-    mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
-    mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
-
+    lines(n1Vec, eValueVec, lwd=lwd, col=lineColour)
   }
 }
 

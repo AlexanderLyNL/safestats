@@ -16,7 +16,7 @@ safeZTest(x, ...)
   designObj = NULL,
   ciValue = NULL,
   maxRoot = 10,
-  sequential = TRUE,
+  sequential = NULL,
   ...
 )
 
@@ -39,6 +39,9 @@ safe.z.test(x, y = NULL, paired = FALSE, designObj = NULL, ...)
 
 \item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
 whenever eType="eCauchy"}
+
+\item{sequential}{a logical indicating whether a sequential
+analysis should be performed.}
 
 \item{formula}{a formula of the form lhs ~ rhs where lhs
 is a numeric variable giving the data values and rhs

@@ -17,6 +17,7 @@ safeTTest(x, ...)
   varEqual = TRUE,
   ciValue = NULL,
   maxRoot = 10,
+  sequential = NULL,
   ...
 )
 
@@ -52,6 +53,9 @@ and ciValue = 1 - alpha}
 
 \item{maxRoot}{Used to bound the candidate set of width of the confidence interval.}
 
+\item{sequential}{a logical indicating whether a sequential
+analysis should be performed.}
+
 \item{formula}{a formula of the form lhs ~ rhs where lhs
 is a numeric variable giving the data values and rhs
 either 1 for a one-sample or paired test or a factor
@@ -68,7 +72,7 @@ observations to be used.}
 
 \item{na.action}{a function which indicates what should
 happen when the data contain \code{NA}s. Defaults to
-getOption("na.action").}
+getOption("na.action")..}
 }
 \value{
 Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the

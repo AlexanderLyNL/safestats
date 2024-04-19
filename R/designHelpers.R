@@ -170,6 +170,8 @@ computeBootObj <- function(
               "logImpliedTarget", "expectedStopTime")) {
   objType <- match.arg(objType)
 
+  browser()
+
   if (objType=="beta") {
     if (is.null(nPlan) || nPlan <= 0)
       stop("Please provide an nPlan > 0")
@@ -256,6 +258,10 @@ computeNPlanBootstrapper <- function(
     samplingResult, parameter,
     beta, nPlanBatch, nBoot) {
 
+
+  browser()
+  # TODO(Alexander): Here figure out which stopping times to use when futility=TRUE
+
   times <- samplingResult[["stoppingTimes"]]
 
   bootObjN1Plan <- computeBootObj(
@@ -340,7 +346,7 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
                                             wantEValuesAtNMax=FALSE,
                                             wantSamplePaths=TRUE) {
 
-  stoppingTimes <- breakVector <- integer(nSim)
+  stoppingTimes <- breakVector <- stoppedVector <- integer(nSim)
   eValuesStopped <- numeric(nSim)
 
   eValuesAtNMax <- if (wantEValuesAtNMax) numeric(nSim) else NULL
@@ -350,6 +356,6 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
                  "stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
                  "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
                  "samplePaths"=samplePaths, "n1Vector"=NULL, "ratio"=NULL,
-                 "simData"=NULL)
+                 "simData"=NULL, "stoppedVector"=stoppedVector)
   return(result)
 }

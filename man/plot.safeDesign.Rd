@@ -7,10 +7,22 @@
 \method{plot}{safeDesign}(
   x,
   main = NULL,
-  xLab = NULL,
-  maxNBins = 100,
+  xlab = NULL,
+  ylab = NULL,
+  xlim = NULL,
+  ylim = NULL,
+  maxNBins = 35,
   numSamplePaths = 100,
   wantStepLines = FALSE,
+  wantQuantiles = NULL,
+  border = "#1F78B4E6",
+  breaks = NULL,
+  lwd = 2,
+  pch = 15,
+  histInnerColour = "#A6CEE380",
+  col = "#DAA52066",
+  colQuant = "#AA0000",
+  cex = 1.3,
   ...
 )
 }
@@ -19,6 +31,16 @@
 
 \item{main}{character string for the title of plot}
 
+\item{xlab}{character string for the x-axis}
+
+\item{ylab}{character string for the y-axis}
+
+\item{xlim}{vector of length 2 specifying the
+range of the x-axis}
+
+\item{ylim}{vector of length 2 specifying the
+range of the y-axis}
+
 \item{maxNBins}{integer, maximum number of bins of the histogram}
 
 \item{numSamplePaths}{integer, number of sample paths to plot}
@@ -26,9 +48,27 @@
 \item{wantStepLines}{logical, if TRUE, then plot the sample paths
 as step functions (realistic).}
 
-\item{...}{}
+\item{wantQuantiles}{a vector of numerics between zero and one
+representing the quantile levels}
 
-\item{xlab}{character string for the x-axis}
+\item{border}{the color of the border around the bars.
+The default is to use blue}
+
+\item{breaks}{Break points of the histogram see \code{\link[graphics]{hist}()}}
+
+\item{lwd}{The line width, a positive number, defaulting to 2.}
+
+\item{pch}{An integer specifying a symbol.}
+
+\item{histInnerColour}{A colour to be used to fill the bars.}
+
+\item{col}{colour of the lines}
+
+\item{colQuant}{colour of the quantiles}
+
+\item{cex}{size of the labels and the quantile text}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 Nothing it only plots

@@ -465,7 +465,7 @@ designSafeLogrank <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
   result <- list()
@@ -695,7 +695,7 @@ designSafeLogrank2WantBeta <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1447,7 +1447,7 @@ computeLogrankBetaFrom <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1510,7 +1510,7 @@ computeLogrankBetaFrom <- function(
 #' computeLogrankNEvents(0.7, 0.2, nSim=10)
 computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
                                   alternative = c("twoSided", "greater","less"),
-                                  nSim=1e3L, nBoot=1e3L, groupSizePerTimeFunction = returnOne,
+                                  nSim=1e3L, nBoot=nSim, groupSizePerTimeFunction = returnOne,
                                   nMax=1e3L, parameter=NULL, digits = getOption("digits"), pb=TRUE) {
 
   # TODO(Alexander): Remove in v0.9.0

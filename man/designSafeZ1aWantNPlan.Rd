@@ -19,7 +19,7 @@ designSafeZ1aWantNPlan(
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
-  nBoot = 1000L,
+  nBoot = nSim,
   ...
 )
 }

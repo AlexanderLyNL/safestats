@@ -438,7 +438,9 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' observations to be used.
 #' @param na.action a function which indicates what should
 #' happen when the data contain \code{NA}s. Defaults to
-#' getOption("na.action").
+#' getOption("na.action")..
+#' @param sequential a logical indicating whether a sequential
+#' analysis should be performed.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
@@ -1159,7 +1161,7 @@ designSafeT <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   stopifnot(alpha > 0, alpha < 1)
 
@@ -1341,7 +1343,7 @@ designSafeT1aWantNPlan <- function(
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1379,7 +1381,7 @@ designSafeT2WantBeta <- function(
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1890,7 +1892,7 @@ computeBetaSafeT <- function(
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1961,7 +1963,7 @@ computeNPlanSafeT <- function(
     ratio=1, parameter=NULL, nMax=1e8,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -2120,7 +2122,7 @@ generateNormalData <- function(nPlan, nSim=1000L,
 #' @param g1 numeric > 0, conditional prior variance of the population mean
 #' mu1 of group 1 is given by \code{g1*sigma^2}
 #' @param a2 numeric, prior mean of the population mean mu2 of group 2
-#' @param g1 numeric > 0, conditional prior variance of the population mean
+#' @param g2 numeric > 0, conditional prior variance of the population mean
 #' mu2 of group 2 is given by \code{g2*sigma^2}
 #' @param a0 numeric, prior mean of the overall population mean mu0 of both groups
 #' @param g0 numeric > 0, conditional prior variance of the population mean
@@ -2139,7 +2141,7 @@ generateNormalData <- function(nPlan, nSim=1000L,
 #'
 conjugateBfTStat <- function(
     x1, sdObs1, n1, x2, sdObs2, n2,
-    a1=11, g1=1.57, a2=12, g2=1.29, a0=11, g0=0.55,
+    a1=-6.4, g1=0.09, a2=-7.6, g2=0.27, a0=-7, g0=18.4,
     aGamma=2, bGamma=1/2, log=FALSE) {
 
   nCombined <- n1+n2
@@ -2186,7 +2188,7 @@ conjugateBfTStat <- function(
 #' computeConjugateCredibleIntervalTwoSampleT(1, 1, 3, 1, 1, 3)
 computeConjugateCredibleIntervalTwoSampleT <- function(
     x1, sdObs1, n1, x2, sdObs2, n2,
-    a1=11, g1=1.57, a2=12, g2=1.29,
+    a1=-6.4, g1=0.09, a2=-7.6, g2=0.27,
     aGamma=2, bGamma=1/2, ciValue=0.95) {
 
   # posterior mean conditional on sigma

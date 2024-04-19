@@ -7,11 +7,20 @@
 \method{plot}{safeTest}(
   x,
   main = NULL,
-  xLab = NULL,
-  switchN = 100,
-  numSamplePaths = 100,
-  wantStepLines = FALSE,
-  confSeq = FALSE,
+  xlab = NULL,
+  ylab = NULL,
+  xlim = NULL,
+  ylim = NULL,
+  lwd = 3,
+  cex = 1.3,
+  fillPlot = NULL,
+  switchNFill = 10000,
+  logScale = NULL,
+  switchNLog = 30,
+  lineColour = "lemonchiffon4",
+  col = "#A6CEE380",
+  border = "#1F78B4E6",
+  wantConfSeqPlot = FALSE,
   ...
 )
 }
@@ -20,14 +29,42 @@
 
 \item{main}{character string for the title of plot}
 
-\item{switchN}{}
+\item{xlab}{character string for the x-axis}
 
-\item{numSamplePaths}{integer, number of sample paths to plot}
+\item{ylab}{character string for the y-axis}
 
-\item{wantStepLines}{logical, if TRUE, then plot the sample paths
-as step functions (realistic).}
+\item{xlim}{vector of length 2 specifying the
+range of the x-axis}
 
-\item{...}{}
+\item{ylim}{vector of length 2 specifying the
+range of the y-axis}
+
+\item{lwd}{The line width, a positive number, defaulting to 2.}
+
+\item{cex}{size of the labels and the quantile text}
+
+\item{fillPlot}{logical, if TRUE then plot the confidence
+sequence with a background colour}
+
+\item{switchNFill}{integer, if is.null(fillPlot), then
+fill if the number of samples is smaller than switchNFill}
+
+\item{logScale}{logical, if TRUE then plot on the logscale}
+
+\item{switchNLog}{integer, if is.null(logScale), then
+plot on the log scale if the number of samples is larger
+than switchNLog}
+
+\item{lineColour}{The color to be used for the e-value.}
+
+\item{col}{The color for filling the anytime-valid confidence interval.}
+
+\item{border}{The color to draw the border.}
+
+\item{wantConfSeqPlot}{logical, if TRUE then plot the
+confidence sequence instead of the e-value progression}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 Returns nothing just plots
