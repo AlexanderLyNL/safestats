@@ -1058,12 +1058,6 @@ designSafeZ <- function(
     }
 
     tempResult <- list("parameter"=parameter, "esMin"=meanDiffMin)
-  } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
-    designScenario <- "1c"
-    stop("Todo with Judith's W function to set the parameter value")
-
-    tempResult <- list("note"="TODO")
-
   } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
     designScenario <- "2"
 
@@ -1083,15 +1077,25 @@ designSafeZ <- function(
       "testType"=testType,
       "parameter"=parameter, "eType"=eType,
       "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue, ...)
+  } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
+    #scenario 3b: only nPlan known, find the parameter at which the confidence interval
+    # is the most narrow at nPlan
+
+    designScenario <- "3b"
+
+    tempResult <- designSafeZ3bWantParameter(
+      "nPlan"=nPlan, "alpha"=alpha,
+      "alternative"=alternative, "testType"=testType,
+      "parameter"=parameter, "eType"=eType)
   }
 
   if (is.null(designScenario)) {
     stop("Can't design: Please provide this function with either: \n",
          "(1.a) non-null meanDiffMin, non-null beta and NULL nPlan, or \n",
          "(1.b) non-null meanDiffMin, NULL beta, and NULL nPlan, or \n",
-         "(1.c) NULL meanDiffMin, NULL beta, non-null nPlan, or \n",
          "(2) non-null meanDiffMin, NULL beta and non-null nPlan, or \n",
-         "(3) NULL meanDiffMin, non-null beta, and non-null nPlan.")
+         "(3) NULL meanDiffMin, non-null beta, and non-null nPlan, or \n",
+         "(3.b) NULL meanDiffMin, NULL beta, non-null nPlan, or \n")
   }
 
   ## Fill and name ----
@@ -1121,7 +1125,7 @@ designSafeZ <- function(
   nPlan <- result[["nPlan"]]
 
   if (!is.null(nPlan)) {
-    if (designScenario %in% 2:3) {
+    if (designScenario %in% c(2:3, "3b")) {
       n2Plan <- nPlan[2]
 
       names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
@@ -1290,6 +1294,101 @@ designSafeZ3WantEsMin <- function(
     result[["note"]] <- "No meanDiffMin found for the provided beta and nPlan"
   else
     result[["note"]] <- "The reported meanDiffMin is based on the batch analysis."
+
+  return(result)
+}
+
+#' Helper function to designing a T-test (output deltaMin based on the shortest interval at nPlan)
+#'
+#' Finds the parameter and deltaMin when provided with only alpha, nPlan
+#'
+#' @inheritParams designSafeZ
+#'
+#' @return A list with the parameter and the parameter amongst other items
+#' @export
+#'
+#' @examples
+#' designSafeT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+designSafeZ3bWantParameter <- function(
+    nPlan,
+    alpha=0.05, alternative=c("twoSided", "greater", "less"),
+    sigma=1, kappa=sigma,
+    testType=c("oneSample", "paired", "twoSample"),
+    parameter=NULL,
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"), ...) {
+  # TODO(Alexander): Two-sample and imom don't play well
+
+  defaultErrorText <-
+    "Can't compute a design based on alpha and the provided planned sample size(s) alone."
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+  testType <- match.arg(testType)
+
+  ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
+  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+
+  n1 <- nPlan[1]
+  n2 <- nPlan[2]
+
+  paired <- if (testType=="paired") TRUE else FALSE
+
+  nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
+
+  if (nEff <= 0)
+    stop(defaultErrorText)
+
+  result <- list("parameter"=NULL, "esMin"=NULL,
+                 "nPlan"=nPlan, "ratio"=ratio,
+                 "note"=NULL)
+
+  gCandidate <- (-1-lamW::lambertWm1(-alpha^2/exp(1)))/nEff
+
+  meanDiffMinCandidate <- sqrt(gCandidate)*sigma
+
+  if (eType=="eGauss") {
+    parameter <- gCandidate
+    meanDiffMin <- meanDiffMinCandidate
+  } else {
+
+    upperMeanDiffMin <- if (eType %in% c("mom", "grow")) 2*meanDiffMinCandidate else max(2*meanDiffMinCandidate, 0.02)
+
+    meanDiffDomain <- seq(meanDiffMinCandidate/4, upperMeanDiffMin, length.out=1e3)
+    ciWidths <- rep(Inf, length(meanDiffDomain))
+
+    parameterDomain <- if (eType=="mom") (meanDiffDomain/sigma)^2/2 else meanDiffDomain/sigma
+
+    for (i in seq_along(ciWidths)) {
+      # the parameter is already standardised, so sigma=1 should do
+      tempRes <- computeConfidenceIntervalZ(nEff=nEff, meanObs=0, sigma=1,
+                                            parameter=parameterDomain[i],
+                                            eType=eType, ciValue=1-alpha,
+                                            alternative="twoSided")
+      ciWidths[i] <- tempRes[2]
+    }
+
+    if (sum(is.infinite(ciWidths))==length(ciWidths))
+      stop(defaultErrorText)
+
+    minIndex <- which.min(ciWidths)
+
+    meanDiffMin <- meanDiffDomain[minIndex]
+    parameter <- parameterDomain[minIndex]
+
+    if (minIndex!=1 && is.infinite(ciWidths[minIndex-1])) {
+      result[["note"]] <- "Unstable design based on alpha and nPlan alone."
+      warning("Unstable: The parameter corresponds to the smallest parameter value",
+              "for which the ci width can be calculated. Another eType might yield more stable designs.")
+    }
+  }
+
+  if (eType=="grow" && alternative=="less") {
+    parameter <- -parameter
+    meanDiffMin <- -meanDiffMin
+  }
+
+  result[["parameter"]] <- parameter
+  result[["esMin"]] <- meanDiffMin
 
   return(result)
 }

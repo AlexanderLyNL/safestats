@@ -973,7 +973,6 @@ computeConfidenceIntervalT <- function(
 
     if (inherits(tempResult, "simpleError")) {
       return(trivialConfInt)
-      # browser()
       # stop("Can't compute the width of the interval")
     }
 
@@ -1227,13 +1226,6 @@ designSafeT <- function(
     }
 
     tempResult <- list("parameter"=parameter, "esMin"=deltaMin)
-  } else if (is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
-    #scenario 1c: only nPlan known, can perform a pilot (no warning though)
-    designScenario <- "1c"
-    stop("Still need to do Judith's W function")
-
-    tempResult <- list("note"="TODO")
-
   } else if (!is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
     # scenario 2: given effect size and nPlan, calculate power and implied target
     designScenario <- "2"
@@ -1252,6 +1244,16 @@ designSafeT <- function(
       "alternative"=alternative, "testType"=testType,
       "parameter"=parameter, "eType"=eType,
       "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue)
+  } else if (is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
+    #scenario 3b: only nPlan known, find the parameter at which the confidence interval
+    # is the most narrow at nPlan
+
+    designScenario <- "3b"
+
+    tempResult <- designSafeT3bWantParameter(
+      "nPlan"=nPlan, "alpha"=alpha,
+      "alternative"=alternative, "testType"=testType,
+      "parameter"=parameter, "eType"=eType)
   }
 
   if (is.null(designScenario)) {
@@ -1288,7 +1290,7 @@ designSafeT <- function(
   nPlan <- result[["nPlan"]]
 
   if (!is.null(nPlan)) {
-    if (designScenario %in% 2:3) {
+    if (designScenario %in% c(2:3, "3b")) {
       n2Plan <- nPlan[2]
 
       names(nPlan) <- if (is.na(n2Plan)) "n1Plan" else c("n1Plan", "n2Plan")
@@ -1434,8 +1436,6 @@ designSafeT3WantEsMin <- function(
                  "nPlan"=nPlan, "beta"=beta, "ratio"=ratio,
                  "note"=NULL)
 
-  args(computeMinEsBatchSafeT)
-
   deltaMin <- tryOrFailWithNA(
     computeMinEsBatchSafeT(
       "nPlan"=nPlan, "alpha"=alpha, "beta"=beta,
@@ -1464,6 +1464,106 @@ designSafeT3WantEsMin <- function(
   return(result)
 }
 
+#' Helper function to designing a T-test (output deltaMin based on the shortest interval at nPlan)
+#'
+#' Finds the parameter and deltaMin when provided with only alpha, nPlan
+#'
+#' @inheritParams designSafeT
+#'
+#' @return A list with the parameter and the parameter amongst other items
+#' @export
+#'
+#' @examples
+#' designSafeT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+designSafeT3bWantParameter <- function(
+    nPlan,
+    alpha=0.05, alternative=c("twoSided", "greater", "less"),
+    testType=c("oneSample", "paired", "twoSample"),
+    parameter=NULL,
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+    ...) {
+  # TODO(Alexander): Two-sample and imom don't play well
+
+
+  defaultErrorText <-
+    "Can't compute a design based on alpha and the provided planned sample size(s) alone."
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+  testType <- match.arg(testType)
+
+  ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
+  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+
+  n1 <- nPlan[1]
+  n2 <- nPlan[2]
+
+  paired <- if (testType=="paired") TRUE else FALSE
+
+  nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
+  nu <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1-1 else n1+n2-2
+
+  if (nu <= 0)
+    stop(defaultErrorText)
+
+  result <- list("parameter"=NULL, "esMin"=NULL,
+                 "nPlan"=nPlan, "ratio"=ratio,
+                 "note"=NULL)
+
+  minG <- (alpha^(-2/nu)-1)/nEff
+
+  tempResult <- uniroot(function(g)tTestWidthDerivative(g, nEff=nEff, nu=nu, alpha=alpha),
+                        c(minG, max(exp(-log(alpha))*minG, 1e6)),
+                        tol=min(.Machine$double.eps^0.25, 1/nEff))
+
+  gCandidate <- tempResult[["root"]]
+  deltaMinCandidate <- sqrt(gCandidate)
+
+  if (eType=="eGauss") {
+    parameter <- gCandidate
+    deltaMin <- deltaMinCandidate
+  } else {
+    upperDelta <- if (eType %in% c("mom", "grow")) 2*deltaMinCandidate else max(2*deltaMinCandidate, 0.02)
+
+    deltaDomain <- seq(deltaMinCandidate/4, upperDelta, length.out=1e3)
+    ciWidths <- rep(Inf, length(deltaDomain))
+
+    parameterDomain <- if (eType=="mom") deltaDomain^2/2 else deltaDomain
+
+    for (i in seq_along(ciWidths)) {
+      tempRes <- computeConfidenceIntervalT(meanObs=0, sdObs=1,
+                                            nEff=nEff, nu=nu,
+                                            parameter=parameterDomain[i],
+                                            eType=eType, ciValue=1-alpha,
+                                            alternative="twoSided")
+      ciWidths[i] <- tempRes[2]
+    }
+
+    if (sum(is.infinite(ciWidths))==length(ciWidths))
+      stop(defaultErrorText)
+
+    minIndex <- which.min(ciWidths)
+
+    deltaMin <- deltaDomain[minIndex]
+    parameter <- parameterDomain[minIndex]
+
+    if (minIndex!=1 && is.infinite(ciWidths[minIndex-1])) {
+      result[["note"]] <- "Unstable design based on alpha and nPlan alone."
+      warning("Unstable: The parameter corresponds to the smallest parameter value",
+              "for which the ci width can be calculated. Another eType might yield more stable designs.")
+    }
+  }
+
+  if (eType=="grow" && alternative=="less") {
+    parameter <- -parameter
+    deltaMin <- -deltaMin
+  }
+
+  result[["parameter"]] <- parameter
+  result[["esMin"]] <- deltaMin
+
+  return(result)
+}
 
 # Batch design fnts ------
 
@@ -1545,8 +1645,6 @@ computeNPlanBatchSafeT <- function(
       "n1"=n1Func(nEff), "n2"=n2Func(nEff), "parameter"=parameter, "alternative"=tempAlternative,
       "eType"=eType)$eValue-1/alpha
   }
-
-  # browser()
 
   tempResult <- suppressWarnings(
     tryCatch(stats::uniroot(targetFunction, interval=c(nTemp/2, 2*nTemp)),
@@ -2210,4 +2308,18 @@ computeConjugateCredibleIntervalTwoSampleT <- function(
   upperCS <- u+w*sqrt(betaSigma/alphaSigma)*rightQuantile
 
   return(unname(c(lowerCS, upperCS)))
+}
+
+
+#' Internal function to solve the smallest width of an eGauss t-test
+#'
+#' @inheritParams safeTTestStat
+#' @param g prior variance of the eGauss t-test
+#'
+#' @return a number that should be zero when g is optimal
+#' @export
+#'
+#' @examples
+tTestWidthDerivative <- function(g, nEff, nu, alpha=0.05) {
+  nEff*nu*(alpha^(2/(nu+1))*(1+g*nEff)^(-1/(nu+1))*(1+g*nEff+nu)-1-nu)
 }
