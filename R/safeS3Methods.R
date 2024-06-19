@@ -541,7 +541,7 @@ plot.safeDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
              border=border)
       }
 
-      lines(c(nPlan, nPlan), c(0, max(stopHist$counts)), lwd=lwd, lty=2)
+      lines(c(nPlan, nPlan), c(0, max(stopHist[["counts"]])), lwd=lwd, lty=2)
     }
 
     if (numSamplePaths > 0) {
@@ -735,8 +735,8 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     upperLineFinite <- upperLine[is.finite(upperLine)]
     lowerLineFinite <- lowerLine[is.finite(lowerLine)]
 
-    maxBound <- max(upperLineFinite)
-    minBound <- min(lowerLineFinite)
+    maxBound <- max(upperLineFinite, na.rm=TRUE)
+    minBound <- min(lowerLineFinite, na.rm=TRUE)
 
     if (maxBound > 0)
       upperLine[is.infinite(upperLine)] <- 2*maxBound
@@ -748,7 +748,7 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     else if (minBound <= 0)
       lowerLine[is.infinite(lowerLine)] <- 2*minBound
 
-    maxX <- max(n1Vec)
+    maxX <- max(n1Vec, na.rm=TRUE)
 
     if (is.null(fillPlot))
       fillPlot <- if (maxX <= switchNFill) TRUE else FALSE
@@ -806,8 +806,8 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     alpha <- x[["designObj"]][["alpha"]]
     oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
-    maxEValue <- max(eValueVec)
-    minEValue <- min(eValueVec)
+    maxEValue <- max(eValueVec, na.rm=TRUE)
+    minEValue <- min(eValueVec, na.rm=TRUE)
 
     if (is.infinite(maxEValue)) {
       warning("Overflow: E-values infinite, removed for plotting")
@@ -816,11 +816,10 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       eValueVec <- eValueVec[finiteIndex]
 
       n1Vec <- n1Vec[finiteIndex]
-      maxEValue <- max(eValueVec)
+      maxEValue <- max(eValueVec, na.rm=TRUE)
     }
 
     if (!isTRUE(add)) {
-
       rangeEValue <- maxEValue-minEValue
 
       if (is.null(logScale)) {
