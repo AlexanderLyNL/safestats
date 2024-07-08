@@ -89,8 +89,9 @@ meanVector <- 1/(1:n)*cumsum(someDataSingle)
 
 for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
-                                          meanObs=meanVector[i],
-                                          eType="freq")
+                                           meanObs=meanVector[i],
+                                           eType="freq",
+                                           parameter=1)
   freqCi[i, ] <- tempResult
 }
 
@@ -144,7 +145,8 @@ for (sim in 1:mIter) {
   
   for (i in 1:n) {
     tempResult <- computeConfidenceIntervalZ(
-      nEff=i, meanObs=meanVector[i], eType="freq")
+      nEff=i, meanObs=meanVector[i], eType="freq",
+      parameter=1)
     allFreqCis[sim, i, ] <- tempResult
     
     if ((tempResult[1] > muTrue || tempResult[2] < muTrue)
@@ -359,7 +361,7 @@ anytimeCiWidth <- freqCiWidth <- numeric(30)
 
 for (i in nDomain) {
   tempResult <- computeConfidenceIntervalZ(
-    nEff=i, meanObs=8,  eType="freq")
+    nEff=i, meanObs=8,  eType="freq", parameter=1)
   freqCiWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(
@@ -384,7 +386,7 @@ anytimeCiWidth <- freqIntervalWidth <- numeric(30)
 for (i in seq_along(gDomain)) {
   tempResult <- computeConfidenceIntervalZ(
     nEff=1, meanObs=8, a=0, g=gDomain[i], 
-    eType="freq")
+    eType="freq", parameter=1)
   
   freqIntervalWidth[i] <- tempResult[2]-tempResult[1]
   

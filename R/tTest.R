@@ -1390,6 +1390,7 @@ designSafeT2WantBeta <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
+
   nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   samplingResult <- computeBetaSafeT(
@@ -2239,7 +2240,8 @@ generateNormalData <- function(nPlan, nSim=1000L,
 #'
 conjugateBfTStat <- function(
     x1, sdObs1, n1, x2, sdObs2, n2,
-    a1=-6.4, g1=0.09, a2=-7.6, g2=0.27, a0=-7, g0=18.4,
+    a1=4, g1=0.01, a2=4.1, g2=0.15,
+    a0=4, g0=2,
     aGamma=2, bGamma=1/2, log=FALSE) {
 
   nCombined <- n1+n2
@@ -2286,7 +2288,7 @@ conjugateBfTStat <- function(
 #' computeConjugateCredibleIntervalTwoSampleT(1, 1, 3, 1, 1, 3)
 computeConjugateCredibleIntervalTwoSampleT <- function(
     x1, sdObs1, n1, x2, sdObs2, n2,
-    a1=-6.4, g1=0.09, a2=-7.6, g2=0.27,
+    a1=4, g1=0.01, a2=4.1, g2=0.15,
     aGamma=2, bGamma=1/2, ciValue=0.95) {
 
   # posterior mean conditional on sigma

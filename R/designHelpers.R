@@ -170,7 +170,8 @@ computeBootObj <- function(
               "logImpliedTarget", "expectedStopTime")) {
   objType <- match.arg(objType)
 
-  browser()
+  # TODO(Alexander): futility
+  # browser()
 
   if (objType=="beta") {
     if (is.null(nPlan) || nPlan <= 0)
@@ -179,33 +180,73 @@ computeBootObj <- function(
     times <- values
     stopifnot(nPlan > 0)
 
-    bootObj <- boot::boot(times,
-                          function(x, idx) {
+    bootObj <- try(
+      boot::boot(times, function(x, idx) {
                             1-mean(x[idx] <= nPlan)
                           },  R = nBoot)
+    )
+
+    j <- 1
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(times, function(x, idx) {
+          1-mean(x[idx] <= nPlan)
+        },  R = nBoot/2^j)
+      )
+
+      j <- j+1
+    }
   } else if (objType =="betaFromEValues") {
     if (is.null(alpha) || alpha <= 0 || alpha >= 1)
       stop("Please provide an alpha in (0, 1)")
 
     eValues <- values
 
-    bootObj <- boot::boot(
-      data = eValues,
-      statistic = function(x, idx) {
-        mean(x[idx] >= 1/alpha)
-      },
-      R = nBoot
+    bootObj <- try(
+      boot::boot(data = eValues,
+                 statistic = function(x, idx) {
+                   mean(x[idx] >= 1/alpha)
+                 }, R = nBoot)
     )
+
+    j <- 1
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(data = eValues,
+                   statistic = function(x, idx) {
+                     mean(x[idx] >= 1/alpha)
+                   }, R = nBoot/2^j)
+      )
+
+      j <- j+1
+    }
 
   } else if (objType=="nPlan") {
     if (is.null(beta) || beta <= 0 || beta >= 1)
       stop("Please provide a beta in (0, 1)")
 
     times <- values
-    bootObj <- boot::boot(times,
-                          function(x, idx) {
-                            stats::quantile(x[idx], prob=1-beta, names=FALSE)
-                          }, R = nBoot)
+
+    bootObj <- try(
+      boot::boot(times, function(x, idx) {
+        stats::quantile(x[idx], prob=1-beta, names=FALSE)
+      } , R = nBoot)
+    )
+
+    j <- 1
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(times, function(x, idx) {
+          stats::quantile(x[idx], prob=1-beta, names=FALSE)
+        } , R = nBoot/2^j)
+      )
+
+      j <- j+1
+    }
+
   } else if (objType=="nMean") {
     if (is.null(nPlan[1]) || nPlan[1] <= 0)
       stop("Please provide a positive nPlan")
@@ -214,24 +255,59 @@ computeBootObj <- function(
 
     times[times > nPlan[1]] <- nPlan[1]
 
-    bootObj <- boot::boot(times,
-                          function(x, idx) {
-                            mean(x[idx])
-                          }, R = nBoot)
+    bootObj <- try(
+      boot::boot(times, function(x, idx) {
+        mean(x[idx])
+      }, R = nBoot)
+    )
+
+    j <- 1
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(times, function(x, idx) {
+          mean(x[idx])
+        }, R = nBoot/2^j)
+      )
+
+      j <- j+1
+    }
   } else if (objType=="logImpliedTarget") {
     eValues <- values
     stopifnot(eValues > 0)
 
-    bootObj <- boot::boot(eValues,
-                          function(x, idx) {
-                            mean(log(x[idx]))
-                          }, R = nBoot)
+    bootObj <- try(
+      boot::boot(eValues, function(x, idx) {
+        mean(log(x[idx]))
+      } , R = nBoot)
+    )
+
+    j <- 1
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(eValues, function(x, idx) {
+          mean(log(x[idx]))
+        } , R = nBoot/2^j)
+      )
+      j <- j+1
+    }
   } else if (objType=="expectedStopTime") {
     times <- values
-    bootObj <- boot::boot(times,
-                          function(x, idx) {
-                            mean(x[idx])
-                          }, R = nBoot)
+    bootObj <- try(
+      boot::boot(times, function(x, idx) {
+        mean(x[idx])
+      }, R = nBoot)
+    )
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(times, function(x, idx) {
+          mean(x[idx])
+        }, R = nBoot/2^j)
+      )
+      j <- j+1
+    }
   }
 
   bootObj[["bootSe"]] <- stats::sd(bootObj[["t"]])
@@ -259,7 +335,8 @@ computeNPlanBootstrapper <- function(
     beta, nPlanBatch, nBoot) {
 
 
-  browser()
+  # TODO(Alexander): futility
+  # browser()
   # TODO(Alexander): Here figure out which stopping times to use when futility=TRUE
 
   times <- samplingResult[["stoppingTimes"]]

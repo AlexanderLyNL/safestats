@@ -261,19 +261,8 @@ dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigmaTrue)
 set.seed(3)
 dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
 
-eValueVector <- vector("numeric", length=n1)
-
-for (i in 1:n1) {
-  eValueVector[i] <- safeZTest(x=dataGroup1[1:i], 
-                               y=dataGroup2[1:i],
-                               designObj=designObj)$eValue
-}
-
-oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-
-plot(1:n1, eValueVector, type="l", lwd=2, xlab="n",
-     ylab="eValue", col=eColours[1])
-lines(c(1, n1), c(1/alpha, 1/alpha), lwd=2, lty=2)
+result <- safeZTest(dataGroup1, dataGroup2, designObj=designObj)
+plot(result)
 ```
 This sample path does not exceed the evidence threshold of 20, and fewer than 5\% of the experiments will, even if we increase the sample size indefinitely. 
 

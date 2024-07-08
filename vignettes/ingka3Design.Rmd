@@ -121,20 +121,9 @@ resultObj
 The resulting e-value of 93232 is much larger than 1/alpha, and a natural question to ask is whether we could have rejected the null earlier. The following code shows that this is indeed the case: 
 
 ```{r, eval=FALSE}
-n1Plan <- designObj$nPlan[1]
-eValuesAtTime <- numeric(n1Plan)
-
-for (i in 1:n1Plan) {
-  eValuesAtTime[i] <- safeZTest(x=treatmentGroup[1:i],
-                               y=controlGroup[1:i],
-                               designObj=designObj)$eValue
-}
-
-oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
-plot(1:n1Plan, eValuesAtTime, type="l", lwd=2, xlab="n",
-     ylab="e-value", col=eColours[1])
-lines(c(1, n1Plan), c(1/alpha, 1/alpha), lwd=2, lty=2)
-which(eValuesAtTime > 1/alpha)
+result <- safeZTest(treatmentGroup, controlGroup, designObj=designObj)
+plot(result)
+which(result$eValueVec > 1/alpha)
 ```
 The plot shows that we could have stopped after 6 pairs of observations rather than waiting until we saw 36 pairs. Hence, this emphasises how the realised sample size is random, as it depends on the data via the e-value. The more compelling the evidence indicated by the e-value, the earlier we can stop sampling. This thus allows us to adapt to the difficulty of the problem; When the effect is large we can stop early, and if the effect is small we have to wait a bit longer. 
 
@@ -146,100 +135,28 @@ The planned sample sizes as reported by the design object result from a simulati
 As multiple looks yield more opportunities to reject the null, we simulate up to the batch sample size. The simulation is performed by the function "sampleStoppingTimesSafeZ", which generates a 1,000 data sets of length nPlanBatch, and calculates the e-values as the data come in. The first-time at which the e-value passes the threshold of 1/alpha is then saved. The following code visualises the stopping times. 
 
 ```{r, eval=FALSE}
-stoppingTimes <- designObj$bootObjN1Plan$data
-
-oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
-hist(stoppingTimes, 
-     breaks=min(stoppingTimes):max(stoppingTimes), 
-     xlim=c(0, designObj$nPlanBatch[1]),col=histInnerColour, 
-     border=histBorderColour, lwd=2, main="")
+plot(designObj, numSamplePaths=0)
 ```
 The bump at nPlanBatch includes all the experiments that stopped there, that is, with e-values both above and below 20. The recommended sample size to plan for, here, nPlan=36, is the 80\% quantile of the stopping time distribution. The reported mean sample size is the average of this stopping time distribution. 
 
 The following code removes the experiments that did not stop, thus, pruning the last bar of the previous plot. The histogram of the remaining so-called first-passage times, the times at which the e-value actually crosses the threshold of 1/alpha, are depicted in blue, and the e-value sample paths are plotted underneath this histogram in (Ikea) yellow/gold. 
 
 ```{r, eval=FALSE}
-firstPassageTimes <- 
-  designObj$bootObjN1Plan$data
-
-# These are the sample paths that did not resulted in a rejection
-firstPassageTimes[which(designObj$breakVector==1)] <- Inf 
-
-firstPassageTimeHist <-
-  hist(firstPassageTimes, plot=FALSE,
-       breaks=min(firstPassageTimes):designObj$nPlanBatch[1])
-
-oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
-plot(NULL, xlim = c(0, designObj$nPlanBatch[1]),
-     ylim = c(-1 * log(30), log(3000)),
-     xlab = "", ylab = "", cex.lab = 1.3, cex.axis = 1.3, las = 1,
-     yaxt = "n", bty = "n", type = "p", pch = 21, bg = "grey")
-
-abline(h = log(1), col = "darkgrey", lwd = 1, lty = 2)
-abline(h = log(20))
-
-criticalP = log(c(1/20, 1, 20))
-
-axis(side = 2, at = c(criticalP), tick = TRUE, las = 2, cex.axis = 1,
-     labels = c("1/20", "1", "20"))
-
-mtext("Evidence", side = 2, line = 2.5, las = 0, cex = 1.3, adj=0.175)
-mtext("Sample size", side = 1, line = 2.5, las = 1, cex = 1.3)
-
-stoppedPaths <- designObj$samplePaths[!designObj$breakVector, ]
-
-someConstant <- 120
-
-y <- firstPassageTimeHist$density
-nB <- length(firstPassageTimeHist$breaks)
-ylim <- range(y, 0)
-
-rect(firstPassageTimeHist$breaks[-nB]+0.5, log(20),
-     firstPassageTimeHist$breaks[-1L]+0.5, someConstant*y+log(20),
-     col = histInnerColour, border = histBorderColour, lwd=2,
-     angle = 45, density = 600, lty = NULL)
-
-finiteFirstPassageTimes <- 
-  designObj$bootObjN1Plan$data[!designObj$breakVector]
-
-for (i in 1:100) {
-  stoppedTime <- finiteFirstPassageTimes[i]
-  evidenceLine <- stoppedPaths[i, 1:stoppedTime]
-
-  if (evidenceLine[stoppedTime] > 20)
-    evidenceLine[stoppedTime] <- 20
-
-  lines(0:stoppedTime, c(0, log(evidenceLine)), col=lineColour,
-        lwd=1.5, lty=1)
-
-  if (evidenceLine[stoppedTime]==20)
-    points(stoppedTime, log(evidenceLine[stoppedTime]),
-           col=histBorderColour, pch=15, lwd=1.5)
-}
+plot(designObj)
 ```
 
 # <a name="effectSizeLargerMinimalRelevant">Even earlier stopping: True effect size larger than the minimal clinical relevant mean effect size</a>
 When the true minimal clinically relevant effect size is larger than the minimal clinically relevant one, we can stop data collection even earlier. The following code describes a scenario where the true mean difference is 1.2 times larger than the minimal clinical relevant mean difference. For this we use the function `sampleStoppingTimesSafeZ` with the same parameter "gMom" as defined by the designObj as follows:
 
 ```{r, eval=FALSE}
-samplingResultLarger <- 
-  sampleStoppingTimesSafeZ(meanDiffTrue=1.2*designObj$esMin,
-                           sigma=sigmaTrue, 
-                           parameter=designObj$parameter,
-                           eType=designObj$eType, 
-                           testType=designObj$testType, 
-                           nMax=designObj$nPlan[1], 
-                           seed=2)
-
-stoppingTimesLarger <- samplingResultLarger$stoppingTimes
-
-oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
-hist(stoppingTimesLarger, 
-     breaks=min(stoppingTimesLarger):max(stoppingTimesLarger), 
-     xlim=c(0, designObj$nPlanBatch[1]),col=histInnerColour, 
-     border=histBorderColour, lwd=2, main="", density=100)
-quantile(stoppingTimesLarger, 0.8)
-mean(stoppingTimesLarger)
+designLarger <- designSafeZ(1.2*designObj$esMin, 
+                            sigma=sigmaTrue, 
+                            parameter=designObj$parameter,
+                            eType=designObj$eType,
+                            testType=designObj$testType, 
+                            nPlan=designObj$nPlan, 
+                            seed=2)
+plot(designLarger, wantQuantiles = c(0.5, 0.8))
 ```
 This shows that the 80\% quantile is now at sample size n1Plan=n2Plan=25, compared to n1Plan=n2Plan=36, and in this situation the procedure takes on a mean stopping time at sample size 16.991, compared to n1=n2=22. Hence, the relevant quantiles moved to smaller sample sizes. 
 
@@ -247,24 +164,16 @@ This shows that the 80\% quantile is now at sample size n1Plan=n2Plan=25, compar
 On the other hand, the 80\% quantile of the stopping time distribution shifts to larger values whenever the true effect size is smaller than the minimal clinical relevant effect. The following code provides some insights:
 
 ```{r, eval=FALSE}
-samplingResultSmaller <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.2,
-                                                 sigma=sigmaTrue, 
-                                                 parameter=designObj$parameter,
-                                                 eType=designObj$eType, 
-                                                 testType=designObj$testType, 
-                                                 nMax=designObj$nPlan,
-                                                 wantSimData=TRUE, seed=3)
+designSmaller <- designSafeZ(designObj$esMin/1.2, 
+                             sigma=sigmaTrue, 
+                             parameter=designObj$parameter,
+                             eType=designObj$eType,
+                             testType=designObj$testType, 
+                             nPlan=designObj$nPlan, 
+                             seed=3)
+plot(designSmaller, wantQuantiles = c(0.5, 0.8))
 
-stoppingTimesSmaller <- samplingResultSmaller$stoppingTimes
-
-oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
-hist(stoppingTimesSmaller, 
-     breaks=min(stoppingTimesSmaller):max(stoppingTimesSmaller), 
-     xlim=c(0, designObj$nPlanBatch[1]),col=histInnerColour, 
-     border=histBorderColour, lwd=2, main="", density=100)
-mean(stoppingTimesSmaller)
-
-nRejectedExperiments <- 1000-sum(samplingResultSmaller$breakVector)
+nRejectedExperiments <- 1000-sum(designSmaller$breakVector)
 nRejectedExperiments
 ```
 In this case, only 58% of the experiments stopped after the planned sample size of 36 due to the e-values being larger than 1/alpha. 
@@ -289,15 +198,14 @@ The code below shows that if we multiply the e-values from the non-rejected stud
 nPlan2 <- 40
 nTotal <- designObj$nPlan[1]+nPlan2
 
-notRejectedIndex <- which(samplingResultSmaller$breakVector==1)
+notRejectedIndex <- which(designSmaller$breakVector==1)
 
 firstPassageTimes <- nPlan2 <- 40
 nTotal <- designObj$nPlan[1]+nPlan2
 
-notRejectedIndex <- which(samplingResultSmaller$breakVector==1)
+notRejectedIndex <- which(designSmaller$breakVector==1)
 
-firstPassageTimes <- samplingResultSmaller$stoppingTimes
-firstPassageTimes[notRejectedIndex] <- Inf
+firstPassageTimes <- designSmaller$bootObjBeta$data
 
 followUpStudy <- sampleStoppingTimesSafeZ(meanDiffTrue=designObj$esMin/1.2,
                                           sigma=sigmaTrue, 
@@ -312,7 +220,7 @@ someMatrix <- matrix(nrow=1e3L, ncol=nPlan2)
 someMatrix[notRejectedIndex, ] <- followUpStudy$samplePaths
 
 metaEVariablePaths <- 
-  someMatrix*samplingResultSmaller$eValuesStopped
+  someMatrix*designSmaller$samplePaths[, designObj$nPlan[1]]
 
 for (i in notRejectedIndex) {
   firstPassageTimes[i] <- 
