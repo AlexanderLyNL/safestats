@@ -60,12 +60,12 @@ designSafe1aHelper <- function(
                    "then n1Plan = ", nPlanBatch[1], " and n2Plan = ",
                    nPlanBatch[2], ".")
   } else if (testType=="twoSample") {
-    nPlan <- c(samplingResult[["n1Plan"]], ceiling(ratio*samplingResult[["n1Plan"]]))
+    nPlan <- c(samplingResult[["n1Plan"]], ceil(ratio*samplingResult[["n1Plan"]]))
     names(nPlan) <- c("n1Plan", "n2Plan")
     nPlanTwoSe <- 2*bootObjN1Plan[["bootSe"]]
     nPlanTwoSe <- c(nPlanTwoSe, ratio*nPlanTwoSe)
 
-    nMean <- c(samplingResult[["n1Mean"]], ceiling(ratio*samplingResult[["n1Mean"]]))
+    nMean <- c(samplingResult[["n1Mean"]], ceil(ratio*samplingResult[["n1Mean"]]))
     names(nMean) <- c("n1Mean", "n2Mean")
     nMeanTwoSe <- 2*bootObjN1Mean[["bootSe"]]
     nMeanTwoSe <- c(nMeanTwoSe, ratio*nMeanTwoSe)
@@ -345,13 +345,13 @@ computeNPlanBootstrapper <- function(
     "values"=times, "objType"="nPlan",
     "beta"=beta, "nBoot"=nBoot)
 
-  n1Plan <- ceiling(bootObjN1Plan[["t0"]])
+  n1Plan <- ceil(bootObjN1Plan[["t0"]])
 
   bootObjN1Mean <- computeBootObj(
     "values"=times, "objType"="nMean",
     "nPlan"=n1Plan, "nBoot"=nBoot)
 
-  n1Mean <- ceiling(bootObjN1Mean[["t0"]])
+  n1Mean <- ceil(bootObjN1Mean[["t0"]])
 
   result <- list("n1Plan" = n1Plan, "bootObjN1Plan" = bootObjN1Plan,
                  "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,

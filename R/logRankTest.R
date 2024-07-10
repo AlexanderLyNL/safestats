@@ -1154,8 +1154,8 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
     data[["status"]][data[["time"]] > endTime] <- 1  # 1 is censored
     data[["time"]][data[["time"]] > endTime] <- endTime
   } else {
-    moreNP <- ceiling((1+competeRatio)*nP)
-    moreNT <- ceiling((1+competeRatio)*nT)
+    moreNP <- ceil((1+competeRatio)*nP)
+    moreNT <- ceil((1+competeRatio)*nT)
 
     data[["time"]] <- round(c(stats::rweibull("n" = moreNP, "shape" = alpha,
                                               "scale" = lambdaP^(-1/alpha)),
@@ -1552,11 +1552,11 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
   bootObjNEvents  <- computeBootObj("values"=times, "beta"=beta, "objType"="nPlan", "nBoot"=nBoot)
 
-  nEvents <- ceiling(bootObjNEvents[["t0"]])
+  nEvents <- ceil(bootObjNEvents[["t0"]])
 
   bootObjN1Mean <- computeBootObj("values"=times, "objType"="nMean", "nPlan"=nEvents, "nBoot"=nBoot)
 
-  n1Mean <- ceiling(bootObjN1Mean[["t0"]])
+  n1Mean <- ceil(bootObjN1Mean[["t0"]])
 
   result <- list("nEvents" = nEvents, "bootObjNEvents" = bootObjNEvents,
                  "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,

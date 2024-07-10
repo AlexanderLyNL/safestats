@@ -833,7 +833,7 @@ plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       logPlot <- if (isTRUE(logScale)) "y" else ""
 
-      maxY <- ceiling(max(maxEValue, 1/alpha))
+      maxY <- ceil(max(maxEValue, 1/alpha))
       minY <- if (isTRUE(logScale)) minEValue else 0
 
       lastIndex <- length(n1Vec)

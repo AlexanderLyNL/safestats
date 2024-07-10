@@ -517,7 +517,7 @@ simulateTwoProportions <- function(hyperparameterList,
                                           M = M,
                                           #now we stop, each experiment,
                                           #maximally at the worst case stoptime for 80% power
-                                          maxSimStoptime = ceiling(resultDataFrame[i,"worstCaseQuantile"]),
+                                          maxSimStoptime = ceil(resultDataFrame[i,"worstCaseQuantile"]),
                                           gridSize = thetaAgridSize,
                                           #and we calculate the expectation instead of a (1-b) quantile
                                           expectedStopTime = TRUE)[["worstCaseQuantile"]]
@@ -614,7 +614,7 @@ plot.safe2x2Sim <- function(x, ...){
   xmin <- min(x[["simdata"]][,"delta"])
   xmax <- max(x[["simdata"]][,"delta"])
   ymin <- 0
-  ymax <- ceiling(max(x[["simdata"]][,c("worstCaseQuantile", "expected")]))
+  ymax <- ceil(max(x[["simdata"]][,c("worstCaseQuantile", "expected")]))
 
   xlab <- paste("divergence value:", ifelse(x[["restriction"]] == "logOddsRatio", "log odds ratio", "difference"))
 

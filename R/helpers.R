@@ -267,3 +267,18 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 
   }
 }
+
+#' A ceiling function with a tolerance at the 13th digit
+#'
+#' @param x numeric, that needs
+#' @param digits integer, position of the digit to round of to
+#'
+#' @return integer
+#' @export
+#'
+#' @examples
+#' ceiling(27/21*21)
+#' ceil(27/21*21)
+ceil <- function(x, digits=13) {
+  ceiling(round(x, digits=digits))
+}

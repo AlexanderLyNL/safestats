@@ -177,43 +177,6 @@ safeTTestStatNEffNu <- function(
     result <- list("eValue"=tempResult[["value"]],
                    "eValueApproxError"=tempResult[["abs.error"]])
     return(result)
-  } else if (eType=="momKIsOne") {
-
-    g <- parameter
-
-    logResult <- -3/2*log(1+nEff*g) +
-      ((nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g)))) +
-      log(1+(1+nEff*g*(nu+1))/(nu*(1+nEff*g))*t^2)-log(1+t^2/(nu*(1+nEff*g)))
-
-    if (alternative=="twoSided") {
-      return(list(eValue=exp(logResult)))
-    } else {
-      aPart <- logResult
-      logBPart <- -3/2*log(1+nEff*g) +
-        (1+(nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g)))) +
-        log(2/sqrt(pi))+lgamma(nu/2+1)-lgamma((nu+1)/2)+log(2)+
-        1/2*(log(nEff*g)-log(1+nEff*g)-log(nu+t^2))
-
-      hypTermB <- suppressWarnings(
-        try(
-          hypergeo::f15.3.3(
-            A=-1/2, B=1-(nu+1)/2, C=3/2,
-            z=nEff*g/(1+nEff*g)*t^2/(nu+t^2))
-        )
-      )
-
-      if (isTryError(hypTermB) || is.na(hypTermB)) {
-        hypTermB <- Re(hypergeo::hypergeo(A=-1/2, B=1-(nu+1)/2, C=3/2,
-                                          z=nEff*g/(1+nEff*g)*t^2/(nu+t^2)))
-      }
-
-      if (alternative=="greater")
-        eValue <- exp(aPart)+t*exp(logBPart)*hypTermB
-      else if (alternative=="less")
-        eValue <- exp(aPart)-t*exp(logBPart)*hypTermB
-
-      return(list(eValue=eValue))
-    }
   } else if (eType=="bayarri") {
     stop("not yet implemented")
   } else if (eType=="lai") {
@@ -224,111 +187,38 @@ safeTTestStatNEffNu <- function(
     eValue <- (nu+1)/2*log(1+t^2/nu)+1/2*log(2*pi/nEff)
     return(list(eValue=eValue))
   } else if (eType=="mom") {
+    tempResult <- safeTTestStatNEffNuMom(
+      t=t, nEff=nEff, nu=nu, parameter=parameter,
+      alternative=alternative, tDensity=tDensity,
+      paired=paired)
 
-    g <- parameter
-
-    k <- 1
-
-    logResult <- -(k+1/2)*log(1+nEff*g) +
-      (k+(nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g))))
-
-    if (k==1) {
-      hypTerm <- exp(log(1+(1+nEff*g*(nu+1))/(nu*(1+nEff*g))*t^2)-log(1+t^2/nu))
-    } else {
-      hypTerm <- suppressWarnings(
-        try(
-          hypergeo::f15.3.3(
-            A=-k, B=-nu/2, C=1/2,
-            z=nEff*g/(1+nEff*g)*t^2/(nu+t^2))
-        )
-      )
-
-      if (isTryError(hypTerm) || is.na(hypTerm))
-        hypTerm <- Re(hypergeo::hypergeo(A=-k, B=-nu/2, C=1/2, z=nEff*g/(1+nEff*g)*t^2/(nu+t^2)))
-    }
-
-    aPart <- exp(logResult)*hypTerm
-
-    if (alternative=="twoSided") {
-      return(list(eValue=aPart))
-    } else {
-      logBPart <- -(k+1/2)*log(1+nEff*g) +
-        (k+(nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g)))) +
-        lgamma(k+1)-lgamma(k+1/2)+lgamma(nu/2+1)-lgamma((nu+1)/2)+log(2)+
-        1/2*(log(nEff*g)-log(1+nEff*g)-log(nu+t^2))
-
-      hypTermB <- suppressWarnings(
-        try(
-          hypergeo::f15.3.3(
-            A=1/2-k, B=1-(nu+1)/2, C=3/2,
-            z=nEff*g/(1+nEff*g)*t^2/(nu+t^2))
-        )
-      )
-
-      if (isTryError(hypTermB) || is.na(hypTermB)) {
-        hypTermB <- Re(hypergeo::hypergeo(A=1/2-k, B=1-(nu+1)/2, C=3/2,
-                                         z=nEff*g/(1+nEff*g)*t^2/(nu+t^2)))
-      }
-
-      if (alternative=="greater") {
-        eValue <- aPart+t*exp(logBPart)*hypTermB
-
-        if (t < 0 && eValue > 1)
-          warning("Overflow: Subtraction of two large numbers: eValue should be smaller than one")
-
-      } else if (alternative=="less") {
-        eValue <- aPart-t*exp(logBPart)*hypTermB
-
-        if (t > 0 && eValue > 1)
-          warning("Overflow: Subtraction of two large numbers: eValue should be smaller than one")
-      }
-
-      return(list(eValue=eValue))
-    }
-
-    # if (isFALSE(analyticComp)) {
-    #
-    #   sidedConstant <-if (alternative=="twoSided") 1 else 2
-    #
-    #   logNormalisationConstantPrior <-
-    #     -log(sidedConstant)+(k+1/2)*log(2*g)+lgamma(k+1/2)
-    #
-    #   momIntegrand <- function(delta) {
-    #     exp(
-    #       stats::dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
-    #       -stats::dt(t, df=nu, ncp=0, log=TRUE)
-    #       +delta^2/(2*g)+k*log(delta^2)-logNormalisationConstantPrior
-    #     )
-    #   }
-    #
-    #   lowerBound <- switch(alternative,
-    #                        "twoSided"=-Inf,
-    #                        "greater"=0,
-    #                        "less"=-Inf)
-    #
-    #   upperBound <- switch(alternative,
-    #                        "twoSided"=Inf,
-    #                        "greater"=Inf,
-    #                        "less"=0)
-    #
-    #   tempResult <- stats::integrate(momIntegrand,
-    #                                  lowerBound, upperBound,
-    #                                  subdivisions = 1e6L)
-    #   eValue <- tempResult[["value"]]
-    #
-    #   result <- list("eValue"=tempResult[["value"]],
-    #                  "eValueApproxError"=tempResult[["abs.error"]])
-    #   return(result)
-    # }
+    return(tempResult)
+  }
+}
 
 
 
+#' SafeTTestStat based on the t-statistic, nEff and nu and the non-local moment prior
+#'
+#' @rdname safeTTestStat
+#' @inheritParams safeTTestStatNEffNu
+#'
+#' @param k the moment used for the non-local moment prior. Default 1
+#'
+#' @export
+#'
+safeTTestStatNEffNuMom <- function(
+    t, nEff, nu, parameter,
+    alternative=c("twoSided", "less", "greater"),
+    tDensity=FALSE,
+    paired=FALSE,
+    k=1,
+    ...) {
 
+  g <- parameter
 
-
-
-    g <- parameter
-
+  # Do t-density approximation numeric
+  if (tDensity) {
     momIntegrand <- function(delta) {
       exp(
         stats::dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
@@ -355,8 +245,142 @@ safeTTestStatNEffNu <- function(
                    "eValueApproxError"=tempResult[["abs.error"]])
     return(result)
   }
-}
 
+  # For t infinite simplify some ratios
+  if (is.infinite(t)) {
+    logTerm <- nu/2*log(1+nEff*g)
+
+    if (k==1) {
+      hypTerm <- (1+nEff*g*(nu+1))/(1+nEff*g)
+    } else {
+      hypTerm <- suppressWarnings(
+        try(
+          hypergeo::f15.3.3(
+            A=-k, B=-nu/2, C=1/2,
+            z=nEff*g/(1+nEff*g))
+        )
+      )
+
+      if (isTryError(hypTerm) || is.na(hypTerm))
+        hypTerm <- Re(hypergeo::hypergeo(A=-k, B=-nu/2, C=1/2, z=nEff*g/(1+nEff*g)))
+    }
+
+    aPart <- exp(logTerm)*hypTerm
+
+    if (alternative=="twoSided") {
+      return(list(eValue=aPart))
+    } else {
+      logBPart <-
+        lgamma(k+1)-lgamma(k+1/2)+lgamma(nu/2+1)-lgamma((nu+1)/2)+
+        1/2*(log(nEff*g)-log(1+nEff*g))+log(2)
+
+      hypTermB <- suppressWarnings(
+        try(
+          hypergeo::f15.3.3(
+            A=1/2-k, B=1-(nu+1)/2, C=3/2,
+            z=nEff*g/(1+nEff*g))
+        )
+      )
+
+      if (isTryError(hypTermB) || is.na(hypTermB)) {
+        hypTermB <- Re(hypergeo::hypergeo(A=1/2-k, B=1-(nu+1)/2, C=3/2,
+                                          z=nEff*g/(1+nEff*g)))
+      }
+
+      signAlternative <- switch(alternative,
+                                "greater"=1,
+                                "less"=-1)
+
+      eValueAlmost <- hypTerm+signAlternative*sign(t)*exp(logBPart)*hypTermB
+
+      if (eValueAlmost < 0)
+        stop("Overflow: eValue should be positive")
+
+      if (eValueAlmost==0)
+        eValueAlmost <- .Machine$double.xmin
+
+      eValue <- exp(logTerm)*eValueAlmost
+
+      if (alternative=="greater") {
+        if (t < 0 && eValue > 1)
+          warning("Overflow: Subtraction of two large numbers: eValue should be smaller than one")
+      } else if (alternative=="less") {
+        if (t > 0 && eValue > 1)
+          warning("Overflow: Subtraction of two large numbers: eValue should be smaller than one")
+      }
+
+      return(list(eValue=eValue))
+    }
+  }
+
+  # Normal run here
+  #
+  logTerm <- -(k+1/2)*log(1+nEff*g) +
+    (k+(nu+1)/2)*(log((1+t^2/nu))-log(1+t^2/(nu*(1+nEff*g))))
+
+  if (k==1) {
+    hypTerm <- exp(log(1+(1+nEff*g*(nu+1))/(nu*(1+nEff*g))*t^2)-log(1+t^2/nu))
+  } else {
+    hypTerm <- suppressWarnings(
+      try(
+        hypergeo::f15.3.3(
+          A=-k, B=-nu/2, C=1/2,
+          z=nEff*g/(1+nEff*g)*t^2/(nu+t^2))
+      )
+    )
+
+    if (isTryError(hypTerm) || is.na(hypTerm))
+      hypTerm <- Re(hypergeo::hypergeo(A=-k, B=-nu/2, C=1/2, z=nEff*g/(1+nEff*g)*t^2/(nu+t^2)))
+  }
+
+  aPart <- exp(logTerm)*hypTerm
+
+  if (alternative=="twoSided") {
+    return(list(eValue=aPart))
+  } else {
+    logBPart <-
+      lgamma(k+1)-lgamma(k+1/2)+lgamma(nu/2+1)-lgamma((nu+1)/2)+
+      log(2)+1/2*(log(nEff*g)-log(1+nEff*g)-log(nu+t^2))
+
+    hypTermB <- suppressWarnings(
+      try(
+        hypergeo::f15.3.3(
+          A=1/2-k, B=1-(nu+1)/2, C=3/2,
+          z=nEff*g/(1+nEff*g)*t^2/(nu+t^2))
+      )
+    )
+
+    if (isTryError(hypTermB) || is.na(hypTermB)) {
+      hypTermB <- Re(hypergeo::hypergeo(A=1/2-k, B=1-(nu+1)/2, C=3/2,
+                                        z=nEff*g/(1+nEff*g)*t^2/(nu+t^2)))
+    }
+
+    signAlternative <- switch(alternative,
+                              "greater"=1,
+                              "less"=-1)
+
+    eValueAlmost <- hypTerm+signAlternative*t*exp(logBPart)*hypTermB
+    eValueAlmost <- round(eValueAlmost, 9)
+
+    if (eValueAlmost < 0)
+      stop("Overflow: eValue should be positive")
+
+    if (eValueAlmost==0)
+      eValueAlmost <- .Machine$double.xmin
+
+    eValue <- exp(logTerm)*eValueAlmost
+
+    if (alternative=="greater") {
+      if (t < 0 && eValue > 1)
+        warning("Overflow: Subtraction of two large numbers: eValue should be smaller than one")
+    } else if (alternative=="less") {
+      if (t > 0 && eValue > 1)
+        warning("Overflow: Subtraction of two large numbers: eValue should be smaller than one")
+    }
+
+    return(list(eValue=eValue))
+  }
+}
 
 #' safeTTestStat() based on t-densities
 #'
@@ -1049,7 +1073,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
   tempResult <- stats::power.t.test("delta"=deltaMin, "power"=1-beta, "type"=testTypeFreq,
                                     "alternative"=alternativeFreq)
 
-  n1Plan <- ceiling(tempResult[["n"]])
+  n1Plan <- ceil(tempResult[["n"]])
   n2Plan <- NULL
 
   if (testType!="oneSample") n2Plan <- n1Plan
@@ -1676,10 +1700,10 @@ computeNPlanBatchSafeT <- function(
 
   # Two-sample/paired stuff
   if (testType == "twoSample") {
-    n1Plan <- ceiling(nEff * n1OverNEffRatio)
-    n2Plan <- ceiling(nEff * n1OverNEffRatio * ratio)
+    n1Plan <- ceil(nEff * n1OverNEffRatio)
+    n2Plan <- ceil(nEff * n1OverNEffRatio * ratio)
   } else {
-    n1Plan <- ceiling(nEff)
+    n1Plan <- ceil(nEff)
     n2Plan <- if (testType == "paired") n1Plan else NULL
   }
 
@@ -1857,7 +1881,7 @@ sampleStoppingTimesSafeT <- function(
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
-    nMax <- c(nMax, ceiling(ratio*nMax))
+    nMax <- c(nMax, ceil(ratio*nMax))
     n1Max <- nMax[1]
     n2Max <- nMax[2]
     ratio <- nMax[2]/nMax[1]
@@ -2123,7 +2147,7 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 
   if (testType %in% c("twoSample")) {
     n1 <- lowN:highN
-    n2 <- ceiling(ratio*n1)
+    n2 <- ceil(ratio*n1)
     nEff <- (1/n1+1/n2)^(-1)
     nu <- n1+n2-2
   } else if (testType %in% c("oneSample", "paired")) {

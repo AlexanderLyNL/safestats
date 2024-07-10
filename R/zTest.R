@@ -868,7 +868,7 @@ designFreqZ <- function(
       n1Plan <- n
 
       if (testType=="twoSample")
-        n2Plan <- ceiling(ratio*n)
+        n2Plan <- ceil(ratio*n)
 
       if (testType=="paired")
         n2Plan <- n
@@ -1491,10 +1491,10 @@ computeNPlanBatchSafeZ <- function(
 
   # Two-sample/paired stuff
   if (testType == "twoSample") {
-    n1Plan <- ceiling(nEff * n1OverNEffRatio)
-    n2Plan <- ceiling(nEff * n1OverNEffRatio * ratio)
+    n1Plan <- ceil(nEff * n1OverNEffRatio)
+    n2Plan <- ceil(nEff * n1OverNEffRatio * ratio)
   } else {
-    n1Plan <- ceiling(nEff)
+    n1Plan <- ceil(nEff)
     n2Plan <- if (testType == "paired") n1Plan else NULL
   }
 
@@ -1823,7 +1823,7 @@ sampleStoppingTimesSafeZ <- function(
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
-    nMax <- c(nMax, ceiling(ratio*nMax))
+    nMax <- c(nMax, ceil(ratio*nMax))
     n1Max <- nMax[1]
     n2Max <- nMax[2]
     ratio <- nMax[2]/nMax[1]

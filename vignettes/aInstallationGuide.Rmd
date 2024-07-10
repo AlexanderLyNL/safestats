@@ -48,7 +48,7 @@ library(safestats)
 If this is successful then please skip the next subsection and continue with the [first example](#firstExample).
 
 ## b. <a name = "installDownload">Install using a downloaded tar.gz file</a>
-Download the tar.gz file from [this dropbox link](https://www.dropbox.com/s/0961a8e3epqfbwg/safestats_0.8.8.tar.gz?dl=0) and save it to a folder that you can easily find. 
+Download the tar.gz file from [this dropbox link](https://www.dropbox.com/scl/fi/rh5x0todkjlcz5s7zpe5f/safestats_0.8.8.tar.gz?rlkey=rvybc4uhgclku0g3siu9vt1zz&dl=0) and save it to a folder that you can easily find. 
 
 ```{r eval=FALSE}
 install.packages(path_to_file, repos = NULL, type="source")
@@ -133,5 +133,8 @@ controlGroup <- rnorm(36, mean=112, sd=sigmaTrue)
 resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)
 resultObj
+
+plot(resultObj)
+plot(resultObj, wantConfSeqPlot=TRUE)
 ```
 The resultObj shows that we can reject the null, as the e-value is 93232, which is much larger than 1/alpha = 20, see the next R Markdown document on "Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 6.04 and 22.87) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document on "Anytime-valid confidence sequences" for further details.
