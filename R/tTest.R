@@ -2264,41 +2264,72 @@ generateNormalData <- function(nPlan, nSim=1000L,
 #'
 conjugateBfTStat <- function(
     x1, sdObs1, n1, x2, sdObs2, n2,
-    a1=4, g1=0.01, a2=4.1, g2=0.15,
-    a0=4, g0=2,
+    a1=3.98, g1=0.001, a2=4.02, g2=0.001,
+    a0=4, g0=20,
     aGamma=2, bGamma=1/2, log=FALSE) {
 
-  nCombined <- n1+n2
-  nuCombined <- nCombined-1
-  xCombined <- (n1*x1+n2*x2)/nCombined
+  nPlus <- n1+n2
+  q1 <- n1/nPlus
+  q2 <- n2/nPlus
+  # nuCombined <- nCombined-1
+  xGlobal <- q1*x1+q2*x2
   nu1 <- n1-1
   nu2 <- n2-1
 
   if (n1 <= 1 && n2 <= 1) {
-    sdObsCombined <- stats::sd(c(x1, x2))
     sdObs1 <- 0
     sdObs2 <- 0
     nu1 <- 0
     nu2 <- 0
-  } else {
-    nuCombined <- nCombined - 1
-    sdObsCombined <- sqrt(
-      ((n1-1)*sdObs1^2+n1*x1^2+(n2-1)*sdObs2^2+n2*x2^2-nCombined*xCombined^2)/nuCombined
-    )
   }
 
-  logBf10 <- 1/2*log((1+nCombined*g0)/((1+n1*g1)*(1+n2*g2))) +
-    (nCombined/2+aGamma)*log(
-      (2*bGamma + nuCombined*sdObsCombined^2+nCombined/(1+nCombined*g0)*(xCombined-a0)^2)/
-        (2*bGamma + nu1*sdObs1^2+n1/(1+n1*g1)*(x1-a1)^2 + nu2*sdObs2^2+n2/(1+n2*g2)*(x2-a2)^2)
+  ssTerm <- nu1*sdObs1^2+nu2*sdObs2^2+2*bGamma
+
+  logBf10 <- 1/2*(log(1+nPlus*g0)-log(1+n1*g1)-log(1+n2*g2)) +
+    (nPlus/2+bGamma)*(
+      log(ssTerm+nPlus/(1+nPlus*g0)*(q1*x1+q2*x2-a0)^2 +nPlus*q1*q2*(x1-x2)) -
+        log(ssTerm+n1/(1+n1*g1)*(x1-a1)^2+n1/(1+n2*g2)*(x2-a2)^2)
     )
 
   if (isTRUE(log))
     return(logBf10)
   else
     return(exp(logBf10))
-
 }
+
+#   {
+#
+#   nCombined <- n1+n2
+#   nuCombined <- nCombined-1
+#   xCombined <- (n1*x1+n2*x2)/nCombined
+#   nu1 <- n1-1
+#   nu2 <- n2-1
+#
+#   if (n1 <= 1 && n2 <= 1) {
+#     sdObsCombined <- stats::sd(c(x1, x2))
+#     sdObs1 <- 0
+#     sdObs2 <- 0
+#     nu1 <- 0
+#     nu2 <- 0
+#   } else {
+#     nuCombined <- nCombined - 1
+#     sdObsCombined <- sqrt(
+#       ((n1-1)*sdObs1^2+n1*x1^2+(n2-1)*sdObs2^2+n2*x2^2-nCombined*xCombined^2)/nuCombined
+#     )
+#   }
+#
+#   logBf10 <- 1/2*log((1+nCombined*g0)/((1+n1*g1)*(1+n2*g2))) +
+#     (nCombined/2+aGamma)*log(
+#       (2*bGamma + nuCombined*sdObsCombined^2+nCombined/(1+nCombined*g0)*(xCombined-a0)^2)/
+#         (2*bGamma + nu1*sdObs1^2+n1/(1+n1*g1)*(x1-a1)^2 + nu2*sdObs2^2+n2/(1+n2*g2)*(x2-a2)^2)
+#     )
+#
+#   if (isTRUE(log))
+#     return(logBf10)
+#   else
+#     return(exp(logBf10))
+#
+# }
 
 #' Computes the credible interval of a two-sample t-test based on conjugate priors
 #'
