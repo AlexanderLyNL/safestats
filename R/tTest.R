@@ -2264,8 +2264,83 @@ generateNormalData <- function(nPlan, nSim=1000L,
 #'
 conjugateBfTStat <- function(
     x1, sdObs1, n1, x2, sdObs2, n2,
-    a1=3.98, g1=0.001, a2=4.02, g2=0.001,
-    a0=4, g0=20,
+    # a1=3.98, g1=0.05, a2=4.02, g2=0.02,
+    # a0=4, g0=2,
+    # a1=3.98, g1=0.5, a2=4.02, g2=0.1,
+    # a0=4, g0=2,
+    a1=3.98, g1=0.03,
+    a2=4.02, g2=0.05,
+    a0=4, g0=2,
+    # a1=3.7, g1=0.1, a2=4.3, g2=0.3,
+    # a0=4, g0=1e3,
+    aGamma=2, bGamma=1/2, log=FALSE) {
+
+  nu1 <- n1-1
+  nu2 <- n2-1
+
+  if (n1 <= 1) {
+    sdObs1 <- 0
+    nu1 <- 0
+  }
+
+  if (n2 <= 1) {
+    sdObs2 <- 0
+    nu2 <- 0
+  }
+
+  ssTerm <- nu1*sdObs1^2+nu2*sdObs2^2+2*bGamma
+  nP <- n1+n2
+
+  logBf10 <- 1/2*(log(1+g0*nP)-log(1+g1*n1)-log(1+g2*n2))+
+    (nP+2*aGamma)/2*
+    (log(n1*n2/nP*(x1-x2)^2+nP/(1+g0*nP)*(n1/nP*x1+n2/nP*x2-a0)^2+ssTerm) -
+       log(n1/(1+g1*n1)*(x1-a1)^2+n2/(1+g2*n2)*(x2-a2)^2+ssTerm))
+
+  if (isTRUE(log))
+    return(logBf10)
+  else
+    return(exp(logBf10))
+}
+
+#' A "subjective" Bayes factor for the two-sample T-test
+#'
+#' Based on conjugate priors with a total of 8 hyperparameters.
+#'
+#' @param x1 numeric, sample mean of group 1
+#' @param sdObs1 numeric, the observed standard deviation of the first group.
+#' @param n1 integer sample size of group 1
+#' @param x2 numeric, sample mean of group 2
+#' @param sdObs2 numeric, the observed standard deviation of the second group.
+#' @param n2 integer sample size of group 2
+#' @param a1 numeric, prior mean of the population mean mu1 of group 1
+#' @param g1 numeric > 0, conditional prior variance of the population mean
+#' mu1 of group 1 is given by \code{g1*sigma^2}
+#' @param a2 numeric, prior mean of the population mean mu2 of group 2
+#' @param g2 numeric > 0, conditional prior variance of the population mean
+#' mu2 of group 2 is given by \code{g2*sigma^2}
+#' @param a0 numeric, prior mean of the overall population mean mu0 of both groups
+#' @param g0 numeric > 0, conditional prior variance of the population mean
+#' mu0 of both groups is given by \code{g1*sigma^2}
+#' @param aGamma numeric > 0, shape parameter of the prior on the
+#' standard deviation sigma
+#' @param bGamma numeric > 0, rate parameter of the prior on the
+#' standard deviation sigma
+#' @param log logical, default FALSE, if TRUE then return logarithm of the subjective Bayes factor outcome
+#'
+#' @return numeric > 0 representing the subjective Bayes factor outcome in favour of the alternative over the null
+#' @export
+#'
+#' @examples
+#' conjugateBfTStat(5.2, 2, 3, 3.4, 2, 12)
+#'
+conjugateBfTStatOld <- function(
+    x1, sdObs1, n1, x2, sdObs2, n2,
+    # a1=3.98, g1=0.05, a2=4.02, g2=0.02,
+    # a0=4, g0=2,
+    a1=3.98, g1=0.5, a2=4.02, g2=0.1,
+    a0=4, g0=2,
+    # a1=3.7, g1=0.1, a2=4.3, g2=0.3,
+    # a0=4, g0=1e3,
     aGamma=2, bGamma=1/2, log=FALSE) {
 
   nPlus <- n1+n2
@@ -2343,26 +2418,24 @@ conjugateBfTStat <- function(
 #' computeConjugateCredibleIntervalTwoSampleT(1, 1, 3, 1, 1, 3)
 computeConjugateCredibleIntervalTwoSampleT <- function(
     x1, sdObs1, n1, x2, sdObs2, n2,
-    a1=4, g1=0.01, a2=4.1, g2=0.15,
+    # a1=3.98, g1=0.05, a2=4.02, g2=0.02,
+    # a1=3.98, g1=0.5, a2=4.02, g2=0.1,
+    a1=3.98, g1=0.03,
+    a2=4.02, g2=0.05,
     aGamma=2, bGamma=1/2, ciValue=0.95) {
 
   # posterior mean conditional on sigma
   u <- (n1*g1*x1+a1)/(1+n1*g1)-(n2*g2*x2+a2)/(1+n2*g2)
+  nP <- n1+n2
 
-  # posterior variance conditional on sigma
-  w <- sqrt(g1/(1+n1*g1) + g2/(1+n2*g2))
+  w <- sqrt(
+    (g1+g2+g1*g2*nP)/((1+g1*n1)*(1+g2*n2))*
+    (2*bGamma+(n1-1)*sdObs1^2+(n2-1)*sdObs2^2)/(nP+2*aGamma))
 
-  nu1 <- n1-1
-  nu2 <- n2-1
+  rightQuantile <- abs(qt((1-ciValue)/2, df=nP+2*aGamma, ncp=0, lower.tail=TRUE))
 
-  alphaSigma <- (n1+n2)/2+aGamma
-  betaSigma <- bGamma+1/2*(nu1*sdObs1^2+nu2*sdObs2^2+n1*(x1-a1)^2/(1+n1*g1)+n2*(x2-a2)^2/(1+n2*g2))
-
-
-  rightQuantile <- abs(qt((1-ciValue)/2, df=2*alphaSigma, ncp=0, lower.tail=TRUE))
-
-  lowerCS <- u-w*sqrt(betaSigma/alphaSigma)*rightQuantile
-  upperCS <- u+w*sqrt(betaSigma/alphaSigma)*rightQuantile
+  lowerCS <- u-w*rightQuantile
+  upperCS <- u+w*rightQuantile
 
   return(unname(c(lowerCS, upperCS)))
 }
