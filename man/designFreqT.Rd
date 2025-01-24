@@ -37,14 +37,14 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 Returns an object of class 'freqTDesign'. An object of class 'freqTDesign' is a list containing at least the
 following components:
 \describe{
-  \item{nPlan}{the planned sample size(s).}
-  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
-  \item{alpha}{the tolerable type I error provided by the user.}
-  \item{beta}{the tolerable type II error provided by the user.}
-  \item{lowN}{the smallest n of the search space for n provided by the user.}
-  \item{highN}{the largest n of the search space for n provided by the user.}
-  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
+\item{nPlan}{the planned sample size(s).}
+\item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+\item{alpha}{the tolerable type I error provided by the user.}
+\item{beta}{the tolerable type II error provided by the user.}
+\item{lowN}{the smallest n of the search space for n provided by the user.}
+\item{highN}{the largest n of the search space for n provided by the user.}
+\item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+\item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 }
 }
 \description{

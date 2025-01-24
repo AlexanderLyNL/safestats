@@ -25,7 +25,7 @@ computeNPlanSafeT(
 }
 \arguments{
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
+This argument is used by \code{designSafeT()} with \code{deltaTrue <- deltaMin}}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}

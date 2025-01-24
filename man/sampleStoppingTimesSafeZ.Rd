@@ -13,7 +13,7 @@ sampleStoppingTimesSafeZ(
   kappa = sigma,
   ratio = 1,
   parameter = NULL,
-  nMax = 100000000L,
+  nMax = 1000L,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantEValuesAtNMax = FALSE,
   wantSamplePaths = TRUE,
@@ -21,6 +21,9 @@ sampleStoppingTimesSafeZ(
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
+  futility = FALSE,
+  growFutility = FALSE,
+  beta = NULL,
   ...
 )
 }
@@ -69,6 +72,15 @@ two point masses at the minimal clinically relevant effect size.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the safe z test under continuous monitoring.}
+
+\item{futility}{logical, if \code{TRUE} then impose rule to stop
+for futility if e < beta. Default \code{FALSE}.}
+
+\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
+to stop for futility (e < beta). Default \code{FALSE}.}
+
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+and "phiS". Note that 1-beta defines the power.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

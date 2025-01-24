@@ -89,20 +89,20 @@ Returns an object of class 'safeDesign'. An object of class 'safeDesign' is a li
 following components:
 
 \describe{
-  \item{nPlan}{the planned sample size(s).}
-  \item{parameter}{the safe test defining parameter. Here deltaS.}
-  \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
-  \item{alpha}{the tolerable type I error provided by the user.}
-  \item{beta}{the tolerable type II error provided by the user.}
-  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-  \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
-  \item{h0}{the specified hypothesised value of the mean or mean difference depending on
-  whether it was a one-sample or a two-sample test.}
-  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
-  ratio between the planned randomisation of condition 2 over condition 1.}
-  \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
-  \item{call}{the expression with which this function is called.}
+\item{nPlan}{the planned sample size(s).}
+\item{parameter}{the safe test defining parameter. Here deltaS.}
+\item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+\item{alpha}{the tolerable type I error provided by the user.}
+\item{beta}{the tolerable type II error provided by the user.}
+\item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
+\item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+\item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
+\item{h0}{the specified hypothesised value of the mean or mean difference depending on
+whether it was a one-sample or a two-sample test.}
+\item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+ratio between the planned randomisation of condition 2 over condition 1.}
+\item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
+\item{call}{the expression with which this function is called.}
 }
 }
 \description{

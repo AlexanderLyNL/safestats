@@ -56,10 +56,10 @@ Returns an object of class 'safeTest'. An object of class 'safeTest' is a list c
 following components:
 
 \describe{
-  \item{n}{The realised sample size(s).}
-  \item{eValue}{the e-value of the safe test.}
-  \item{dataName}{a character string giving the name(s) of the data.}
-  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}()}.}
+\item{n}{The realised sample size(s).}
+\item{eValue}{the e-value of the safe test.}
+\item{dataName}{a character string giving the name(s) of the data.}
+\item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}()}.}
 }
 }
 \description{

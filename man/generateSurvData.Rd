@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{generateSurvData}
 \alias{generateSurvData}
-\title{Generate Survival Data which Can Be Analysed With the `survival` Package}
+\title{Generate Survival Data which Can Be Analysed With the \code{survival} Package}
 \usage{
 generateSurvData(
   nP,
@@ -48,7 +48,7 @@ is the start time of \code{\link[stats]{rweibull}}.}
 A data set with time, status and group.
 }
 \description{
-Generate Survival Data which Can Be Analysed With the `survival` Package
+Generate Survival Data which Can Be Analysed With the \code{survival} Package
 }
 \examples{
 generateSurvData(800, 800, alpha=1, lambdaP=0.008, lambdaT=0.008/2)

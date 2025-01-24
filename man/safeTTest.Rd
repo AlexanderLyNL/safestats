@@ -79,18 +79,18 @@ Returns an object of class "safeTest". An object of class "safeTest" is a list c
 following components:
 
 \describe{
-  \item{statistic}{the value of the t-statistic.}
-  \item{n}{The realised sample size(s).}
-  \item{eValue}{the realised e-value from the safe test.}
-  \item{confSeq}{A safe confidence interval for the mean appropriate to the specific alternative
-  hypothesis.}
-  \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it a one-
-  sample test or a two-sample test was conducted.}
-  \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
-  \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-  \item{dataName}{a character string giving the name(s) of the data.}
-  \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}()}.}
-  \item{call}{the expression with which this function is called.}
+\item{statistic}{the value of the t-statistic.}
+\item{n}{The realised sample size(s).}
+\item{eValue}{the realised e-value from the safe test.}
+\item{confSeq}{A safe confidence interval for the mean appropriate to the specific alternative
+hypothesis.}
+\item{estimate}{the estimated mean or difference in means or mean difference depending on whether it a one-
+sample test or a two-sample test was conducted.}
+\item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
+\item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+\item{dataName}{a character string giving the name(s) of the data.}
+\item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}()}.}
+\item{call}{the expression with which this function is called.}
 }
 }
 \description{

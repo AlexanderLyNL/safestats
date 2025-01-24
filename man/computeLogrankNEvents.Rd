@@ -28,9 +28,9 @@ detect.}
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 and "phiS". Note that 1-beta defines the power.}
 
-\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
+\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.}
 
-\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
+\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}

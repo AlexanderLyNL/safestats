@@ -60,13 +60,13 @@ Returns an object of class "safe2x2Sim". An object of class "safe2x2Sim" is a li
 following components:
 
 \describe{
-  \item{simData}{A data frame containing simulation results with worst case and expected stopping times for each
-  hyperparameter setting, for the specified or default range of effect sizes.}
-  \item{alpha}{the significance threshold used in the simulations}
-  \item{beta}{the type-II error control used in the simulations}
-  \item{deltaDesign}{the value of restriction on the alternative hypothesis parameter space used for the E variables in the simulations}
-  \item{restriction}{the type of restriction used for the E variables in the simulation}
-  \item{hyperparameters}{list of the hyperparameters tested in the simulation}
+\item{simData}{A data frame containing simulation results with worst case and expected stopping times for each
+hyperparameter setting, for the specified or default range of effect sizes.}
+\item{alpha}{the significance threshold used in the simulations}
+\item{beta}{the type-II error control used in the simulations}
+\item{deltaDesign}{the value of restriction on the alternative hypothesis parameter space used for the E variables in the simulations}
+\item{restriction}{the type of restriction used for the E variables in the simulation}
+\item{hyperparameters}{list of the hyperparameters tested in the simulation}
 }
 }
 \description{

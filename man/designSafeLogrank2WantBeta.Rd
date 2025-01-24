@@ -42,9 +42,9 @@ lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than
 hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
 thus, lambda2 > lambda1, hence, harm.}
 
-\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
+\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.}
 
-\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
+\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 

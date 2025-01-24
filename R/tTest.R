@@ -20,6 +20,9 @@
 #'
 #' @export
 #'
+#' @references
+#'   `r addCite(grunwald2024safe, ly2024safe)`
+#'
 #' @examples
 #' safeTTestStat(t=1, n1=100, parameter=0.4)
 #' safeTTestStat(t=3, n1=100, parameter=0.3)
@@ -390,9 +393,6 @@ safeTTestStatNEffNuMom <- function(
 #' @inheritParams safeTTest
 #' @inheritParams safeTTestStatNEffNu
 #' @rdname safeTTestStat
-#'
-#' @return Returns a numeric that represent the e10, that is, the e-value in favour of the
-#' alternative over the null.
 #'
 safeTTestStatTDensity <- function(t, parameter, nu, nEff,
                                   alternative=c("twoSided", "less", "greater"),
@@ -2450,6 +2450,7 @@ computeConjugateCredibleIntervalTwoSampleT <- function(
 #' @export
 #'
 #' @examples
+#' tTestWidthDerivative(1, 1, 1)
 tTestWidthDerivative <- function(g, nEff, nu, alpha=0.05) {
   nEff*nu*(alpha^(2/(nu+1))*(1+g*nEff)^(-1/(nu+1))*(1+g*nEff+nu)-1-nu)
 }

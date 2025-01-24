@@ -121,7 +121,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 
   # Check inputs  ----
   #
-  if (isFALSE(pilot) && is.null(designObj))
+  if (base::isFALSE(pilot) && is.null(designObj))
     stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
          "A design object can be obtained by running designSafeLogrank().")
 
@@ -416,8 +416,8 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than that of group 1 (i.e., placebo),
 #' hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
 #' thus, lambda2 > lambda1, hence, harm.
-#' @param m0 Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].
-#' @param m1 Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].
+#' @param m0 Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.
+#' @param m1 Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.
 #' @param parameter Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
 #' algorithm, typically, this equals hrMin, which corresponds to the GROW choice.
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of events for the exact

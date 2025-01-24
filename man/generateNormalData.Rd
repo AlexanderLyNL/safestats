@@ -22,7 +22,7 @@ generateNormalData(
 for the safe z test under continuous monitoring.}
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
+This argument is used by \code{designSafeT()} with \code{deltaTrue <- deltaMin}}
 
 \item{muGlobal}{numeric, population grand mean}
 
@@ -38,8 +38,8 @@ This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
 Returns a list of two data matrices contains at least the following components:
 
 \describe{
-  \item{dataGroup1}{a matrix of data dimension nSim by \code{nPlan[1]}.}
-  \item{dataGroup2}{a matrix of data dimension nSim by \code{nPlan[2]}.}
+\item{dataGroup1}{a matrix of data dimension nSim by \code{nPlan[1]}.}
+\item{dataGroup2}{a matrix of data dimension nSim by \code{nPlan[2]}.}
 }
 }
 \description{

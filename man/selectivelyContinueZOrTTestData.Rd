@@ -25,7 +25,7 @@ selectivelyContinueZOrTTestData(
 \item{designObj}{an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`}
+This argument is used by \code{designSafeT()} with \code{deltaTrue <- deltaMin}}
 
 \item{testName}{character string either "Z-Test" or "T-Test".}
 

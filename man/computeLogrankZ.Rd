@@ -37,11 +37,11 @@ Default is NULL.}
 \value{
 Returns a list containing at least the following components:
 \describe{
-  \item{nEvents}{the number of events.}
-  \item{z}{the observed logrank statistic.}
-  \item{oMinEVector}{vector of observed minus expected.}
-  \item{varVector}{vector of hypergeometric variances.}
-  \item{stopTimeVector}{vector at which the events occurred.}
+\item{nEvents}{the number of events.}
+\item{z}{the observed logrank statistic.}
+\item{oMinEVector}{vector of observed minus expected.}
+\item{varVector}{vector of hypergeometric variances.}
+\item{stopTimeVector}{vector at which the events occurred.}
 }
 }
 \description{

@@ -17,10 +17,15 @@
   switchNFill = 10000,
   logScale = NULL,
   switchNLog = 30,
-  lineColour = "lemonchiffon4",
+  h0Colour = "gold",
+  lineColour = "#1F78B4E6",
   col = "#A6CEE380",
   border = "#1F78B4E6",
   wantConfSeqPlot = FALSE,
+  add = FALSE,
+  density = NULL,
+  angle = 45,
+  fillOddEven = FALSE,
   ...
 )
 }
@@ -46,23 +51,42 @@ range of the y-axis}
 \item{fillPlot}{logical, if TRUE then plot the confidence
 sequence with a background colour}
 
-\item{switchNFill}{integer, if is.null(fillPlot), then
+\item{switchNFill}{integer, if \code{is.null(fillPlot)}, then
 fill if the number of samples is smaller than switchNFill}
 
 \item{logScale}{logical, if TRUE then plot on the logscale}
 
-\item{switchNLog}{integer, if is.null(logScale), then
+\item{switchNLog}{integer, if \code{is.null(logScale)}, then
 plot on the log scale if the number of samples is larger
 than switchNLog}
 
-\item{lineColour}{The color to be used for the e-value.}
+\item{h0Colour}{Colour to indicate the null hypothesis.}
 
-\item{col}{The color for filling the anytime-valid confidence interval.}
+\item{lineColour}{The colour to be used for the e-value progression.}
 
-\item{border}{The color to draw the border.}
+\item{col}{The colour for filling the anytime-valid confidence interval.}
 
-\item{wantConfSeqPlot}{logical, if TRUE then plot the
+\item{border}{The colour to draw the border.}
+
+\item{wantConfSeqPlot}{logical, if \code{TRUE} then plot the
 confidence sequence instead of the e-value progression}
+
+\item{add}{logical, default \code{FALSE} so a new plot is made.
+If \code{TRUE} and \code{wantConfSeqPlot==FALSE} then adds the e-value
+progression line to an existing plot. If TRUE and
+\code{wantConfSeqPlot==TRUE} then adds another anytime-valid confidence
+sequence.}
+
+\item{density}{the density of shading lines, in lines per inch.
+The default value of \code{NULL} means that no shading lines are drawn.
+A zero value of density means no shading nor filling whereas
+negative values and \code{NA} suppress shading (and so allow colour filling).}
+
+\item{angle}{the slope of shading lines, given as an angle in degrees
+(anti-clockwise).}
+
+\item{fillOddEven}{logical controlling the polygon shading mode: see
+\code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

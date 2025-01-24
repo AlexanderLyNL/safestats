@@ -3,9 +3,11 @@ Type: Package
 Title: Safe Anytime-Valid Inference
 Version: 0.8.8
 Authors@R: c(
-  person("Alexander", "Ly", email = "a.ly@jasp-stats.org",
+  person("Alexander", "Ly", email = "a.ly@cwi.nl",
   role = c("cre", "aut")),
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
+  role = "aut"),
+  person("Yongqi", "Wang ", email = "yongqi.wang@cwi.nl",
   role = "aut"),
   person("Muriel Felipe", "Perez-Ortiz", email = "m.f.perez.ortiz@tue.nl",
   role = c("ctb")),
@@ -54,3 +56,4 @@ NeedsCompilation: no
 RoxygenNote: 7.2.3
 Language: en-GB
 Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)

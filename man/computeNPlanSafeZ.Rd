@@ -22,6 +22,8 @@ computeNPlanSafeZ(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  futility = FALSE,
+  growFutility = FALSE,
   ...
 )
 }
@@ -73,6 +75,12 @@ for the safe z test under continuous monitoring.}
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
 approximation of the power, the number of samples for the safe z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
+
+\item{futility}{logical, if \code{TRUE} then impose rule to stop
+for futility if e < beta. Default \code{FALSE}.}
+
+\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
+to stop for futility (e < beta). Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

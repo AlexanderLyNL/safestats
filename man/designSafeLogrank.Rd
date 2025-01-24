@@ -50,9 +50,9 @@ lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than
 hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
 thus, lambda2 > lambda1, hence, harm.}
 
-\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
+\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.}
 
-\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
+\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
@@ -92,18 +92,18 @@ power or nEvents for the exact safe logrank test under continuous monitoring}
 Returns a safeDesign object that includes:
 
 \describe{
-  \item{nEvents}{the anticipated number of events, either (1) specified by the user, or
-  (2) computed based on beta and thetaMin.}
-  \item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
-  \item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
-  \item{alpha}{the tolerable type I error provided by the user.}
-  \item{beta}{the tolerable type II error provided by the user.}
-  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-  \item{testType}{"logrank".}
-  \item{ratio}{default is 1. It defines the ratio between the planned randomisation of
-  condition 2 over condition 1.}
-  \item{pilot}{\code{FALSE} to indicate that the design is not a pilot study.}
-  \item{call}{the expression with which this function is called.}
+\item{nEvents}{the anticipated number of events, either (1) specified by the user, or
+(2) computed based on beta and thetaMin.}
+\item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
+\item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
+\item{alpha}{the tolerable type I error provided by the user.}
+\item{beta}{the tolerable type II error provided by the user.}
+\item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
+\item{testType}{"logrank".}
+\item{ratio}{default is 1. It defines the ratio between the planned randomisation of
+condition 2 over condition 1.}
+\item{pilot}{\code{FALSE} to indicate that the design is not a pilot study.}
+\item{call}{the expression with which this function is called.}
 }
 }
 \description{

@@ -61,16 +61,16 @@ Default \code{NULL}, then the entire parameter space (possibly restricted by del
 Returns a 'safeDesign' object that includes:
 
 \describe{
-  \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
-  if known.}
-  \item{parameter}{the safe test defining parameter: here the hyperparameters.}
-  \item{esMin}{the minimally clinically relevant effect size provided by the user.}
-  \item{alpha}{the tolerable type I error provided by the user.}
-  \item{beta}{the tolerable type II error specified by the user.}
-  \item{alternative}{any of "twoSided", "greater", "less" based on the \code{alternativeRestriction} provided by the user.}
-  \item{testType}{here 2x2}
-  \item{pilot}{logical, specifying whether it's a pilot design.}
-  \item{call}{the expression with which this function is called.}
+\item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
+if known.}
+\item{parameter}{the safe test defining parameter: here the hyperparameters.}
+\item{esMin}{the minimally clinically relevant effect size provided by the user.}
+\item{alpha}{the tolerable type I error provided by the user.}
+\item{beta}{the tolerable type II error specified by the user.}
+\item{alternative}{any of "twoSided", "greater", "less" based on the \code{alternativeRestriction} provided by the user.}
+\item{testType}{here 2x2}
+\item{pilot}{logical, specifying whether it's a pilot design.}
+\item{call}{the expression with which this function is called.}
 }
 }
 \description{
@@ -81,9 +81,9 @@ are achieved when the data blocks are chosen as small as possible, as this allow
 the safe test as often as possible, to fit the data best.
 Further, the design requires two out of the following three parameters to be known:
 \itemize{
- \item the power one aims to achieve (\code{1 - beta}),
- \item the minimal relevant difference between the groups (\code{delta})
- \item the number of blocks planned (\code{nBlocksPlan}),
+\item the power one aims to achieve (\code{1 - beta}),
+\item the minimal relevant difference between the groups (\code{delta})
+\item the number of blocks planned (\code{nBlocksPlan}),
 }
 where the unknown out of the three will be estimated. In the case of an exploratory "pilot" analysis,
 one can also only provide the number of blocks planned.

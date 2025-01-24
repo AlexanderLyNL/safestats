@@ -24,6 +24,8 @@ designSafeZ(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  futility = FALSE,
+  growFutility = FALSE,
   ...
 )
 }
@@ -89,27 +91,33 @@ for the safe z test under continuous monitoring.}
 approximation of the power, the number of samples for the safe z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
 
+\item{futility}{logical, if \code{TRUE} then impose rule to stop
+for futility if e < beta. Default \code{FALSE}.}
+
+\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
+to stop for futility (e < beta). Default \code{FALSE}.}
+
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 Returns a safeDesign object that includes:
 
 \describe{
-  \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
-  if known.}
-  \item{parameter}{the safe test defining parameter. Here phiS.}
-  \item{esMin}{the minimally clinically relevant effect size provided by the user.}
-  \item{alpha}{the tolerable type I error provided by the user.}
-  \item{beta}{the tolerable type II error specified by the user.}
-  \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-  \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
-  \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
-  \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
-  \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
-  \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
-  ratio between the planned randomisation of condition 2 over condition 1.}
-  \item{pilot}{logical, specifying whether it's a pilot design.}
-  \item{call}{the expression with which this function is called.}
+\item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
+if known.}
+\item{parameter}{the safe test defining parameter. Here phiS.}
+\item{esMin}{the minimally clinically relevant effect size provided by the user.}
+\item{alpha}{the tolerable type I error provided by the user.}
+\item{beta}{the tolerable type II error specified by the user.}
+\item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
+\item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
+\item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
+\item{sigma}{the assumed population standard deviation used for the test provided by the user.}
+\item{kappa}{the true population standard deviation, typically, sigma=kappa.}
+\item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+ratio between the planned randomisation of condition 2 over condition 1.}
+\item{pilot}{logical, specifying whether it's a pilot design.}
+\item{call}{the expression with which this function is called.}
 }
 }
 \description{
@@ -127,5 +135,5 @@ designObj <- designSafeZ(meanDiffMin=0.8, alpha=0.2, beta=0.2,
 designObj <- designSafeZ(nPlan = 100, beta=0.2)
 }
 \references{
-Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
+Grunwald, de Heide and Koolen (2019) "Safe Testing" \url{arXiv:1906.07801}
 }

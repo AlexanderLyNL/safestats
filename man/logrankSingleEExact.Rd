@@ -25,9 +25,9 @@ hypothesis obtained from \code{designSafeLogrank()}.}
 \value{
 Returns a list containing at least the following components:
 \describe{
-  \item{logP0}{Log likelihood of Fisher's hypergeometric at the null}
-  \item{logEValueLess}{Log likelihood of Fisher's hypergeometric at the alternative}
-  \item{logEValueGreater}{Log likelihood of Fisher's hypergeometric at 1/alternative}
+\item{logP0}{Log likelihood of Fisher's hypergeometric at the null}
+\item{logEValueLess}{Log likelihood of Fisher's hypergeometric at the alternative}
+\item{logEValueGreater}{Log likelihood of Fisher's hypergeometric at 1/alternative}
 }
 }
 \description{

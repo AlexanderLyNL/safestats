@@ -66,19 +66,19 @@ Returns an object of class 'safeTest'. An object of class 'safeTest' is a list c
 following components:
 
 \describe{
-  \item{statistic}{the value of the test statistic. Here the z-statistic.}
-  \item{n}{The realised sample size(s).}
-  \item{eValue}{the e-value of the safe test.}
-  \item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
-  hypothesis.}
-  \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-  sample test or a two-sample test.}
-  \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-  or a two-sample test.}
-  \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
-  \item{dataName}{a character string giving the name(s) of the data.}
-  \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}()}.}
-  \item{call}{the expression with which this function is called.}
+\item{statistic}{the value of the test statistic. Here the z-statistic.}
+\item{n}{The realised sample size(s).}
+\item{eValue}{the e-value of the safe test.}
+\item{confInt}{To be implemented: a safe confidence interval for the mean appropriate to the specific alternative
+hypothesis.}
+\item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
+sample test or a two-sample test.}
+\item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
+or a two-sample test.}
+\item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
+\item{dataName}{a character string giving the name(s) of the data.}
+\item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeZ}()}.}
+\item{call}{the expression with which this function is called.}
 }
 }
 \description{

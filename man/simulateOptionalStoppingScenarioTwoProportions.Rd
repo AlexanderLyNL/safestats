@@ -20,14 +20,14 @@ list with the simulation results of the safe test under optional stopping with t
 components:
 
 \describe{
-  \item{powerOptioStop}{Proportion of sequences where H0 was rejected}
-  \item{nMean}{Mean stopping time}
-  \item{probLessNDesign}{Proportion of experiments stopped before nBlocksPlan was reached}
-  \item{lowN}{Minimum stopping time}
-  \item{eValues}{All achieved E values}
-  \item{allN}{All stopping times}
-  \item{allSafeDecisions}{Decisions on rejecting H0 for each M}
-  \item{allRejectedN}{Stopping times of experiments where H0 was rejected}
+\item{powerOptioStop}{Proportion of sequences where H0 was rejected}
+\item{nMean}{Mean stopping time}
+\item{probLessNDesign}{Proportion of experiments stopped before nBlocksPlan was reached}
+\item{lowN}{Minimum stopping time}
+\item{eValues}{All achieved E values}
+\item{allN}{All stopping times}
+\item{allSafeDecisions}{Decisions on rejecting H0 for each M}
+\item{allRejectedN}{Stopping times of experiments where H0 was rejected}
 }
 }
 \description{

@@ -20,8 +20,8 @@ logrankSingleZ(obs0, obs1, y0, y1, ...)
 \value{
 Returns a list containing at least the following components:
 \describe{
-  \item{oMinE}{observed minus expected.}
-  \item{v}{hypergeometric variance.}
+\item{oMinE}{observed minus expected.}
+\item{v}{hypergeometric variance.}
 }
 }
 \description{
