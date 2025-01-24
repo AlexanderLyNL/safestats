@@ -21,7 +21,8 @@
 #' @export
 #'
 #' @references
-#'   `r addCite(grunwald2024safe, ly2024safe)`
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #'
 #' @examples
 #' safeTTestStat(t=1, n1=100, parameter=0.4)

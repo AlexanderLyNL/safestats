@@ -7,7 +7,7 @@
 #'
 #' @examples
 #' addCite(grunwald2024safe)
-addCite <- function(...) {
+addCite <- function(..., breakLine=TRUE) {
   keys <- as.character(rlang::ensyms(...))
 
   # TODO(ALEXANDER) CHECK: utils::cite
@@ -30,7 +30,7 @@ addCite <- function(...) {
   res <- character()
 
   for (i in seq_along(refs)) {
-    if (i == refLength) {
+    if (i == refLength && isFALSE(breakLine)) {
       res <- paste(res, refs[[i]])
     } else {
       res <- paste(res, refs[[i]], "</br> </br>")

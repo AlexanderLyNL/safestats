@@ -4,7 +4,7 @@
 \alias{addCite}
 \title{Add a savi reference}
 \usage{
-addCite(...)
+addCite(..., breakLine = TRUE)
 }
 \arguments{
 \item{key}{character string. firstAuthorYearFirstWord}

@@ -2,12 +2,13 @@ Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
 Version: 0.8.8
+Date: 2025-01-12
 Authors@R: c(
   person("Alexander", "Ly", email = "a.ly@cwi.nl",
   role = c("cre", "aut")),
   person("Rosanne", "Turner", email = "rosanne.turner@cwi.nl",
   role = "aut"),
-  person("Yongqi", "Wang ", email = "yongqi.wang@cwi.nl",
+  person("Yongqi", "Wang", email = "yongqi.wang@cwi.nl",
   role = "aut"),
   person("Muriel Felipe", "Perez-Ortiz", email = "m.f.perez.ortiz@tue.nl",
   role = c("ctb")),
