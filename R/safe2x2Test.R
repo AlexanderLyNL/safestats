@@ -228,7 +228,7 @@ designSafeTwoProportions <- function(na, nb,
 
 #' Perform a Safe Test for Two Proportions with Stream Data
 #'
-#' Perform a safe test for two proportions (a 2x2 contingency table test) with a
+#' Perform an anytime-valid test for two proportions (a 2x2 contingency table test) with a
 #' result object retrieved through the design function for planning an experiment to compare
 #' two proportions in this package, \code{\link{designSafeTwoProportions}()}.
 #'
