@@ -22,10 +22,10 @@ selectivelyContinueZOrTTestData(
 )
 }
 \arguments{
-\item{designObj}{an object obtained from \code{\link{designSafeZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
+\item{designObj}{an object obtained from \code{\link{designSaviZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by \code{designSafeT()} with \code{deltaTrue <- deltaMin}}
+This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{testName}{character string either "Z-Test" or "T-Test".}
 
@@ -38,7 +38,7 @@ This argument is used by \code{designSafeT()} with \code{deltaTrue <- deltaMin}}
 \item{meanDiffTrue}{numeric, data governing parameter value}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the safe z test under continuous monitoring.}
+for the savi z test under continuous monitoring.}
 
 \item{eValuesOld}{Matrix of eValues of the previous studies with nSim
 number of rows}

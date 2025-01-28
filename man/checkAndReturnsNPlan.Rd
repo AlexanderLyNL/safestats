@@ -11,7 +11,7 @@ checkAndReturnsNPlan(
 )
 }
 \arguments{
-\item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the safe test
+\item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the savi test
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
 

@@ -19,22 +19,22 @@ getNameTestType <- function(testType, testName) {
                      "eLogrank"="Exact",
                      "logrank"="",
                      "2x2" = "Test of ")
-  analysisName <- paste("Safe", testTypeChar, testName)
+  analysisName <- paste("Savi", testTypeChar, testName)
   return(analysisName)
 
   # return(paste(nameChar, testName))
 }
 
-#' Construct a  safe design object to be set in the design function
+#' Construct a savi design object to be set in the design function
 #'
 #' @inheritParams getNameTestType
 #'
-#' @return a safe design object
+#' @return a savi design object
 #' @export
 #'
 #' @examples
-#' obj <- constructSafeDesignObj("Z-Test")
-constructSafeDesignObj <- function(testName) {
+#' obj <- constructSaviDesignObj("Z-Test")
+constructSaviDesignObj <- function(testName) {
   result <- list(
     "parameter"=NULL, "esMin"=NULL, "alpha"=NULL,
     "alternative"=NULL, "h0"=NULL, "pilot"=FALSE,
@@ -59,21 +59,21 @@ constructSafeDesignObj <- function(testName) {
   }
 
   result <- utils::modifyList(result, testSpecificList)
-  class(result) <- "safeDesign"
+  class(result) <- "saviDesign"
   return(result)
 }
 
 
-#' Construct a safe test object to be set in the safe testing function
+#' Construct a savi test object to be set in the savi testing function
 #'
 #' @inheritParams getNameTestType
 #'
-#' @return a safe test object
+#' @return a savi test object
 #' @export
 #'
 #' @examples
-#' obj <- constructSafeTestObj("Z-Test")
-constructSafeTestObj <- function(testName) {
+#' obj <- constructSaviTestObj("Z-Test")
+constructSaviTestObj <- function(testName) {
   result <- list(
     "statistic"=NULL, "n"=NULL, "eValue"=NULL,
     "confSeq"=NULL, "estimate"=NULL, "ciValue"=FALSE,
@@ -93,7 +93,7 @@ constructSafeTestObj <- function(testName) {
   }
 
   result <- utils::modifyList(result, testSpecificList)
-  class(result) <- "safeTest"
+  class(result) <- "saviTest"
   return(result)
 }
 #' Gets the Label of the Alternative Hypothesis
@@ -128,11 +128,11 @@ getNameAlternative <- function(alternative=c("twoSided", "greater", "less"), tes
   return(nameChar)
 }
 
-#' Print Method for Safe Tests
+#' Print Method for Savi Test Objects
 #'
-#' Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.htest}()}.
+#' Printing objects of class 'saviTest' modelled after \code{\link[stats]{print.htest}()}.
 #'
-#' @param x a safeTest object.
+#' @param x a saviTest object.
 #' @param digits number of significant digits to be used.
 #' @param prefix string, passed to strwrap for displaying the method components.
 #' @param ... further arguments to be passed to or from methods.
@@ -141,8 +141,8 @@ getNameAlternative <- function(alternative=c("twoSided", "greater", "less"), tes
 #' @export
 #'
 #' @examples
-#' safeTTest(rnorm(19))
-print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...) {
+#' saviTTest(rnorm(19))
+print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x[["designObj"]]
 
   if (is.null(designObj)) {
@@ -284,20 +284,20 @@ print.safeTest <- function (x, digits = getOption("digits"), prefix = "\t", ...)
 }
 
 
-#' Print Method for Safe Tests
+#' Print Method for Savi Test Objects
 #'
-#' Printing objects of class 'safeTest' modelled after \code{\link[stats]{print.power.htest}()}.
+#' Printing objects of class 'saviTest' modelled after \code{\link[stats]{print.power.htest}()}.
 #'
-#' @inheritParams print.safeTest
+#' @inheritParams print.saviTest
 #'
 #' @return No returned value, called for side effects.
 #' @export
 #'
 #' @examples
-#' designSafeZ(meanDiffMin=0.5)
-#' designSafeT(deltaMin=0.5)
-#' designSafeLogrank(hrMin=0.7)
-print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
+#' designSaviZ(meanDiffMin=0.5)
+#' designSaviT(deltaMin=0.5)
+#' designSaviLogrank(hrMin=0.7)
+print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
 
   if (is.null(designObj[["parameter"]])) {
@@ -413,7 +413,7 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 }
 
 
-#' Plots the safeDesign object for designs with sample paths
+#' Plots the saviDesign object for designs with sample paths
 #'
 #' @param x designObj
 #' @param main character string for the title of plot
@@ -443,7 +443,7 @@ print.safeDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' @return Nothing it only plots
 #' @export
 #'
-plot.safeDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
+plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             xlim=NULL, ylim=NULL, maxNBins=35,
                             numSamplePaths=100, wantStepLines=FALSE,
                             wantQuantiles=NULL, border="#1F78B4E6",
@@ -668,9 +668,9 @@ plot.safeDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
 
 
-#' Plots the safeTest object for sequential analyses
+#' Plots the saviTest object for sequential analyses
 #'
-#' @inheritParams plot.safeDesign
+#' @inheritParams plot.saviDesign
 #' @param fillPlot logical, if TRUE then plot the confidence
 #' sequence with a background colour
 #' @param switchNFill integer, if \code{is.null(fillPlot)}, then
@@ -701,7 +701,7 @@ plot.safeDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' @return Returns nothing just plots
 #' @export
 #'
-plot.safeTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
+plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           xlim=NULL, ylim=NULL, lwd=3, cex=1.3,
                           fillPlot=NULL, switchNFill=1e4,
                           logScale=NULL, switchNLog=30,

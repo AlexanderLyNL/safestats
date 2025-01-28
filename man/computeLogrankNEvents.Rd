@@ -45,10 +45,10 @@ hence, the treatment is beneficial. If alternative = "greater", then the null hy
 thus, lambda2 > lambda1, hence, harm.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
-safe logrank test under continuous monitoring}
+savi logrank test under continuous monitoring}
 
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
-power or nEvents for the exact safe logrank test under continuous monitoring}
+power or nEvents for the exact savi logrank test under continuous monitoring}
 
 \item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
 of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
@@ -57,7 +57,7 @@ step.}
 \item{nMax}{An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
 crossing crossing already. Default set to Inf.}
 
-\item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
+\item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
 \item{digits}{number of significant digits to be used.}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{computeConfidenceIntervalT}
 \alias{computeConfidenceIntervalT}
-\title{Helper function: Computes the safe confidence sequence for the mean in a T-test}
+\title{Helper function: Computes the savi confidence sequence for the mean in a T-test}
 \usage{
 computeConfidenceIntervalT(
   meanObs,
@@ -26,7 +26,7 @@ of the pooled variance.}
 
 \item{nu}{numeric > 0, the degrees of freedom.}
 
-\item{parameter}{numeric > 0, the safe test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter.}
 
 \item{eType}{character, type of e-value: "eCauchy" (default), "eGauss", or "grow"}
 
@@ -39,10 +39,10 @@ and ciValue = 1 - alpha}
 \item{maxRoot}{Used to bound the candidate set of width of the confidence interval.}
 }
 \value{
-numeric vector that contains the upper and lower bound of the safe confidence sequence
+numeric vector that contains the upper and lower bound of the savi confidence sequence
 }
 \description{
-Helper function: Computes the safe confidence sequence for the mean in a T-test
+Helper function: Computes the savi confidence sequence for the mean in a T-test
 }
 \examples{
 computeConfidenceIntervalT(meanObs=0.3, sdObs=2, nEff=12, nu=11, parameter=0.4)

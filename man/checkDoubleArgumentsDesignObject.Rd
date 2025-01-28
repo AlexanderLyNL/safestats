@@ -20,7 +20,7 @@ Helper function to check whether arguments are specified in a function at a high
 provided in the design object.
 }
 \examples{
-designObj <- designSafeZ(0.4)
+designObj <- designSaviZ(0.4)
 
 checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
 # Throws a warning

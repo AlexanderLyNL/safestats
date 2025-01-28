@@ -19,10 +19,10 @@ generateNormalData(
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the safe z test under continuous monitoring.}
+for the savi t test under continuous monitoring.}
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by \code{designSafeT()} with \code{deltaTrue <- deltaMin}}
+This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{muGlobal}{numeric, population grand mean}
 

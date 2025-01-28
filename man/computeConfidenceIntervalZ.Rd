@@ -2,7 +2,7 @@
 % Please edit documentation in R/zTest.R
 \name{computeConfidenceIntervalZ}
 \alias{computeConfidenceIntervalZ}
-\title{Helper function: Computes the safe confidence sequence for a Z-test}
+\title{Helper function: Computes the savi confidence sequence for a Z-test}
 \usage{
 computeConfidenceIntervalZ(
   nEff,
@@ -22,7 +22,7 @@ computeConfidenceIntervalZ(
 
 \item{meanObs}{numeric, the observed mean. For two sample tests this is difference of the means.}
 
-\item{parameter}{numeric > 0, the safe test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
@@ -51,10 +51,10 @@ based on a conjugate prior as is usual in Bayesian analysis. This interval is al
 whenever eType="eCauchy"}
 }
 \value{
-numeric vector that contains the upper and lower bound of the safe confidence sequence
+numeric vector that contains the upper and lower bound of the savi confidence sequence
 }
 \description{
-Helper function: Computes the safe confidence sequence for a Z-test
+Helper function: Computes the savi confidence sequence for a Z-test
 }
 \examples{
 computeConfidenceIntervalZ(nEff=15, meanObs=0.3, parameter=0.2)

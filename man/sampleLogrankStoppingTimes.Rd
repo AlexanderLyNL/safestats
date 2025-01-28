@@ -2,7 +2,7 @@
 % Please edit documentation in R/logRankTest.R
 \name{sampleLogrankStoppingTimes}
 \alias{sampleLogrankStoppingTimes}
-\title{Simulate stopping times for the exact safe logrank test}
+\title{Simulate stopping times for the exact savi logrank test}
 \usage{
 sampleLogrankStoppingTimes(
   hazardRatio,
@@ -37,13 +37,13 @@ thus, lambda2 > lambda1, hence, harm.}
 \item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
-safe logrank test under continuous monitoring}
+savi logrank test under continuous monitoring}
 
 \item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
 of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
 step.}
 
-\item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
+\item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
 \item{nMax}{An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
@@ -57,7 +57,7 @@ due to exceeding nMax, and 0 due to 1/alpha threshold crossing, or running out o
 that the corresponding stopping time is Inf.
 }
 \description{
-Simulate stopping times for the exact safe logrank test
+Simulate stopping times for the exact savi logrank test
 }
 \examples{
 sampleLogrankStoppingTimes(0.7, nSim=10)

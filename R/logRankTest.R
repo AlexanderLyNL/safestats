@@ -1,6 +1,6 @@
-#' Safe Logrank Test
+#' Safe Anytime-Valid Logrank Test
 #'
-#' A safe test to test whether there is a difference between two survival curves. This function
+#' A savi test to test whether there is a difference between two survival curves. This function
 #' builds on the Mantel-Cox version of the logrank test.
 #'
 #' @inheritParams computeLogrankZ
@@ -8,7 +8,7 @@
 #'
 #' @param formula a formula expression as for other survival models, of the form Surv(time, status) ~ groupingVariable,
 #' see \code{\link[survival]{Surv}} for more details.
-#' @param designObj a safe logrank design obtained from \code{\link{designSafeLogrank}}.
+#' @param designObj a savi logrank design obtained from \code{\link{designSaviLogrank}}.
 #' @param data an optional data frame in which to interpret the variables occurring in survTime and group.
 #' @param survTime an optional survival time object of class 'Surv' created with \code{\link[survival]{Surv}}, or
 #' a name of a column in the data set of class 'Surv'. Does not need specifying if a formula is provided, therefore
@@ -17,26 +17,26 @@
 #' if a formula is provided, therefore set to \code{NULL} by default.
 #' @param pilot a logical indicating whether a pilot study is run. If \code{TRUE}, it is assumed that the number of
 #' samples is exactly as planned. The default null h0=1 is used, alpha=0.05, and alternative="twoSided" is used.
-#' To change these default values, please use \code{\link{designSafeLogrank}}.
+#' To change these default values, please use \code{\link{designSaviLogrank}}.
 #' @param ciValue numeric, represents the ciValue-level of the confidence sequence. Default ciValue=NULL, and
 #' ciValue = 1 - alpha, where alpha is taken from the design object.
-#' @param exact a logical indicating whether the exact safe logrank test needs to be performed based on
-#' the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the safe z-test (for Gaussian data)
+#' @param exact a logical indicating whether the exact savi logrank test needs to be performed based on
+#' the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the savi z-test (for Gaussian data)
 #' applied to the logrank z-statistic is used instead.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
+#' @return Returns an object of class 'saviTest'. An object of class 'saviTest' is a list containing at least the
 #' following components:
 #'
 #' \describe{
 #'   \item{statistic}{the value of the summary, i.e., z-statistic or the e-value.}
 #'   \item{nEvents}{The number of observed events.}
-#'   \item{eValue}{the e-value of the safe test.}
+#'   \item{eValue}{the e-value of the savi test.}
 #'   \item{confSeq}{An anytime-valid confidence sequence.}
 #'   \item{estimate}{To be implemented: An estimate of the hazard ratio.}
 #'   \item{testType}{"logrank".}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
-#'   \item{designObj}{an object of class "safeDesign" obtained from \code{\link{designSafeLogrank}}.}
+#'   \item{designObj}{an object of class "saviDesign" obtained from \code{\link{designSaviLogrank}}.}
 #'   \item{sumStats}{a list containing.the time of events, the progression of the risk sets and events.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
@@ -45,14 +45,14 @@
 #' @examples
 #' # Example taken from survival::survdiff
 #'
-#' designObj <- designSafeLogrank(hrMin=1/2)
+#' designObj <- designSaviLogrank(hrMin=1/2)
 #'
 #' ovData <- survival::ovarian
 #' ovData$survTime <- survival::Surv(ovData$futime, ovData$fustat)
 #'
-#' safeLogrankTest(formula=survTime~ rx, data=ovData, designObj=designObj)
+#' saviLogrankTest(formula=survTime~ rx, data=ovData, designObj=designObj)
 #'
-#' safeLogrankTest(survTime=survTime, group=rx, data=ovData, designObj=designObj)
+#' saviLogrankTest(survTime=survTime, group=rx, data=ovData, designObj=designObj)
 #'
 #' # Examples taken from coin::logrank_test
 #' ## Example data (Callaert, 2003, Tab. 1)
@@ -62,15 +62,15 @@
 #'   group = factor(rep(0:1, c(7, 8)))
 #' )
 #'
-#' designObj <- designSafeLogrank(hrMin=1/2)
+#' designObj <- designSaviLogrank(hrMin=1/2)
 #'
-#' safeLogrankTest(survival::Surv(callaert$time)~callaert$group,
+#' saviLogrankTest(survival::Surv(callaert$time)~callaert$group,
 #'                 designObj = designObj)
 #'
-#' safeLogrankTest(survTime=survival::Surv(callaert$time),
+#' saviLogrankTest(survTime=survival::Surv(callaert$time),
 #'                 group=callaert$group, designObj = designObj)
 #'
-#' result <- safeLogrankTest(survTime=survival::Surv(callaert$time),
+#' result <- saviLogrankTest(survTime=survival::Surv(callaert$time),
 #'                 group=callaert$group, designObj = designObj)
 #'
 #' result
@@ -87,48 +87,48 @@
 #' eValueTwoSided
 #' result$eValue
 #'
-#' ###### Example switching between safe exact and safe Gaussian logrank test
+#' ###### Example switching between savi exact and savi Gaussian logrank test
 #'
-#' designObj <- designSafeLogrank(0.8, alternative="less")
+#' designObj <- designSaviLogrank(0.8, alternative="less")
 #'
 #' dat <- safestats::generateSurvData(300, 300, 2, 0.0065, 0.0065*0.8, seed=1)
 #' survTime <- survival::Surv(dat$time, dat$status)
 #'
-#' resultE <- safeLogrankTest(survTime ~ dat$group,
+#' resultE <- saviLogrankTest(survTime ~ dat$group,
 #'                            designObj = designObj)
 #'
-#' resultG <- safeLogrankTest(survTime ~ dat$group,
+#' resultG <- saviLogrankTest(survTime ~ dat$group,
 #'                            designObj = designObj, exact=FALSE)
 #'
 #' resultE
 #' resultG
 #'
-#' ###### Example switching between safe exact and safe Gaussian logrank test other side
+#' ###### Example switching between savi exact and savi Gaussian logrank test other side
 #'
-#' designObj <- designSafeLogrank(1/0.8, alternative="greater")
+#' designObj <- designSaviLogrank(1/0.8, alternative="greater")
 #'
-#' resultE <- safeLogrankTest(survTime ~ dat$group,
+#' resultE <- saviLogrankTest(survTime ~ dat$group,
 #'                            designObj = designObj)
 #'
-#' resultG <- safeLogrankTest(survTime ~ dat$group,
+#' resultG <- saviLogrankTest(survTime ~ dat$group,
 #'                            designObj = designObj, exact=FALSE)
 #'
 #' if (log(resultE$eValue) >= 0 && log(resultG$eValue) >= 0 )
 #'   stop("one-sided wrong")
 #'
-safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, survTime=NULL,
+saviLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, survTime=NULL,
                             group=NULL, pilot=FALSE, exact=TRUE, computeZ=TRUE, ...) {
 
   # Check inputs  ----
   #
   if (base::isFALSE(pilot) && is.null(designObj))
-    stop("Please provide a safe logrank design object, or run the function with pilot=TRUE. ",
-         "A design object can be obtained by running designSafeLogrank().")
+    stop("Please provide a savi logrank design object, or run the function with pilot=TRUE. ",
+         "A design object can be obtained by running designSaviLogrank().")
 
   if (!is.null(designObj)) {
     if (names(designObj[["parameter"]]) != "log(thetaS)" && names(designObj[["parameter"]]) != "thetaS")
       warning("The provided design is not constructed for the logrank test,",
-              "please use designSafeLogrank() instead. The test results might be invalid.")
+              "please use designSaviLogrank() instead. The test results might be invalid.")
   }
 
   argumentNames <- getArgs()
@@ -137,7 +137,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     formulaTerms <- stats::terms(formula)
 
     if (length(attributes(formulaTerms)[["term.labels"]]) > 1)
-      stop("Safe log rank test with covariates not yet supported")
+      stop("Savi log rank test with covariates not yet supported")
 
     theData <- try(stats::model.frame(formula, data=data, ...))
 
@@ -217,7 +217,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     nEvents <- sum(survTimeMatrix[, "status"]==1)
 
     if (is.null(designObj)) {
-      designObj <- designSafeLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
+      designObj <- designSaviLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
                                      "alternative"=alternative, "h0"=h0, "exact"=FALSE)
       designObj[["pilot"]] <- TRUE
     } else {
@@ -233,11 +233,11 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 
   thetaS <- designObj[["parameter"]]
 
-  # Note(Alexander): Sign is needed for the safe Gaussian logrank test
+  # Note(Alexander): Sign is needed for the savi Gaussian logrank test
   #
   phiS <- log(thetaS)
 
-  # Note(Alexander): Remove sign for safe exact logrank test
+  # Note(Alexander): Remove sign for savi exact logrank test
   #
   if (thetaS > 1)
     thetaS <- 1/thetaS
@@ -268,7 +268,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     result <- list("n"=nEvents, "estimate"=NULL, "eValue"=eValue,
                    "confSeq"=NULL, "estimate"=NULL, "testType"="eLogrank",
                    "dataName"=dataName, "exact"=TRUE)
-    class(result) <- "safeTest"
+    class(result) <- "saviTest"
     result[["designObj"]] <- designObj
   } else {
     nEff <- ratio/(1+ratio)^2*nEvents
@@ -278,7 +278,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 
     result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanObs), "eValue"=NULL,
                    "confSeq"=NULL, "testType"="gLogrank", "dataName"=dataName)
-    class(result) <- "safeTest"
+    class(result) <- "saviTest"
 
     names(result[["estimate"]]) <-"hazard ratio"
 
@@ -288,7 +288,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     # but to avoid rounding erros zStat is used instead
     zStat <- zStat - sqrt(nEff)*(log(h0))
 
-    eValue <- safeZTestStat("z"=unname(zStat),
+    eValue <- saviZTestStat("z"=unname(zStat),
                             "parameter"=1/2*phiS^2, "n1"=nEff,
                             "n2"=NULL, "alternative"=alternative,
                             "paired"=FALSE, "sigma"=1,
@@ -322,7 +322,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 }
 
 
-#' @describeIn safeLogrankTest Safe Logrank Test based on Summary Statistic Z
+#' @describeIn saviLogrankTest Savi Logrank Test based on Summary Statistic Z
 #' All provided data (i.e., z-scores) are assumed to be centred on a hazard ratio = 1, thus, log(hr) = 0 ,
 #' and the proper (e.g., hypergeometric) scaling is applied to the data, so sigma = 1. The null hypothesis
 #' in the design object pertains to the population and is allowed to differ from log(theta) = 0.
@@ -334,7 +334,7 @@ safeLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 #' @param sigma numeric > 0, scaling in the data.
 #'
 #' @export
-safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
+saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
                                 dataNull=1, sigma=1) {
 
   if (length(z) != length(nEvents))
@@ -364,7 +364,7 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 
   phiS <- log(designObj[["parameter"]])
 
-  eValue <- safeZTestStat("z"=unname(zStat), "parameter"=phiS^2/2,
+  eValue <- saviZTestStat("z"=unname(zStat), "parameter"=phiS^2/2,
                           "n1"=nEff, "n2"=NULL,
                           "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1,
                           "eType"="mom")
@@ -380,29 +380,29 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
   result[["designObj"]] <- designObj
 
   names(result[["statistic"]]) <- "z"
-  class(result) <- "safeTest"
+  class(result) <- "saviTest"
   return(result)
 }
 
 
-#' Designs a Safe Logrank Test Experiment
+#' Designs a Safe Anytime-Valid Logrank Test Experiment
 #'
 #' A designed experiment requires (1) an anticipated number of events nEvents, or even better nPlan, the number of
-#' participants to be recruited in the study, and (2) the parameter of the safe test, i.e., thetaS. Provided with a
-#' clinically relevant minimal hazard ratio hrMin, this function outputs thetaS = hrMin as the safe test defining
+#' participants to be recruited in the study, and (2) the parameter of the savi test, i.e., thetaS. Provided with a
+#' clinically relevant minimal hazard ratio hrMin, this function outputs thetaS = hrMin as the savi test defining
 #' parameter in accordance to the GROW criterion. If a tolerable type II error beta is provided then nEvents can be
 #' sampled. The sampled nEvents is then the smallest nEvents for which hrMin is found with power of at least 1 - beta
 #' under optional stopping. If exact equal \code{FALSE}, then the computations exploit the local asymptotic normal
 #' approximation to sampling distribution of the logrank test derived by Schoenfeld (1981).
 #'
 #'
-#' @inheritParams designSafeZ
+#' @inheritParams designSaviZ
 #' @param nEvents numeric > 0, targetted number of events.
 #' @param h0 numeric > 0, represents the null hypothesis, default h0=1.
 #' @param hrMin numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 #' detect.
-#' @param exact a logical indicating whether the design should be based on the exact safe logrank test based on the
-#' hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the design is based on a  safe z-test.
+#' @param exact a logical indicating whether the design should be based on the exact savi logrank test based on the
+#' hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the design is based on a  savi z-test.
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 (Treatment) over condition 1 (Placebo),
 #' thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
 #' ignores m1 and m0.
@@ -418,23 +418,23 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' thus, lambda2 > lambda1, hence, harm.
 #' @param m0 Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.
 #' @param m1 Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.
-#' @param parameter Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
+#' @param parameter Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 #' algorithm, typically, this equals hrMin, which corresponds to the GROW choice.
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of events for the exact
-#' safe logrank test under continuous monitoring
+#' savi logrank test under continuous monitoring
 #' @param groupSizePerTimeFunction A function without parameters and integer output. This function provides the number
 #' of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
 #' step.
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
-#' power or nEvents for the exact safe logrank test under continuous monitoring
+#' power or nEvents for the exact savi logrank test under continuous monitoring
 #' @param pb logical, if \code{TRUE}, then show progress bar.
 #'
-#' @return Returns a safeDesign object that includes:
+#' @return Returns a saviDesign object that includes:
 #'
 #' \describe{
 #'   \item{nEvents}{the anticipated number of events, either (1) specified by the user, or
 #'   (2) computed based on beta and thetaMin.}
-#'   \item{parameter}{the parameter that defines the safe test. Here log(thetaS).}
+#'   \item{parameter}{the parameter that defines the savi test. Here log(thetaS).}
 #'   \item{esMin}{the minimally clinically relevant hazard ratio specified by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error provided by the user.}
@@ -452,11 +452,11 @@ safeLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' for comparing survival distributions. Biometrika, 68(1), 316-319.
 #'
 #' @examples
-#' designSafeLogrank(hrMin=0.7)
-#' designSafeLogrank(hrMin=0.7, exact=FALSE)
-#' designSafeLogrank(hrMin=0.7, beta=0.3, nSim=10)
-#' designSafeLogrank(hrMin=0.7, nEvents=190, nSim=10)
-designSafeLogrank <- function(
+#' designSaviLogrank(hrMin=0.7)
+#' designSaviLogrank(hrMin=0.7, exact=FALSE)
+#' designSaviLogrank(hrMin=0.7, beta=0.3, nSim=10)
+#' designSaviLogrank(hrMin=0.7, nEvents=190, nSim=10)
+designSaviLogrank <- function(
     hrMin=NULL, beta=NULL, nEvents=NULL,
     alpha=0.05, h0=1, alternative=c("twoSided", "greater", "less"),
     m0=50000L, m1=50000L,
@@ -511,57 +511,57 @@ designSafeLogrank <- function(
     # Note(Alexander): I scaled meanDiffMin so I can get nPlan correct.
     # I'll scale back below
     #
-    safeZObj <- designSafeZ("meanDiffMin"=meanDiffMin , "beta"=beta,
+    saviZObj <- designSaviZ("meanDiffMin"=meanDiffMin , "beta"=beta,
                             "alpha"=alpha, "nPlan"=nEvents,
                             "alternative"=alternative,
                             "sigma"=1, "testType"="oneSample")
 
-    nEvents <- safeZObj[["nPlan"]]
-    safeZObj[["nPlan"]] <- NULL
-    safeZObj[["nEvents"]] <- nEvents
+    nEvents <- saviZObj[["nPlan"]]
+    saviZObj[["nPlan"]] <- NULL
+    saviZObj[["nEvents"]] <- nEvents
 
-    nEventsBatch <- safeZObj[["nPlanBatch"]]
-    safeZObj[["nPlanBatch"]] <- NULL
-    safeZObj[["nEventsBatch"]] <- nEventsBatch
+    nEventsBatch <- saviZObj[["nPlanBatch"]]
+    saviZObj[["nPlanBatch"]] <- NULL
+    saviZObj[["nEventsBatch"]] <- nEventsBatch
 
-    nEventsTwoSe <- safeZObj[["nPlanTwoSe"]]
-    safeZObj[["nPlanTwoSe"]] <- NULL
-    safeZObj[["nEventsTwoSe"]] <- nEventsTwoSe
+    nEventsTwoSe <- saviZObj[["nPlanTwoSe"]]
+    saviZObj[["nPlanTwoSe"]] <- NULL
+    saviZObj[["nEventsTwoSe"]] <- nEventsTwoSe
 
     if (!is.null(nEventsBatch)) {
       note <- paste0("If it is only possible to look at the data once, ",
                      "then nEvents = ", nEventsBatch, ".")
     }
 
-    safeZObj[["note"]] <- note
+    saviZObj[["note"]] <- note
 
     if (!is.null(nEvents))
-      names(safeZObj[["nEvents"]]) <- "nEvents"
+      names(saviZObj[["nEvents"]]) <- "nEvents"
 
-    safeZObj[["parameter"]] <- if (!is.null(parameter)) {
+    saviZObj[["parameter"]] <- if (!is.null(parameter)) {
       parameter
     } else if (!is.null(hrMin)) {
       thetaS
     } else {
-      exp(safeZObj[["parameter"]])
+      exp(saviZObj[["parameter"]])
     }
 
-    names(safeZObj[["parameter"]]) <- "thetaS"
+    names(saviZObj[["parameter"]]) <- "thetaS"
 
     if (!is.null(hrMin))
       names(hrMin) <- "hazard ratio"
 
-    safeZObj[["esMin"]] <- hrMin
+    saviZObj[["esMin"]] <- hrMin
 
-    safeZObj[["testType"]] <- "gLogrank"
-    safeZObj[["paired"]] <- NULL
-    safeZObj[["call"]] <- sys.call()
+    saviZObj[["testType"]] <- "gLogrank"
+    saviZObj[["paired"]] <- NULL
+    saviZObj[["call"]] <- sys.call()
 
     if (!is.null(h0))
       names(h0) <- "theta"
 
-    safeZObj[["h0"]] <- h0
-    result <- safeZObj
+    saviZObj[["h0"]] <- h0
+    result <- saviZObj
     result[["ratio"]] <- ratio
     result[["exact"]] <- exact
 
@@ -668,25 +668,25 @@ designSafeLogrank <- function(
                    "bootObjLogImpliedTarget"=bootObjLogImpliedTarget, "bootObjN1Mean"=bootObjN1Mean,
                    "call"=sys.call(), "timeStamp"=Sys.time(), "note"=note)
 
-    class(result) <- "safeDesign"
+    class(result) <- "saviDesign"
 
     return(result)
   }
 }
 
 
-#' Helper function to design a safe logrank test (output beta)
+#' Helper function to design a savi logrank test (output beta)
 #'
 #' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 #'
-#' @inheritParams designSafeLogrank
+#' @inheritParams designSaviLogrank
 #'
 #' @return A list with the parameter and beta amongst other items
 #' @export
 #'
 #' @examples
-#' designSafeLogrank2WantBeta(hrMin=0.9, nEvents=7, nSim=10)
-designSafeLogrank2WantBeta <- function(
+#' designSaviLogrank2WantBeta(hrMin=0.9, nEvents=7, nSim=10)
+designSaviLogrank2WantBeta <- function(
     hrMin, nEvents,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     m0=50000L, m1=50000L,
@@ -782,8 +782,8 @@ logrankSingleZ <- function(obs0, obs1, y0, y1, ...) {
 #' @param y0 integer, total number of participants in the control group.
 #' @param y1 integer, total number of participants in the treatment group.
 #' @param y1 integer, total number of participants in the treatment group.
-#' @param thetaS numeric > 0 represents the safe test defining (GROW) alternative
-#' hypothesis obtained from \code{designSafeLogrank()}.
+#' @param thetaS numeric > 0 represents the savi test defining (GROW) alternative
+#' hypothesis obtained from \code{designSaviLogrank()}.
 #' @param theta0 numeric > 0 represents the null hypothesis. Default theta0=1.
 #' @param ... further arguments to be passed to or from methods.
 #'
@@ -950,7 +950,7 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
   if (computeExactE)
     if (is.null(thetaS))
       stop("Can't compute exact E-value without a designed alternative.",
-           "Please check designSafeLogrank.")
+           "Please check designSaviLogrank.")
 
   # Get group label info -----
   #
@@ -1189,9 +1189,9 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 }
 
 
-#' Simulate stopping times for the exact safe logrank test
+#' Simulate stopping times for the exact savi logrank test
 #'
-#' @inheritParams designSafeLogrank
+#' @inheritParams designSaviLogrank
 #'
 #' @param hazardRatio numeric that defines the data generating hazard ratio with which data are sampled.
 #' @param nMax An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
@@ -1234,7 +1234,7 @@ sampleLogrankStoppingTimes <- function(
     thetaS <- parameter
 
   if (pb)
-    pbSafe <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
+    pbSavi <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
 
   ## Cycle through simulations
   #
@@ -1300,7 +1300,7 @@ sampleLogrankStoppingTimes <- function(
     }
 
     if (pb)
-      utils::setTxtProgressBar(pbSafe, value=sim/nSim, title="Trials")
+      utils::setTxtProgressBar(pbSavi, value=sim/nSim, title="Trials")
   }
 
   result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
@@ -1350,8 +1350,8 @@ sampleLogrankStoppingTimes <- function(
 #     thetaS <- parameter
 #
 #   if (pb)
-#     pbSafe <- utils::txtProgressBar(
-#       style=3, title="Safe test threshold crossing")
+#     pbSavi <- utils::txtProgressBar(
+#       style=3, title="Savi test threshold crossing")
 #
 #   ## Cycle through simulations
 #   #
@@ -1417,7 +1417,7 @@ sampleLogrankStoppingTimes <- function(
 #     }
 #
 #     if (pb)
-#       utils::setTxtProgressBar(pbSafe, value=sim/nSim, title="Trials")
+#       utils::setTxtProgressBar(pbSavi, value=sim/nSim, title="Trials")
 #   }
 #
 #   result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
@@ -1429,7 +1429,7 @@ sampleLogrankStoppingTimes <- function(
 #' Helper function: Computes the type II error under optional stopping based on the minimal clinically relevant hazard
 #' ratio and the maximum number of nEvents.
 #'
-#' @inheritParams designSafeLogrank
+#' @inheritParams designSaviLogrank
 #' @inheritParams sampleLogrankStoppingTimes
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
@@ -1497,7 +1497,7 @@ computeLogrankBetaFrom <- function(
 #' alpha and beta under optional stopping.
 #'
 #'
-#' @inheritParams designSafeLogrank
+#' @inheritParams designSaviLogrank
 #' @inheritParams sampleLogrankStoppingTimes
 #' @param digits number of significant digits to be used.
 #'
@@ -1532,7 +1532,7 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 
       logThetaS <- if (!is.null(parameter)) log(parameter) else NULL
 
-      tempResult <- computeNPlanBatchSafeZ("meanDiffTrue"=meanDiffTrue, "beta"=beta,
+      tempResult <- computeNPlanBatchSaviZ("meanDiffTrue"=meanDiffTrue, "beta"=beta,
                                            "alpha"=alpha, "alternative"=alternative,
                                            "testType"="oneSample",
                                            "ratio"=ratio, "parameter"=logThetaS)

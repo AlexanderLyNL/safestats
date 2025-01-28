@@ -16,7 +16,7 @@
 #'
 #' samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
 #' result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
-designSafe1aHelper <- function(
+designSavi1aHelper <- function(
     samplingResult, esMin, beta, ratio,
     testType=c("oneSample", "paired","twoSample")) {
 
@@ -112,7 +112,7 @@ designSafe1aHelper <- function(
 #'
 #' samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
 #' result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
-designSafe2Helper <- function(
+designSavi2Helper <- function(
     samplingResult, esMin, nPlan, ratio,
     testType=c("oneSample", "paired","twoSample")) {
 

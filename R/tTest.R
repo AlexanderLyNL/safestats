@@ -2,19 +2,19 @@
 
 #' Computes E-Values Based on the T-Statistic
 #'
-#' A summary stats version of \code{\link{safeTTest}()} with the data replaced by t, n1 and n2, and the
+#' A summary stats version of \code{\link{saviTTest}()} with the data replaced by t, n1 and n2, and the
 #' design object by deltaS.
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #' @param t numeric that represents the observed t-statistic.
-#' @param parameter numeric > 0, the safe test defining parameter.
+#' @param parameter numeric > 0, the savi test defining parameter.
 #' @param n1 integer that represents the size in a one-sample T-test, (n2=\code{NULL}). When n2 is not \code{NULL},
 #' this specifies the size of the first sample for a two-sample test.
 #' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 #' \code{NULL} it implies that the t-statistic is based on one-sample.
-#' @param tDensity Uses the the representation of the safe T-test as the likelihood ratio of t densities.
+#' @param tDensity Uses the the representation of the savi T-test as the likelihood ratio of t densities.
 #' @param eType character, type of e-value: "eCauchy" (default), "eGauss", or "grow"
-#' @inherit safeTTest
+#' @inherit saviTTest
 #'
 #' @return Returns a numeric that represent the e10, that is, the e-value in favour of the alternative over the null
 #'
@@ -25,9 +25,9 @@
 #'   `r addCite(ly2024safe)`
 #'
 #' @examples
-#' safeTTestStat(t=1, n1=100, parameter=0.4)
-#' safeTTestStat(t=3, n1=100, parameter=0.3)
-safeTTestStat <- function(
+#' saviTTestStat(t=1, n1=100, parameter=0.4)
+#' saviTTestStat(t=3, n1=100, parameter=0.3)
+saviTTestStat <- function(
     t, n1, n2=NULL, parameter,
     alternative=c("twoSided", "less", "greater"),
     tDensity=FALSE,
@@ -48,7 +48,7 @@ safeTTestStat <- function(
   nu <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1-1 else n1+n2-2
 
   result <- suppressWarnings(
-    safeTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu,
+    saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu,
                         "parameter"=parameter, "alternative"=alternative,
                         "tDensity"=tDensity, "paired"=paired, "eType"=eType,
                         ...)
@@ -58,16 +58,16 @@ safeTTestStat <- function(
 }
 
 
-#' SafeTTestStat based on the t-statistic, nEff and nu
+#' SaviTTestStat based on the t-statistic, nEff and nu
 #'
-#' @rdname safeTTestStat
+#' @rdname saviTTestStat
 #' @inheritParams computeConfidenceIntervalT
 #'
 #' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
 #' @param nu numeric > 0, the degrees of freedom.
 #'
 #' @export
-safeTTestStatNEffNu <- function(
+saviTTestStatNEffNu <- function(
     t, nEff, nu, parameter,
     alternative=c("twoSided", "less", "greater"),
     tDensity=FALSE,
@@ -90,9 +90,9 @@ safeTTestStatNEffNu <- function(
     #   1. Use Kummer's transform again (??)
     #   2. Switch to numerical integration. Boundary case
     #
-    # safeTTestStat(t=-3.1878, parameter=0.29, n1=315, alternative="greater")
-    # safeTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
-    # safeTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
+    # saviTTestStat(t=-3.1878, parameter=0.29, n1=315, alternative="greater")
+    # saviTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
+    # saviTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
 
     # TODO(Alexander): Remove in v0.9.0
     #
@@ -120,7 +120,7 @@ safeTTestStatNEffNu <- function(
 
     if (eValues <= 0 && t!=0) {
       # warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
-      eValues <- safeTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
+      eValues <- saviTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
                                        "nEff"=nEff, "alternative"=alternative)
     }
 
@@ -191,7 +191,7 @@ safeTTestStatNEffNu <- function(
     eValue <- (nu+1)/2*log(1+t^2/nu)+1/2*log(2*pi/nEff)
     return(list(eValue=eValue))
   } else if (eType=="mom") {
-    tempResult <- safeTTestStatNEffNuMom(
+    tempResult <- saviTTestStatNEffNuMom(
       t=t, nEff=nEff, nu=nu, parameter=parameter,
       alternative=alternative, tDensity=tDensity,
       paired=paired)
@@ -202,16 +202,16 @@ safeTTestStatNEffNu <- function(
 
 
 
-#' SafeTTestStat based on the t-statistic, nEff and nu and the non-local moment prior
+#' SaviTTestStat based on the t-statistic, nEff and nu and the non-local moment prior
 #'
-#' @rdname safeTTestStat
-#' @inheritParams safeTTestStatNEffNu
+#' @rdname saviTTestStat
+#' @inheritParams saviTTestStatNEffNu
 #'
 #' @param k the moment used for the non-local moment prior. Default 1
 #'
 #' @export
 #'
-safeTTestStatNEffNuMom <- function(
+saviTTestStatNEffNuMom <- function(
     t, nEff, nu, parameter,
     alternative=c("twoSided", "less", "greater"),
     tDensity=FALSE,
@@ -386,16 +386,16 @@ safeTTestStatNEffNuMom <- function(
   }
 }
 
-#' safeTTestStat() based on t-densities
+#' saviTTestStat() based on t-densities
 #'
-#' This is \code{\link{safeTTestStat}()} based on t-densities instead of
+#' This is \code{\link{saviTTestStat}()} based on t-densities instead of
 #' hypergeometric functions.
 #'
-#' @inheritParams safeTTest
-#' @inheritParams safeTTestStatNEffNu
-#' @rdname safeTTestStat
+#' @inheritParams saviTTest
+#' @inheritParams saviTTestStatNEffNu
+#' @rdname saviTTestStat
 #'
-safeTTestStatTDensity <- function(t, parameter, nu, nEff,
+saviTTestStatTDensity <- function(t, parameter, nu, nEff,
                                   alternative=c("twoSided", "less", "greater"),
                                   paired=FALSE, ...) {
 
@@ -435,14 +435,14 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 }
 
 
-#' Safe Student's T-Test.
+#' Safe Anytime-valid Student's T-Test.
 #'
-#' A safe T-test adapted from \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
+#' A savi T-test adapted from \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
 #'
-#' @rdname safeTTest
+#' @rdname saviTTest
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
-#' @param designObj an object obtained from \code{\link{designSafeT}()}, or \code{NULL}, when pilot
+#' @param designObj an object obtained from \code{\link{designSaviT}()}, or \code{NULL}, when pilot
 #' equals  \code{TRUE}.
 #' @param paired a logical indicating whether you want a paired T-test.
 #' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For
@@ -468,21 +468,21 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' analysis should be performed.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class "safeTest". An object of class "safeTest" is a list containing at least the
+#' @return Returns an object of class "saviTest". An object of class "saviTest" is a list containing at least the
 #' following components:
 #'
 #' \describe{
 #'   \item{statistic}{the value of the t-statistic.}
 #'   \item{n}{The realised sample size(s).}
-#'   \item{eValue}{the realised e-value from the safe test.}
-#'   \item{confSeq}{A safe confidence interval for the mean appropriate to the specific alternative
+#'   \item{eValue}{the realised e-value from the savi test.}
+#'   \item{confSeq}{A savi confidence interval for the mean appropriate to the specific alternative
 #'   hypothesis.}
 #'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it a one-
 #'   sample test or a two-sample test was conducted.}
 #'   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
-#'   \item{designObj}{an object of class "safeTDesign" obtained from \code{\link{designSafeT}()}.}
+#'   \item{designObj}{an object of class "saviTDesign" obtained from \code{\link{designSaviT}()}.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
@@ -491,52 +491,52 @@ safeTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' # Examples taken from stats::t.test
 #'
 #' # Test without a designObj is not ideal
-#' safeTTest(1:10, y = c(7:20))      # e = 70.454 > 20
+#' saviTTest(1:10, y = c(7:20))      # e = 70.454 > 20
 #'
-#' # See ?designSafeT for more info
-#' designObj <- designSafeT(deltaMin=0.6, alpha=0.05,
+#' # See ?designSaviT for more info
+#' designObj <- designSaviT(deltaMin=0.6, alpha=0.05,
 #'                          alternative="twoSided",
 #'                          testType="twoSample")
 #'
-#' safeTTest(1:10, y = c(7:20), designObj=designObj)
+#' saviTTest(1:10, y = c(7:20), designObj=designObj)
 #'
 #' # Mimicking the stats::t.test interface.
 #' # Standard calls use the camelCased version though
-#' safe.t.test(1:10, y = c(7:20), designObj=designObj)
+#' savi.t.test(1:10, y = c(7:20), designObj=designObj)
 #'
 #' ## Classical example: Student's sleep data
 #' plot(extra ~ group, data = sleep)
 #' ## Traditional interface
-#' with(sleep, safeTTest(extra[group == 1], extra[group == 2],
+#' with(sleep, saviTTest(extra[group == 1], extra[group == 2],
 #'                       designObj=designObj))
 #'
 #' ## Formula interface
-#' safeTTest(extra ~ group, data = sleep, designObj=designObj)
+#' saviTTest(extra ~ group, data = sleep, designObj=designObj)
 #'
 #' ## Formula interface to one-sample test
-#' designObj1 <- designSafeT(deltaMin=0.6, testType="oneSample")
+#' designObj1 <- designSaviT(deltaMin=0.6, testType="oneSample")
 #'
-#' safeTTest(extra ~ 1, data = sleep, designObj=designObj1)
+#' saviTTest(extra ~ 1, data = sleep, designObj=designObj1)
 #'
 #' ## Formula interface to paired test
 #' ## The sleep data are actually paired, so could have been in wide format:
-#' designObjPaired <- designSafeT(deltaMin=0.6, testType="paired")
+#' designObjPaired <- designSaviT(deltaMin=0.6, testType="paired")
 #' sleep2 <- reshape(sleep, direction = "wide",
 #'                   idvar = "ID", timevar = "group")
-#' safeTTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
+#' saviTTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
 #'           designObj=designObjPaired)
-safeTTest <- function(x, ...) {
-  UseMethod("safeTTest")
+saviTTest <- function(x, ...) {
+  UseMethod("saviTTest")
 }
 
-#' @describeIn safeTTest Default S3 method
+#' @describeIn saviTTest Default S3 method
 #' @export
-safeTTest.default <- function(
+saviTTest.default <- function(
     x, y=NULL, designObj=NULL, paired=FALSE,
     varEqual=TRUE, ciValue=NULL,
     maxRoot=10, sequential=NULL, ...) {
 
-  result <- constructSafeTestObj("T-Test")
+  result <- constructSaviTestObj("T-Test")
 
   # Vars for sequential analysis
   eValueVec <- NULL
@@ -557,7 +557,7 @@ safeTTest.default <- function(
 
   ## Check: designObj ----
   if (is.null(designObj)) {
-    designObj <- designSafeT(0.5, "eType"="mom",
+    designObj <- designSaviT(0.5, "eType"="mom",
                              "testType"=testType)
     designObj[["pilot"]] <- TRUE
 
@@ -568,7 +568,7 @@ safeTTest.default <- function(
 
   if (designObj[["testName"]] != "T-Test")
     warning("The provided design is not constructed for the t-test,",
-            "please use designSafeT() instead. The test results might be invalid.")
+            "please use designSaviT() instead. The test results might be invalid.")
 
   if (designObj[["testType"]] != testType)
     warning('The test type of designObj is "', designObj[["testType"]],
@@ -739,7 +739,7 @@ safeTTest.default <- function(
   ### Compute: eValue ----
   #
   testResult <- suppressWarnings(
-    safeTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
+    saviTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
                   "n2"=n2, "alternative"=alternative, "paired"=paired,
                   "eType"=designObj[["eType"]])
   )
@@ -764,7 +764,7 @@ safeTTest.default <- function(
 
     for (i in seq_along(n1Vec)) {
       brie <- suppressWarnings(
-        safeTTestStat("t"=tStatVec[i], "parameter"=designObj[["parameter"]],
+        saviTTestStat("t"=tStatVec[i], "parameter"=designObj[["parameter"]],
                       "n1"=n1Vec[i], "n2"=n2Vec[i], "alternative"=alternative,
                       "paired"=paired, "eType"=designObj[["eType"]])
       )
@@ -806,10 +806,10 @@ safeTTest.default <- function(
 }
 
 
-#' @describeIn safeTTest S3 method for class 'formula'
+#' @describeIn saviTTest S3 method for class 'formula'
 #' @export
 #'
-safeTTest.formula <- function(
+saviTTest.formula <- function(
     formula, data, subset, na.action, ...) {
 
   if (missing(formula) || (length(formula) != 3L))
@@ -828,7 +828,7 @@ safeTTest.formula <- function(
   if (is.matrix(eval(matchedCall[["data"]], parent.frame())))
     matchedCall[["data"]] <- as.data.frame(data)
 
-  # Note: Prepare calling stats::model.frame instead of safeTTest
+  # Note: Prepare calling stats::model.frame instead of saviTTest
   #
   matchedCall[[1L]] <- quote(stats::model.frame)
   matchedCall[["..."]] <- NULL
@@ -854,7 +854,7 @@ safeTTest.formula <- function(
 
     dataList <- split(modelFrame[[response]], groupingFactor)
 
-    tResult <- safeTTest("x"=dataList[[1L]], "y"=dataList[[2L]], ...)
+    tResult <- saviTTest("x"=dataList[[1L]], "y"=dataList[[2L]], ...)
 
     if (length(tResult[["estimate"]]) == 2L) {
       names(tResult[["estimate"]]) <- paste("mean in group", levels(groupingFactor))
@@ -866,7 +866,7 @@ safeTTest.formula <- function(
     respVar <- modelFrame[[response]]
 
     if (inherits(respVar, "Pair")) {
-      tResult <- safeTTest("x"=respVar[, 1L], "y"=respVar[, 2L],
+      tResult <- saviTTest("x"=respVar[, 1L], "y"=respVar[, 2L],
                            paired=TRUE, ...)
       firstVar <- substring(dataName,
                             first=6,
@@ -880,7 +880,7 @@ safeTTest.formula <- function(
         paste("true mean difference between",
               paste(c(firstVar, secondVar), collapse = " and "))
     } else {
-      tResult <- safeTTest("x"=respVar, "y"=NULL, ...)
+      tResult <- saviTTest("x"=respVar, "y"=NULL, ...)
     }
   }
 
@@ -889,11 +889,12 @@ safeTTest.formula <- function(
 }
 
 
-#' @describeIn safeTTest Alias for safeTTest
+#' @rdname saviTTest
+#' @aliases saviTTest
 #' @export
-safe.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
+savi.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
                         ciValue=NULL, ...) {
-  result <- safeTTest("x"=x, "y"=y, "designObj"=designObj,
+  result <- saviTTest("x"=x, "y"=y, "designObj"=designObj,
                       "paired"=paired, "varEqual"=varEqual,
                       ...)
 
@@ -912,17 +913,17 @@ safe.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
 }
 
 
-#' Helper function: Computes the safe confidence sequence for the mean in a T-test
+#' Helper function: Computes the savi confidence sequence for the mean in a T-test
 #'
-#' @inheritParams safeTTestStatNEffNu
-#' @inheritParams safeTTest
-#' @inheritParams designSafeT
+#' @inheritParams saviTTestStatNEffNu
+#' @inheritParams saviTTest
+#' @inheritParams designSaviT
 #'
 #' @param meanObs numeric, the observed mean. For two sample tests this is difference of the means.
 #' @param sdObs numeric, the observed standard deviation. For a two-sample test this is the root
 #' of the pooled variance.
 #'
-#' @return numeric vector that contains the upper and lower bound of the safe confidence sequence
+#' @return numeric vector that contains the upper and lower bound of the savi confidence sequence
 #' @export
 #'
 #' @examples
@@ -965,7 +966,7 @@ computeConfidenceIntervalT <- function(
     }
 
     targetFunction <- function(t) {
-      safeTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+      saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
                           "eType"=eType)$eValue-ciLogPenaltyFunc(ciValue)
     }
 
@@ -1026,7 +1027,7 @@ computeConfidenceIntervalT <- function(
 #'
 #' Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist T-test.
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #'
 #' @return Returns an object of class 'freqTDesign'. An object of class 'freqTDesign' is a list containing at least the
 #' following components:
@@ -1093,11 +1094,11 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
   return(result)
 }
 
-#' Designs a Safe Experiment to Test Means with a T Test
+#' Designs a Safe Anytime-Valid Experiment to Test Means with a T Test
 #'
-#' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the safe test, i.e.,
-#' deltaS. If nPlan is provided, then only the safe test defining parameter deltaS needs to determined. That resulting
-#' deltaS leads to an (approximately) most powerful safe test. Typically, nPlan is unknown and the user has to specify
+#' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
+#' deltaS. If nPlan is provided, then only the savi test defining parameter deltaS needs to determined. That resulting
+#' deltaS leads to an (approximately) most powerful savi test. Typically, nPlan is unknown and the user has to specify
 #' (i) a tolerable type II error beta, and (ii) a clinically relevant minimal population standardised effect size
 #' deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
 #'
@@ -1118,7 +1119,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
 #' over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
 #' the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-#' zero and variance g. For eType=="grow" the safe test is a likelihood ratio of the
+#' zero and variance g. For eType=="grow" the savi test is a likelihood ratio of the
 #' non-central t-distributions with in the denominator the likelihood with non-centrality
 #' parameter set to 0, and in the numerator an average likelihood defined by the likelihood
 #' at the non-centrality parameter value deltaS. For the two sided
@@ -1130,9 +1131,9 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find deltaMin.
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
-#' for the safe z test under continuous monitoring.
+#' for the savi t test under continuous monitoring.
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
-#' approximation of the power, the number of samples for the safe z test under continuous monitoring,
+#' approximation of the power, the number of samples for the savi t test under continuous monitoring,
 #' or for the computation of the logarithm of the implied target.
 #' @param eType character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
 #' a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
@@ -1142,12 +1143,12 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' @param pb logical, if \code{TRUE}, then show progress bar.
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
 #'
-#' @return Returns an object of class 'safeDesign'. An object of class 'safeDesign' is a list containing at least the
+#' @return Returns an object of class 'saviDesign'. An object of class 'saviDesign' is a list containing at least the
 #' following components:
 #'
 #' \describe{
 #'   \item{nPlan}{the planned sample size(s).}
-#'   \item{parameter}{the safe test defining parameter. Here deltaS.}
+#'   \item{parameter}{the savi test defining parameter. Here deltaS.}
 #'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error provided by the user.}
@@ -1164,20 +1165,20 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' @export
 #'
 #' @examples
-#' designObj <- designSafeT(deltaMin=0.8, alpha=0.03, alternative="greater")
+#' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, alternative="greater")
 #' designObj
 #'
 #' # "Scenario 1.a": Minimal clinically relevant standarised mean difference and tolerable type
 #' # II error also known. Goal: find nPlan.
-#' designObj <- designSafeT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
+#' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
 #' designObj
 #'
 #' # "Scenario 2": Minimal clinically relevant standarised mean difference and nPlan known.
 #' # Goal: find the power, hence, the type II error of the procedure under optional stopping.
 #'
-#' designObj <- designSafeT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
+#' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
 #' designObj
-designSafeT <- function(
+designSaviT <- function(
     deltaMin=NULL, beta=NULL, nPlan=NULL,
     alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1201,7 +1202,7 @@ designSafeT <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  result <- constructSafeDesignObj("T-Test")
+  result <- constructSaviDesignObj("T-Test")
 
   if (!is.null(parameter)) {
     if (eType=="grow") {
@@ -1232,7 +1233,7 @@ designSafeT <- function(
   if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan)) {
     designScenario <- "1a"
 
-    tempResult <- designSafeT1aWantNPlan(
+    tempResult <- designSaviT1aWantNPlan(
       "deltaMin"=deltaMin, "beta"=beta,
       "alpha"=alpha, "alternative"=alternative,
       "ratio"=ratio, "parameter"=parameter, testType=testType,
@@ -1255,7 +1256,7 @@ designSafeT <- function(
     # scenario 2: given effect size and nPlan, calculate power and implied target
     designScenario <- "2"
 
-    tempResult <- designSafeT2WantBeta(
+    tempResult <- designSaviT2WantBeta(
       "deltaMin"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative, "testType"=testType,
       "ratio"=ratio, "parameter"=parameter, "eType"=eType,
@@ -1264,7 +1265,7 @@ designSafeT <- function(
   } else if (is.null(deltaMin) && !is.null(beta) && !is.null(nPlan)) {
     designScenario <- "3"
 
-    tempResult <- designSafeT3WantEsMin(
+    tempResult <- designSaviT3WantEsMin(
       "beta"=beta, "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative, "testType"=testType,
       "parameter"=parameter, "eType"=eType,
@@ -1275,7 +1276,7 @@ designSafeT <- function(
 
     designScenario <- "3b"
 
-    tempResult <- designSafeT3bWantParameter(
+    tempResult <- designSaviT3bWantParameter(
       "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative, "testType"=testType,
       "parameter"=parameter, "eType"=eType)
@@ -1346,7 +1347,7 @@ designSafeT <- function(
   result[["call"]] <- sys.call()
 
   result <- Filter(Negate(is.null), result)
-  class(result) <- "safeDesign"
+  class(result) <- "saviDesign"
 
   return(result)
 }
@@ -1356,14 +1357,14 @@ designSafeT <- function(
 #'
 #' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and the targeted nPlan amongst other items
 #' @export
 #'
 #' @examples
-#' designSafeT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
-designSafeT1aWantNPlan <- function(
+#' designSaviT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+designSaviT1aWantNPlan <- function(
     deltaMin, beta, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1376,7 +1377,7 @@ designSafeT1aWantNPlan <- function(
   eType <- match.arg(eType)
   testType <- match.arg(testType)
 
-  samplingResult <- computeNPlanSafeT(
+  samplingResult <- computeNPlanSaviT(
     "deltaTrue"=deltaMin, "beta"=beta, "alpha"=alpha,
     "alternative"=alternative, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
@@ -1384,7 +1385,7 @@ designSafeT1aWantNPlan <- function(
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot)
 
 
-  result <- designSafe1aHelper("samplingResult"=samplingResult,
+  result <- designSavi1aHelper("samplingResult"=samplingResult,
                                "esMin"=deltaMin, "beta"=beta,
                                "ratio"=ratio, "testType"=testType)
   return(result)
@@ -1394,14 +1395,14 @@ designSafeT1aWantNPlan <- function(
 #'
 #' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and beta amongst other items
 #' @export
 #'
 #' @examples
-#' designSafeT2WantBeta(deltaMin=0.9, nPlan=7, nSim=10)
-designSafeT2WantBeta <- function(
+#' designSaviT2WantBeta(deltaMin=0.9, nPlan=7, nSim=10)
+designSaviT2WantBeta <- function(
     deltaMin, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1418,14 +1419,14 @@ designSafeT2WantBeta <- function(
 
   nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
-  samplingResult <- computeBetaSafeT(
+  samplingResult <- computeBetaSaviT(
     "deltaTrue"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
     "alternative"=alternative,
     "testType"=testType, "parameter"=parameter,
     "eType"=eType, "wantSamplePaths"=wantSamplePaths,
     "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
 
-  result <- designSafe2Helper("samplingResult"=samplingResult,
+  result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=deltaMin, "nPlan"=nPlan, "ratio"=ratio,
                               "testType"=c("oneSample", "paired","twoSample"))
   return(result)
@@ -1435,14 +1436,14 @@ designSafeT2WantBeta <- function(
 #'
 #' Finds the parameter and esMin when provided with only alpha, beta, and nPlan
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and the targeted esMin amongst other items
 #' @export
 #'
 #' @examples
-#' designSafeT3WantEsMin(beta=0.7, nPlan=10)
-designSafeT3WantEsMin <- function(
+#' designSaviT3WantEsMin(beta=0.7, nPlan=10)
+designSaviT3WantEsMin <- function(
     beta, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1463,7 +1464,7 @@ designSafeT3WantEsMin <- function(
                  "note"=NULL)
 
   deltaMin <- tryOrFailWithNA(
-    computeMinEsBatchSafeT(
+    computeMinEsBatchSaviT(
       "nPlan"=nPlan, "alpha"=alpha, "beta"=beta,
       "alternative"=alternative, "testType"=testType,
       "parameter"=parameter, "eType"=eType,
@@ -1494,14 +1495,14 @@ designSafeT3WantEsMin <- function(
 #'
 #' Finds the parameter and deltaMin when provided with only alpha, nPlan
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and the parameter amongst other items
 #' @export
 #'
 #' @examples
-#' designSafeT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
-designSafeT3bWantParameter <- function(
+#' designSaviT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+designSaviT3bWantParameter <- function(
     nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1593,14 +1594,14 @@ designSafeT3bWantParameter <- function(
 
 # Batch design fnts ------
 
-#' Helper function: Computes the planned sample size for the safe T-test based on the minimal clinically
+#' Helper function: Computes the planned sample size for the savi T-test based on the minimal clinically
 #' relevant standardised effect size, alpha and beta.
 #'
-#' @inheritParams designSafeT
-#' @inheritParams sampleStoppingTimesSafeT
+#' @inheritParams designSaviT
+#' @inheritParams sampleStoppingTimesSaviT
 #'
-#' @return a list which contains at least nPlan and the deltaS the parameter that defines the safe test
-computeNPlanBatchSafeT <- function(
+#' @return a list which contains at least nPlan and the deltaS the parameter that defines the savi test
+computeNPlanBatchSaviT <- function(
     deltaTrue, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1666,7 +1667,7 @@ computeNPlanBatchSafeT <- function(
   }
 
   targetFunction <- function(nEff) {
-    safeTTestStat(
+    saviTTestStat(
       stats::qt("p"=beta, "df"=nuFunc(nEff), "ncp"=sqrt(nEff)*deltaTrue),
       "n1"=n1Func(nEff), "n2"=n2Func(nEff), "parameter"=parameter, "alternative"=tempAlternative,
       "eType"=eType)$eValue-1/alpha
@@ -1736,14 +1737,14 @@ computeNPlanBatchSafeT <- function(
 #' Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
 #' sample size
 #'
-#' @inheritParams  designSafeT
+#' @inheritParams  designSaviT
 #'
 #' @return numeric > 0 that represents the minimal detectable mean difference
 #' @export
 #'
 #' @examples
-#' computeMinEsBatchSafeT(27)
-computeMinEsBatchSafeT <- function(
+#' computeMinEsBatchSaviT(27)
+computeMinEsBatchSaviT <- function(
     nPlan, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1795,14 +1796,14 @@ computeMinEsBatchSafeT <- function(
   }
 
   targetFunction <- function(deltaTrue) {
-    safeTTestStat(
+    saviTTestStat(
       stats::qt("p"=beta, "df"=nu, "ncp"=sqrt(nEff)*deltaTrue),
       "n1"=n1, "n2"=n2, "parameter"=paramFunc(deltaTrue),
       "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
   }
 
   if (eType=="grow")  {
-    gaussResult <- computeMinEsBatchSafeT(
+    gaussResult <- computeMinEsBatchSaviT(
       "nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "alternative"=tempAlternative,
       testType=testType, eType="eGauss")
   }
@@ -1819,9 +1820,9 @@ computeMinEsBatchSafeT <- function(
 
 # Sampling functions for design ----
 
-#' Simulate stopping times for the safe T-test
+#' Simulate stopping times for the savi T-test
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #' @inheritParams generateNormalData
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
@@ -1836,8 +1837,8 @@ computeMinEsBatchSafeT <- function(
 #' @export
 #'
 #' @examples
-#' sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
-sampleStoppingTimesSafeT <- function(
+#' sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
+sampleStoppingTimesSaviT <- function(
     deltaTrue, alpha=0.05,
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -1894,7 +1895,7 @@ sampleStoppingTimesSafeT <- function(
   }
 
   if (pb)
-    pbSafe <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
+    pbSavi <- utils::txtProgressBar(style=3, title="Savi test threshold crossing")
 
   tempN <- defineTTestN("lowN"=1, "highN"=nMax[1], "ratio"=ratio, "testType"=testType)
 
@@ -1937,7 +1938,7 @@ sampleStoppingTimesSafeT <- function(
     }
 
     if (wantEValuesAtNMax) {
-      tempResult <- safeTTestStat("t"=tValues[length(tValues)],
+      tempResult <- saviTTestStat("t"=tValues[length(tValues)],
                                   "parameter"=parameter,
                                   "n1"=nMax[1], n2=nMax[2],
                                   "alternative"=alternative, "eType"=eType)
@@ -1946,7 +1947,7 @@ sampleStoppingTimesSafeT <- function(
 
     for (j in seq_along(n1Vector)) {
       tempResult <- suppressWarnings(
-        safeTTestStat("t"=tValues[j], "parameter"=parameter,
+        saviTTestStat("t"=tValues[j], "parameter"=parameter,
                       "n1"=n1Vector[j], "n2"=n2Vector[j],
                       "alternative"=alternative,
                       "eType"=eType)
@@ -1979,11 +1980,11 @@ sampleStoppingTimesSafeT <- function(
     }
 
     if (pb)
-      utils::setTxtProgressBar(pbSafe, "value"=sim/nSim, "title"="Trials")
+      utils::setTxtProgressBar(pbSavi, "value"=sim/nSim, "title"="Trials")
   }
 
   if (pb)
-    close(pbSafe)
+    close(pbSavi)
 
 
   result[["parameter"]] <- parameter
@@ -1997,19 +1998,19 @@ sampleStoppingTimesSafeT <- function(
 }
 
 
-#' Helper function: Computes the type II error of the safeTTest based on the minimal clinically relevant
+#' Helper function: Computes the type II error of the saviTTest based on the minimal clinically relevant
 #' standardised mean difference and nPlan.
 #'
-#' @inheritParams designSafeT
-#' @inheritParams sampleStoppingTimesSafeT
+#' @inheritParams designSaviT
+#' @inheritParams sampleStoppingTimesSaviT
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class
 #' \code{\link[boot]{boot}()}.
 #' @export
 #'
 #' @examples
-#' computeBetaSafeT(deltaTrue=0.7, 27, nSim=10)
-computeBetaSafeT <- function(
+#' computeBetaSaviT(deltaTrue=0.7, 27, nSim=10)
+computeBetaSaviT <- function(
     deltaTrue, nPlan, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -2051,7 +2052,7 @@ computeBetaSafeT <- function(
                         "grow"=deltaTrue)
   }
 
-  samplingResult <- sampleStoppingTimesSafeT(
+  samplingResult <- sampleStoppingTimesSaviT(
     "deltaTrue"=deltaTrue, "alpha"=alpha,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
@@ -2067,20 +2068,20 @@ computeBetaSafeT <- function(
 }
 
 
-#' Helper function: Computes the planned sample size of the safe T-test based on the
+#' Helper function: Computes the planned sample size of the savi T-test based on the
 #' minimal clinical relevant standardised mean difference.
 #'
 #'
-#' @inheritParams designSafeT
-#' @inheritParams sampleStoppingTimesSafeT
+#' @inheritParams designSaviT
+#' @inheritParams sampleStoppingTimesSaviT
 #'
 #' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.
 #'
 #' @export
 #'
 #' @examples
-#' computeNPlanSafeT(0.7, 0.2, nSim=10)
-computeNPlanSafeT <- function(
+#' computeNPlanSaviT(0.7, 0.2, nSim=10)
+computeNPlanSaviT <- function(
     deltaTrue, beta=0.2, alpha=0.05,
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -2105,7 +2106,7 @@ computeNPlanSafeT <- function(
     "paramToCheck"=deltaTrue, "alternative"=alternative,
     "esMinName"="deltaTrue")
 
-  tempObj <- computeNPlanBatchSafeT(
+  tempObj <- computeNPlanBatchSaviT(
     "deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
     "alternative"=alternative, "testType"=testType,
     "parameter"=parameter, "ratio"=ratio, "eType"=eType)
@@ -2113,7 +2114,7 @@ computeNPlanSafeT <- function(
   nPlanBatch <- tempObj[["nPlan"]]
   parameter <- tempObj[["parameter"]]
 
-  samplingResult <- sampleStoppingTimesSafeT(
+  samplingResult <- sampleStoppingTimesSaviT(
     "deltaTrue"=deltaTrue, "alpha"=alpha,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
@@ -2136,7 +2137,7 @@ computeNPlanSafeT <- function(
 #' and the degrees of freedom depending on the type of T-test. Also used for Z-tests.
 #'
 #'
-#' @inheritParams designSafeT
+#' @inheritParams designSaviT
 #'
 #' @param lowN integer that defines the smallest n of our search space for n.
 #' @param highN integer largest sample size of the (first) sample. Default set to 100.
@@ -2167,8 +2168,8 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #'
 #' The designs supported are "oneSample", "paired", "twoSample".
 #'
-#' @inheritParams designSafeT
-#' @inheritParams safeTTest
+#' @inheritParams designSaviT
+#' @inheritParams saviTTest
 #'
 #' @param meanDiffTrue numeric representing the true mean for simulations with a Z-test.
 #' Default \code{NULL}
@@ -2176,7 +2177,7 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #' @param sigmaTrue numeric > 0, population standard deviation
 #' @param meanDiffTrue numeric, data governing parameter value
 #' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
-#' This argument is used by `designSafeT()` with `deltaTrue <- deltaMin`
+#' This argument is used by `designSaviT()` with `deltaTrue <- deltaMin`
 #'
 #' @return Returns a list of two data matrices contains at least the following components:
 #'
@@ -2444,7 +2445,7 @@ computeConjugateCredibleIntervalTwoSampleT <- function(
 
 #' Internal function to solve the smallest width of an eGauss t-test
 #'
-#' @inheritParams safeTTestStat
+#' @inheritParams saviTTestStat
 #' @param g prior variance of the eGauss t-test
 #'
 #' @return a number that should be zero when g is optimal

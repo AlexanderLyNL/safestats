@@ -117,10 +117,10 @@ extractNameFromArgs <- function(list, name) {
 # Check Consistency function --------
 
 #' Checks consistency between the sided of the hypothesis and the  minimal clinically relevant effect size
-#' or safe test defining parameter. Throws an error if the one-sided hypothesis is incongruent with the
+#' or savi test defining parameter. Throws an error if the one-sided hypothesis is incongruent with the
 #'
-#' @inheritParams designSafeZ
-#' @param paramToCheck numeric. Either a named safe test defining parameter such as phiS, or thetaS, or a
+#' @inheritParams designSaviZ
+#' @param paramToCheck numeric. Either a named savi test defining parameter such as phiS, or thetaS, or a
 #' minimal clinically relevant effect size called with a non-null esMinName name
 #' @param esMinName provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for
 #' the t-test, or "hrMin" for the logrank test
@@ -161,7 +161,7 @@ checkAndReturnsEsMinParameterSide <- function(
   error <- NULL
 
   if (is.null(paramName)) {
-    paramName <- "the safe test defining parameter"
+    paramName <- "the savi test defining parameter"
     hypParamName <- "test relevant parameter"
     paramDomain <- "unknown"
   } else if (paramName=="phiS" || esMinName=="meanDiffMin") {
@@ -196,15 +196,15 @@ checkAndReturnsEsMinParameterSide <- function(
     nullValue <- "nullValue"
 
     if (alternative=="greater" && paramToCheck < 0) {
-      warning('The safe test defining parameter is incongruent with alternative "greater". ',
-              "This safe test parameter is made positive to compare H+: ",
+      warning('The savi test defining parameter is incongruent with alternative "greater". ',
+              "This savi test parameter is made positive to compare H+: ",
               "test-relevant parameter > 0 against H0 : test-relevant parameter = 0")
       paramToCheck <- -paramToCheck
     }
 
     if (alternative=="less" && paramToCheck > 0) {
-      warning('The safe test defining parameter is incongruent with alternative "less". ',
-              "This safe test parameter is made positive to compare H-: ",
+      warning('The savi test defining parameter is incongruent with alternative "less". ',
+              "This savi test parameter is made positive to compare H-: ",
               "test-relevant parameter < 0 against H0 : test-relevant parameter = 0")
       paramToCheck <- -paramToCheck
     }
@@ -248,7 +248,7 @@ checkAndReturnsEsMinParameterSide <- function(
 
 #' Check consistency between nPlan and the testType for one and two-sample z and t-tests
 #'
-#' @inheritParams designSafeZ
+#' @inheritParams designSaviZ
 #'
 #' @return nPlan a vector of sample sizes of length 1 or 2
 #'
@@ -299,7 +299,7 @@ setSafeStatsPlotOptionsAndReturnOldOnes <- function(...) {
 #' @export
 #'
 #' @examples
-#' designObj <- designSafeZ(0.4)
+#' designObj <- designSaviZ(0.4)
 #'
 #' checkDoubleArgumentsDesignObject(designObj, "alpha"=NULL, alternative=NULL)
 #' # Throws a warning
