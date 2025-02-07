@@ -698,6 +698,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' (anti-clockwise).
 #' @param fillOddEven logical controlling the polygon shading mode: see
 #' \code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.
+#' @param runInt logical, if \code{TRUE} (default), then shows the running
+#' intersection of the confidence sequence.
 #' @return Returns nothing just plots
 #' @export
 #'
@@ -709,7 +711,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           col="#A6CEE380", border="#1F78B4E6",
                           wantConfSeqPlot=FALSE, add=FALSE,
                           density=NULL, angle=45,
-                          fillOddEven=FALSE, ...) {
+                          fillOddEven=FALSE, runInt=TRUE, ...) {
   eValueVec <- x[["eValueVec"]]
   n1Vec <- x[["n1Vec"]]
 
@@ -759,10 +761,17 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       if (is.null(logScale))
         logScale <- if (maxX > switchNLog) TRUE else FALSE
 
-      logPlot <- if (isTRUE(logScale)) "x" else ""
-
       if (is.null(xlim))
         xlim <- c(0.9, maxX)
+
+      if (isTRUE(logScale)) {
+        logPlot <- "x"
+
+        if (xlim[1]==0) xlim[1] <- 0.9
+
+      } else {
+        logPlot <- ""
+      }
 
       if (is.null(ylim))
         ylim <- c(minBound, maxBound)
@@ -788,6 +797,12 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     if (is.null(fillPlot))
       fillPlot <- if (maxX <= switchNFill) TRUE else FALSE
+
+    if (runInt) {
+      upperLine <- makeRunningIntersection(upperLine)
+      lowerLine <- makeRunningIntersection(lowerLine,
+                                           upper=FALSE)
+    }
 
     if (fillPlot) {
       polygon(c(n1Vec, rev(n1Vec)),

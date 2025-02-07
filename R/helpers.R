@@ -332,3 +332,46 @@ checkDoubleArgumentsDesignObject <- function(designObj, ...) {
 ceil <- function(x, digits=13) {
   ceiling(round(x, digits=digits))
 }
+
+
+#' Helper function to create running intersections
+#'
+#' @param x vector of numeric, representing a sequence of upper or
+#' lower bounds of a confidence sequence
+#' @param upper logic, by default \code{TRUE} to construct a
+#' running intersection for the upper bound of a sequence with
+#' the minimum function. If \code{FALSE}, then use the maximum
+#' function for the lower bound.
+#'
+#' @return a sequence of numerics representing the running minimum
+#' or maximum
+#
+#' @export
+#'
+#' @examples
+#'
+#' makeRunningIntersection(c(6, -1, 3, 12))
+makeRunningIntersection <- function(x, upper=TRUE) {
+  m <- length(x)
+
+  if (m < 2)
+    stop("No running intersection for sequence of length less than 2")
+
+  res <- numeric(m)
+
+  if (isTRUE(upper)) {
+    currentValue <- Inf
+    comparisonFunction <- base::min
+  } else {
+    currentValue <- -Inf
+    comparisonFunction <- base::max
+  }
+
+
+  for (i in seq_along(x)) {
+    res[i] <- comparisonFunction(currentValue, x[i])
+    currentValue <- res[i]
+  }
+
+  return(res)
+}
