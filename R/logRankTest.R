@@ -40,6 +40,11 @@
 #'   \item{sumStats}{a list containing.the time of events, the progression of the risk sets and events.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -333,6 +338,10 @@ saviLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
 #' By default dataNull = 1 representing equality of the hazard ratio.
 #' @param sigma numeric > 0, scaling in the data.
 #'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'
 #' @export
 saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
                                 dataNull=1, sigma=1) {
@@ -448,8 +457,10 @@ saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #'
 #' @export
 #'
-#' @references Schoenfeld, D. (1981). The asymptotic properties of nonparametric tests
-#' for comparing survival distributions. Biometrika, 68(1), 316-319.
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'   `r addCite(schoenfeld1981asymptotic)`
 #'
 #' @examples
 #' designSaviLogrank(hrMin=0.7)
@@ -682,6 +693,12 @@ designSaviLogrank <- function(
 #' @inheritParams designSaviLogrank
 #'
 #' @return A list with the parameter and beta amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'   `r addCite(schoenfeld1981asymptotic)`
+#'
 #' @export
 #'
 #' @examples
@@ -739,6 +756,10 @@ designSaviLogrank2WantBeta <- function(
 #' }
 #' @export
 #'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'
 #' @examples
 #' y0Vector <- c(6, 4, 4, 1, 0)
 #' y1Vector <- c(6, 6, 5, 2, 2)
@@ -794,6 +815,10 @@ logrankSingleZ <- function(obs0, obs1, y0, y1, ...) {
 #'   \item{logEValueGreater}{Log likelihood of Fisher's hypergeometric at 1/alternative}
 #' }
 #' @export
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
 #'
 #' @examples
 #' #'
@@ -923,6 +948,11 @@ computeStatsForLogrank <- function(survDataFrame, y0Index, y1Index, timeNow, tim
 #'   \item{varVector}{vector of hypergeometric variances.}
 #'   \item{stopTimeVector}{vector at which the events occurred.}
 #' }
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'   `r addCite(schoenfeld1981asymptotic)`
 #'
 #' @export
 #'
@@ -1132,6 +1162,11 @@ computeLogrankZ <- function(survObj, group, computeZ=TRUE, computeExactE=FALSE,
 #' @param competeRatio The ratio of the data that is due to competing risk.
 #'
 #' @return A data set with time, status and group.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1202,6 +1237,10 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, or running out of participants, which implies
 #' that the corresponding stopping time is Inf.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
 #'
 #' @export
 #'
@@ -1434,6 +1473,11 @@ sampleLogrankStoppingTimes <- function(
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
 #' @author Muriel Felipe Perez-Ortiz and Alexander Ly
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1503,6 +1547,10 @@ computeLogrankBetaFrom <- function(
 #'
 #' @return a list which contains at least nEvents and an adapted bootObject of class  \code{\link[boot]{boot}}.
 #' @author Muriel Felipe Perez-Ortiz and Alexander Ly
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
 #'
 #' @export
 #'
@@ -1584,6 +1632,10 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
 #' @export
 #'
 #' @author Muriel Felipe Perez-Ortiz and Alexander Ly
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(schure2024safe)`
 #'
 #' @examples
 #' rLogrank(y0=360, y1=89, obsTotal=12, theta=3.14)

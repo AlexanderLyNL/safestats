@@ -20,7 +20,9 @@ addCite <- function(..., breakLine=TRUE) {
     "perez2024estatistics"="P\u00e9rez-Ortiz, M. F., Lardy, T., de Heide, R., & Gr\u00fcnwald, P. D. (2024). E-statistics, group invariance and anytime valid testing. \\emph{The Annals of Statistics}, \\strong{52}(\\emph{4}), 1410-1432, http://dx.doi.org/10.1214/24-AOS2394.",
     "turner2024generic"="Turner, R., Ly, A., & Gr\u00fcnwald, P. D. (2024). Generic e-variables for exact sequential k-sample tests that allow for optional stopping. \\emph{Journal of Statistical Planning and inference} \\strong{230}, 106116, https://doi.org/10.1016/j.jspi.2023.106116.",
     "turner2023exact"="Turner, R., & Gr\u00fcnwald, P. D. (2024). Exact anytime-valid confidence intervals for contingency tables and beyond. \\emph{Statistics and Probability letters}, \\strong{198}, 109835, https://doi.org/10.1016/j.spl.2023.109835.",
-    "ramdas2023game"="Ramdas, A, Gr\u00fcnwald, P. D., Vovk, V., & Shafer, G. (2023). Game-theoretic statistics and Safe Anytime-Valid Inference. \\emph{Statistical Science}, \\strong{38}(\\emph{4}), 576-597, https://doi.org/10.1214/23-STS894."
+    "ramdas2023game"="Ramdas, A, Gr\u00fcnwald, P. D., Vovk, V., & Shafer, G. (2023). Game-theoretic statistics and Safe Anytime-Valid Inference. \\emph{Statistical Science}, \\strong{38}(\\emph{4}), 576-597, https://doi.org/10.1214/23-STS894.",
+    "wang2025anytime"="Wang, H., & Ramdas, A. (in press). Anytime-valid t-tests and confidence sequences for Gaussian means with unknown variance. \\emph{Sequential Analysis}, https://doi.org/10.48550/arXiv.2310.03722.",
+    "schoenfeld1981asymptotic"="Schoenfeld, D. (1981). The asymptotic properties of nonparametric tests for comparing survival distributions. \\emph{Biometrika}, \\strong{68}(\\emph{1}), 316-319, https://doi.org/10.2307/2335833."
   )
 
   refs <- refList[keys]

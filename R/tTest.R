@@ -18,11 +18,13 @@
 #'
 #' @return Returns a numeric that represent the e10, that is, the e-value in favour of the alternative over the null
 #'
-#' @export
-#'
 #' @references
 #'   `r addCite(grunwald2024safe)`
 #'   `r addCite(ly2024safe)`
+#'   `r addCite(perez2024estatistics)`
+#'   `r addCite(wang2025anytime)`
+#'
+#' @export
 #'
 #' @examples
 #' saviTTestStat(t=1, n1=100, parameter=0.4)
@@ -65,6 +67,12 @@ saviTTestStat <- function(
 #'
 #' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
 #' @param nu numeric > 0, the degrees of freedom.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'   `r addCite(perez2024estatistics)`
+#'   `r addCite(wang2025anytime)`
 #'
 #' @export
 saviTTestStatNEffNu <- function(
@@ -208,6 +216,13 @@ saviTTestStatNEffNu <- function(
 #' @inheritParams saviTTestStatNEffNu
 #'
 #' @param k the moment used for the non-local moment prior. Default 1
+#'
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'   `r addCite(perez2024estatistics)`
+#'   `r addCite(wang2025anytime)`
 #'
 #' @export
 #'
@@ -395,6 +410,13 @@ saviTTestStatNEffNuMom <- function(
 #' @inheritParams saviTTestStatNEffNu
 #' @rdname saviTTestStat
 #'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'   `r addCite(perez2024estatistics)`
+#'   `r addCite(wang2025anytime)`
+#'
+#'
 saviTTestStatTDensity <- function(t, parameter, nu, nEff,
                                   alternative=c("twoSided", "less", "greater"),
                                   paired=FALSE, ...) {
@@ -485,6 +507,14 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
 #'   \item{designObj}{an object of class "saviTDesign" obtained from \code{\link{designSaviT}()}.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
+#'
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'   `r addCite(perez2024estatistics)`
+#'   `r addCite(wang2025anytime)`
+#'
 #' @export
 #'
 #' @examples
@@ -529,7 +559,8 @@ saviTTest <- function(x, ...) {
   UseMethod("saviTTest")
 }
 
-#' @describeIn saviTTest Default S3 method
+#' @rdname saviTTest
+#' @aliases saviTTest
 #' @export
 saviTTest.default <- function(
     x, y=NULL, designObj=NULL, paired=FALSE,
@@ -806,7 +837,8 @@ saviTTest.default <- function(
 }
 
 
-#' @describeIn saviTTest S3 method for class 'formula'
+#' @rdname saviTTest
+#' @aliases saviTTest
 #' @export
 #'
 saviTTest.formula <- function(
@@ -1162,6 +1194,11 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #'   \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1360,6 +1397,11 @@ designSaviT <- function(
 #' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and the targeted nPlan amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1398,6 +1440,11 @@ designSaviT1aWantNPlan <- function(
 #' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and beta amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1439,6 +1486,11 @@ designSaviT2WantBeta <- function(
 #' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and the targeted esMin amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1498,6 +1550,11 @@ designSaviT3WantEsMin <- function(
 #' @inheritParams designSaviT
 #'
 #' @return A list with the parameter and the parameter amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1601,6 +1658,11 @@ designSaviT3bWantParameter <- function(
 #' @inheritParams sampleStoppingTimesSaviT
 #'
 #' @return a list which contains at least nPlan and the deltaS the parameter that defines the savi test
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 computeNPlanBatchSaviT <- function(
     deltaTrue, alpha=0.05, beta=0.2,
     alternative=c("twoSided", "greater", "less"),
@@ -1742,6 +1804,10 @@ computeNPlanBatchSaviT <- function(
 #' @return numeric > 0 that represents the minimal detectable mean difference
 #' @export
 #'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @examples
 #' computeMinEsBatchSaviT(27)
 computeMinEsBatchSaviT <- function(
@@ -1835,6 +1901,10 @@ computeMinEsBatchSaviT <- function(
 #' time is Inf.
 #'
 #' @export
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #'
 #' @examples
 #' sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
@@ -2008,6 +2078,10 @@ sampleStoppingTimesSaviT <- function(
 #' \code{\link[boot]{boot}()}.
 #' @export
 #'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @examples
 #' computeBetaSaviT(deltaTrue=0.7, 27, nSim=10)
 computeBetaSaviT <- function(
@@ -2076,6 +2150,10 @@ computeBetaSaviT <- function(
 #' @inheritParams sampleStoppingTimesSaviT
 #'
 #' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #'
 #' @export
 #'
@@ -2259,6 +2337,10 @@ generateNormalData <- function(nPlan, nSim=1000L,
 #' @param log logical, default FALSE, if TRUE then return logarithm of the subjective Bayes factor outcome
 #'
 #' @return numeric > 0 representing the subjective Bayes factor outcome in favour of the alternative over the null
+#'
+#' @references
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -2330,6 +2412,10 @@ conjugateBfTStat <- function(
 #' @param log logical, default FALSE, if TRUE then return logarithm of the subjective Bayes factor outcome
 #'
 #' @return numeric > 0 representing the subjective Bayes factor outcome in favour of the alternative over the null
+#'
+#' @references
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -2414,6 +2500,10 @@ conjugateBfTStatOld <- function(
 #' @inheritParams computeConfidenceIntervalT
 #'
 #' @return a vector of length two representing the credible interval
+#'
+#' @references
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -2449,6 +2539,10 @@ computeConjugateCredibleIntervalTwoSampleT <- function(
 #' @param g prior variance of the eGauss t-test
 #'
 #' @return a number that should be zero when g is optimal
+#'
+#' @references
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples

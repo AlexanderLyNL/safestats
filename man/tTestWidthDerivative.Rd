@@ -22,3 +22,6 @@ Internal function to solve the smallest width of an eGauss t-test
 \examples{
 tTestWidthDerivative(1, 1, 1)
 }
+\references{
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+}

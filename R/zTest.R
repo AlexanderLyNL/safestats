@@ -15,7 +15,9 @@
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an e-value.
-#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #' @export
 #'
 #' @examples
@@ -202,6 +204,11 @@ saviZTestStat <- function(
 #'   \item{designObj}{an object of class "saviDesign" described in \code{\link{designSaviZ}()}.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -259,7 +266,8 @@ saviZTest <- function(x, ...) {
   UseMethod("saviZTest")
 }
 
-#' @describeIn saviZTest Default S3 method
+#' @rdname saviZTest
+#' @aliases saviZTest
 #' @export
 saviZTest.default <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
@@ -585,7 +593,8 @@ saviZTest.formula <- function(
   return(result)
 }
 
-#' @describeIn saviZTest Alias for saviZTest
+#' @rdname saviZTest
+#' @aliases saviZTest
 #' @export
 savi.z.test <- function(x, y=NULL, paired=FALSE,
                         designObj=NULL, ...) {
@@ -630,6 +639,11 @@ savi.z.test <- function(x, y=NULL, paired=FALSE,
 #' based on a conjugate prior as is usual in Bayesian analysis. This interval is also not safe.
 #'
 #' @return numeric vector that contains the upper and lower bound of the savi confidence sequence
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -968,7 +982,10 @@ designFreqZ <- function(
 #' }
 #' @export
 #'
-#' @references Grunwald, de Heide and Koolen (2019) "Safe Testing" <arXiv:1906.07801>
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @examples
 #' designObj <- designSaviZ(meanDiffMin=0.8, alpha=0.2, beta=0.2,
 #'                          alternative="greater", nSim=1e2)
@@ -1166,6 +1183,9 @@ designSaviZ <- function(
 #' @inheritParams designSaviZ
 #'
 #' @return A list with the parameter and the targeted nPlan amongst other items
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #' @export
 #'
 #' @examples
@@ -1206,6 +1226,11 @@ designSaviZ1aWantNPlan <- function(
 #' @inheritParams designSaviZ
 #'
 #' @return A list with the parameter and beta amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1247,6 +1272,11 @@ designSaviZ2WantBeta <- function(
 #' @inheritParams designSaviZ
 #'
 #' @return A list with the parameter and the targeted esMin amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1304,6 +1334,11 @@ designSaviZ3WantEsMin <- function(
 #' @inheritParams designSaviZ
 #'
 #' @return A list with the parameter and the parameter amongst other items
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -1404,6 +1439,11 @@ designSaviZ3bWantParameter <- function(
 #'
 #' @return a list which contains at least nPlan and the phiS, that is, the parameter that defines
 #' the savi test.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 computeNPlanBatchSaviZ <- function(
     meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
     alternative=c("twoSided", "greater", "less"),
@@ -1526,6 +1566,9 @@ computeNPlanBatchSaviZ <- function(
 #' @inheritParams designSaviZ
 #' @inheritParams sampleStoppingTimesSaviZ
 #'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #'
 #' @return numeric that represents the type II error
 computeBetaBatchSaviZ <- function(
@@ -1598,6 +1641,10 @@ computeBetaBatchSaviZ <- function(
 #'
 #' @return numeric > 0 that represents the minimal detectable mean difference
 #' @export
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #'
 #' @examples
 #' computeMinEsBatchSaviZ(27)
@@ -1750,6 +1797,10 @@ setLowAndHighEsTrueZ <- function(nEff, eType="mom", alternative="twoSided",
 #' @return a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
 #' due to exceeding nMax, and 0 due to 1/alpha threshold crossing, which implies that in corresponding stopping
 #' time is Inf.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #'
 #' @export
 #'
@@ -1963,6 +2014,11 @@ sampleStoppingTimesSaviZ <- function(
 #' @inheritParams sampleStoppingTimesSaviZ
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'
 #' @export
 #'
 #' @examples
@@ -2037,6 +2093,10 @@ computeBetaSaviZ <- function(
 #' @inheritParams sampleStoppingTimesSaviZ
 #'
 #' @return a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
 #'
 #' @export
 #'

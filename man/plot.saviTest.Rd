@@ -27,6 +27,7 @@
   density = NULL,
   angle = 45,
   fillOddEven = FALSE,
+  runInt = TRUE,
   ...
 )
 }
@@ -90,6 +91,9 @@ negative values and \code{NA} suppress shading (and so allow colour filling).}
 \code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{runInt}{logical, if \code{TRUE} (default), then shows the running
+intersection of the confidence sequence.}
 }
 \value{
 Returns nothing just plots

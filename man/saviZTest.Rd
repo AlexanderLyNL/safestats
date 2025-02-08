@@ -88,11 +88,6 @@ or a two-sample test.}
 \description{
 Savi one and two sample Z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{saviZTest(default)}: Default S3 method
-
-}}
 \section{Functions}{
 \itemize{
 \item \code{safeZTest()}: Deprecated version of saviZTest
@@ -100,8 +95,6 @@ Savi one and two sample Z-tests on vectors of data. The function is modelled aft
 \item \code{safeZTest(default)}: Deprecated version of saviZTest.default
 
 \item \code{safe.z.test()}: Deprecated version of saviZTest
-
-\item \code{savi.z.test()}: Alias for saviZTest
 
 }}
 \examples{
@@ -155,4 +148,8 @@ sleep2 <- reshape(sleep, direction = "wide",
                   idvar = "ID", timevar = "group")
 saviZTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
           designObj=designObjPaired)
+}
+\references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

@@ -76,3 +76,7 @@ Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 \examples{
 designSaviT2WantBeta(deltaMin=0.9, nPlan=7, nSim=10)
 }
+\references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+}

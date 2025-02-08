@@ -68,3 +68,6 @@ Based on conjugate priors with a total of 8 hyperparameters.
 conjugateBfTStat(5.2, 2, 3, 3.4, 2, 12)
 
 }
+\references{
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+}

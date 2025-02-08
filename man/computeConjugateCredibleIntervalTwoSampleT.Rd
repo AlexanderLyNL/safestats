@@ -61,3 +61,6 @@ Computes the credible interval of a two-sample t-test based on conjugate priors
 \examples{
 computeConjugateCredibleIntervalTwoSampleT(1, 1, 3, 1, 1, 3)
 }
+\references{
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+}
