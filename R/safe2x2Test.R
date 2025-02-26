@@ -1,11 +1,11 @@
 #EXPORT --------------------------------------------------------------------
-#' Designs a Safe Experiment to Test Two Proportions in Stream Data
+#' Designs a Savi Experiment to Test Two Proportions in Stream Data
 #'
 #' The design requires the number of observations one expects to collect in each group in each data block.
 #' I.e., when one expects balanced data, one could choose \code{na = nb = 1} and would be allowed to analyse
 #' the data stream each time a new observation in both groups has come in. The best results in terms of power
 #' are achieved when the data blocks are chosen as small as possible, as this allows for analysing and updating
-#' the safe test as often as possible, to fit the data best.
+#' the savi test as often as possible, to fit the data best.
 #' Further, the design requires two out of the following three parameters to be known:
 #' \itemize{
 #'  \item the power one aims to achieve (\code{1 - beta}),
@@ -26,13 +26,13 @@
 #' @param alternativeRestriction a character string specifying an optional restriction on the alternative hypothesis; must be one of "none" (default),
 #' "difference" (difference group mean b minus group b) or "logOddsRatio" (the log odds ratio between group means b and a).
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
+#' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
 #' @param pilot logical, specifying whether it's a pilot design.
 #' @param hyperParameterValues named list containing numeric values for hyperparameters betaA1, betaA2, betaB1 and betaB2, with betaA1 and betaB1 specifying the parameter
 #' equivalent to \code{shape1} in \code{stats::dbeta} for groups A and B, respectively, and betaA2 and betaB2 equivalent to \code{shape2}. By default
 #' chosen to optimize evidence collected over subsequent experiments (REGRET). Pass in the following format:
 #' \code{list(betaA1 = numeric1, betaA2 = numeric2, betaB1 = numeric3, betaB2 = numeric4)}.
-#' @param previousSafeTestResult optionally, a previous safe test result can be provided. The posterior
+#' @param previousSaviTestResult optionally, a previous savi test result can be provided. The posterior
 #' of the hyperparameters of this test is then used for the hyperparameter settings. Default NULL.
 #' @param M number of simulations used to estimate power or nBlocksPlan. Default \code{1000}.
 #' @param simThetaAMin minimal event rate in control group to simulate nPlan or power for.
@@ -40,12 +40,12 @@
 #' Default \code{NULL}, then the entire parameter space (possibly restricted by delta) is used for simulation.
 #' @param simThetaAMax maximal event rate in control group to simulate nPlan or power for. Default \code{NULL}.
 #'
-#' @return Returns a 'safeDesign' object that includes:
+#' @return Returns a 'saviDesign' object that includes:
 #'
 #' \describe{
 #'   \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
 #'   if known.}
-#'   \item{parameter}{the safe test defining parameter: here the hyperparameters.}
+#'   \item{parameter}{the savi test defining parameter: here the hyperparameters.}
 #'   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
 #'   \item{beta}{the tolerable type II error specified by the user.}
@@ -59,7 +59,7 @@
 #' @examples
 #' #plan for an experiment to detect minimal difference of 0.6 with a balanced design
 #' set.seed(3152021)
-#' designSafeTwoProportions(na = 1,
+#' designSaviTwoProportions(na = 1,
 #'                          nb = 1,
 #'                          alpha = 0.1,
 #'                          beta = 0.20,
@@ -67,15 +67,15 @@
 #'                          alternativeRestriction = "none",
 #'                          M = 75)
 #'
-#' #safe analysis of a pilot: number of samples already known
-#' designSafeTwoProportions(na = 1,
+#' #savi analysis of a pilot: number of samples already known
+#' designSaviTwoProportions(na = 1,
 #'                           nb = 1,
 #'                           nBlocksPlan = 20,
 #'                           pilot = TRUE)
 #'
 #' #specify own hyperparameters
 #' hyperParameterValues <- list(betaA1 = 10, betaA2 = 1, betaB1 = 1, betaB2 = 10)
-#' designSafeTwoProportions(na = 1,
+#' designSaviTwoProportions(na = 1,
 #'                          nb = 1,
 #'                          alpha = 0.1,
 #'                          beta = 0.20,
@@ -85,7 +85,7 @@
 #'                          M = 75)
 #'
 #' #restrict range of proportions for estimating nPlan in the control group
-#' designSafeTwoProportions(na = 1,
+#' designSaviTwoProportions(na = 1,
 #'                          nb = 1,
 #'                          beta = 0.20,
 #'                          delta = 0.3,
@@ -93,7 +93,7 @@
 #'                          M = 75,
 #'                          simThetaAMin = 0.1, simThetaAMax = 0.2)
 #'
-designSafeTwoProportions <- function(na, nb,
+designSaviTwoProportions <- function(na, nb,
                                      nBlocksPlan = NULL,
                                      beta = NULL,
                                      delta = NULL,
@@ -101,10 +101,10 @@ designSafeTwoProportions <- function(na, nb,
                                      alpha = 0.05,
                                      pilot = "FALSE",
                                      hyperParameterValues = NULL,
-                                     previousSafeTestResult = NULL,
+                                     previousSaviTestResult = NULL,
                                      M = 1e3,
                                      simThetaAMin = NULL,
-                                     simThetaAMax = NULL){
+                                     simThetaAMax = NULL) {
   alternativeRestriction <- match.arg(alternativeRestriction)
 
   if (alternativeRestriction %in% c("difference", "logOddsRatio") & !is.numeric(delta)) {
@@ -113,9 +113,9 @@ designSafeTwoProportions <- function(na, nb,
 
   note <- NULL
   #First, check for given hyperParameters or set them
-  if (!is.null(previousSafeTestResult)) {
+  if (!is.null(previousSaviTestResult)) {
     #use posterior for hyperparameter settings
-    hyperParameterValues <- previousSafeTestResult[["posteriorHyperParameters"]]
+    hyperParameterValues <- previousSaviTestResult[["posteriorHyperParameters"]]
     priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
     note <- c(note, "Hyperparameters set according to posterior values from previous test result")
   } else if (is.null(hyperParameterValues)) {
@@ -223,25 +223,25 @@ designSafeTwoProportions <- function(na, nb,
                  "call"=sys.call(),
                  "timeStamp"=Sys.time(),
                  "note" = note)
-  class(result) <- "safeDesign"
+  class(result) <- "saviDesign"
 
   return(result)
 }
 
-#' Perform a Safe Test for Two Proportions with Stream Data
+#' Perform a Savi Test for Two Proportions with Stream Data
 #'
-#' Perform a safe test for two proportions (a 2x2 contingency table test) with a
+#' Perform a savi test for two proportions (a 2x2 contingency table test) with a
 #' result object retrieved through the design function for planning an experiment to compare
-#' two proportions in this package, \code{\link{designSafeTwoProportions}()}.
+#' two proportions in this package, \code{\link{designSaviTwoProportions}()}.
 #'
 #' @param ya positive observations/ events per data block in group a: a numeric with integer values
 #' between (and including) 0 and \code{na}, the number of observations in group a per block.
 #' @param yb positive observations/ events per data block in group b: a numeric with integer values
 #' between (and including) 0 and \code{nb}, the number of observations in group b per block.
-#' @param designObj a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
-#' @param wantConfidenceSequence logical that can be set to true when the user wants a safe confidence
+#' @param designObj a savi test design for two proportions retrieved through \code{\link{designSaviTwoProportions}()}.
+#' @param wantConfidenceSequence logical that can be set to true when the user wants a savi confidence
 #' sequence to be estimated.
-#' @param ciValue coverage of the safe confidence sequence; default \code{NULL}, if NULL
+#' @param ciValue coverage of the savi confidence sequence; default \code{NULL}, if NULL
 #' calculated as \code{1 - designObj[["alpha"]]}.
 #' @param confidenceBoundGridPrecision integer specifying the grid precision used to search for the confidence
 #' bounds. Default 20.
@@ -250,14 +250,14 @@ designSafeTwoProportions <- function(na, nb,
 #' @param pilot logical that can be set to true when performing an exploratory analysis
 #' without a \code{designObj}; only allows for \code{na = nb = 1}.
 #'
-#' @return Returns an object of class 'safeTest'. An object of class 'safeTest' is a list containing at least the
+#' @return Returns an object of class 'saviTest'. An object of class 'saviTest' is a list containing at least the
 #' following components:
 #'
 #' \describe{
 #'   \item{n}{The realised sample size(s).}
-#'   \item{eValue}{the e-value of the safe test.}
+#'   \item{eValue}{the e-value of the savi test.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
-#'   \item{designObj}{an object of class "safeDesign" described in \code{\link{designSafeTwoProportions}()}.}
+#'   \item{designObj}{an object of class "saviDesign" described in \code{\link{designSaviTwoProportions}()}.}
 #' }
 #'
 #' @export
@@ -266,33 +266,33 @@ designSafeTwoProportions <- function(na, nb,
 #' #balanced design
 #' yb <- c(1,0,1,1,1,0,1)
 #' ya <- c(1,0,1,0,0,0,1)
-#' safeDesign <- designSafeTwoProportions(na = 1,
+#' saviDesign <- designSaviTwoProportions(na = 1,
 #'                                        nb = 1,
 #'                                        beta = 0.20,
 #'                                        delta = 0.6,
 #'                                        alternativeRestriction = "none",
 #'                                        M = 1e1)
-#' safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
+#' saviTwoProportionsTest(ya = ya, yb = yb, designObj = saviDesign)
 #'
 #' #pilot
-#' safeTwoProportionsTest(ya = ya, yb = yb, pilot = TRUE)
+#' saviTwoProportionsTest(ya = ya, yb = yb, pilot = TRUE)
 #'
 #' #unbalanced design
 #' yb <- c(1,0,1,1,1,0,1)
 #' ya <- c(2,2,1,2,0,2,2)
-#' safeDesign <- designSafeTwoProportions(na = 2,
+#' saviDesign <- designSaviTwoProportions(na = 2,
 #'                                        nb = 1,
 #'                                        beta = 0.20,
 #'                                        delta = 0.6,
 #'                                        alternativeRestriction = "none",
 #'                                        M = 1e1)
-#' safeTwoProportionsTest(ya = ya, yb = yb, designObj = safeDesign)
+#' saviTwoProportionsTest(ya = ya, yb = yb, designObj = saviDesign)
 #'
-safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+saviTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
                                    confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
   if (is.null(designObj) & !pilot) {
-    stop("Please provide a safe 2x2 design object, or run the function with pilot=TRUE.",
-         "A design object can be obtained by running designSafeTwoProportions().")
+    stop("Please provide a savi 2x2 design object, or run the function with pilot=TRUE.",
+         "A design object can be obtained by running designSaviTwoProportions().")
   }
 
   if (length(ya) != length(yb)) {
@@ -301,7 +301,7 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
   }
 
   if (pilot) {
-    designObj <- designSafeTwoProportions(na = 1, nb = 1, nBlocksPlan = length(ya),
+    designObj <- designSaviTwoProportions(na = 1, nb = 1, nBlocksPlan = length(ya),
                                           alternativeRestriction = "none", pilot = TRUE)
   }
 
@@ -333,7 +333,7 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
       gridBounds <- sign(designObj[["esMin"]]) * logOddsConfidenceSearchBounds
       confidenceBound <- computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
                                                      yb = yb,
-                                                     safeDesign = designObj,
+                                                     saviDesign = designObj,
                                                      bound = boundDirection,
                                                      deltaStart = gridBounds[1],
                                                      deltaStop = gridBounds[2],
@@ -352,7 +352,7 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
          ya = ya,
          yb = yb,
          precision = confidenceBoundGridPrecision,
-         safeDesign = designObj
+         saviDesign = designObj
        )
       confInt <- c(confidenceBounds[["lowerBound"]], confidenceBounds[["upperBound"]])
     }
@@ -384,39 +384,39 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
                      posteriorHyperParameters = posteriorHyperParameters,
                      ciValue = ciValue,
                      confSeq = confInt)
-  class(testResult) <- "safeTest"
+  class(testResult) <- "saviTest"
 
   return(testResult)
 }
 
-#' Alias for \code{\link{safeTwoProportionsTest}()}
+#' Alias for \code{\link{saviTwoProportionsTest}()}
 #'
-#' @rdname safeTwoProportionsTest
+#' @rdname saviTwoProportionsTest
 #'
 #' @export
-safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+savi.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
                            confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
-  safeTestResult <- tryCatch(safeTwoProportionsTest(ya = ya, yb = yb, designObj = designObj,
+  saviTestResult <- tryCatch(saviTwoProportionsTest(ya = ya, yb = yb, designObj = designObj,
                                                     wantConfidenceSequence = wantConfidenceSequence, ciValue = ciValue,
                                                     confidenceBoundGridPrecision = confidenceBoundGridPrecision,
                                                     logOddsConfidenceSearchBounds = logOddsConfidenceSearchBounds, pilot = pilot),
                   error = function(e){e})
 
-  if (!is.null(safeTestResult[["message"]])) {
-    #safeTwoProportionsTest has thrown an error - return neatly, as from this call
-    stop(safeTestResult[["message"]])
+  if (!is.null(saviTestResult[["message"]])) {
+    #saviTwoProportionsTest has thrown an error - return neatly, as from this call
+    stop(saviTestResult[["message"]])
   } else {
-    return(safeTestResult)
+    return(saviTestResult)
   }
 }
 
-#' Compare Different Hyperparameter Settings for Safe Tests of Two Proportions.
+#' Compare Different Hyperparameter Settings for Savi Tests of Two Proportions.
 #'
 #' Simulates for a range of divergence parameter values (differences or log odds ratios) the worst-case stopping times
 #' (i.e., number of data blocks collected) and expected stopping times needed to achieve the desired power for each hyperparameter setting provided.
 #'
-#' @inheritParams designSafeTwoProportions
-#' @param hyperparameterList list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}()}.
+#' @inheritParams designSaviTwoProportions
+#' @param hyperparameterList list object, its components hyperparameter lists with a format as described in \code{\link{designSaviTwoProportions}()}.
 #' @param deltaDesign optional; when using a restricted alternative, the value of the divergence measure used.
 #' Either a numeric between -1 and 1 for a restriction on difference, or a real for a restriction on the log odds ratio.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control in the study. Necessary to calculate the
@@ -432,7 +432,7 @@ safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FA
 #' @param thetaAgridSize numeric, positive integer: size of the grid of probability distributions examined for each delta value to find the
 #' worst case sample size over.
 #'
-#' @return Returns an object of class "safe2x2Sim". An object of class "safe2x2Sim" is a list containing at least the
+#' @return Returns an object of class "savi2x2Sim". An object of class "savi2x2Sim" is a list containing at least the
 #' following components:
 #'
 #' \describe{
@@ -530,11 +530,11 @@ simulateTwoProportions <- function(hyperparameterList,
                     restriction = alternativeRestriction,
                     hyperparameters = hyperparameterList
                     )
-  class(simResult) <- "safe2x2Sim"
+  class(simResult) <- "savi2x2Sim"
   return(simResult)
 }
 
-#' Prints Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
+#' Prints Results of Simulations for Comparing Hyperparameters for Savi Tests of Two Proportions
 #'
 #' @param x a result object obtained through \code{\link{simulateTwoProportions}()}.
 #' @param ... further arguments to be passed to or from methods.
@@ -555,7 +555,7 @@ simulateTwoProportions <- function(hyperparameterList,
 #'   deltamax = -0.4, deltamin = -0.9, deltaGridSize = 3,
 #'   M = 10
 #'   )
-print.safe2x2Sim <- function(x, ...){
+print.savi2x2Sim <- function(x, ...) {
   cat("Simulation results for test of two proportions")
   cat("\n\n")
 
@@ -578,7 +578,7 @@ print.safe2x2Sim <- function(x, ...){
   print(x[["simdata"]], justify = "right")
 }
 
-#' Plots Results of Simulations for Comparing Hyperparameters for Safe Tests of Two Proportions
+#' Plots Results of Simulations for Comparing Hyperparameters for Savi Tests of Two Proportions
 #'
 #' @param x a result object obtained through \code{\link{simulateTwoProportions}()}.
 #' @param ... further arguments to be passed to or from methods.
@@ -602,7 +602,7 @@ print.safe2x2Sim <- function(x, ...){
 #'
 #' plot(simResult)
 #'
-plot.safe2x2Sim <- function(x, ...){
+plot.savi2x2Sim <- function(x, ...) {
   if (is.null(x[["deltaDesign"]])) {
     mainTitle <- "Worst case and expected stopping times without restriction on H1"
   } else {
@@ -657,8 +657,8 @@ plot.safe2x2Sim <- function(x, ...){
 #' @param yb positive observations/ events per data block in group b: a numeric with integer values
 #' between (and including) 0 and \code{nb}, the number of observations in group b per block.
 #' @param precision precision of the grid of differences to search over for the lower and upper bounds.
-#' @param safeDesign a 'safeDesign' object obtained through
-#' \code{\link{designSafeTwoProportions}}
+#' @param saviDesign a 'saviDesign' object obtained through
+#' \code{\link{designSaviTwoProportions}}
 #'
 #' @return list with found lower and upper bound.
 #' @export
@@ -666,7 +666,7 @@ plot.safe2x2Sim <- function(x, ...){
 #' @importFrom rlang .data
 #'
 #' @examples
-#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#' balancedSaviDesign <- designSaviTwoProportions(na = 1,
 #'                                                nb = 1,
 #'                                                nBlocksPlan = 10,
 #'                                                alpha = 0.05)
@@ -675,19 +675,19 @@ plot.safe2x2Sim <- function(x, ...){
 #' computeConfidenceBoundsForDifferenceTwoProportions(ya = ya,
 #'                                                yb = yb,
 #'                                                precision = 20,
-#'                                                safeDesign = balancedSafeDesign)
+#'                                                saviDesign = balancedSaviDesign)
 #'
 computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
                                                            yb,
                                                            precision,
-                                                           safeDesign){
-  na <- safeDesign[["nPlan"]][["na"]]
-  nb <- safeDesign[["nPlan"]][["nb"]]
-  alpha <- safeDesign[["alpha"]]
+                                                           saviDesign){
+  na <- saviDesign[["nPlan"]][["na"]]
+  nb <- saviDesign[["nPlan"]][["nb"]]
+  alpha <- saviDesign[["alpha"]]
 
   eValuesDeltaGrid <- calculateEValuesForLinearDeltaGrid(ya = ya, yb = yb,
                                                          na = na, nb = nb,
-                                                         priorParameters = safeDesign[["betaPriorParameterValues"]],
+                                                         priorParameters = saviDesign[["betaPriorParameterValues"]],
                                                          precision = precision,
                                                          alpha = alpha,
                                                          runningIntersection = TRUE)
@@ -699,15 +699,15 @@ computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
   return(as.list(ciSummary))
 }
 
-#' Estimate an upper or lower bound for a safe confidence sequence on the
+#' Estimate an upper or lower bound for a savi confidence sequence on the
 #' logarithm of the odds ratio for two proportions.
 #'
 #' @param ya positive observations/ events per data block in group a: a numeric with integer values
 #' between (and including) 0 and \code{na}, the number of observations in group a per block.
 #' @param yb positive observations/ events per data block in group b: a numeric with integer values
 #' between (and including) 0 and \code{nb}, the number of observations in group b per block.
-#' @param safeDesign a 'safeDesign' object obtained through
-#' \code{\link{designSafeTwoProportions}}
+#' @param saviDesign a 'saviDesign' object obtained through
+#' \code{\link{designSaviTwoProportions}}
 #' @param bound type of bound to calculate; "lower" to get a lower bound on positive delta,
 #' "upper" to get an upper bound on negative delta.
 #' @param deltaStart starting value of the grid to search over for the bound on the confidence
@@ -726,7 +726,7 @@ computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
 #' @importFrom rlang .data
 #'
 #' @examples
-#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#' balancedSaviDesign <- designSaviTwoProportions(na = 1,
 #'                                                nb = 1,
 #'                                                nBlocksPlan = 10,
 #'                                                alpha = 0.05)
@@ -736,7 +736,7 @@ computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
 #' #one-sided CI for OR-, establish upper bound on log odds ratio
 #' computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
 #'                                            yb = yb,
-#'                                            safeDesign = balancedSafeDesign,
+#'                                            saviDesign = balancedSaviDesign,
 #'                                            bound = "upper",
 #'                                            deltaStart = -0.01,
 #'                                            deltaStop = -4,
@@ -744,15 +744,15 @@ computeConfidenceBoundsForDifferenceTwoProportions <- function(ya,
 #'
 computeConfidenceBoundForLogOddsTwoProportions <- function(ya,
                                                        yb,
-                                                       safeDesign,
+                                                       saviDesign,
                                                        bound = c("lower", "upper"),
                                                        deltaStart,
                                                        deltaStop,
                                                        precision){
-  na <- safeDesign[["nPlan"]][["na"]]
-  nb <- safeDesign[["nPlan"]][["nb"]]
-  priorParameters <- safeDesign[["betaPriorParameterValues"]]
-  alpha <- safeDesign[["alpha"]]
+  na <- saviDesign[["nPlan"]][["na"]]
+  nb <- saviDesign[["nPlan"]][["nb"]]
+  priorParameters <- saviDesign[["betaPriorParameterValues"]]
+  alpha <- saviDesign[["alpha"]]
   bound = match.arg(bound)
   lowerBound = ifelse(bound == "lower", TRUE, FALSE)
 
@@ -785,14 +785,14 @@ computeConfidenceBoundForLogOddsTwoProportions <- function(ya,
 }
 
 ### vignette fnts-----------------------------------------------------------------------
-#' Simulate an optional stopping scenario according to a safe design for two proportions
+#' Simulate an optional stopping scenario according to a savi design for two proportions
 #'
-#' @param safeDesign a 'safeDesign' object obtained through \code{\link{designSafeTwoProportions}()}.
+#' @param saviDesign a 'saviDesign' object obtained through \code{\link{designSaviTwoProportions}()}.
 #' @param M integer, the number of data streams to sample.
 #' @param thetaA Bernoulli distribution parameter in group A
 #' @param thetaB Bernoulli distribution parameter in group B
 #'
-#' @return list with the simulation results of the safe test under optional stopping with the following
+#' @return list with the simulation results of the savi test under optional stopping with the following
 #' components:
 #'
 #' \describe{
@@ -802,23 +802,23 @@ computeConfidenceBoundForLogOddsTwoProportions <- function(ya,
 #'   \item{lowN}{Minimum stopping time}
 #'   \item{eValues}{All achieved E values}
 #'   \item{allN}{All stopping times}
-#'   \item{allSafeDecisions}{Decisions on rejecting H0 for each M}
+#'   \item{allSaviDecisions}{Decisions on rejecting H0 for each M}
 #'   \item{allRejectedN}{Stopping times of experiments where H0 was rejected}
 #' }
 #'
 #' @export
 #'
 #' @examples
-#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#' balancedSaviDesign <- designSaviTwoProportions(na = 1,
 #'                                                nb = 1,
 #'                                                nBlocksPlan = 30)
 #' optionalStoppingSimulationResult <- simulateOptionalStoppingScenarioTwoProportions(
-#'   safeDesign = balancedSafeDesign,
+#'   saviDesign = balancedSaviDesign,
 #'   M = 1e2,
 #'   thetaA = 0.2,
 #'   thetaB = 0.5
 #' )
-simulateOptionalStoppingScenarioTwoProportions <- function(safeDesign,
+simulateOptionalStoppingScenarioTwoProportions <- function(saviDesign,
                                                            M,
                                                            thetaA,
                                                            thetaB){
@@ -828,41 +828,41 @@ simulateOptionalStoppingScenarioTwoProportions <- function(safeDesign,
   for (i in 1:M) {
     #For every m, draw a sample of max streamlength and record the time
     #at which we would have stopped
-    ya <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
-                 size = safeDesign[["nPlan"]]["na"],
+    ya <- stats::rbinom(n = saviDesign[["nPlan"]]["nBlocksPlan"],
+                 size = saviDesign[["nPlan"]]["na"],
                  prob = thetaA
     )
-    yb <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"],
-                 size = safeDesign[["nPlan"]]["nb"],
+    yb <- stats::rbinom(n = saviDesign[["nPlan"]]["nBlocksPlan"],
+                 size = saviDesign[["nPlan"]]["nb"],
                  prob = thetaB
     )
     simResult <- calculateSequential2x2E(aSample = ya, bSample = yb,
-                                         priorValues = safeDesign[["betaPriorParameterValues"]],
-                                         restriction = safeDesign[["alternativeRestriction"]],
+                                         priorValues = saviDesign[["betaPriorParameterValues"]],
+                                         restriction = saviDesign[["alternativeRestriction"]],
                                          #if explicitly passsed deltaDesign (neq delta), use that one for test
                                          #e.g. when studying effect of overestimated/ underestimated effect size
-                                         delta = safeDesign[["esMin"]],
-                                         na = safeDesign[["nPlan"]]["na"],
-                                         nb = safeDesign[["nPlan"]]["nb"],
+                                         delta = saviDesign[["esMin"]],
+                                         na = saviDesign[["nPlan"]]["na"],
+                                         nb = saviDesign[["nPlan"]]["nb"],
                                          simSetting = TRUE,
-                                         alphaSim = safeDesign[["alpha"]])
+                                         alphaSim = saviDesign[["alpha"]])
     stoppingTimes[i] <- simResult[["stopTime"]]
     stopEs[i] <- simResult[["stopE"]]
   }
 
-  allSafeDecisions <- stopEs >= (1/safeDesign[["alpha"]])
-  safeSim <- list("powerOptioStop"= mean(allSafeDecisions),
+  allSaviDecisions <- stopEs >= (1/saviDesign[["alpha"]])
+  saviSim <- list("powerOptioStop"= mean(allSaviDecisions),
                   "nMean"= mean(stoppingTimes),
-                  "probLessNDesign"= mean(stoppingTimes < safeDesign[["nPlan"]]["nBlocksPlan"]),
+                  "probLessNDesign"= mean(stoppingTimes < saviDesign[["nPlan"]]["nBlocksPlan"]),
                   "lowN"= min(stoppingTimes),
                   "eValues"=stopEs
   )
 
-  safeSim[["allN"]] <- stoppingTimes
-  safeSim[["allSafeDecisions"]] <- allSafeDecisions
-  safeSim[["allRejectedN"]] <- stoppingTimes[allSafeDecisions]
+  saviSim[["allN"]] <- stoppingTimes
+  saviSim[["allSaviDecisions"]] <- allSaviDecisions
+  saviSim[["allRejectedN"]] <- stoppingTimes[allSaviDecisions]
 
-  return(safeSim)
+  return(saviSim)
 }
 
 #' Simulate incorrect optional stopping with fisher's exact test's p-value as the
@@ -940,14 +940,14 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
   return(list(stoppingTimes = stoppingTimes, rejections = rejections))
 }
 
-#' Plot bounds of a safe confidence sequence of the difference or log odds ratio for two proportions
+#' Plot bounds of a savi confidence sequence of the difference or log odds ratio for two proportions
 #' against the number of data blocks in two data streams ya and yb.
 #'
 #' @param ya positive observations/ events per data block in group a: a numeric with integer values
 #' between (and including) 0 and \code{na}, the number of observations in group a per block.
 #' @param yb positive observations/ events per data block in group b: a numeric with integer values
 #' between (and including) 0 and \code{nb}, the number of observations in group b per block.
-#' @param safeDesign a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
+#' @param saviDesign a savi test design for two proportions retrieved through \code{\link{designSaviTwoProportions}()}.
 #' @param differenceMeasure the difference measure to construct the confidence interval for:
 #' one of "difference" and "odds".
 #' @param precision precision of the grid to search over for the confidence sequence bounds.
@@ -966,12 +966,12 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
 #' set.seed(39413)
 #' ya <- rbinom(n = 30, size = 1, prob = 0.1)
 #' yb <- rbinom(n = 30, size = 1, prob = 0.8)
-#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#' balancedSaviDesign <- designSaviTwoProportions(na = 1,
 #'                                                nb = 1,
 #'                                                nBlocksPlan = 30)
 #' plotConfidenceSequenceTwoProportions(ya = ya,
 #'                                      yb = yb,
-#'                                      safeDesign = balancedSafeDesign,
+#'                                      saviDesign = balancedSaviDesign,
 #'                                      differenceMeasure = "difference",
 #'                                      precision = 15,
 #'                                      trueDifference = 0.7)
@@ -979,7 +979,7 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
 #' #log odds ratio difference measure
 #' plotConfidenceSequenceTwoProportions(ya = ya,
 #'                                      yb = yb,
-#'                                      safeDesign = balancedSafeDesign,
+#'                                      saviDesign = balancedSaviDesign,
 #'                                      differenceMeasure = "odds",
 #'                                      precision = 15,
 #'                                      deltaStop = 5,
@@ -988,14 +988,14 @@ simulateIncorrectStoppingTimesFisher <- function(thetaA, thetaB, alpha,
 #' #switch ya and yb: observe negative log odds ratio in the data, plot mirrored in x-axis
 #' plotConfidenceSequenceTwoProportions(ya = yb,
 #'                                      yb = ya,
-#'                                      safeDesign = balancedSafeDesign,
+#'                                      saviDesign = balancedSaviDesign,
 #'                                      differenceMeasure = "odds",
 #'                                      precision = 15,
 #'                                      deltaStop = 5,
 #'                                      trueDifference = -log(36))
 #'
 plotConfidenceSequenceTwoProportions <- function(ya, yb,
-                                                 safeDesign,
+                                                 saviDesign,
                                                  differenceMeasure = c("difference", "odds"),
                                                  precision = 100,
                                                  deltaStart = 0.001,
@@ -1010,7 +1010,7 @@ plotConfidenceSequenceTwoProportions <- function(ya, yb,
         ya = ya[1:m],
         yb = yb[1:m],
         precision = precision,
-        safeDesign = safeDesign
+        saviDesign = saviDesign
       )
       lowerBounds[m] <- confidenceInterval[["lowerBound"]]
       upperBounds[m] <- confidenceInterval[["upperBound"]]
@@ -1031,17 +1031,17 @@ plotConfidenceSequenceTwoProportions <- function(ya, yb,
       deltaStop <- -1 * deltaStop
     }
     ciValues <- calculateEValuesForOddsDeltaGrid(ya = ya, yb = yb,
-                                                 na = safeDesign[["nPlan"]][["na"]],
-                                                 nb = safeDesign[["nPlan"]][["nb"]],
+                                                 na = saviDesign[["nPlan"]][["na"]],
+                                                 nb = saviDesign[["nPlan"]][["nb"]],
                                                  lowerBound = positiveLOREstimate,
-                                                 priorParameters = safeDesign[["betaPriorParameterValues"]],
+                                                 priorParameters = saviDesign[["betaPriorParameterValues"]],
                                                  precision = precision,
                                                  deltaStart = deltaStart,
                                                  deltaStop = deltaStop,
-                                                 alpha = safeDesign[["alpha"]])
+                                                 alpha = saviDesign[["alpha"]])
     if (positiveLOREstimate) {
       plotdfstep <- ciValues %>%
-        dplyr::filter(.data[["E"]] < 1/safeDesign[["alpha"]]) %>%
+        dplyr::filter(.data[["E"]] < 1/saviDesign[["alpha"]]) %>%
         dplyr::group_by(.data[["block"]]) %>%
         dplyr::summarise(delta = min(.data[["delta"]]))
       #make sure the step function walks until the end of the x axis
@@ -1053,7 +1053,7 @@ plotConfidenceSequenceTwoProportions <- function(ya, yb,
       )
     } else {
       plotdfstep <- ciValues %>%
-        dplyr::filter(.data[["E"]] < 1/safeDesign[["alpha"]]) %>%
+        dplyr::filter(.data[["E"]] < 1/saviDesign[["alpha"]]) %>%
         dplyr::group_by(.data[["block"]]) %>%
         dplyr::summarise(delta = max(.data[["delta"]]))
       #make sure the step function walks until the end of the x axis
@@ -1080,12 +1080,12 @@ plotConfidenceSequenceTwoProportions <- function(ya, yb,
   }
 }
 
-#' Simulate the coverage of a safe confidence sequence for differences between proportions
-#' for a given distribution and safe design.
+#' Simulate the coverage of a savi confidence sequence for differences between proportions
+#' for a given distribution and savi design.
 #'
 #' @param successProbabilityA probability of observing a success in group A.
 #' @param trueDelta difference in probability between group A and B.
-#' @param safeDesign a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.
+#' @param saviDesign a savi test design for two proportions retrieved through \code{\link{designSaviTwoProportions}()}.
 #' @param precision precision of the grid to search over for the confidence sequence bounds. Default 100.
 #' @param M number of simulations to carry out. Default 1000.
 #' @param numberForSeed number for seed to set, default NA.
@@ -1094,18 +1094,18 @@ plotConfidenceSequenceTwoProportions <- function(ya, yb,
 #' @export
 #'
 #' @examples
-#' balancedSafeDesign <- designSafeTwoProportions(na = 1,
+#' balancedSaviDesign <- designSaviTwoProportions(na = 1,
 #'                                                nb = 1,
 #'                                                nBlocksPlan = 20)
 #' simulateCoverageDifferenceTwoProportions(successProbabilityA = 0.2,
 #'                                          trueDelta = 0,
-#'                                          safeDesign = balancedSafeDesign,
+#'                                          saviDesign = balancedSaviDesign,
 #'                                          M = 100,
 #'                                          precision = 20,
 #'                                          numberForSeed = 1082021)
 simulateCoverageDifferenceTwoProportions <- function(successProbabilityA,
                                                         trueDelta,
-                                                        safeDesign,
+                                                        saviDesign,
                                                         precision = 100,
                                                         M = 1000,
                                                         numberForSeed = NA){
@@ -1117,13 +1117,13 @@ simulateCoverageDifferenceTwoProportions <- function(successProbabilityA,
   trueDeltaIncluded <- logical(M)
 
   for (simulationNumber in 1:M) {
-    yaSim <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityA)
-    ybSim <- stats::rbinom(n = safeDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityB)
+    yaSim <- stats::rbinom(n = saviDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityA)
+    ybSim <- stats::rbinom(n = saviDesign[["nPlan"]]["nBlocksPlan"], size = 1, prob = successProbabilityB)
     confidenceInterval <- computeConfidenceBoundsForDifferenceTwoProportions(
       ya = yaSim,
       yb = ybSim,
       precision = precision,
-      safeDesign = safeDesign
+      saviDesign = saviDesign
     )
     trueDeltaIncluded[simulationNumber] <- (trueDelta >= confidenceInterval[["lowerBound"]]) &
       (trueDelta <= confidenceInterval[["upperBound"]])
@@ -1638,7 +1638,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
   stoppingTimesWorstCase <- stopEsWorstCase <- finalEsWorstCase <- numeric(M)
 
   message(paste("Simulating E values and stopping times for divergence between groups of ", delta))
-  pbSafe <- utils::txtProgressBar(style=1)
+  pbSavi <- utils::txtProgressBar(style=1)
   for (t in seq_along(thetaAVec)) {
     stoppingTimes <- stopEs <- finalEs <- numeric(M)
 
@@ -1670,7 +1670,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
       stoppingTimes[i] <- simResult [["stopTime"]]
       stopEs[i] <- simResult[["stopE"]]
       finalEs[i] <- simResult[["finalE"]]
-      utils::setTxtProgressBar(pbSafe, value=((t-1)*M+i)/(length(thetaAVec)*M))
+      utils::setTxtProgressBar(pbSavi, value=((t-1)*M+i)/(length(thetaAVec)*M))
     }
 
     #get the quantile for (1-b) power
@@ -1694,7 +1694,7 @@ simulateWorstCaseQuantileTwoProportions <- function(na, nb, priorValues,
       finalEsWorstCase <- finalEs
     }
   }
-  close(pbSafe)
+  close(pbSavi)
 
   #bootstrapping to estimate standard deviation of metrics
   if (expectedStopTime) {

@@ -38,7 +38,7 @@ and "phiS". Note that 1-beta defines the power.}
 \item{nEvents}{numeric > 0, targetted number of events.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
 \item{h0}{numeric > 0, represents the null hypothesis, default h0=1.}
 

@@ -914,7 +914,7 @@ designFreqZ <- function(
 #' the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
 #'
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
+#' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 #' and "phiS". Note that 1-beta defines the power.
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
@@ -1933,7 +1933,7 @@ sampleStoppingTimesSaviZ <- function(
       if (wantSamplePaths)
         result[["samplePaths"]][sim, j] <- evidenceNow
 
-      if (evidenceNow > 1/alpha) {
+      if (evidenceNow >= 1/alpha) {
         result[["stoppingTimes"]][sim] <- n1Vector[j]
         result[["eValuesStopped"]][sim] <- evidenceNow
         result[["stoppedVector"]][sim] <- 1

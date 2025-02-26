@@ -9,7 +9,7 @@ computeConfidenceBoundsForDifferenceTwoProportions(
   ya,
   yb,
   precision,
-  safeDesign
+  saviDesign
 )
 }
 \arguments{
@@ -21,8 +21,8 @@ between (and including) 0 and \code{nb}, the number of observations in group b p
 
 \item{precision}{precision of the grid of differences to search over for the lower and upper bounds.}
 
-\item{safeDesign}{a 'safeDesign' object obtained through
-\code{\link{designSafeTwoProportions}}}
+\item{saviDesign}{a 'saviDesign' object obtained through
+\code{\link{designSaviTwoProportions}}}
 }
 \value{
 list with found lower and upper bound.
@@ -32,7 +32,7 @@ Estimate Lower and Upper Bounds on the Confidence Sequence (Interval)
 for the Difference Divergence Measure for Two Proportions
 }
 \examples{
-balancedSafeDesign <- designSafeTwoProportions(na = 1,
+balancedSaviDesign <- designSaviTwoProportions(na = 1,
                                                nb = 1,
                                                nBlocksPlan = 10,
                                                alpha = 0.05)
@@ -41,6 +41,6 @@ yb <- c(0,0,0,0,1,0,0,0,0,0)
 computeConfidenceBoundsForDifferenceTwoProportions(ya = ya,
                                                yb = yb,
                                                precision = 20,
-                                               safeDesign = balancedSafeDesign)
+                                               saviDesign = balancedSaviDesign)
 
 }

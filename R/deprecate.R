@@ -927,3 +927,71 @@ designSafeLogrank2WantBeta <- function(
 
 
 # 2x2 ------
+designSafeTwoProportions <- function(na, nb,
+                                     nBlocksPlan = NULL,
+                                     beta = NULL,
+                                     delta = NULL,
+                                     alternativeRestriction = c("none", "difference", "logOddsRatio"),
+                                     alpha = 0.05,
+                                     pilot = "FALSE",
+                                     hyperParameterValues = NULL,
+                                     previousSafeTestResult = NULL,
+                                     M = 1e3,
+                                     simThetaAMin = NULL,
+                                     simThetaAMax = NULL) {
+
+  warning('The function designSafeTwoProportions is deprecated;',
+          'Please use designSaviTwoProportions instead')
+
+  designSaviTwoProportions(
+    na=na, nb=nb, nBlocksPlan=nBlocksPlan,
+    beta=beta, delta=delta, alternativeRestriction=alternativeRestriction,
+    alpha=alpha, pilot=pilot, hyperParameterValues=hyperParameterValues,
+    previousSaviTestResult=previousSafeTestResult, M=M,
+    simThetaAMin=simThetaAMin, simThetaAMax=simThetaAMax)
+}
+
+
+safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+                                   confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
+
+  warning('The function safeTwoProportionsTest is deprecated;',
+          'Please use saviTwoProportionsTest instead')
+
+  saviTwoProportionsTest(
+    ya=ya, yb=yb, designObj=designObj,
+    wantConfidenceSequence=wantConfidenceSequence,
+    ciValue=ciValue, confidenceBoundGridPrecision=confidenceBoundGridPrecision,
+    logOddsConfidenceSearchBounds=logOddsConfidenceSearchBounds,
+    pilot=pilot)
+}
+
+safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
+                           confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
+
+  warning('The function safe.prop.test is deprecated;',
+          'Please use savi.prop.test instead')
+
+  savi.prop.test(
+    ya=ya, yb=yb, designObj=designObj, wantConfidenceSequence=wantConfidenceSequence,
+    ciValue=ciValue, confidenceBoundGridPrecision=confidenceBoundGridPrecision,
+    logOddsConfidenceSearchBounds=logOddsConfidenceSearchBounds,
+    pilot=pilot)
+}
+
+print.safe2x2Sim <- function(x, ...) {
+
+  warning('The function print.safe2x2Sim is deprecated;',
+          'Please use print.savi2x2Sim instead')
+
+  print.savi2x2Sim(x, ...)
+}
+
+
+plot.safe2x2Sim <- function(x, ...) {
+
+  warning('The function print.safe2x2Sim is deprecated;',
+          'Please use print.savi2x2Sim instead')
+
+  plot.savi2x2Sim(x, ...)
+}

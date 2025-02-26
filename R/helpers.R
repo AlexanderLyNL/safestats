@@ -32,7 +32,7 @@ addCite <- function(..., breakLine=TRUE) {
   res <- character()
 
   for (i in seq_along(refs)) {
-    if (i == refLength && isFALSE(breakLine)) {
+    if (i == refLength && base::isFALSE(breakLine)) {
       res <- paste(res, refs[[i]])
     } else {
       res <- paste(res, refs[[i]], "</br> </br>")

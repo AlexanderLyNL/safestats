@@ -21,13 +21,13 @@ Using the two-sample z-test for comparing two means as a guiding example, we ill
 
 1. [Sequential use of p-values over-inflates the type I error](#pValues)
 2. [Sequential use of Bayes factors based on subjectively chosen priors can also over-inflate the type I error](#bf)
-3. [Sequential use of a safe test/e-variable will **not** over-inflate the type I error](#eValues)
+3. [Sequential use of a savi test/e-variable will **not** over-inflate the type I error](#eValues)
 
-The first point is well-known, but we believe it's good to see actual examples of this as a wake-up call, as in our experience researchers play down their expectation of this over-inflation in their minds. The second point illustrates that not __all__ Bayes factors have type I error control under optional stopping. That is, not all Bayes factors are safe/e-variables and not all Bayes factors can be used for sequential experiment set-ups.
+The first point is well-known, but we believe it's good to see actual examples of this as a wake-up call, as it showcase the severity of this over-inflation. The second point illustrates that not __all__ Bayes factors have type I error control under optional stopping. That is, not all Bayes factors are safe/e-variables and not all Bayes factors can be used for sequential experiment set-ups with type I error control. 
 
-The main point is that with e-variables type I error control is retained _regardless of the sample size_. In other words, we can safely monitor the e-value and stop the experiment (early) whenever this e-value provides compelling evidence for the presence over the absence of an effect. By stopping early fewer participants will be put at risk, in particular, those patients who are assigned to the control condition, when in reality the treatment condition obtains more effective results. Safe tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data.
+The main point is that with e-variables type I error control is retained _regardless of the sample size_. In other words, we can safely monitor the e-value and stop the experiment (early) whenever this e-value provides compelling evidence for the presence over the absence of an effect. By stopping early fewer participants will be put at risk, in particular, those patients who are assigned to the control condition, when in reality the treatment condition obtains more effective results. Savi tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data.
 
-Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. 
+Importantly, for the savi tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. As the results do not depend on the planned, current, or future sample sizes, savi tests allow for _anytime valid_ inferences. 
 
 For this demonstration we use functions from the safestats package and the following colours:
 
@@ -79,7 +79,7 @@ A p-value analysis relies on the sampling distribution of a test statistic. For 
 \bar{X}_{1} \sim \mathcal{N} \left (\mu_{1}, \frac{\sigma^{2}}{n_{1}} \right ).
 \end{align}
 
-The sample mean of $\bar{X}_{2}$ has an analogous sampling distribution, but with $2$ as subscript instead of $1$. The difference between the two sample means has distribution 
+The sample mean $\bar{X}_{2}$ has an analogous sampling distribution, but with $2$ as subscript instead of $1$. The difference between the two sample means has distribution 
 
 \begin{align}
 \bar{X}_{1} - \bar{X}_{2} \sim \mathcal{N} \left (\mu_{1}- \mu_{2}, \big ( \tfrac{1}{n_{1}} + \tfrac{1}{n_{2}} \big ) \sigma^{2} \right ). 
@@ -146,12 +146,12 @@ abline(h=0.05, lty=2, lwd=2)
 ```
 Using p < alpha = 0.05 as a stopping rule and an indication of there being an effect leads to the experiment to be stopped early at the cost of making an incorrect decision, as the data are sampled under the null. 
 
-This incorrect conclusion happened to occur for the specific data set we used, but it can be mathematical proven that this procedure will always yield a significant p-value under the null if we sample indefinitely. This is also known as __sampling to a foregone conclusion__. 
+This incorrect conclusion occurred for the specific data set we used, but it can be mathematical proven that this procedure will always yield a significant p-value under the null if we sample indefinitely. This is also known as __sampling to a foregone conclusion__. 
 
 ### The behaviour of the sequential p-value procedure under multiple/repeated use 
 The previous code worked for a specific data set/outcomes of a single experiment. Note that this 1 data set yielded 100 p-values. We now repeat the procedure, but for 1,000 data sets/experiments. The code below stores 1,000 times 100 p-values in the variable `allPValues`. 
 
-We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result if we compare against alpha=0.05, despite the data being sampled under the null: far more than what we would want for a test that should retain a type I error rate guarantee at level 0.05.
+We will see that far more than 50 out of these 1,000 data sets/repeated experiments will yield a "significant" result if we reject the null as soon as p < alpha=0.05, despite the data being sampled under the null: Far more than what we would want for a test that should retain a type I error rate guarantee at level 0.05.
 
 The following code stores a 1,000 times 100 p-values: 
 
@@ -224,7 +224,7 @@ For computational simplicity these parameters are given normal priors, respectiv
 
 Provided with the two sample means $\bar{x}_{1}, \bar{x}_{2}$, the sample variances $s_{1}^{2}, s_{2}^{2}$, and the six values of the hyper parameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ the function `subjectiveBfZStat` outputs a subjective Bayes factor outcome in favour of the alternative over the null. 
 
-One way to choose the 6 hyper parameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ is by using data from a comparative study, as if we're dealing with a replication attempt. Suppose that data are available of first-year Belgian psychology students in their first week of study. These data lead to an estimate of the population average IQ score of 107. Before we agree to implement the new educational programme that claims an IQ increase of 10 points in the Netherlands, we first test the null hypothesis of no effect. To do so with  the subjective Bayes factor described above, the hyper parameters could then be set as follows: 
+One way to choose the 6 hyper parameters $a_{1}, b_{1}, a_{2}, b_{2}, a_{0}, b_{0}$ is by using data from a comparative study, as if we're dealing with a replication attempt. Suppose that data are available of first-year Belgian psychology students in their first week of study. These data lead to an estimate of the population average IQ score of 107. Before we agree to implement the new educational programme that claims an IQ increase of 10 points in the Netherlands, we first test the null hypothesis of no effect. To do so with the subjective Bayes factor described above, the hyper parameters could then be set as follows: 
 
 ```{r, eval=FALSE}
 # Null hyper parameters
@@ -407,14 +407,14 @@ lines(c(1, n1), c(1/alpha, 1/alpha), lwd=2, lty=2)
 
 The main message is that if type I error control for Bayes factors is desirable, then the priors need to be selected with care. One of the reasons why this subjective Bayes factor led to poor type I error performance is due to its sensitivity to the underlying value of the nuisance parameter muGlobal, that is, the true baseline population mean. If the hyperparameter $a_{0}$ equals the true baseline population mean the type I error would remain below 5\%. In practice, we cannot assume that we know muGlobal exactly, nor can we ensure no baseline shifts. Note that this remark is only concerned with one of the six parameters, and that we can over-inflate the type I error by playing with the other five hyper parameters as well. 
 
-# 3. <a name = "eValues">Sequential use of a safe test/e-variable will **not** over-inflate the type I error</a>
+# 3. <a name = "eValues">Sequential use of a savi test/e-variable will **not** over-inflate the type I error</a>
 
-For the e-variable demonstration we rely on the `safeZTest` function from the safestats package. 
+For the e-variable demonstration we rely on the `saviZTest` function from the safestats package. 
 
-To run `safeZTest` a design object needs to be created. For the problem at hand we provided the design object with a minimal clinically relevant effect size, say, a mean difference of 10 (the claimed increase in IQ score). The following code creates such a design object. 
+To run `saviZTest` a design object needs to be created. For the problem at hand we provided the design object with a minimal clinically relevant effect size, say, a mean difference of 10 (the claimed increase in IQ score). The following code creates such a design object. 
 
 ```{r, eval=FALSE}
-designObj <- designSafeZ(meanDiffMin=10,
+designObj <- designSaviZ(meanDiffMin=10,
                          testType="twoSample",
                          sigma=sigmaTrue)
 designObj
@@ -433,7 +433,7 @@ The sequential use of e-variables entails computing an e-value after each observ
 # eValue <- 1
 # 
 # while (eValue < 1/alpha) {
-#   eValue <- safeZTest(x=x[1:n], y=y[1:n],
+#   eValue <- saviZTest(x=x[1:n], y=y[1:n],
 #                       designObj=designObj)
 #   
 #   if (eValue > 1/alpha) {
@@ -456,7 +456,7 @@ dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigmaTrue)
 set.seed(3)
 dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
 
-result <- safeZTest(dataGroup1, dataGroup2[1:i],
+result <- saviZTest(dataGroup1, dataGroup2[1:i],
                     designObj=designObj)
 plot(result)
 ```
@@ -465,7 +465,7 @@ This sample path does not exceed the evidence threshold of 20, and fewer than 5\
 ### The behaviour of the e-variable procedure under multiple/repeated use 
 The previous code worked for a specific data set/outcomes of a single experiment. Note that this 1 data set yielded 100 e-values. We now repeat the procedure, but over 1,000 data sets/experiments. The code below stores 1,000 times 100 e-values in the variable `allEValues`. 
 
-We will see that __fewer__ than 50 out of these 1,000 repeated experiments/data sets generated under the null will yield a false negative result, if we reject the null as soon as eValue > 20. 
+We will see that __fewer__ than 50 out of these 1,000 repeated experiments/data sets generated under the null will yield a false negative result, if we reject the null as soon as eValue >= 20. 
 
 The following code stores 1,000 times 100 e-values: 
 
@@ -499,7 +499,7 @@ for (sim in 1:mIter) {
   zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigmaTrue
   
   for (i in 1:n1) {
-    currentEValue <- safeZTestStat(zVector[i], 
+    currentEValue <- saviZTestStat(zVector[i], 
                                    parameter=designObj$parameter, 
                                    n1=n1Vector[i], n2=n2Vector[i], 
                                    sigma=sigmaTrue,

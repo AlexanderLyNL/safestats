@@ -36,7 +36,7 @@ pValueZTest(
 \item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 

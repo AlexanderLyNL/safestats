@@ -1,9 +1,9 @@
 ---
-title: "Safe Flexible Hypothesis Tests for Practical Scenarios"
+title: "Flexible Safe Anytime-Valid Tests for Practical Scenarios"
 author: "Alexander Ly, Udo Boehm and Rosanne Turner"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Safe Flexible Hypothesis Tests for Practical Scenarios}
+  %\VignetteIndexEntry{Flexible Safe Anytime-Valid Tests for Practical Scenarios}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,28 +17,28 @@ knitr::opts_chunk$set(
 )
 ```
 
-_Safe tests_ is a collective name for a new form of hypothesis tests that are based on _e-values_ (instead of _p-values_). The original paper on e-values by Grunwald, de Heide and Koolen can be found [on arxiv:1906.07801](https://arxiv.org/abs/1906.07801). Another good source on the mathematical theory behind safe tests and e-values is provided by [Howard, Ramdas, McAuliffe, and Sekhon]( https://doi.org/10.1214/20-AOS1991). For each hypothesis testing setting where one would normally use a p-value, a safe test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package includes safe tests for the z-test, t-test, Fisher's exact test, the chi-squared test (the safe test of two proportions), and the logrank test for survival data. In this vignette, we will illustrate the concepts of safe testing and e-values with the t-test as a running example. This safe test is designed to, on average, detect the effect as quickly as possible, if the effect actually exists. 
+_Safe anytime-valid inference_ (savi) is a collective name for a new method of inference based on _e-values_ (instead of _p-values_). The original paper on e-values by Grunwald, de Heide and Koolen can be found [on arxiv:1906.07801](https://arxiv.org/abs/1906.07801). Another good source on the mathematical theory behind savi tests and e-values is provided by [Howard, Ramdas, McAuliffe, and Sekhon]( https://doi.org/10.1214/20-AOS1991). For each hypothesis testing setting where one would normally use a p-value, a savi test can be designed, with a number of advantages that are elaborately described and illustrated in this vignette. Currently, this package includes savi tests for the z-test, t-test, Fisher's exact test, the chi-squared test (the savi test of two proportions), and the logrank test for survival data. In this vignette, we will illustrate the concepts of savi testing and e-values with the t-test as a running example. This savi test is designed to, on average, detect the effect as quickly as possible, if the effect actually exists. 
 
 >Technically, E-variables, are non-negative random variables (test statistics) that have an expected value of at most one under the null hypothesis. The E-variable can be interpreted as an gamble against the null hypothesis in which an investment of 1\$ returns E\$ whenever the null hypothesis fails to hold true. Hence, the larger the observed e-value, the larger the incentive to reject the null (see the [original paper](https://arxiv.org/abs/1906.07801)). 
 
-A big advantage of e-values over their p-value equivalents is that safe tests conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping) without over-inflating the chance of a false discovery. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Safe tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
+A big advantage of e-values over their p-value equivalents is that savi tests conserve the type I error guarantee (false positive rate) _regardless of the sample size_. This implies that the evidence can be monitored as the observations come in, and the researcher is allowed to stop the experiment early (optional stopping) without over-inflating the chance of a false discovery. By stopping early fewer participants will be put at risk. In particular, those patients who are assigned to the control condition, when a treatment is effective. Savi tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, or an editor urges the experimenter to collect more data. 
 
-Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. Safe tests allow for _anytime valid_ inferences, because the  results do not depend on the planned, current, or future sample sizes. We illustrate these properties below. 
+Importantly, for the savi tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. Savi tests allow for _anytime valid_ inferences, because the  results do not depend on the planned, current, or future sample sizes. We illustrate these properties below. 
 
-Firstly, we show how to design an experiment based on safe tests [for testing means](#designT). 
+Firstly, we show how to design an experiment based on savi tests [for testing means](#designT). 
 
-Secondly, simulations are run to show that safe tests indeed conserve the type I error guarantee under optional stopping [for testing means](#optStopT). We also show that optional stopping causes the false null rejection rate of the classical p-value test to exceed the tolerable level $\alpha$ type I error guarantee. In other words, with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
+Secondly, simulations are run to show that savi tests indeed conserve the type I error guarantee under optional stopping [for testing means](#optStopT). We also show that optional stopping causes the false null rejection rate of the classical p-value test to exceed the tolerable level $\alpha$ type I error guarantee. In other words, with classical tests one cannot adapt to the information acquired during the study without increasing the risk of making a false discovery. 
 
-Lastly, it is shown that _optionally continuing non-significant experiments_ also causes the p-value tests to exceed the tolerable level $\alpha$ type I error guarantee, whereas this is not the case [for safe tests](#optContT).
+Lastly, it is shown that _optionally continuing non-significant experiments_ also causes the p-value tests to exceed the tolerable level $\alpha$ type I error guarantee, whereas this is not the case [for savi tests](#optContT).
 
 This demonstration further emphasises the rigidity of experimental designs when inference is based on a classical test: the experiment cannot be stopped early, nor extended. Thus, the planned sample size has to be final. As such, a rigorous protocol needs to account for possible future sample sizes, which is practically impossible. Even if such a protocol can be made, there is no guarantee that the experiments go exactly according to plan, as things might go wrong during the study. <!--, and flexibility is required to act on new information.Furthermore, the failure of p-values to be robust to optional continuation implies that one cannot build on previously acquired data, thus, engage in (scientific) learning. 
 
-simulations are run to show that safe tests also conserve the type I error guarantee under optional continuation. This implies that 
+simulations are run to show that savi tests also conserve the type I error guarantee under optional continuation. This implies that 
 
-we show that the behaviour of safe tests under optional continuation. 
+we show that the behaviour of savi tests under optional continuation. 
 -->
 
-The ability to act on information that accumulates during the study --without sacrificing the correctness of the resulting inference-- was the main motivation for the development of safe tests, as it provides experimenters with the much needed flexibility. 
+The ability to act on information that accumulates during the study --without sacrificing the correctness of the resulting inference-- was the main motivation for the development of savi tests, as it provides experimenters with the much needed flexibility. 
 
 ## Installation
 The stable version can be installed by entering in `R`:
@@ -67,9 +67,9 @@ eColours <- c("#1F78B4E6", "#A6CEE380")
 eColoursAlt <- c("#B15928E6", "#FFFF9980")
 ```
 
-# 1. <a name = "designT">Designing safe t-test experiments</a>
+# 1. <a name = "designT">Designing savi t-test experiments</a>
 ## Type I error and type II errors 
-To avoid bringing an ineffective medicine to the market, experiments need to be conducted in which the null hypothesis of no effect is tested. Here we show how flexible experiments based on safe tests can be designed. 
+To avoid bringing an ineffective medicine to the market, experiments need to be conducted in which the null hypothesis of no effect is tested. Here we show how flexible experiments based on savi tests can be designed. 
 
 As the problem is statistical in nature, due to variability between patients, we cannot guarantee that all of the medicine that pass the test will indeed be effective. <!--This can only be accomplished by tests that never reject the null. -->
 Instead, the target is to bound the type I error rate by a tolerable $\alpha$, typically, $\alpha = 0.05$. In other words, at most 5 out of the 100 ineffective drugs are allowed to pass the test. 
@@ -88,10 +88,10 @@ deltaMin <- 12/(sqrt(2)*15)
 sigma <- 15
 ```
 ```{r, echo = FALSE}
-load("safeVignetteData/safeTDesignObj.RData")
+load("safeVignetteData/saviTDesignObj.RData")
 ```
 ```{r, eval=FALSE}
-designObj <- designSafeT(deltaMin=deltaMin, alpha=alpha,
+designObj <- designSaviT(deltaMin=deltaMin, alpha=alpha,
                          beta=beta, sigma=sigma,
                          alternative="greater", 
                          testType="paired", seed=1, pb=FALSE)
@@ -106,13 +106,13 @@ The design object defines both the parameter gMom that will be used to compute t
 The following scenario involves a known minimal clinically relevant effect size, and a budget constraint such that we can at most invite, say, 30 participants for our study. The power of the test can then be explored with the following code:
 
 ```{r, eval = FALSE}
-designObj2 <- designSafeT(deltaMin=deltaMin, alpha=alpha,
+designObj2 <- designSaviT(deltaMin=deltaMin, alpha=alpha,
                           nPlan=c(30, 30), sigma=sigma,
                           alternative="greater", 
                           testType="paired", seed=1, pb=FALSE)
 ```
 ```{r, echo = FALSE}
-load("safeVignetteData/safeZDesignObj2.RData")
+load("safeVignetteData/saviTDesignObj2.RData")
 ```
 ```{r}
 designObj2
@@ -129,7 +129,7 @@ It is not always clear what the minimal clinically relevant effect size is, and 
 # Recall:
 # alpha <- 0.05
 # beta <- 0.2
-designObj3 <- designSafeT(nPlan=c(50, 50), 
+designObj3 <- designSaviT(nPlan=c(50, 50), 
                           alpha=alpha, beta=beta,
                           sigma=sigma, alternative="greater", 
                           testType="paired")
@@ -137,18 +137,18 @@ designObj3
 ```
 This shows that if we have budget for an experiment with 50 paired samples, and we analyse the data once after $n=50$, then we are able to detect a true effect size of `r designObj3$esMin` with 80% chance. This `r designObj3$esMin`, however, is conservative, as when we monitor the e-value as the data come in, we will be able to detect even smaller effect sizes. If field experts believe that the true effect is smaller than `r designObj3$esMin`, then we can again prospective decide against conducting this experiment, or we can obtain more funds. 
 
-# 2. <a name = "optStopT">Inference with safe tests: Optional stopping</a>
+# 2. <a name = "optStopT">Inference with savi tests: Optional stopping</a>
 In this section we highlight the point that the planned sample size for an e-value test is not rigid. There are roughly three cases: (1) the true effect size equals the minimal clinically relevant one, (2) the true effect size is larger than the minimal clinically relevant effect size, or (3) the true effect size is smaller than the minimal clinically relevant effect size. The main feature of e-variables is that we can monitor the e-value as the data come in, and stop the experiment early whenever the evidence is convincing. This occurs with high chance in scenarios (1) and (2). In scenario (3) the e-values at the planned sample size will typically be promising, but smaller than, say, $1/\alpha=20$. Continuing the experiment beyond the planned sample size does not hinder the validity of the e-value test, which we elaborate on in the [next section](#optContT) on optional continuation. This and the next section thus shows that e-value tests are robust to both optional stopping and continuation, which implies that if the null hypothesis of no effect holds true, then there is less than $\alpha$ chance that the E-variable will _ever_ reject the null. 
 
-We focus on scenarios (1) and (2) by first illustrating the operational characteristics of the safe test under the null, before we demonstrate its performance under the alternative. 
+We focus on scenarios (1) and (2) by first illustrating the operational characteristics of the savi test under the null, before we demonstrate its performance under the alternative. 
 
-<!--In other words, this safe test retains its type I error guarantee regardless of how many times, and when the test is conducted, and irrespective of the experiment being data-dependently stopped or continued (discussed in the [next section](#optContT)). A safe test of level $\alpha = 0.05$ rejects the null whenever the observed e-value is larger than $20 = 1/\alpha$. -->
+<!--In other words, this savi test retains its type I error guarantee regardless of how many times, and when the test is conducted, and irrespective of the experiment being data-dependently stopped or continued (discussed in the [next section](#optContT)). A savi test of level $\alpha = 0.05$ rejects the null whenever the observed e-value is larger than $20 = 1/\alpha$. -->
 
 <!--TODO(Alexander): CHECK STRUCTURE 
 Secondly, we show that there is a high chance of stopping early whenever the true effect size is at least as large as the minimal clinically relevant effect size.
 -->
 
-## Safe tests conserve the type I error rate: Batch analysis
+## Savi tests conserve the type I error rate: Batch analysis
 We first show that the type I error is preserved for the batch analysis, that is, when the data are only analysed once at nPlan. 
 
 ```{r}
@@ -156,13 +156,13 @@ set.seed(1)
 preData <- rnorm(n=designObj$nPlan[1], mean=120, sd=15)
 postData <- rnorm(n=designObj$nPlan[2], mean=120, sd=15)
 # Thus, deltaTrue=0
-safeTTest(x=preData, y=postData, 
+saviTTest(x=preData, y=postData, 
           designObj=designObj, paired=TRUE)
 ```
 or equivalently with syntax closely resembling the standard t.test syntax:
 
 ```{r}
-safe.t.test(x=preData, y=postData, 
+savi.t.test(x=preData, y=postData, 
             designObj=designObj, paired=TRUE)
 ```
 The following code replicates this simulation a 1,000 times and shows that in only a few cases will the E-variable cross the boundary of $1/\alpha$ under the null:
@@ -182,7 +182,7 @@ eValues <- replicate(n=nSim, expr={
                    sd=15)
   postData <- rnorm(n=designObj$nPlan[2], mean=120,
                     sd=15)
-  safeTTest(x=preData, y=postData, 
+  saviTTest(x=preData, y=postData, 
             designObj=designObj, paired=TRUE)$eValue}
 )
 ```
@@ -191,16 +191,16 @@ mean(eValues > 20)
 mean(eValues > 20) < alpha
 ```
 
-Hence, in this simulation with the null hypothesis holding true and if the safe test is only conducted once at the planned sample size, then in `r sum(eValues > 20)` out of `r nSim` experiments the null hypothesis was falsely rejected. 
+Hence, in this simulation with the null hypothesis holding true and if the savi test is only conducted once at the planned sample size, then in `r sum(eValues > 20)` out of `r nSim` experiments the null hypothesis was falsely rejected. 
 
-## Safe tests allow for early stopping without inflating the type I error rate above the tolerable $\alpha$-level
+## Savi tests allow for early stopping without inflating the type I error rate above the tolerable $\alpha$-level
 <!--### Data under the alternative: <a name = "optStopT">Stopping the experiment early</a>-->
-What makes the safe tests in this package particularly interesting is that they allow for early stopping without the test ever exceeding the tolerable type I error rate of $\alpha$. This means that the e-value can be monitored as the data come in, and when there is a sufficient amount of evidence against the null, that is, whenever the e-value is larger than $ 1/\alpha$, the experiment can be stopped early. This puts fewer patients at risk, and allows for more efficient scientific scrutiny. 
+What makes the savi tests in this package particularly interesting is that they allow for early stopping without the test ever exceeding the tolerable type I error rate of $\alpha$. This means that the e-value can be monitored as the data come in, and when there is a sufficient amount of evidence against the null, that is, whenever the e-value is larger than $ 1/\alpha$, the experiment can be stopped early. This puts fewer patients at risk, and allows for more efficient scientific scrutiny. 
 
 > Note that <a name = "martingale">not all E-variables necessarily allow for optional stopping</a>: this only holds for some special E-variables, that are also _test martingales_. More information can be found, for example, in the second author's [master thesis](https://www.universiteitleiden.nl/binaries/content/assets/science/mi/scripties/statscience/2019-2020/thesis_rjturner_for_publication.pdf), Chapter 5.
 
 ## <a href="optionalStopPValues">Optional stopping is problematic for p-values</a>
-Optionally stopping will *never* cause the safe test to over-reject the null hypothesis, whereas tracking the classical p-value tests and rejecting the null whenever it dips below, say, $\alpha=0.05$ will lead to an over-inflation of the type I error. In other words, optional stopping with these p-value tests leads to an increased risk of falsely claiming that a medicine is effective, while in reality it is not. 
+Optionally stopping will *never* cause the savi test to over-reject the null hypothesis, whereas tracking the classical p-value tests and rejecting the null whenever it dips below, say, $\alpha=0.05$ will lead to an over-inflation of the type I error. In other words, optional stopping with these p-value tests leads to an increased risk of falsely claiming that a medicine is effective, while in reality it is not. 
 
 The following code replicates `r nSim` experiments and each data set is generated with a true effect size set to zero. We first collect the t-statistics across the `r nSim` data sets, and time/sample size `r designObj$nPlan[1]`
 
@@ -293,23 +293,23 @@ lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
 After the second evaluation a total of `r pValueFalseRejects[3]*nSim` out of nSim=`r nSim` experiments yielded a significant p-value after the first or second observation, that is, `pValueFalseRejects[3]*100`, which is already larger than the tolerable 5%. This emphasises the point that the significant test $p < 0.05$ should be conducted once, and only once. 
 
-### Optional stopping does not cause safe tests to over-reject the null
+### Optional stopping does not cause savi tests to over-reject the null
 We repeat the simulation, but now with e-values instead. With e-values we can reject the null and stop the experiment as soon as the e-value exceeds $1 / \alpha = 20$. Importantly, this procedure will not yield more than the tolerable 5% false positive errors up to nPlan, but also beyond, that is, if we add more participants, see the [sections concerned with optional continuation](optionalContinuationTypeIa). 
 
 eValueFalseRejects
 ```{r, echo=FALSE}
 load("safeVignetteData/eValueFalseRejectsTSimple.RData")
-load("safeVignetteData/eStoppedTSimple.RData")
+load("safeVignetteData/eValueFalseRejectsT.RData")
 ```
 ```{r, eval=FALSE}
 # Here we store all the e-values across the 
 # number of simulations (nSim) and time (n1)
 eValues <- matrix(nrow=nSim, ncol=n1)
 
-# This indicates whether a simulation yielded e > 1/alpha
+# This indicates whether a simulation yielded e >= 1/alpha
 eOver <- vector("integer", length=nSim)
 
-# This indicates the first time an experiment yielded e > 1/alpha
+# This indicates the first time an experiment yielded e >= 1/alpha
 # Default is Inf, which indicates that the e didn't cross 1/alpha
 firstPassageTimeE <- rep(Inf, times=nSim)
 
@@ -321,14 +321,14 @@ for (sim in 1:nSim) {
   tVector <- tMatrix[sim, ]
   
   for (i in 1:n1) {
-    currentEValue <- safeTTestStat(
+    currentEValue <- saviTTestStat(
       tVector[i], parameter=designObj$parameter, 
       n1=n1Vector[i], n2=n1Vector[i], 
       paired=TRUE,  eType=designObj$eType)$eValue
     
     eValues[sim, i] <- currentEValue
     
-    if (currentEValue > 1/alpha && eOver[sim]!=1) {
+    if (currentEValue >= 1/alpha && eOver[sim]!=1) {
       eOver[sim] <- 1
       firstPassageTimeE[sim] <- i
       eStopped[sim] <- currentEValue
@@ -356,7 +356,7 @@ plot(1:n1, 100*eValueFalseRejects, type="l",
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
-Note that optional stopping always increases the chance of observing a false detection. For the safe test this increased to `r eValueFalseRejects[n1]*100`%, which is still below the tolerable 5%. On the other hand, tracking the p-value and rejecting the null as soon it falls below $\alpha$ leads to `r pValueFalseRejects[n1]*100`%, which is well above 5%. 
+Note that optional stopping always increases the chance of observing a false detection. For the savi test this increased to `r eValueFalseRejects[n1]*100`%, which is still below the tolerable 5%. On the other hand, tracking the p-value and rejecting the null as soon it falls below $\alpha$ leads to `r pValueFalseRejects[n1]*100`%, which is well above 5%. 
 
 ```{r}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
@@ -368,16 +368,16 @@ lines(1:n1, 100*eValueFalseRejects, lwd=2,
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
 
-## Safe tests detect the effect early if it is present: deltaTrue equal to deltaMin
+## Savi tests detect the effect early if it is present: deltaTrue equal to deltaMin
 <!--#### Optional stopping: True effect size equals minimal clinically relevant effect size-->
-In this section we illustrate the operational characteristics of the safe t-test under optional stopping, when the effect is present. The following code replicates `r nSim` experiments and each data set is generated with a true mean difference that equals the minimal clinically relevant effect size of $\delta_{\min}=0.57$. If the e-value does not exceed $1 / \alpha$, the experiment is run until all samples are collected as planned. The simulation described above can be run with the following command:
+In this section we illustrate the operational characteristics of the savi t-test under optional stopping, when the effect is present. The following code replicates `r nSim` experiments and each data set is generated with a true mean difference that equals the minimal clinically relevant effect size of $\delta_{\min}=0.57$. If the e-value does not exceed $1 / \alpha$, the experiment is run until all samples are collected as planned. The simulation described above can be run with the following command:
 
 ```{r, echo = FALSE}
 load("safeVignetteData/simDeltaTrueIsDeltaMin.RData")
 ```
 ```{r, eval = FALSE}
 simDeltaTrueIsDeltaMin <- 
-  sampleStoppingTimesSafeT(
+  sampleStoppingTimesSaviT(
     deltaTrue=deltaMin, alternative="greater", 
     testType="paired", sigma=sigma, 
     nMax=designObj$nPlan, seed=1,
@@ -438,16 +438,16 @@ lines(c(1, n1), c(80, 80), lwd=2, lty=2)
 ```
 Here the horizontal line represents the 80% targeted power, which is indeed reached at n=`r designObj$nPlan[1]` under optional stopping. 
 
-## Safe tests detect the effect even earlier if deltaTrue is larger than deltaMin
+## Savi tests detect the effect even earlier if deltaTrue is larger than deltaMin
 <!--#### Optional stopping: True effect size larger than the minimal clinically relevant effect size-->
-What we believe is clinically minimally relevant might not match reality. One advantage of safe tests is that they perform even better, if the true effect size is larger than the minimal clinical effect size. This is illustrated with the following code
+What we believe is clinically minimally relevant might not match reality. One advantage of savi tests is that they perform even better, if the true effect size is larger than the minimal clinical effect size. This is illustrated with the following code
 
 ```{r, echo = FALSE}
 load("safeVignetteData/simDeltaTrueLargerDeltaMin.RData")
 ```
 ```{r, eval = FALSE}
 simDeltaTrueLargerDeltaMin <- 
-  sampleStoppingTimesSafeT(
+  sampleStoppingTimesSaviT(
     deltaTrue=1.2*deltaMin, alternative="greater",
     testType="paired", sigma=sigma, 
     nMax=designObj$nPlan, seed=1,
@@ -461,7 +461,7 @@ mean(
 # Or equivalently the type II error is 
 mean(simDeltaTrueLargerDeltaMin$breakVector)
 ```
-With a larger true effect size, the power increased to `r (1-mean(simDeltaTrueLargerDeltaMin$breakVector))*100`%. More importantly, this increase is picked up earlier by the designed safe test, and optional stopping allows us to act on this. Note that the average stopping time is now decreased, from `r mean(simDeltaTrueIsDeltaMin$stoppingTimes)` to `r mean(simDeltaTrueLargerDeltaMin$stoppingTimes)`. This is apparent from the fact that the histogram of stopping times is now shifted to the left:
+With a larger true effect size, the power increased to `r (1-mean(simDeltaTrueLargerDeltaMin$breakVector))*100`%. More importantly, this increase is picked up earlier by the designed savi test, and optional stopping allows us to act on this. Note that the average stopping time is now decreased, from `r mean(simDeltaTrueIsDeltaMin$stoppingTimes)` to `r mean(simDeltaTrueLargerDeltaMin$stoppingTimes)`. This is apparent from the fact that the histogram of stopping times is now shifted to the left:
 
 ```{r}
 stoppingTimes <- 
@@ -473,7 +473,7 @@ hist(stoppingTimes,
      xlim=c(0, designObj$nPlanBatch[1]),col=eColours[2],
      border=eColours[1], lwd=2, main="")
 ```
-Hence, this means that if the true effect is larger than what was planned for, the safe test will detect this larger effect earlier on, which results in a further increase of efficiency, as shown by the following plot. 
+Hence, this means that if the true effect is larger than what was planned for, the savi test will detect this larger effect earlier on, which results in a further increase of efficiency, as shown by the following plot. 
 
 ```{r}
 firstPassageTimeAltLarger <- 
@@ -500,7 +500,7 @@ The plot visualises the increase in power for a true effect size larger than the
 The last scenario with deltaTrue smaller than the minimally clinically relevant effect size is discussed in the context of optional continuation. 
 
 # 3. <a name = "optContT">Optional Continuation</a>
-Safe tests, as we will show below, conserve the type I error rate under optional continuation. Optional continuation implies gathering more samples than was planned for because, for instance, (1) more funding became available and the experimenter wants to learn more, (2) the evidence looked promising, (3) a reviewer or editor urged the experimenter to collect more data, or (4) other researchers attempt to replicate the first finding. 
+Savi tests, as we will show below, conserve the type I error rate under optional continuation. Optional continuation implies gathering more samples than was planned for because, for instance, (1) more funding became available and the experimenter wants to learn more, (2) the evidence looked promising, (3) a reviewer or editor urged the experimenter to collect more data, or (4) other researchers attempt to replicate the first finding. 
 
 A natural way to deal with the first three cases is by computing an e-value over the combined data set. This is permitted if the data come from the same population, and if the E-variable used is a [_test martingale_](#martingale), which is the case for the problem at hand. 
 
@@ -594,7 +594,7 @@ abline(v=0.05)
 ```
 As such, if the null holds true and the number of samples increases, then the p-value meanders between 0 and 1, thus, eventually crossing any fixed $\alpha$-level. This simulation reiterates the point that classical p-value tests only retain their type I error control if they are used once, and only once. 
 
-## <a name="optionalContinuationTypeIa">i. Optional continuation by extending the experiment does not result in safe tests exceeding the tolerable $\alpha$-level</a>
+## <a name="optionalContinuationTypeIa">i. Optional continuation by extending the experiment does not result in savi tests exceeding the tolerable $\alpha$-level</a>
 In this section we provide more insight to what it means for e-variables to be anytime-valid. More precisely, we show that type I error control is retained even if we keep on monitoring the e-value after the planned sample size. We do so in a more difficult setting compared to the previous p-value analysis. Instead of analysing the data in batches as we did with the p-value, let us illustrate this by extending the studies with continuous streams of data, say ten times the planned sample sizes. That is, we show that type I error is retained even after `r n1*10` looks, and recall that the type I error guarantee of the p-value breaks after two looks within a batch, or after two batches. The following code is used to illustrate this sample size independent type I error control. 
 
 ```{r, eval=FALSE}
@@ -645,7 +645,7 @@ for (sim in 1:nSim) {
   tVector <- tMatrixAll[sim, ]
   
   for (i in (n1+1):(10*n1)) {
-    currentEValue <- safeTTestStat(
+    currentEValue <- saviTTestStat(
       tVector[i], parameter=designObj$parameter, 
       n1=n1Vector[i], n2=n1Vector[i], 
       paired=TRUE,  sigma=sigma,
@@ -653,7 +653,7 @@ for (sim in 1:nSim) {
     
     allEValues[sim, i] <- currentEValue
     
-    if (currentEValue > 1/alpha && eOverOptioCont[sim]!=1) {
+    if (currentEValue >= 1/alpha && eOverOptioCont[sim]!=1) {
       eOverOptioCont[sim] <- 1
       firstPassageTimeE[sim] <- i
     }
@@ -667,17 +667,17 @@ for (i in 1:(10*n1)) {
     sum(firstPassageTimeE <= i)
 }
 
-eValueFalseRejects <- 
+eValueFalseRejects2 <- 
   trackCrossingOptioCont/nSim 
 ```
 ```{r, echo = FALSE}
-load("safeVignetteData/eValueFalseRejectsT.RData")
+load("safeVignetteData/eValueFalseRejects2T.RData")
 load("safeVignetteData/allEValuesTLarge.RData")
 ```
 
 ```{r}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
-plot(1:(10*n1), 100*eValueFalseRejects, type="l", 
+plot(1:(10*n1), 100*eValueFalseRejects2, type="l", 
      xlab="n", ylab="Type I error (%)", lwd=2,
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, 10*n1), c(5, 5), lwd=2, lty=2)
@@ -714,7 +714,7 @@ lines(c(0, 10*n1), c(log(20), log(20)), lwd=2, col="grey", lty=2)
 ```
 The black curve depicts the median of the e-variable and the blue curves represent the 25% and 75% percentile of the e-variable distribution under the null. The horizontal grey line depicts $\log(1/\alpha) \approx 3$ for $\alpha=0.05$. The plot shows that under the null it gets increasingly hard for e-variables to cross the threshold of $\log(1/\alpha)$ as the sample size increase. This also illustrates why the e-variable's marginal increase in type I error slowly diminishes. 
 
-## When the effect is present optional continuation results in safe tests correctly rejecting the null
+## When the effect is present optional continuation results in savi tests correctly rejecting the null
 The slow drift of the sampling distribution of e-values to smaller values is replaced by a fast drift to large values whenever there is an effect. We consider the situation where the study is continued after the planned sample size, but with deltaTrue = 0.5, thus, smaller than deltaMin = 0.57. 
 
 ```{r, eval=FALSE}
@@ -759,7 +759,7 @@ for (sim in 1:nSim) {
   tVector <- tMatrixAllAlt[sim, ]
   
   for (i in 1:(10*n1)) {
-    currentEValue <- safeZTestStat(
+    currentEValue <- saviZTestStat(
       tVector[i], parameter=designObj$parameter, 
       n1=n1Vector[i], n2=n1Vector[i], 
       paired=TRUE,  sigma=sigma,
@@ -767,7 +767,7 @@ for (sim in 1:nSim) {
     
     allEValuesAlt[sim, i] <- currentEValue
     
-    if (currentEValue > 1/alpha && eOverAlt[sim]!=1) {
+    if (currentEValue >= 1/alpha && eOverAlt[sim]!=1) {
       eOverAlt[sim] <- 1
       firstPassageTimeEAlt[sim] <- i
       eStoppedAlt[sim] <- currentEValue
@@ -842,7 +842,7 @@ The red curve depicts the median of the e-variable and the brown curves represen
 It is not always appropriate to compute e-values over combined data sets, in particular for replication attempts where the original experiment is performed on a different population. Instead of combining the data we combine the evidence of the individual studies by multiplying their respective e-values. This procedure is also safe under optional continuation, as the type I error is also conserved. 
 
 ## Type I error is guaranteed when multiplying e-values
-To demonstrate type I error control in a meta-analytical setting we consider the data generated in the [optional stopping section](#optionalStopPValues) as original studies, and follow-up studies also with no effect. With the aforementioned original studies we carry over a false positive rate of `r mean(eStopped > 1/alpha)*100`%. As with the original study we will also continuously monitor the e-values in the follow-up studies. By multiplying e-values we might gain efficiency as follows: If an original study resulted in an e-value of 10 at nPlan, then we only need an e-value of 2 in the follow-up study as the data come in for the product to be higher than the threshold of 20 when $\alpha=0.05$. 
+To demonstrate type I error control in a meta-analytical setting we consider the data generated in the [optional stopping section](#optionalStopPValues) as original studies, and follow-up studies also with no effect. With the aforementioned original studies we carry over a false positive rate of `r mean(eStopped >= 1/alpha)*100`%. As with the original study we will also continuously monitor the e-values in the follow-up studies. By multiplying e-values we might gain efficiency as follows: If an original study resulted in an e-value of 10 at nPlan, then we only need an e-value of 2 in the follow-up study as the data come in for the product to be higher than the threshold of 20 when $\alpha=0.05$. 
 
 As in the original study the data are generated under the null, but we assume that the drug is now administered to a clinical group that has a lower overall baseline blood pressure of $\mu_{g}=90$ mmHg and standard deviation of $\sigma=6$. We assume that the follow-up study has a planned sample size of 2 times nPlan, but the statement also holds true for follow-up studies with a smaller sample size. The following code selectively continues the original studies and save them in the list rep2.
 
@@ -974,9 +974,9 @@ lines(c(n1, n1), c(0, 100), lty=2, col="lightgrey")
 The vertical grey line is drawn at the nPlan of the original study at which we correctly reject the null with `r mean(simDeltaTrueIsDeltaMin$eValuesStopped>1/alpha)*100`% power. On the right of this grey line we see that the number of correct rejections further increases by combining the original e-values with e-values from replication attempts with different nuisance parameters. 
 
 ## Conclusion
-We believe that optional continuation is essential for (scientific) learning, as it allows us to revisit uncertain decisions such as ($p < \alpha$ and e-value $> 1/\alpha$) either by extending an experiment directly, or via replication studies in a meta-analysis. Hence, we view learning as an ongoing process, which requires that inference becomes more precise as data accumulate. The inability of p-values to conserve the $\alpha$-level under optional continuation, however, is at odds with this view --by gathering more data after an initial look, the inference becomes less precise, as the likelihood of the null being true after observing $p < \alpha$ increases beyond what is tolerable. 
+We believe that optional continuation is essential for (scientific) learning, as it allows us to revisit uncertain decisions such as ($p < \alpha$ and e-value $\geq 1/\alpha$) either by extending an experiment directly, or via replication studies in a meta-analysis. Hence, we view learning as an ongoing process, which requires that inference becomes more precise as data accumulate. The inability of p-values to conserve the $\alpha$-level under optional continuation, however, is at odds with this view --by gathering more data after an initial look, the inference becomes less precise, as the likelihood of the null being true after observing $p < \alpha$ increases beyond what is tolerable. 
 
-Safe tests on the other hand benefit from more data, as the chance of seeing e-value $> 1/\alpha$ (slowly) decreases when the null is true, whereas it (quickly) increases when the alternative is true, as the number of samples increases.  
+Savi tests on the other hand benefit from more data, as the chance of seeing e-value $\geq 1/\alpha$ (slowly) decreases when the null is true, whereas it (quickly) increases when the alternative is true, as the number of samples increases.  
 
 <!-- Hence, more 
 
@@ -1003,7 +1003,7 @@ the chance of observing a low e-value remains high,
 -->
 <!--
 ## Subconclusion
-The goal the simulation studies is to illustrate the theoretical properties of safe tests developed [here](https://arxiv.org/abs/1906.07801). 
+The goal the simulation studies is to illustrate the theoretical properties of savi tests developed [here](https://arxiv.org/abs/1906.07801). 
 
 We hope to have illustrated how intuitive actions, such as monitoring the evidence and stopping early, or acquiring additional data causes the p-value to over-reject the null, thus, yielding incorrect inferences. This means that regardless of the null being true, or that there was actually an effect, the chances of 
 
@@ -1018,9 +1018,9 @@ In contrast, when the null is true, then optional continuation actually decrease
 
 the problems with classical p-values, when
 
-the simulations show that safe tests are indeed robust to the sample sizes used in the experiment. 
+the simulations show that savi tests are indeed robust to the sample sizes used in the experiment. 
 
-that with safe tests lead to anytime valid inference, by which we mean that the conclusions remain valid regardless of one's intention to stop or to continue a study. 
+that with savi tests lead to anytime valid inference, by which we mean that the conclusions remain valid regardless of one's intention to stop or to continue a study. 
 
 
 
@@ -1065,7 +1065,7 @@ Hence, as e-values are robust to both optional stopping and optional continuatio
 
 Optional continuation is fundamental as it allows us to build upon previous work and 
 
-As such, we conclude that safe tests are robust to pertubations of the experimental design. In particular, one remain convinced that 
+As such, we conclude that savi tests are robust to pertubations of the experimental design. In particular, one remain convinced that 
 
 We hope to have shed some light on how e-values are robust to the design of the experiment. This 
 -->
@@ -1081,7 +1081,7 @@ The safestats package also contains a safe alternative for tests of two proporti
 As with the t-test, we might know the minimal clinically relevant effect size upfront for our test of two proportions. For example, we might only be interested in further researching or developing a drug when the difference in the proportion of cured patients in the treatment group compared to the placebo group is at least 0.3. In practice this implies, for example, that when 20% of patients get cured on average in the placebo group, we want the drug to add at least 30% to this average, so in the treated group 50% of patients should be cured. We could design a safe test for this study:
 
 ```{r }
-# safeDesignProportions <- designSafeTwoProportions(deltaMin=0.3, alpha=0.05,
+# safeDesignProportions <- designSaviTwoProportions(deltaMin=0.3, alpha=0.05,
 #                                                   beta=0.20, lowN=100,
 #                                                   numberForSeed = 5227)
 ```
@@ -1106,14 +1106,14 @@ A safe test could now be performed with this design object; for this, some mock 
 Performing the safe test:
 
 ```{r }
-#safeTwoProportionsTest(x = sampleExample, testDesign = safeDesignProportions)
+#saviTwoProportionsTest(x = sampleExample, testDesign = safeDesignProportions)
 ```
 
 ### Case (II): Minimal clinically relevant effect size unknown, but maximum number of samples known.
 We might not have enough resources to fund our study to detect the minimal difference of 0.3. For example, we might only have funds to treat 50 patients in each group, so 100 in total. If this is the case, we could, [just as with the t-test](#powerplotT), inspect the minimal number of patients we need for the experiment to achieve a power of 80% at our significance level per effect size of interest:
 
 ```{r }
-# plotResult <- plotSafeTwoProportionsSampleSizeProfile(alpha=0.05,
+# plotResult <- plotSaviTwoProportionsSampleSizeProfile(alpha=0.05,
 #                                                       beta=0.20,
 #                                                       highN=200, 
 #                                                       maxN=100,
@@ -1122,7 +1122,7 @@ We might not have enough resources to fund our study to detect the minimal diffe
 
 Observe that the smallest absolute difference detectable with our available resources is 0.4; we might have to cancel the study, or try to acquire more research funds, as with our current funds, we can not guarantee a high enough power for detecting the difference between the groups we are interested in. This implies that, when a non-significant result is obtained, we would be unsure whether this was caused by our underpowered study, or because there was really no difference between the groups.
 
-Furthermore, the plot also shows the _expected sample sizes_ under optional stopping. The plot function generates experiments based on the minimal difference corresponding to the x-axis and carries out a simulation with _optional stopping_, i.e. experiments were stopped early as soon as $S > 1/\alpha=20$ was observed, and the realised average number of patients was calculated. Observe that the difference between the planned sample size and the sample size under optional stopping is substantial. In the next section, the behaviour of the safe test for two proportions and Fisher's exact test under optional stopping is studied further.
+Furthermore, the plot also shows the _expected sample sizes_ under optional stopping. The plot function generates experiments based on the minimal difference corresponding to the x-axis and carries out a simulation with _optional stopping_, i.e. experiments were stopped early as soon as $E >= 1/\alpha=20$ was observed, and the realised average number of patients was calculated. Observe that the difference between the planned sample size and the sample size under optional stopping is substantial. In the next section, the behaviour of the safe test for two proportions and Fisher's exact test under optional stopping is studied further.
 
 ## 2. Inference with Safe Tests and <a name = "optStop2x2">Optional Stopping</a>
 #### True effect size equals minimal clinically relevant effect size
@@ -1279,7 +1279,7 @@ Safe tests for two proportions can also be designed for one-sided testing. For t
 
 ```{r }
 # safeDesignProportionsOneSided <- 
-#   designSafeTwoProportions(deltaMin=0.5, alternative="greater",
+#   designSaviTwoProportions(deltaMin=0.5, alternative="greater",
 #                            numberForSeed = 291202)
 ```
 
@@ -1298,7 +1298,7 @@ We can now simulate data that fit our hypothesis (more 1s observed in group "a" 
 This yields a high e-value:
 
 ```{r }
-# safeTwoProportionsTest(x=sampleExampleGreater, 
+# saviTwoProportionsTest(x=sampleExampleGreater, 
 #                        testDesign=safeDesignProportionsOneSided)
 ```
 
@@ -1315,7 +1315,7 @@ But if we now observe the opposite, more 1s in group "b" than in "a", the e-valu
 ```
 
 ```{r }
-# safeTwoProportionsTest(x=sampleExampleLesser,
+# saviTwoProportionsTest(x=sampleExampleLesser,
 #                        testDesign=safeDesignProportionsOneSided)
 ```
 
@@ -1324,7 +1324,7 @@ When a balanced design is not possible, a safe test of two proportions for unequ
 
 ```{r }
 # safeDesignProportionsImbalanced <- 
-#   designSafeTwoProportions(deltaMin=0.3, alpha=0.05, beta=0.20, lowN=120,
+#   designSaviTwoProportions(deltaMin=0.3, alpha=0.05, beta=0.20, lowN=120,
 #                            sampleSizeRatio=2)
 # safeDesignProportionsImbalanced
 ```

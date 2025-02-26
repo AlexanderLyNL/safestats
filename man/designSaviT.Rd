@@ -41,7 +41,7 @@ the sample sizes and deltaS, which defines the test. Note that 1-beta defines th
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
 \item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
 

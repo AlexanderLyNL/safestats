@@ -218,7 +218,7 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t", ...) 
     out <- c(out, paste("type", "=", designObj[["eType"]]))
 
   cat(paste0("test: ", paste(out, collapse = ", "), sep="\n"))
-  cat("e-value =", eValueString, "> 1/alpha =", eThresholdString, ":",
+  cat("e-value =", eValueString, ">= 1/alpha =", eThresholdString, ":",
       eValue > 1/designObj[["alpha"]])
   cat("\n")
   if (!is.null(eValueApproxError))
@@ -364,7 +364,7 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
       } else if (item=="parameter") {
         displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValueString
       } else if (item=="decision rule") {
-        displayList[["decision rule: e-value > 1/alpha"]] <- itemValueString
+        displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
       } else if (item=="logImpliedTarget") {
         tempNeem <- "log(implied target)"
         logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
@@ -476,7 +476,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       for (j in 1:mIter) {
         firstPassageTimes[j] <- suppressWarnings(
-          min(which(samplePaths[j, ] > 1/alpha))
+          min(which(samplePaths[j, ] >= 1/alpha))
         )
       }
 
@@ -625,7 +625,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
         stoppedTime <- finiteFirstPassageTimes[i]
         evidenceLine <- stoppedPaths[i, 1:stoppedTime]
 
-        if (evidenceLine[stoppedTime] > 1/alpha)
+        if (evidenceLine[stoppedTime] >= 1/alpha)
           evidenceLine[stoppedTime] <- 1/alpha
 
         someScale <- 3*alpha
@@ -755,7 +755,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (is.null(fillPlot))
       fillPlot <- if (maxX <= switchNFill) TRUE else FALSE
 
-    if (isFALSE(add)) {
+    if (base::isFALSE(add)) {
       oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 
       if (is.null(logScale))

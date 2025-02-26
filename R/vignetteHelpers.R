@@ -2,8 +2,8 @@
 
 #' Helper function to demonstrate the selective continuation of paired z-tests
 #'
-#' @inheritParams safeZTest
-#' @inheritParams designSafeZ
+#' @inheritParams saviZTest
+#' @inheritParams designSaviZ
 #' @inheritParams generateNormalData
 #'
 #' @param n1New Number of samples in the follow-up study
@@ -82,10 +82,10 @@ selectivelyContinueZOrTTestData <- function(
   eValuesNew <- matrix(nrow=nSim, ncol=n1New)
   eValuesNew[rejectedIndex, ] <- eStoppedOld[rejectedIndex]
 
-  # This indicates whether a simulation yielded e > 1/alpha
+  # This indicates whether a simulation yielded e >= 1/alpha
   eOverNew <- eOverOld
 
-  # This indicates the first time an experiment yielded e > 1/alpha
+  # This indicates the first time an experiment yielded e >= 1/alpha
   # Default is Inf, which indicates that the e didn't cross 1/alpha
   firstPassageTime <- firstPassageTimeOld
 
@@ -107,13 +107,13 @@ selectivelyContinueZOrTTestData <- function(
       #
 
       if (testName=="Z-Test") {
-        currentEValue <- safeZTestStat(
+        currentEValue <- saviZTestStat(
           statVector[i], parameter=designObj[["parameter"]],
           n1=n1Vector[i], n2=n1Vector[i],
           paired=TRUE,  sigma=sigma, alternative="greater",
           eType=designObj$eType)$eValue * eStoppedOld[sim]
       } else if (testName=="T-Test") {
-        currentEValue <- safeTTestStat(
+        currentEValue <- saviTTestStat(
           statVector[i], parameter=designObj[["parameter"]],
           n1=n1Vector[i], n2=n1Vector[i],
           paired=TRUE,  sigma=sigma, alternative="greater",
@@ -122,7 +122,7 @@ selectivelyContinueZOrTTestData <- function(
 
       eValuesNew[sim, i] <- currentEValue
 
-      if (currentEValue > 1/alpha && eOverNew[sim]!=1) {
+      if (currentEValue >= 1/alpha && eOverNew[sim]!=1) {
         eOverNew[sim] <- 1
         firstPassageTime[sim] <- i+n1Old
         eStopped[sim] <- currentEValue
@@ -165,7 +165,7 @@ selectivelyContinueZOrTTestData <- function(
 #'
 #' Helper function to display the histogram of stopping times.
 #'
-#' @param safeSim A safeSim object
+#' @param saviSim A saviSim object
 #' @param nPlan numeric > 0, the planned sample size(s).
 #' @param deltaTrue numeric, that represents the true underlying standardised effect size delta.
 #' @param showOnlyNRejected logical, when \code{TRUE} discards the cases that did not reject.
@@ -175,11 +175,11 @@ selectivelyContinueZOrTTestData <- function(
 #' @return a histogram object, and called for its side-effect to plot the histogram.
 #'
 #' @export
-plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, showOnlyNRejected=FALSE, nBin=25L, ...) {
+plotHistogramDistributionStoppingTimes <- function(saviSim, nPlan, deltaTrue, showOnlyNRejected=FALSE, nBin=25L, ...) {
   if(showOnlyNRejected) {
-    dataToPlot <- safeSim[["allRejectedN"]]
+    dataToPlot <- saviSim[["allRejectedN"]]
   } else {
-    dataToPlot <- safeSim[["allN"]]
+    dataToPlot <- saviSim[["allN"]]
   }
 
   nStep <- floor(nPlan/nBin)
@@ -194,7 +194,7 @@ plotHistogramDistributionStoppingTimes <- function(safeSim, nPlan, deltaTrue, sh
   on.exit(graphics::par(oldPar))
   graphics::hist(dataToPlot,
                  breaks = nStep*seq.int(maxLength),
-                 xlim = c(0, max(safeSim[["allN"]])),
+                 xlim = c(0, max(saviSim[["allN"]])),
                  xlab = "stopping time (n collected)",
                  main = mainTitle,
                  col = "lightgrey", ...)

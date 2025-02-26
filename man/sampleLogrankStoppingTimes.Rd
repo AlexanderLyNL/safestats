@@ -21,7 +21,7 @@ sampleLogrankStoppingTimes(
 \item{hazardRatio}{numeric that defines the data generating hazard ratio with which data are sampled.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis, which must be one of
 "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality

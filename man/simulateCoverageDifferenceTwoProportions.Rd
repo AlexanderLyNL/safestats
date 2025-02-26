@@ -2,13 +2,13 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{simulateCoverageDifferenceTwoProportions}
 \alias{simulateCoverageDifferenceTwoProportions}
-\title{Simulate the coverage of a safe confidence sequence for differences between proportions
-for a given distribution and safe design.}
+\title{Simulate the coverage of a savi confidence sequence for differences between proportions
+for a given distribution and savi design.}
 \usage{
 simulateCoverageDifferenceTwoProportions(
   successProbabilityA,
   trueDelta,
-  safeDesign,
+  saviDesign,
   precision = 100,
   M = 1000,
   numberForSeed = NA
@@ -19,7 +19,7 @@ simulateCoverageDifferenceTwoProportions(
 
 \item{trueDelta}{difference in probability between group A and B.}
 
-\item{safeDesign}{a safe test design for two proportions retrieved through \code{\link{designSafeTwoProportions}()}.}
+\item{saviDesign}{a savi test design for two proportions retrieved through \code{\link{designSaviTwoProportions}()}.}
 
 \item{precision}{precision of the grid to search over for the confidence sequence bounds. Default 100.}
 
@@ -31,16 +31,16 @@ simulateCoverageDifferenceTwoProportions(
 the proportion of simulations where the trueDelta was included in the confidence sequence.
 }
 \description{
-Simulate the coverage of a safe confidence sequence for differences between proportions
-for a given distribution and safe design.
+Simulate the coverage of a savi confidence sequence for differences between proportions
+for a given distribution and savi design.
 }
 \examples{
-balancedSafeDesign <- designSafeTwoProportions(na = 1,
+balancedSaviDesign <- designSaviTwoProportions(na = 1,
                                                nb = 1,
                                                nBlocksPlan = 20)
 simulateCoverageDifferenceTwoProportions(successProbabilityA = 0.2,
                                          trueDelta = 0,
-                                         safeDesign = balancedSafeDesign,
+                                         saviDesign = balancedSaviDesign,
                                          M = 100,
                                          precision = 20,
                                          numberForSeed = 1082021)

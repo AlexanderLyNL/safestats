@@ -2,13 +2,13 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{computeConfidenceBoundForLogOddsTwoProportions}
 \alias{computeConfidenceBoundForLogOddsTwoProportions}
-\title{Estimate an upper or lower bound for a safe confidence sequence on the
+\title{Estimate an upper or lower bound for a savi confidence sequence on the
 logarithm of the odds ratio for two proportions.}
 \usage{
 computeConfidenceBoundForLogOddsTwoProportions(
   ya,
   yb,
-  safeDesign,
+  saviDesign,
   bound = c("lower", "upper"),
   deltaStart,
   deltaStop,
@@ -22,8 +22,8 @@ between (and including) 0 and \code{na}, the number of observations in group a p
 \item{yb}{positive observations/ events per data block in group b: a numeric with integer values
 between (and including) 0 and \code{nb}, the number of observations in group b per block.}
 
-\item{safeDesign}{a 'safeDesign' object obtained through
-\code{\link{designSafeTwoProportions}}}
+\item{saviDesign}{a 'saviDesign' object obtained through
+\code{\link{designSaviTwoProportions}}}
 
 \item{bound}{type of bound to calculate; "lower" to get a lower bound on positive delta,
 "upper" to get an upper bound on negative delta.}
@@ -43,11 +43,11 @@ numeric: the established lower- or upper bound on the logarithm of the odds
 ratio between the groups
 }
 \description{
-Estimate an upper or lower bound for a safe confidence sequence on the
+Estimate an upper or lower bound for a savi confidence sequence on the
 logarithm of the odds ratio for two proportions.
 }
 \examples{
-balancedSafeDesign <- designSafeTwoProportions(na = 1,
+balancedSaviDesign <- designSaviTwoProportions(na = 1,
                                                nb = 1,
                                                nBlocksPlan = 10,
                                                alpha = 0.05)
@@ -57,7 +57,7 @@ yb <- c(0,0,0,0,1,0,0,0,0,0)
 #one-sided CI for OR-, establish upper bound on log odds ratio
 computeConfidenceBoundForLogOddsTwoProportions(ya = ya,
                                            yb = yb,
-                                           safeDesign = balancedSafeDesign,
+                                           saviDesign = balancedSaviDesign,
                                            bound = "upper",
                                            deltaStart = -0.01,
                                            deltaStop = -4,

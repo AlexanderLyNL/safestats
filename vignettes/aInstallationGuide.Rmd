@@ -17,10 +17,10 @@ knitr::opts_chunk$set(
 )
 ```
 
-In the practical sessions we will use a development version of the `safestats` package. Here we provide: 
+The most recent version of the `safestats` package can be found on GitHub. Here we provide: 
 
 1. an installation guide, and 
-2. a first example on the design of experiments with safe tests/e-variables. 
+2. a first example on a design of experiments based on a safe anytime-valid test/e-variables. 
 
 # 1. Installing the development version of the safestats package
 Make sure that you have the most recent version of R (>= R 4.3). On Windows you also need to install RTools. Both can be found on the [cran website](https://cran.r-project.org/). A nice visual editor is [RStudio](https://posit.co/downloads/). 
@@ -54,31 +54,31 @@ Download the tar.gz file from [this dropbox link](https://www.dropbox.com/scl/fi
 install.packages(path_to_file, repos = NULL, type="source")
 ```
 
-# 2. <a name = "firstExample">First example: Designing a safe z-test experiment</a>
+# 2. <a name = "firstExample">First example: Designing a savi z-test experiment</a>
 
-The `safestats` package workflow is as follows: 
+The `safestats` package workflow for safe anytime-valid inference (savi) is as follows: 
 
 ```{r, eval=FALSE}
 # # PSEUDO CODE
 # #   This won't work, but it just a way to explain the ideas
-# designObj <- designSafeAnalysis(alternative="twoSided")
-# result <- safeAnalysis(x=dat$x, designObj)
+# designObj <- designSaviAnalysis(alternative="twoSided")
+# result <- saviAnalysis(x=dat$x, designObj)
 ```
 
-The design object "designObj" summarises which analysis, e.g. "designSafeZ" (z-test), "designSafeT" (t-test), or "designSafeTwoProportions" (test for two proportions), is going to be performed, 
+The design object "designObj" summarises which analysis, e.g. "designSaviZ" (z-test), "designSaviT" (t-test), or "designSaviTwoProportions" (test for two proportions), is going to be performed: 
 - what type I error rate, i.e. alpha, is tolerated, 
 - whether the test is directional, e.g. "twoSided", "greater", or "less",
 - which type of e-variables is going to be used "eType", and
-- which test defining parameter value is set 
+- which test defining parameter value is set.
 
 The design function can also be provide with a minimal clinically relevant effect size, and a targeted power, 1-beta, or equivalently a tolerable type II error, beta. In that case, the design object describes how many samples the experimenter should plan for. Due to optional stopping, the actual realised sample size will typically be smaller than what one should plan for, provided that there is a true effect equal or larger than the minimal clinical relevant effect size. 
 
 <!-- Further details on optional stopping are provided in the next R Markdown document "I. Testing".  -->
 
-The safe analysis functions, e.g. "safeZTest", "safeTTest" or safeTwoProportionsTest", scrutinises the data in view of the  design object at hand. In fact, the e-variable/safe test that are being discussed here can be performed after each observation and acted upon without over-inflating the chance of falsely rejecting the null hypothesis.
+The savi analysis functions, e.g. "saviZTest", "saviTTest" or saviTwoProportionsTest", scrutinises the data in view of the  design object at hand. In fact, the e-variable/savi test that are being discussed here can be performed after each observation and acted upon without over-inflating the chance of falsely rejecting the null hypothesis.
 
 # A first example
-To check whether the package is installed correctly, we run a safe two-sample z-test. 
+To check whether the package is installed correctly, we run a savi two-sample z-test. 
 
 Suppose a new educational programme was developed that claims to increase secondary school students' IQ scores by ten points. Assume further that the IQ scores are normally distributed with a population standard deviation of 12. The alternative hypothesis, that is, the claim that this educational programme causes an increase of ten IQ score points can be visualised as follows.
 
@@ -116,25 +116,25 @@ For the test we are going to perform we use the following design object:
 ```{r, eval=FALSE}
 library(safestats)
 sigmaTrue <- 12
-designObj <- designSafeZ(meanDiffMin=10,
+designObj <- designSaviZ(meanDiffMin=10,
                          beta=0.2, sigma=sigmaTrue,
                          testType="twoSample", seed=1)
 designObj
 ```
-Now look at the output of this procedure (if necessary make the console window bigger). The output shows that the if we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=36 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "Design" R Markdown document. 
+Now look at the output of this procedure (if necessary make the console window bigger). The output show that if we would want to test the null hypothesis of no effect sequentially, then we need to plan for about n1=n2=36 participants in the treatment and control group to detect a minimal clinically relevant mean difference of 10 with 80\% power. We provide further information on the planned sample size in the "Design" R Markdown document. 
 
-One advantage of e-variables is that you can analyse the data as they come in. For simplicity let us assume, for the moment, that we can only analyse the data once, namely, after n1=n2=43 students as described in the note, then the following code can be run:
+One advantage of e-variables is that you can analyse the data as they come in. Suppose that we perform the study as planned, thus, collect n1=n2=43 students as described in the note. The following code then shows the progression of e-values that quantify the  evidence against the null and the confidence interval as function of the sample size. 
 
 ```{r, eval=FALSE}
 set.seed(2)
 treatmentGroup <- rnorm(36, mean=122, sd=sigmaTrue)
 controlGroup <- rnorm(36, mean=112, sd=sigmaTrue)
 
-resultObj <- safeZTest(x=treatmentGroup, y=controlGroup,
+resultObj <- saviZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)
 resultObj
 
 plot(resultObj)
-plot(resultObj, wantConfSeqPlot=TRUE)
+plot(resultObj, wantConfSeqPlot=TRUE, log=FALSE)
 ```
-The resultObj shows that we can reject the null, as the e-value is 93232, which is much larger than 1/alpha = 20, see the next R Markdown document on "Testing" for more information regarding this evidence threshold. The resultObj also shows an (anytime-valid) confidence interval (between 6.04 and 22.87) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document on "Anytime-valid confidence sequences" for further details.
+The resultObj shows that at n1=n2=36, we can reject the null, as the e-value is 93232, which is much larger than 1/alpha = 20, see the next R Markdown document on "Testing" for more information regarding this evidence threshold. The e-value progression suggest that we could have rejected the null hypothesis at after n1=n2=6 students already. The resultObj also shows an (anytime-valid) confidence interval (between 6.04 and 22.87) for the mean difference, which is relatively wide, but recall that the population standard deviation is 12, and it does cover the true mean difference of 10, see the R markdown document on "Anytime-valid confidence sequences" for further details.

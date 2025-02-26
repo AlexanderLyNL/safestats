@@ -5,7 +5,7 @@
 \title{Plots the Histogram of Stopping Times}
 \usage{
 plotHistogramDistributionStoppingTimes(
-  safeSim,
+  saviSim,
   nPlan,
   deltaTrue,
   showOnlyNRejected = FALSE,
@@ -14,7 +14,7 @@ plotHistogramDistributionStoppingTimes(
 )
 }
 \arguments{
-\item{safeSim}{A safeSim object}
+\item{saviSim}{A saviSim object}
 
 \item{nPlan}{numeric > 0, the planned sample size(s).}
 

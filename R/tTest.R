@@ -1137,7 +1137,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' @param deltaMin numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 #' we would the experiment to be able to detect.
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.
+#' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
 #' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 #' the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
@@ -2028,7 +2028,7 @@ sampleStoppingTimesSaviT <- function(
       if (wantSamplePaths)
         result[["samplePaths"]][sim, j] <- evidenceNow
 
-      if (evidenceNow > 1/alpha) {
+      if (evidenceNow >= 1/alpha) {
         result[["stoppingTimes"]][sim] <- n1Vector[j]
         result[["eValuesStopped"]][sim] <- evidenceNow
 

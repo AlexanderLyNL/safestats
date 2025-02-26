@@ -33,7 +33,7 @@ and "phiS". Note that 1-beta defines the power.}
 \item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis, which must be one of
 "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality

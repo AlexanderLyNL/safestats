@@ -30,7 +30,7 @@ we would the experiment to be able to detect.}
 the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}

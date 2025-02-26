@@ -201,7 +201,7 @@ lines(c(1, n), c(muTrue, muTrue), lwd=2)
 The anytime-valid confidence sequence **inverts** the e-variable based on a so-called non-local moment distribution mixture. In other words, the 95\% anytime-valid confidence sequence contain all parameter values mu for which the e-variable is __less__ than 1/alpha = 20. Because the e-variable itself retains a type I error rate across time, so will the resulting confidence sequence. 
 
 ```{r, eval=FALSE}
-designObj <- designSafeZ(meanDiffMin=0.5,
+designObj <- designSaviZ(meanDiffMin=0.5,
                          testType="oneSample",
                          sigma=sigmaTrue)
 designObj

@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Previously we considered the testing problem. We showed that within a tolerable type I error rate alpha, we have sufficient evidence to reject the null, and stop the experiment as soon as e > 1/alpha.
+Previously we considered the testing problem. We showed that within a tolerable type I error rate alpha, we have sufficient evidence to reject the null, and stop the experiment as soon as e >= 1/alpha.
 
 Here we consider the problem of interval estimation. An anytime-valid 95\% interval estimate should contain the true value with at least 95\% chance --regardless of when, why or even if data collection stopped. 
 
@@ -92,7 +92,7 @@ meanVector <- 1/(1:n)*cumsum(someDataSingle)
 for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(nEff=i,
                                           meanObs=meanVector[i],
-                                          eType="freq")
+                                          eType="freq", parameter=NULL)
   freqCi[i, ] <- tempResult
 }
 
@@ -146,7 +146,8 @@ for (sim in 1:mIter) {
   
   for (i in 1:n) {
     tempResult <- computeConfidenceIntervalZ(
-      nEff=i, meanObs=meanVector[i], eType="freq")
+      nEff=i, meanObs=meanVector[i], eType="freq",
+      parameter=NULL)
     allFreqCis[sim, i, ] <- tempResult
     
     if ((tempResult[1] > muTrue || tempResult[2] < muTrue)
@@ -224,7 +225,7 @@ meanVector <- 1/(1:n)*cumsum(someDataSingle)
 
 for (i in 1:n) {
   tempResult <- computeConfidenceIntervalZ(
-    nEff=i, meanObs=meanVector[i], 
+    nEff=i, meanObs=meanVector[i], parameter=NULL, 
     a=someA, g=someG, eType="credibleInterval")
   bayesCi[i, ] <- tempResult
 }
@@ -278,7 +279,7 @@ for (sim in 1:mIter) {
   for (i in 1:n) {
     tempResult <- computeConfidenceIntervalZ(
       nEff=i, meanObs=meanVector[i], 
-      a=someA, g=someG, 
+      a=someA, g=someG, parameter=NULL, 
       eType="credibleInterval")
     allBayesCis[sim, i, ] <- tempResult
     
@@ -334,7 +335,7 @@ lines(c(1, n), c(muTrue, muTrue), lwd=2)
 The anytime-valid confidence sequence **inverts** the e-variable based on a so-called non-local moment distribution mixture. In other words, the 95\% anytime-valid confidence sequence contain all parameter values mu for which the e-variable is __less__ than 1/alpha = 20. Because the e-variable itself retains a type I error rate across time, so will the resulting confidence sequence. 
 
 ```{r, eval=FALSE}
-designObj <- designSafeZ(meanDiffMin=0.5,
+designObj <- designSaviZ(meanDiffMin=0.5,
                          testType="twoSample",
                          sigma=sigmaTrue)
 designObj
@@ -501,11 +502,12 @@ anytimeCiWidth <- credibleIntervalWidth <- freqCiWidth <- numeric(30)
 
 for (i in nDomain) {
   tempResult <- computeConfidenceIntervalZ(
-    nEff=i, meanObs=8,  eType="freq")
+    nEff=i, meanObs=8,  eType="freq",
+    parameter=NULL)
   freqCiWidth[i] <- tempResult[2]-tempResult[1]
   
   tempResult <- computeConfidenceIntervalZ(
-    nEff=i, meanObs=8, a=someA,
+    nEff=i, meanObs=8, a=someA, parameter=NULL, 
     g=someG, eType="credibleInterval")
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
@@ -542,7 +544,7 @@ anytimeCiWidth <- credibleIntervalWidth <- numeric(30)
 for (i in seq_along(gDomain)) {
   tempResult <- computeConfidenceIntervalZ(
     nEff=1, meanObs=8, a=0, g=gDomain[i], 
-    eType="credibleInterval")
+    eType="credibleInterval", parameter=NULL)
   
   credibleIntervalWidth[i] <- tempResult[2]-tempResult[1]
   
@@ -553,7 +555,7 @@ for (i in seq_along(gDomain)) {
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(gDomain, anytimeCiWidth, col=eColours[1], type="l",
-     lwd=2, ylim=c(0, 16), xlab="g/gMom", ylab="Interval width")
+     lwd=2, ylim=c(0, 16), xlab="g/gMom", ylab="Interval width", log="x")
 lines(gDomain, credibleIntervalWidth, col=bayesColours[1],
       lwd=2)
 ```

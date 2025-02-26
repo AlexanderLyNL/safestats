@@ -20,11 +20,11 @@ knitr::opts_chunk$set(
 Using the two-sample z-test for comparing two means as a guiding example, we illustrate the following: 
 
 1. [Sequential use of p-values over-inflates the type I error](#pValues)
-2. [Sequential use of a safe test/e-variable will **not** over-inflate the type I error](#eValues)
+2. [Sequential use of a savi test/e-variable will **not** over-inflate the type I error](#eValues)
 
-The first point is well-known, but we believe it's good to see actual examples of this as a wake-up call, as in our experience researchers play down their expectation of this over-inflation in their minds. The main point is that with e-variables type I error control is retained _regardless of the sample size_. In other words, we can safely monitor the e-value and stop the experiment (early) whenever the e-value provides compelling evidence for the presence over the absence of an effect. By stopping early fewer participants will be put at risk, in particular, those patients who are assigned to the control condition, when in reality the treatment condition obtains more effective results. Safe tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, an editor, or manager urges the experimenter to collect more data.
+The first point is well-known, but we believe it's good to see actual examples of this as a wake-up call, as in our experience researchers play down their expectation of this over-inflation in their minds. The main point is that with e-variables type I error control is retained _regardless of the sample size_. In other words, we can safely monitor the e-value and stop the experiment (early) whenever the e-value provides compelling evidence for the presence over the absence of an effect. By stopping early fewer participants will be put at risk, in particular, those patients who are assigned to the control condition, when in reality the treatment condition obtains more effective results. Savi tests also allow for optional continuation, that is the extension of an experiment regardless of the motivation. For instance, if more funds become available, or if the evidence looks promising and the funding agency, a reviewer, an editor, or manager urges the experimenter to collect more data.
 
-Importantly, for the safe tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. As the results do not depend on the planned, current, or future sample sizes, safe tests allow for _anytime valid_ inferences. 
+Importantly, for the savi tests presented here neither optional stopping nor continuation leads to the test exceeding the tolerable type I error $\alpha$. As the results do not depend on the planned, current, or future sample sizes, savi tests allow for _anytime valid_ inferences. 
 
 For this demonstration we use functions from the safestats package and the following colours:
 
@@ -213,14 +213,14 @@ lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
 The reason why the type I error over-inflates is due to classical p-value methods being developed for fixed designs. For these designs, we have to pre-experimentally set the sample size at which the data collection is both stopped and analysed. Deviating from this plan with multiple looks at the data results in an over-inflation of the type I error. This plot also shows that "all alpha is spent" upon the first look, where the procedure already yielded the tolerable type I error. In other words, the use of classical p-values confines researchers to analysing the data once, and only once. 
 
-# 2. <a name = "eValues">Sequential use of a safe test/e-variable will **not** over-inflate the type I error</a>
+# 2. <a name = "eValues">Sequential use of a savi test/e-variable will **not** over-inflate the type I error</a>
 
-For the e-variable demonstration we rely on the `safeZTest` function from the safestats package. 
+For the e-variable demonstration we rely on the `saviZTest` function from the safestats package. 
 
-To run `safeZTest` a design object needs to be created. For the problem at hand we provided the design object with a minimal clinically relevant effect size, say, a mean difference of 10 (the claimed increase in IQ score). The following code creates such a design object. 
+To run `saviZTest` a design object needs to be created. For the problem at hand we provided the design object with a minimal clinically relevant effect size, say, a mean difference of 10 (the claimed increase in IQ score). The following code creates such a design object. 
 
 ```{r, eval=FALSE}
-designObj <- designSafeZ(meanDiffMin=10,
+designObj <- designSaviZ(meanDiffMin=10,
                          testType="twoSample",
                          sigma=sigmaTrue)
 designObj
@@ -238,7 +238,7 @@ The sequential use of e-variables entails computing an e-value after each observ
 # eValue <- 1
 # 
 # while (eValue < 1/alpha) {
-#   eValue <- safeZTest(x=x[1:n], y=y[1:n],
+#   eValue <- saviZTest(x=x[1:n], y=y[1:n],
 #                       designObj=designObj)
 #   
 #   if (eValue > 1/alpha) {
@@ -261,7 +261,7 @@ dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigmaTrue)
 set.seed(3)
 dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
 
-result <- safeZTest(dataGroup1, dataGroup2, designObj=designObj)
+result <- saviZTest(dataGroup1, dataGroup2, designObj=designObj)
 plot(result)
 ```
 This sample path does not exceed the evidence threshold of 20, and fewer than 5\% of the experiments will, even if we increase the sample size indefinitely. 
@@ -303,7 +303,7 @@ for (sim in 1:mIter) {
   zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigmaTrue
   
   for (i in 1:n1) {
-    currentEValue <- safeZTestStat(zVector[i], 
+    currentEValue <- saviZTestStat(zVector[i], 
                                    parameter=designObj$parameter, 
                                    n1=n1Vector[i], n2=n2Vector[i], 
                                    sigma=sigmaTrue, eType=designObj$eType)$eValue
