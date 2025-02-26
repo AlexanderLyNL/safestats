@@ -50,7 +50,7 @@ Imports:
   graphics (>= 4.2.2)
 Suggests: 
     testthat (>= 3.0.0),
-    knitr (>=1.49),
+    knitr (>= 1.49),
     rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: no
