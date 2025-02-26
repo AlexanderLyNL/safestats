@@ -67,7 +67,7 @@ test_that("extractNameFromArgs returns the arguments correctly", {
 
 test_that("getNameTestType returns the correct name", {
   result <- safestats:::getNameTestType("oneSample", "T-Test")
-  expect_equal(object=result, expected="Safe One Sample T-Test")
+  expect_equal(object=result, expected="Savi One Sample T-Test")
 })
 
 test_that("getNameAlternative returns the correct alternative", {
@@ -75,8 +75,8 @@ test_that("getNameAlternative returns the correct alternative", {
   expect_equal(object=result, expected="true mean not equal to 0")
 })
 
-test_that("computeNPlanBatchSafeT returns the correct batch sample size", {
-  result <- safestats:::computeNPlanBatchSafeT(0.4, eType="grow")
+test_that("computeNPlanBatchSaviT returns the correct batch sample size", {
+  result <- safestats:::computeNPlanBatchSaviT(0.4, eType="grow")
   nPlan <- 88
   names(nPlan) <- "n1Plan"
   parameter <- 0.4
@@ -86,8 +86,8 @@ test_that("computeNPlanBatchSafeT returns the correct batch sample size", {
   expect_equal(object=result, expected=expectedResult)
 })
 
-test_that("computeEsMinSafeT throws an error", {
-  expect_error(safestats:::computeEsMinSafeT(2))
+test_that("computeEsMinSaviT throws an error", {
+  expect_error(safestats:::computeEsMinSaviT(2))
 })
 
 test_that("defineTTestN returns correct list", {
@@ -96,8 +96,8 @@ test_that("defineTTestN returns correct list", {
   expect_equal(object=result, expected=expectedResult)
 })
 
-test_that("computeNPlanBatchSafeZ returns correct list", {
-  result <- safestats:::computeNPlanBatchSafeZ(0.4, eType="grow")
+test_that("computeNPlanBatchSaviZ returns correct list", {
+  result <- safestats:::computeNPlanBatchSaviZ(0.4, eType="grow")
 
   nPlan <- 85
   parameter <- 0.4
@@ -109,7 +109,7 @@ test_that("computeNPlanBatchSafeZ returns correct list", {
 
   expect_equal(object=result, expected=expectedResult)
 
-  result <- safestats:::computeNPlanBatchSafeZ(0.4, eType="eGauss")
+  result <- safestats:::computeNPlanBatchSaviZ(0.4, eType="eGauss")
 
   nPlan <- 96
   parameter <- 0.4^2
@@ -123,15 +123,15 @@ test_that("computeNPlanBatchSafeZ returns correct list", {
 })
 
 
-test_that("computeBetaBatchSafeZ returns correct batch beta", {
-  result <- safestats:::computeBetaBatchSafeZ(meanDiffTrue=0.9, nPlan=12, eType="grow")
+test_that("computeBetaBatchSaviZ returns correct batch beta", {
+  result <- safestats:::computeBetaBatchSaviZ(meanDiffTrue=0.9, nPlan=12, eType="grow")
   expectedResult <- 0.35359335
   expect_equal(object=result, expected=expectedResult)
 })
 
 
-test_that("computeMinEsBatchSafeZ returns correct batch minEs", {
-  result <- safestats:::computeMinEsBatchSafeZ(nPlan=78, eType="grow")
+test_that("computeMinEsBatchSaviZ returns correct batch minEs", {
+  result <- safestats:::computeMinEsBatchSaviZ(nPlan=78, eType="grow")
   expectedResult <- 0.4172752
   expect_equal(object=result, expected=expectedResult, tolerance=1e-3)
 })
