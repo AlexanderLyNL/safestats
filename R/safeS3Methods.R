@@ -711,6 +711,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           col="#A6CEE380", border="#1F78B4E6",
                           wantConfSeqPlot=FALSE, add=FALSE,
                           density=NULL, angle=45,
+                          xaxt=NULL, yaxt=NULL,
                           fillOddEven=FALSE, runInt=TRUE, ...) {
   eValueVec <- x[["eValueVec"]]
   n1Vec <- x[["n1Vec"]]
@@ -782,8 +783,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       lines(c(1, maxX), c(h0, h0), lwd=lwd, lty=2, col=h0Colour)
 
-      axis(1)
-      axis(2)
+      if (is.null(xaxt) || xaxt!="n") axis(1)
+      if (is.null(yaxt) || yaxt!="n") axis(2)
 
       if (is.null(ylab))
         ylab <- switch(x[["testName"]],
@@ -872,8 +873,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       if (maxY/threshLine[1] < 10)
         lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
 
-      axis(side = 1)
-      axis(side = 2)
+      if (is.null(xaxt) || xaxt!="n") axis(1)
+      if (is.null(yaxt) || yaxt!="n") axis(2)
 
       if (is.null(ylab))
         ylab <- "e-value"

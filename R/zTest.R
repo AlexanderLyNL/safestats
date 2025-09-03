@@ -112,11 +112,7 @@ saviZTestStat <- function(
       logResult <- - 3/2*log(1+nEff*g) +
         log(1+nEff*g/(1+nEff*g)*z^2) + nEff*g/(1+nEff*g)*z^2/2
 
-      if (alternative=="twoSided") { # two-sided
-        result <- list("eValue"=exp(logResult))
-      } else { # one-sided
-        result <- list("eValue"=exp(logResult))
-      }
+      result <- list("eValue"=exp(logResult))
     } else if (alternative %in% c("greater", "less")) {
       momIntegrand <- function(delta) {
         2*g^(-1)*delta^2*
