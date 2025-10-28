@@ -222,7 +222,7 @@ checkAndReturnsEsMinParameterSide <- function(
     }
 
     if (alternative=="less" && paramToCheck > 0) {
-      warning(paramName, ' incongruent with alternative "greater". ',
+      warning(paramName, ' incongruent with alternative "less". ',
               paramName, " set to -", paramName, " < 0 in order to compare H-: ",
               hypParamName, " < 0 against H0 : ", hypParamName, " = 0")
       paramToCheck <- -paramToCheck
@@ -374,6 +374,31 @@ makeRunningIntersection <- function(x, upper=TRUE) {
     res[i] <- comparisonFunction(currentValue, x[i])
     currentValue <- res[i]
   }
+
+  return(res)
+}
+
+
+#' Logarithmic hyperbolic cosine
+#'
+#' @param x numeric
+#'
+#' @returns numeric value
+#' @export
+#'
+#' @examples
+#' lcosh(7)
+lcosh <- function(x) {
+  res <- log(cosh(x))
+
+  if (is.infinite(res))
+    res <- -log(2)+x+log(1+exp(-2*x))
+
+  if (is.infinite(res))
+    res <- -log(2)+x+exp(-2*x)
+
+  if (is.infinite(res))
+    stop("log cosh infinite")
 
   return(res)
 }
