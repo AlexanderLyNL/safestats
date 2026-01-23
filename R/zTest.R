@@ -153,6 +153,48 @@ saviZTestStat <- function(
   return(result)
 }
 
+#' Computes E-Values Based on the Z-Statistic in favour of futility over the alternative
+#'
+#' @rdname saviZTestStat
+#' @param meanDiffMin Numeric > 0, same role as the parameter. A minimal clinically relevant mean difference.
+#' Futility is defined as population effect size less than meanDiffMin in magnitude.
+#' @export
+#'
+#' @examples
+#' saviZTestStat(z=3, n1=100, parameter=0.4, eType="grow")
+#' saviZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
+#' saviZTestStat(z=3, n1=100, parameter=0.4, eType="eCauchy")
+saviFutilityZStat <- function(
+    z, n1, n2=NULL, parameter=NULL,
+    alternative=c("twoSided", "less", "greater"),
+    paired=FALSE, sigma=1, eType="grow", meanDiffMin=NULL, ...) {
+
+  if (is.null(parameter) && is.null(esMin))
+    stop("No parameter, nor minimal mean difference given")
+
+  if (is.null(parameter) && !is.null(esMin))
+    phiS <- abs(esMin)
+
+  if (alternative!="twoSided")
+    warning("Only twoSided futility tests implemented, switched to twoSided")
+
+  phiS <- abs(parameter)
+
+  nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
+
+  sPlus0 <- exp(sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
+  sMin0 <- exp(-sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
+
+  result <- list("eValue"=max(sPlus0, sMin0))
+
+  if (result[["eValue"]] < 0) {
+    warning("Overflow: e-value smaller than 0")
+    result[["eValue"]] <- 2^(-15)
+  }
+
+  return(result)
+}
+
 #' Safe Anytime-Valid Z-Test
 #'
 #' Savi one and two sample Z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
@@ -954,8 +996,6 @@ designFreqZ <- function(
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
 #' @param futility logical, if \code{TRUE} then impose rule to stop
 #' for futility if e < beta. Default \code{FALSE}.
-#' @param growFutility logical, if \code{TRUE} then use the grow e-value
-#' to stop for futility (e < beta). Default \code{FALSE}.
 #' @param highN integer, largest possible sampling horizon. This might be the
 #' largest n that we are able to fund, which by default is set to 1e4L.
 #' Typically, highN is not used, as the function
@@ -1004,8 +1044,7 @@ designSaviZ <- function(
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE,
-    highN=1e4L, ...) {
+    futility=FALSE, highN=1e4L, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
 
@@ -1059,11 +1098,10 @@ designSaviZ <- function(
       "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "futility"=futility, "growFutility"=growFutility,
-      "highN"=highN, ...)
+      "futility"=futility, "highN"=highN, ...)
 
     if (isTRUE(futility))
-      designScenario <- ifelse(growFutility, "1aCompeting", "1aWald")
+      designScenario <- "1aWald"
 
   } else if (!is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
@@ -1119,6 +1157,7 @@ designSaviZ <- function(
   }
 
   ## Fill and name ----
+
   result <- utils::modifyList(result, tempResult)
 
   result[["alpha"]] <- alpha
@@ -1203,8 +1242,7 @@ designSaviZ1aWantNPlan <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE,
-    highN=1e4L, ...) {
+    futility=FALSE, highN=1e4L, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1216,7 +1254,7 @@ designSaviZ1aWantNPlan <- function(
     "parameter"=parameter, "testType"=testType, "eType"=eType,
     "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-    "futility"=futility, "growFutility"=growFutility, "highN"=highN)
+    "futility"=futility, "highN"=highN)
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
                                "esMin"=meanDiffMin, "beta"=beta,
@@ -1823,7 +1861,7 @@ sampleStoppingTimesSaviZ <- function(
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=FALSE,
     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
-    growFutility=FALSE, beta=NULL, ...) {
+    beta=NULL, ...) {
 
   if (isTRUE(futility))
     stopifnot(!is.null(beta), beta > 0, beta <= 1)
@@ -1849,6 +1887,17 @@ sampleStoppingTimesSaviZ <- function(
     "wantEValuesAtNMax"=wantEValuesAtNMax,
     "wantSamplePaths"=wantSamplePaths)
 
+  futilityParameter <- NULL
+
+  if (isTRUE(futility)) {
+    futilityResult <-
+      list("eValuesStopped"=result$eValuesStopped,
+           "samplePaths"=result$samplePaths,
+           "parameter"=NULL)
+  } else {
+    futilityResult <- NULL
+  }
+
   if (is.null(parameter)) {
     meanDiffTrue <- checkAndReturnsEsMinParameterSide(
       meanDiffTrue, "alternative"=alternative,
@@ -1861,21 +1910,27 @@ sampleStoppingTimesSaviZ <- function(
                         "eCauchy"=abs(meanDiffTrue/sigma),
                         "grow"=meanDiffTrue)
 
-    # Only used when futility=TRUE && growFutility=TRUE
-    if (isTRUE(growFutility))
-      growParameter <- meanDiffTrue
+    # Only used when futility=TRUE
+    if (isTRUE(futility)) {
+      futilityParameter <- abs(meanDiffTrue)
+      futilityResult[["parameter"]] <- futilityParameter
+    }
   } else {
-    # Only used when futility=TRUE && growFutility=TRUE
-    if (isTRUE(growFutility)) {
-      growParameter <- switch(eType,
-                              "mom"=sigma*sqrt(2*abs(parameter)),
-                              "eGauss"=sigma*sqrt(abs(parameter)),
-                              "imom"=sigma*sqrt(abs(parameter)),
-                              "eCauchy"=sigma*parameter,
-                              "grow"=parameter)
+    # TODO(Alexander): perhaps add deltaMin as an argument instead
+    #
+    if (isTRUE(futility)) {
+      futilityParameter <- switch(eType,
+                                  "mom"=sigma*sqrt(2*abs(parameter)),
+                                  "eGauss"=sigma*sqrt(abs(parameter)),
+                                  "imom"=sigma*sqrt(abs(parameter)),
+                                  "eCauchy"=sigma*parameter,
+                                  "grow"=parameter)
 
+      # TODO(Alexander): Not sure if this true, because for futility we reverse?
       if (alternative=="less")
-        growParameter <- -growParameter
+        futilityParameter <- -futilityParameter
+
+      futilityResult[["parameter"]] <- futilityParameter
     }
   }
 
@@ -1945,41 +2000,41 @@ sampleStoppingTimesSaviZ <- function(
         result[["eValuesStopped"]][sim] <- evidenceNow
         result[["stoppedVector"]][sim] <- 1
 
-        if (wantSamplePaths) {
-          result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
-        }
-
         break()
       }
 
-      if (futility && !isTRUE(growFutility) && evidenceNow < beta) {
-        result[["stoppingTimes"]][sim] <- n1Vector[j]
-        result[["eValuesStopped"]][sim] <- evidenceNow
-        result[["stoppedVector"]][sim] <- -1
+      # TODO(Alexander): Here use reciprocal as evidence for the null
+      #
+      # if (futility && !isTRUE(growFutility) && evidenceNow < beta) {
+      #   result[["stoppingTimes"]][sim] <- n1Vector[j]
+      #   result[["eValuesStopped"]][sim] <- evidenceNow
+      #   result[["stoppedVector"]][sim] <- -1
+      #
+      #   if (wantSamplePaths) {
+      #     result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
+      #   }
+      #
+      #   break()
+      # }
 
-        if (wantSamplePaths) {
-          result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
-        }
+      if (futility) {
 
-        break()
-      }
+        futRes <- saviFutilityZStat(
+          "z"=zVector[j], "parameter"=futilityParameter,
+          "n1"=n1Vector[j], "n2"=n2Vector[j],
+          "alternative"="twoSided", "sigma"=sigma,
+          "eType"="grow")
 
-      if (futility && growFutility) {
-        growRes <- saviZTestStat("z"=zVector[j], "parameter"=growParameter,
-                                 "n1"=n1Vector[j], "n2"=n2Vector[j],
-                                 "alternative"=alternative, "sigma"=sigma,
-                                 "eType"="grow")
+        futilityEValue <- futRes[["eValue"]]
 
-        growEvidence <- growRes[["eValue"]]
+        if (wantSamplePaths)
+          futilityResult[["samplePaths"]][sim, j] <- futilityEValue
 
-        if (growEvidence < beta) {
+        if (futilityEValue < beta) {
+          result[["stoppedVector"]][sim] <- -1
           result[["stoppingTimes"]][sim] <- n1Vector[j]
-          result[["eValuesStopped"]][sim] <- growEvidence
-          result[["stoppedVector"]][sim] <- -2
 
-          if (wantSamplePaths) {
-            result[["samplePaths"]][sim, j:nMax[1]] <- growEvidence
-          }
+          futilityResult[["eValuesStopped"]][sim] <- futilityEValue
 
           break()
         }
@@ -2009,6 +2064,24 @@ sampleStoppingTimesSaviZ <- function(
 
   if (isTRUE(wantSimData))
     result[["simData"]] <- simData
+
+  if (wantSamplePaths) {
+    samplePaths <- result[["samplePaths"]]
+    # object.size(samplePaths)
+    samplePaths[is.na(samplePaths)] <- 0
+    result[["samplePaths"]] <- Matrix::Matrix(samplePaths, sparse=TRUE)
+    # object.size(result[["samplePaths"]])
+
+    if (futility) {
+      futilitySamplePaths <- futilityResult[["samplePaths"]]
+      # object.size(futilitySamplePaths)
+      futilitySamplePaths[is.na(futilitySamplePaths)] <- 0
+      futilityResult[["samplePaths"]] <- Matrix::Matrix(futilitySamplePaths, sparse=TRUE)
+      # object.size(futilityResult[["samplePaths"]])
+    }
+  }
+
+  result[["futilityResult"]] <- futilityResult
 
   return(result)
 }
@@ -2081,8 +2154,7 @@ computeBetaSaviZ <- function(
     "eType"=eType,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=FALSE, "growFutility"=FALSE,
-    ...)
+    "futility"=FALSE, ...)
 
   result <- computeBetaBootstrapper(samplingResult=samplingResult,
                                     parameter=parameter, nPlan=nPlan,
@@ -2118,9 +2190,7 @@ computeNPlanSaviZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE,
-    highN=1e4L,
-    ...) {
+    futility=FALSE, highN=1e4L, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -2158,7 +2228,9 @@ computeNPlanSaviZ <- function(
     "eType"=eType,
     "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=futility, "growFutility"=growFutility, ...)
+    "futility"=futility, ...)
+
+  browser()
 
   result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
                                      "parameter"=parameter, "beta"=beta,
@@ -2422,221 +2494,455 @@ subjectiveBfZStat <- function(x1, s21, n1, x2, s22, n2, sigma=1,
 }
 
 
-aap <- function(
-    meanDiffTrue, alpha=0.05,
-    alternative = c("twoSided", "less", "greater"),
-    testType=c("oneSample", "paired", "twoSample"),
-    sigma=1, kappa=sigma,
-    ratio=1, parameter=NULL, nMax=1e3L,
-    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantEValuesAtNMax=FALSE,
-    wantSamplePaths=TRUE, wantSimData=FALSE,
-    pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
-    meanDiffF=meanDiffTrue,
-    beta=NULL, parameterF=NULL, eTypeF="grow", ...) {
-
-  if (isTRUE(futility))
-    stopifnot(!is.null(beta), beta > 0, beta <= 1)
-
-  stopifnot(alpha > 0, alpha <= 1,
-            is.finite(nMax),
-            is.finite(meanDiffTrue))
-
-  # TODO(Alexander): Remove in v0.9.0
-  #
-  if (length(alternative)==1 && alternative=="two.sided") {
-    warning('The option alternative="two.sided" is deprecated;',
-            'Please use alternative="twoSided" instead')
-    alternative <- "twoSided"
-  }
-
-  alternative <- match.arg(alternative)
-  testType <- match.arg(testType)
-  eType <- match.arg(eType)
-
-  result <- constructSampleStoppingTimesList(
-    "nSim"=nSim, "nMax"=nMax,
-    "wantEValuesAtNMax"=wantEValuesAtNMax,
-    "wantSamplePaths"=wantSamplePaths)
-
-  resultF <- NULL
-
-  if (isTRUE(futility)) {
-    resultF <- result
-    resultF <- resultF[!names(resultF) %in% c("n1Vector", "ratio", "simData", "eValuesAtNMax")]
-  }
-
-  if (is.null(parameter)) {
-    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-      meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffMin")
-
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=meanDiffTrue)
-  }
-
-  if (isTRUE(futility)) {
-
-    if (is.null(parameterF)) {
-      # TODO(Alexander): According to eTypeF
-      if (eTypeF!="grow")
-        stop("Only grow futility eType implemented currently.")
-
-      parameterF <- meanDiffTrue
-    }
-
-    resultF[["parameter"]] <- abs(parameterF)
-  }
-
-  if (testType=="twoSample" && length(nMax)==1) {
-    nMax <- c(nMax, ceil(ratio*nMax))
-    n1Max <- nMax[1]
-    n2Max <- nMax[2]
-    ratio <- nMax[2]/nMax[1]
-  } else if (testType %in% c("paired", "oneSample")){
-    n1Max <- nMax[1]
-    n2Max <- NULL
-    nMax <- n1Max
-    ratio <- 1
-  }
-
-  if (pb)
-    pbSavi <- utils::txtProgressBar(style=3, title="Savi test threshold crossing")
-
-  tempN <- defineTTestN("lowN"=1, "highN"=nMax[1], "ratio"=ratio, "testType"=testType)
-
-  n1Vector <- tempN[["n1"]]
-  n2Vector <- tempN[["n2"]]
-  nEffVector <- tempN[["nEff"]]
-
-  simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=meanDiffTrue/kappa,
-                                "sigmaTrue"=kappa, "paired"=FALSE, "seed"=seed)
-
-  for (sim in seq_along(result[["stoppingTimes"]])) {
-    if (testType %in% c("oneSample", "paired")) {
-      x1 <- simData[["dataGroup1"]][sim, ]
-      x1BarVector <- 1/(n1Vector)*cumsum(x1)
-      zVector <- sqrt(n1Vector)*x1BarVector/sigma
-    } else {
-      x1 <- simData[["dataGroup1"]][sim, ]
-      x1BarVector <- 1/(n1Vector)*cumsum(x1)
-      x1BarVector <- x1BarVector[n1Vector]
-
-      x2 <- simData[["dataGroup2"]][sim, ]
-      x2Cumsum <- cumsum(x2)[n2Vector]
-      x2BarVector <- 1/n2Vector*x2Cumsum
-
-      zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
-    }
-
-    if (wantEValuesAtNMax) {
-      tempResult <- saviZTestStat("z"=zVector[length(zVector)],
-                                  "parameter"=parameter,
-                                  "n1"=nMax[1], n2=nMax[2],
-                                  "alternative"=alternative, "sigma"=sigma,
-                                  "eType"=eType)
-      result[["eValuesAtNMax"]][sim] <- tempResult[["eValue"]]
-    }
-
-    for (j in seq_along(n1Vector)) {
-      tempResult <- saviZTestStat("z"=zVector[j], "parameter"=parameter,
-                                  "n1"=n1Vector[j], "n2"=n2Vector[j],
-                                  "alternative"=alternative, "sigma"=sigma,
-                                  "eType"=eType)
-
-      evidenceNow <- tempResult[["eValue"]]
-
-      if (wantSamplePaths)
-        result[["samplePaths"]][sim, j] <- evidenceNow
-
-      if (evidenceNow >= 1/alpha) {
-        result[["stoppingTimes"]][sim] <- n1Vector[j]
-        result[["eValuesStopped"]][sim] <- evidenceNow
-        result[["stoppedVector"]][sim] <- 1
-
-        if (wantSamplePaths) {
-          result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
-        }
-
-        break()
-      }
-
-      if (isTRUE(futility)) {
-        if (alternative %in% c("less", "twoSided")) {
-          tempResPlusF <- saviZTestStat("z"=zVector[j], "parameter"=parameterF,
-                                        "n1"=n1Vector[j], "n2"=n2Vector[j],
-                                        "alternative"="greater", "sigma"=sigma,
-                                        "eType"=eTypeF)
-        }
-
-        if (alternative %in% c("greater", "twoSided")) {
-          tempResMinF <- saviZTestStat("z"=zVector[j], "parameter"=-parameterF,
-                                       "n1"=n1Vector[j], "n2"=n2Vector[j],
-                                       "alternative"="less", "sigma"=sigma,
-                                       "eType"=eTypeF)
-        }
-
-        if (alternative=="twoSided") {
-          evidenceNowF <- max(tempResPlusF[["eValue"]], tempResMinF[["eValue"]])
-        } else if (alternative=="greater") {
-          evidenceNowF <- tempResMinF[["eValue"]]
-        } else if (alternative=="less") {
-          evidenceNowF <- tempResPlusF[["eValue"]]
-        }
-
-        if (wantSamplePaths)
-          resultF[["samplePaths"]][sim, j] <- evidenceNowF
-
-        if (evidenceNowF < beta) {
-          resultF[["stoppingTimes"]][sim] <- n1Vector[j]
-          resultF[["eValuesStopped"]][sim] <- evidenceNowF
-          resultF[["stoppedVector"]][sim] <- -2
-
-          if (wantSamplePaths) {
-            resultF[["samplePaths"]][sim, j:nMax[1]] <- evidenceNowF
-          }
-
-          break()
-        }
-      }
-
-      # Note(Alexander): If passed maximum nPlan[1] stop.
-      #   For power calculations if beyond nPlan[1], then set to Inf, doesn't matter for the quantile
-      #
-      if (n1Vector[j] >= nMax[1]) {
-        result[["stoppingTimes"]][sim] <- n1Vector[j]
-        result[["breakVector"]][sim] <- 1
-        result[["eValuesStopped"]][sim] <- evidenceNow
-
-        if (isTRUE(futility)) {
-          resultF[["stoppingTimes"]][sim] <- n1Vector[j]
-          resultF[["breakVector"]][sim] <- 1
-          resultF[["eValuesStopped"]][sim] <- evidenceNowF
-        }
-        break()
-      }
-    }
-
-    if (pb)
-      utils::setTxtProgressBar(pbSavi, "value"=sim/nSim, "title"="Trials")
-  }
-
-  if (pb)
-    close(pbSavi)
-
-  result[["parameter"]] <- parameter
-  result[["n1Vector"]] <- n1Vector
-  result[["ratio"]] <- ratio
-
-  if (futility)
-    result[["futility"]] <- resultF
-
-  if (isTRUE(wantSimData))
-    result[["simData"]] <- simData
-
-  return(result)
-}
+# aap <- function(
+#     meanDiffTrue, alpha=0.05,
+#     alternative = c("twoSided", "less", "greater"),
+#     testType=c("oneSample", "paired", "twoSample"),
+#     sigma=1, kappa=sigma,
+#     ratio=1, parameter=NULL, nMax=1e3L,
+#     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
+#     wantEValuesAtNMax=FALSE,
+#     wantSamplePaths=TRUE, wantSimData=FALSE,
+#     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
+#     meanDiffF=meanDiffTrue,
+#     beta=NULL, parameterF=NULL, eTypeF="grow", ...) {
+#
+#   if (isTRUE(futility))
+#     stopifnot(!is.null(beta), beta > 0, beta <= 1)
+#
+#   stopifnot(alpha > 0, alpha <= 1,
+#             is.finite(nMax),
+#             is.finite(meanDiffTrue))
+#
+#   # TODO(Alexander): Remove in v0.9.0
+#   #
+#   if (length(alternative)==1 && alternative=="two.sided") {
+#     warning('The option alternative="two.sided" is deprecated;',
+#             'Please use alternative="twoSided" instead')
+#     alternative <- "twoSided"
+#   }
+#
+#   alternative <- match.arg(alternative)
+#   testType <- match.arg(testType)
+#   eType <- match.arg(eType)
+#
+#   result <- constructSampleStoppingTimesList(
+#     "nSim"=nSim, "nMax"=nMax,
+#     "wantEValuesAtNMax"=wantEValuesAtNMax,
+#     "wantSamplePaths"=wantSamplePaths)
+#
+#   resultF <- NULL
+#
+#   if (isTRUE(futility)) {
+#     resultF <- result
+#     resultF <- resultF[!names(resultF) %in% c("n1Vector", "ratio", "simData", "eValuesAtNMax")]
+#   }
+#
+#   if (is.null(parameter)) {
+#     meanDiffTrue <- checkAndReturnsEsMinParameterSide(
+#       meanDiffTrue, "alternative"=alternative,
+#       "esMinName"="meanDiffMin")
+#
+#     parameter <- switch(eType,
+#                         "mom"=1/2*(meanDiffTrue/sigma)^2,
+#                         "eGauss"=(meanDiffTrue/sigma)^2,
+#                         "imom"=(meanDiffTrue/sigma)^2,
+#                         "eCauchy"=abs(meanDiffTrue/sigma),
+#                         "grow"=meanDiffTrue)
+#   }
+#
+#   if (isTRUE(futility)) {
+#
+#     if (is.null(parameterF)) {
+#       # TODO(Alexander): According to eTypeF
+#       if (eTypeF!="grow")
+#         stop("Only grow futility eType implemented currently.")
+#
+#       parameterF <- meanDiffTrue
+#     }
+#
+#     resultF[["parameter"]] <- abs(parameterF)
+#   }
+#
+#   if (testType=="twoSample" && length(nMax)==1) {
+#     nMax <- c(nMax, ceil(ratio*nMax))
+#     n1Max <- nMax[1]
+#     n2Max <- nMax[2]
+#     ratio <- nMax[2]/nMax[1]
+#   } else if (testType %in% c("paired", "oneSample")){
+#     n1Max <- nMax[1]
+#     n2Max <- NULL
+#     nMax <- n1Max
+#     ratio <- 1
+#   }
+#
+#   if (pb)
+#     pbSavi <- utils::txtProgressBar(style=3, title="Savi test threshold crossing")
+#
+#   tempN <- defineTTestN("lowN"=1, "highN"=nMax[1], "ratio"=ratio, "testType"=testType)
+#
+#   n1Vector <- tempN[["n1"]]
+#   n2Vector <- tempN[["n2"]]
+#   nEffVector <- tempN[["nEff"]]
+#
+#   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=meanDiffTrue/kappa,
+#                                 "sigmaTrue"=kappa, "paired"=FALSE, "seed"=seed)
+#
+#   for (sim in seq_along(result[["stoppingTimes"]])) {
+#     if (testType %in% c("oneSample", "paired")) {
+#       x1 <- simData[["dataGroup1"]][sim, ]
+#       x1BarVector <- 1/(n1Vector)*cumsum(x1)
+#       zVector <- sqrt(n1Vector)*x1BarVector/sigma
+#     } else {
+#       x1 <- simData[["dataGroup1"]][sim, ]
+#       x1BarVector <- 1/(n1Vector)*cumsum(x1)
+#       x1BarVector <- x1BarVector[n1Vector]
+#
+#       x2 <- simData[["dataGroup2"]][sim, ]
+#       x2Cumsum <- cumsum(x2)[n2Vector]
+#       x2BarVector <- 1/n2Vector*x2Cumsum
+#
+#       zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
+#     }
+#
+#     if (wantEValuesAtNMax) {
+#       tempResult <- saviZTestStat("z"=zVector[length(zVector)],
+#                                   "parameter"=parameter,
+#                                   "n1"=nMax[1], n2=nMax[2],
+#                                   "alternative"=alternative, "sigma"=sigma,
+#                                   "eType"=eType)
+#       result[["eValuesAtNMax"]][sim] <- tempResult[["eValue"]]
+#     }
+#
+#     for (j in seq_along(n1Vector)) {
+#       tempResult <- saviZTestStat("z"=zVector[j], "parameter"=parameter,
+#                                   "n1"=n1Vector[j], "n2"=n2Vector[j],
+#                                   "alternative"=alternative, "sigma"=sigma,
+#                                   "eType"=eType)
+#
+#       evidenceNow <- tempResult[["eValue"]]
+#
+#       if (wantSamplePaths)
+#         result[["samplePaths"]][sim, j] <- evidenceNow
+#
+#       if (evidenceNow >= 1/alpha) {
+#         result[["stoppingTimes"]][sim] <- n1Vector[j]
+#         result[["eValuesStopped"]][sim] <- evidenceNow
+#         result[["stoppedVector"]][sim] <- 1
+#
+#         if (wantSamplePaths) {
+#           result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
+#         }
+#
+#         break()
+#       }
+#
+#       if (isTRUE(futility)) {
+#         if (alternative %in% c("less", "twoSided")) {
+#           tempResPlusF <- saviZTestStat("z"=zVector[j], "parameter"=parameterF,
+#                                         "n1"=n1Vector[j], "n2"=n2Vector[j],
+#                                         "alternative"="greater", "sigma"=sigma,
+#                                         "eType"=eTypeF)
+#         }
+#
+#         if (alternative %in% c("greater", "twoSided")) {
+#           tempResMinF <- saviZTestStat("z"=zVector[j], "parameter"=-parameterF,
+#                                        "n1"=n1Vector[j], "n2"=n2Vector[j],
+#                                        "alternative"="less", "sigma"=sigma,
+#                                        "eType"=eTypeF)
+#         }
+#
+#         if (alternative=="twoSided") {
+#           evidenceNowF <- max(tempResPlusF[["eValue"]], tempResMinF[["eValue"]])
+#         } else if (alternative=="greater") {
+#           evidenceNowF <- tempResMinF[["eValue"]]
+#         } else if (alternative=="less") {
+#           evidenceNowF <- tempResPlusF[["eValue"]]
+#         }
+#
+#         if (wantSamplePaths)
+#           resultF[["samplePaths"]][sim, j] <- evidenceNowF
+#
+#         if (evidenceNowF < beta) {
+#           resultF[["stoppingTimes"]][sim] <- n1Vector[j]
+#           resultF[["eValuesStopped"]][sim] <- evidenceNowF
+#           resultF[["stoppedVector"]][sim] <- -2
+#
+#           if (wantSamplePaths) {
+#             resultF[["samplePaths"]][sim, j:nMax[1]] <- evidenceNowF
+#           }
+#
+#           break()
+#         }
+#       }
+#
+#       # Note(Alexander): If passed maximum nPlan[1] stop.
+#       #   For power calculations if beyond nPlan[1], then set to Inf, doesn't matter for the quantile
+#       #
+#       if (n1Vector[j] >= nMax[1]) {
+#         result[["stoppingTimes"]][sim] <- n1Vector[j]
+#         result[["breakVector"]][sim] <- 1
+#         result[["eValuesStopped"]][sim] <- evidenceNow
+#
+#         if (isTRUE(futility)) {
+#           resultF[["stoppingTimes"]][sim] <- n1Vector[j]
+#           resultF[["breakVector"]][sim] <- 1
+#           resultF[["eValuesStopped"]][sim] <- evidenceNowF
+#         }
+#         break()
+#       }
+#     }
+#
+#     if (pb)
+#       utils::setTxtProgressBar(pbSavi, "value"=sim/nSim, "title"="Trials")
+#   }
+#
+#   if (pb)
+#     close(pbSavi)
+#
+#   result[["parameter"]] <- parameter
+#   result[["n1Vector"]] <- n1Vector
+#   result[["ratio"]] <- ratio
+#
+#   if (futility)
+#     result[["futility"]] <- resultF
+#
+#   if (isTRUE(wantSimData))
+#     result[["simData"]] <- simData
+#
+#   return(result)
+# }
+#
+#
+#
+#
+# # sampleStoppingTimesSaviZ2 <- function(
+# #     meanDiffTrue, alpha=0.05,
+# #     alternative = c("twoSided", "less", "greater"),
+# #     testType=c("oneSample", "paired", "twoSample"),
+# #     sigma=1, kappa=sigma,
+# #     ratio=1, parameter=NULL, nMax=1e3L,
+# #     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
+# #     wantEValuesAtNMax=FALSE,
+# #     wantSamplePaths=TRUE, wantSimData=FALSE,
+# #     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
+# #     beta=NULL, ...) {
+# #
+# #   if (isTRUE(futility))
+# #     stopifnot(!is.null(beta), beta > 0, beta <= 1)
+# #
+# #   stopifnot(alpha > 0, alpha <= 1,
+# #             is.finite(nMax),
+# #             is.finite(meanDiffTrue))
+# #
+# #   # TODO(Alexander): Remove in v0.9.0
+# #   #
+# #   if (length(alternative)==1 && alternative=="two.sided") {
+# #     warning('The option alternative="two.sided" is deprecated;',
+# #             'Please use alternative="twoSided" instead')
+# #     alternative <- "twoSided"
+# #   }
+# #
+# #   alternative <- match.arg(alternative)
+# #   testType <- match.arg(testType)
+# #   eType <- match.arg(eType)
+# #
+# #   result <- constructSampleStoppingTimesList(
+# #     "nSim"=nSim, "nMax"=nMax,
+# #     "wantEValuesAtNMax"=wantEValuesAtNMax,
+# #     "wantSamplePaths"=wantSamplePaths)
+# #
+# #   futilityParameter <- NULL
+# #
+# #   if (isTRUE(futility)) {
+# #     futilityResult <-
+# #       list("breakVector"=result$breakVector,
+# #            "eValuesStopped"=result$eValuesStopped,
+# #            "samplePaths"=result$samplePaths,
+# #            "parameter"=NULL)
+# #   } else {
+# #     futilityResult <- NULL
+# #   }
+# #
+# #   if (is.null(parameter)) {
+# #     meanDiffTrue <- checkAndReturnsEsMinParameterSide(
+# #       meanDiffTrue, "alternative"=alternative,
+# #       "esMinName"="meanDiffMin")
+# #
+# #     parameter <- switch(eType,
+# #                         "mom"=1/2*(meanDiffTrue/sigma)^2,
+# #                         "eGauss"=(meanDiffTrue/sigma)^2,
+# #                         "imom"=(meanDiffTrue/sigma)^2,
+# #                         "eCauchy"=abs(meanDiffTrue/sigma),
+# #                         "grow"=meanDiffTrue)
+# #
+# #     # Only used when futility=TRUE
+# #     if (isTRUE(futility))
+# #       futilityParameter <- meanDiffTrue
+# #   } else {
+# #     # TODO(Alexander): perhaps add deltaMin as an argument instead
+# #     #
+# #     if (isTRUE(futility)) {
+# #       futilityParameter <- switch(eType,
+# #                                   "mom"=sigma*sqrt(2*abs(parameter)),
+# #                                   "eGauss"=sigma*sqrt(abs(parameter)),
+# #                                   "imom"=sigma*sqrt(abs(parameter)),
+# #                                   "eCauchy"=sigma*parameter,
+# #                                   "grow"=parameter)
+# #
+# #       # TODO(Alexander): Not sure if this true, because for futility we reverse?
+# #       if (alternative=="less")
+# #         futilityParameter <- -futilityParameter
+# #     }
+# #   }
+# #
+# #   if (testType=="twoSample" && length(nMax)==1) {
+# #     nMax <- c(nMax, ceil(ratio*nMax))
+# #     n1Max <- nMax[1]
+# #     n2Max <- nMax[2]
+# #     ratio <- nMax[2]/nMax[1]
+# #   } else if (testType %in% c("paired", "oneSample")){
+# #     n1Max <- nMax[1]
+# #     n2Max <- NULL
+# #     nMax <- n1Max
+# #     ratio <- 1
+# #   }
+# #
+# #   if (pb)
+# #     pbSavi <- utils::txtProgressBar(style=3, title="Savi test threshold crossing")
+# #
+# #   tempN <- defineTTestN("lowN"=1, "highN"=nMax[1], "ratio"=ratio, "testType"=testType)
+# #
+# #   n1Vector <- tempN[["n1"]]
+# #   n2Vector <- tempN[["n2"]]
+# #   nEffVector <- tempN[["nEff"]]
+# #
+# #   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=meanDiffTrue/kappa,
+# #                                 "sigmaTrue"=kappa, "paired"=FALSE, "seed"=seed)
+# #
+# #   for (sim in seq_along(result[["stoppingTimes"]])) {
+# #     if (testType %in% c("oneSample", "paired")) {
+# #       x1 <- simData[["dataGroup1"]][sim, ]
+# #       x1BarVector <- 1/(n1Vector)*cumsum(x1)
+# #       zVector <- sqrt(n1Vector)*x1BarVector/sigma
+# #     } else {
+# #       x1 <- simData[["dataGroup1"]][sim, ]
+# #       x1BarVector <- 1/(n1Vector)*cumsum(x1)
+# #       x1BarVector <- x1BarVector[n1Vector]
+# #
+# #       x2 <- simData[["dataGroup2"]][sim, ]
+# #       x2Cumsum <- cumsum(x2)[n2Vector]
+# #       x2BarVector <- 1/n2Vector*x2Cumsum
+# #
+# #       zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
+# #     }
+# #
+# #     if (wantEValuesAtNMax) {
+# #       tempResult <- saviZTestStat("z"=zVector[length(zVector)],
+# #                                   "parameter"=parameter,
+# #                                   "n1"=nMax[1], n2=nMax[2],
+# #                                   "alternative"=alternative, "sigma"=sigma,
+# #                                   "eType"=eType)
+# #       result[["eValuesAtNMax"]][sim] <- tempResult[["eValue"]]
+# #     }
+# #
+# #     for (j in seq_along(n1Vector)) {
+# #       tempResult <- saviZTestStat("z"=zVector[j], "parameter"=parameter,
+# #                                   "n1"=n1Vector[j], "n2"=n2Vector[j],
+# #                                   "alternative"=alternative, "sigma"=sigma,
+# #                                   "eType"=eType)
+# #
+# #       evidenceNow <- tempResult[["eValue"]]
+# #
+# #       if (wantSamplePaths)
+# #         result[["samplePaths"]][sim, j] <- evidenceNow
+# #
+# #       if (evidenceNow >= 1/alpha) {
+# #         result[["stoppingTimes"]][sim] <- n1Vector[j]
+# #         result[["eValuesStopped"]][sim] <- evidenceNow
+# #         result[["stoppedVector"]][sim] <- 1
+# #
+# #         if (wantSamplePaths) {
+# #           result[["samplePaths"]][sim, j:nMax[1]] <- 0
+# #         }
+# #
+# #         break()
+# #       }
+# #
+# #       # TODO(Alexander): Here use reciprocal as evidence for the null
+# #       #
+# #       # if (futility && !isTRUE(growFutility) && evidenceNow < beta) {
+# #       #   result[["stoppingTimes"]][sim] <- n1Vector[j]
+# #       #   result[["eValuesStopped"]][sim] <- evidenceNow
+# #       #   result[["stoppedVector"]][sim] <- -1
+# #       #
+# #       #   if (wantSamplePaths) {
+# #       #     result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
+# #       #   }
+# #       #
+# #       #   break()
+# #       # }
+# #
+# #       if (futility) {
+# #         futilityPlus0 <- saviZTestStat("z"=zVector[j], "parameter"=futilityParameter,
+# #                                        "n1"=n1Vector[j], "n2"=n2Vector[j],
+# #                                        "alternative"="greater", "sigma"=sigma,
+# #                                        "eType"="grow")
+# #
+# #         futilityMin0 <- saviZTestStat("z"=zVector[j], "parameter"=-futilityParameter,
+# #                                       "n1"=n1Vector[j], "n2"=n2Vector[j],
+# #                                       "alternative"="less", "sigma"=sigma,
+# #                                       "eType"="grow")
+# #
+# #         futilityEValue <- max(futilityPlus0[["eValue"]], futilityMin0[["eValue"]])
+# #
+# #         if (wantSamplePaths)
+# #           futilityResult[["samplePaths"]][sim, j] <- futilityEValue
+# #
+# #         if (futilityEValue < beta) {
+# #           result[["stoppedVector"]][sim] <- -1
+# #           result[["stoppingTimes"]][sim] <- n1Vector[j]
+# #
+# #           futilityResult[["eValuesStopped"]][sim] <- futilityEValue
+# #
+# #           if (wantSamplePaths)
+# #             futilityResult[["samplePaths"]][sim, j:nMax[1]] <- 0
+# #
+# #           break()
+# #         }
+# #       }
+# #
+# #       # Note(Alexander): If passed maximum nPlan[1] stop.
+# #       #   For power calculations if beyond nPlan[1], then set to Inf, doesn't matter for the quantile
+# #       #
+# #       if (n1Vector[j] >= nMax[1]) {
+# #         result[["stoppingTimes"]][sim] <- n1Vector[j]
+# #         result[["breakVector"]][sim] <- 1
+# #         result[["eValuesStopped"]][sim] <- evidenceNow
+# #         break()
+# #       }
+# #     }
+# #
+# #     if (pb)
+# #       utils::setTxtProgressBar(pbSavi, "value"=sim/nSim, "title"="Trials")
+# #   }
+# #
+# #   if (pb)
+# #     close(pbSavi)
+# #
+# #   result[["parameter"]] <- parameter
+# #   result[["n1Vector"]] <- n1Vector
+# #   result[["ratio"]] <- ratio
+# #
+# #   if (isTRUE(wantSimData))
+# #     result[["simData"]] <- simData
+# #
+# #   result[["samplePaths"]] <- Matrix::Matrix(result[["samplePaths"]], sparse=TRUE)
+# #
+# #   if (futility)
+# #     futilityResult[["samplePaths"]] <- Matrix::Matrix(futilityResult[["samplePaths"]], sparse=TRUE)
+# #
+# #   result[["futilityResult"]] <- futilityResult
+# #
+# #   return(result)
+# # }

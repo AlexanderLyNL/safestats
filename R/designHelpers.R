@@ -334,12 +334,11 @@ computeNPlanBootstrapper <- function(
     samplingResult, parameter,
     beta, nPlanBatch, nBoot) {
 
-
-  # TODO(Alexander): futility
-  # browser()
   # TODO(Alexander): Here figure out which stopping times to use when futility=TRUE
 
   times <- samplingResult[["stoppingTimes"]]
+
+  browser()
 
   bootObjN1Plan <- computeBootObj(
     "values"=times, "objType"="nPlan",

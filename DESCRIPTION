@@ -47,6 +47,7 @@ Imports:
   dplyr (>= 1.0.6),
   purrr (>= 0.3.5),
   rlang (>= 1.0.6),
+  Matrix (>= 1.7-3),
   graphics (>= 4.2.2)
 Suggests: 
     testthat (>= 3.0.0),
