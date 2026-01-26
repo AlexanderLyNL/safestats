@@ -27,6 +27,8 @@ designSavi1aHelper <- function(
                  "nMean"=NULL, "nMeanTwoSe"=NULL,
                  "bootObjN1Plan"=NULL, "bootObjN1Mean"=NULL,
                  "samplePaths"=NULL, "breakVector"=NULL,
+                 "stoppedVector"=NULL,
+                 "futility"=FALSE, "futilityResult"=NULL,
                  "note"=NULL)
 
   nPlanBatch <- samplingResult[["nPlanBatch"]]
@@ -80,7 +82,12 @@ designSavi1aHelper <- function(
   result[["parameter"]] <- samplingResult[["parameter"]]
   result[["nPlanBatch"]] <- nPlanBatch
   result[["samplePaths"]] <- samplingResult[["samplePaths"]]
-  result[["breakVector"]] <- samplingResult[["breakVector"]]
+
+  breakVector <- samplingResult[["breakVector"]]
+  result[["breakVector"]] <-
+    Matrix::sparseVector(
+      x=1, i=which(breakVector!=0),
+      length=length(breakVector))
 
   result[["bootObjN1Plan"]] <- bootObjN1Plan
   result[["bootObjN1Mean"]] <- bootObjN1Mean
@@ -89,6 +96,11 @@ designSavi1aHelper <- function(
   result[["nPlanTwoSe"]] <- nPlanTwoSe
   result[["nMean"]] <- nMean
   result[["nMeanTwoSe"]] <- nMeanTwoSe
+
+  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
+  if (!is.null(result[["futilityResult"]])) result[["futility"]] <- TRUE
+  result[["stoppedVector"]] <- samplingResult[["stoppedVector"]]
+
   result[["note"]] <- note
 
   return(result)
@@ -129,7 +141,13 @@ designSavi2Helper <- function(
   result[["ratio"]] <- ratio
 
   result[["samplePaths"]] <- samplingResult[["samplePaths"]]
-  result[["breakVector"]] <- samplingResult[["breakVector"]]
+
+  breakVector <- samplingResult[["breakVector"]]
+  result[["breakVector"]] <-
+    Matrix::sparseVector(
+      x=1, i=which(breakVector!=0),
+      length=length(breakVector))
+
 
   bootObjBeta <- samplingResult[["bootObjBeta"]]
 
@@ -334,11 +352,14 @@ computeNPlanBootstrapper <- function(
     samplingResult, parameter,
     beta, nPlanBatch, nBoot) {
 
-  # TODO(Alexander): Here figure out which stopping times to use when futility=TRUE
-
   times <- samplingResult[["stoppingTimes"]]
+  stoppedVector <- samplingResult[["stoppedVector"]]
 
-  browser()
+  # TODO(Alexander): If stoppedVector is NULL, then
+  # Old sampling method without stopped vector, but only breakVector?
+  #
+  if (!is.null(stoppedVector))
+    times[which(stoppedVector != 1)] <- nPlanBatch
 
   bootObjN1Plan <- computeBootObj(
     "values"=times, "objType"="nPlan",

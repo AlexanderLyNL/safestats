@@ -2230,11 +2230,11 @@ computeNPlanSaviZ <- function(
     "pb"=pb, "seed"=seed, "nSim"=nSim,
     "futility"=futility, ...)
 
-  browser()
-
   result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
                                      "parameter"=parameter, "beta"=beta,
                                      "nPlanBatch"=nPlanBatch, "nBoot"=nBoot)
+
+  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
   return(result)
 }
 
