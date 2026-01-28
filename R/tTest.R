@@ -102,32 +102,34 @@ saviTTestStatNEffNu <- function(
     # saviTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
     # saviTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
 
-    # TODO(Alexander): Remove in v0.9.0
-    #
-    deltaS <- parameter
-    a <- t^2/(nu+t^2)
-    expTerm <- exp((a-1)*nEff*deltaS^2/2)
-
-    zeroIndex <- which(abs(expTerm) < .Machine$double.eps)
-    eValues <- vector("numeric", length(expTerm))
-
-    zArg <- (-1)*a*nEff*deltaS^2/2
-    zArg <- zArg[!zeroIndex]
-    # Note(Alexander): This made the vector shorter. Only there where expTerm is non-zero will we evaluate
-    # the hypergeometric functions
-
-    aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
-
     if (alternative=="twoSided") {
+      deltaS <- parameter
+      a <- t^2/(nu+t^2)
+      expTerm <- exp((a-1)*nEff*deltaS^2/2)
+
+      zeroIndex <- which(abs(expTerm) < .Machine$double.eps)
+      eValues <- vector("numeric", length(expTerm))
+
+      zArg <- (-1)*a*nEff*deltaS^2/2
+      zArg <- zArg[!zeroIndex]
+      # Note(Alexander): This made the vector shorter. Only there where expTerm is non-zero will we evaluate
+      # the hypergeometric functions
+
+      aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
       eValues[!zeroIndex] <- expTerm[!zeroIndex] * aKummerFunction
     } else {
-      bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu)[!zeroIndex] *
-        Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
-      eValues[!zeroIndex] <- expTerm[!zeroIndex]*(aKummerFunction + bKummerFunction)
+      if (alternative=="greater") {
+        eValues <- saviTTestStatTDensity("t"=t, "parameter"=abs(parameter),
+                                         "nu"=nu, "nEff"=nEff, "alternative"=alternative)
+      } else if (alternative=="less") {
+        eValues <- saviTTestStatTDensity("t"=t, "parameter"=-abs(parameter),
+                                         "nu"=nu, "nEff"=nEff, "alternative"=alternative)
+      }
     }
 
-    if (eValues <= 0 && t!=0) {
+    if (eValues <= 0) {
       # warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
+      # TODO(Alexander): Numerical integrate here
       eValues <- saviTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
                                        "nEff"=nEff, "alternative"=alternative)
     }
@@ -420,7 +422,6 @@ saviTTestStatNEffNuMom <- function(
 saviTTestStatTDensity <- function(t, parameter, nu, nEff,
                                   alternative=c("twoSided", "less", "greater"),
                                   paired=FALSE, ...) {
-
   # TODO(Alexander): Remove in v0.9.0
   #
   if (length(alternative)==1 && alternative=="two.sided") {
@@ -941,6 +942,67 @@ savi.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
   }
 
   result[["dataName"]] <- dataName
+  return(result)
+}
+
+
+#' Computes Futility E-Values Based on the Z-Statistic in favour of the alternative over futility
+#'
+#' Evidence for futility requires the e-value to be small, i.e. smaller than betaFutility threshold.
+#' If the alternative holds true, i.e. meanDiffTrue >= esMinFutility, then
+#' the e-value in favour of the alternative over futility, e1f, then the probability of
+#' ever seeing e1f <= betaFutility is not more than betaFutility.
+#'
+#' @rdname saviZTestStat
+#' @rdname saviZTestStat
+#' @inheritParams designSaviZ
+#' @export
+#'
+#' @examples
+#' saviFutilityTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over futility
+#' saviFutilityTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for futility over the alternative
+saviFutilityTStatNEffNu <- function(
+    t, nEff, nu, parameter=NULL,
+    alternative = c("twoSided", "less", "greater"), eType="grow",
+    tDensity = FALSE, paired = FALSE, esMinFutility, ...) {
+  # Note overflow for greater t
+  #
+  #     saviFutilityTStatNEffNu(t=40.017, nEff=10000, nu=6000, parameter=0.4)
+  #     saviFutilityTStatNEffNu(t=40.018, nEff=10000, nu=6000, parameter=0.4)
+
+
+  if (is.null(parameter) && is.null(esMinFutility))
+    stop("No parameter, nor minimal clinically relevant effect size given")
+
+  if (is.null(parameter) && !is.null(esMinFutility))
+    parameter <- abs(esMinFutility)
+
+  alternative <- match.arg(alternative)
+
+  if (alternative!="twoSided")
+    warning("Only twoSided futility tests implemented, switched to twoSided")
+
+
+
+  sPlus0 <- suppressWarnings(
+    saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+                        "alternative"="greater", "tDensity"=TRUE, "paired"=paired,
+                        "eType"="grow")[["eValue"]]
+  )
+
+  sMin0 <- suppressWarnings(
+    saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=-parameter,
+                        "alternative"="less", "tDensity"=TRUE, "paired"=paired,
+                        "eType"="grow")[["eValue"]]
+  )
+
+  result <- list("eValue"=max(sPlus0, sMin0))
+
+  if (result[["eValue"]] < 0) {
+    warning("Overflow: e-value smaller than 0")
+    result[["eValue"]] <- 2^(-15)
+  }
+
   return(result)
 }
 
@@ -1753,9 +1815,7 @@ computeNPlanBatchSaviT <- function(
                  error=identity)
       )
     }
-
   }
-
 
   if (inherits(tempResult, "simpleError"))
     stop("Can't compute the batched planned sample size")

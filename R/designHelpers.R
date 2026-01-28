@@ -27,7 +27,6 @@ designSavi1aHelper <- function(
                  "nMean"=NULL, "nMeanTwoSe"=NULL,
                  "bootObjN1Plan"=NULL, "bootObjN1Mean"=NULL,
                  "samplePaths"=NULL, "breakVector"=NULL,
-                 "stoppedVector"=NULL,
                  "futility"=FALSE, "futilityResult"=NULL,
                  "note"=NULL)
 
@@ -82,12 +81,7 @@ designSavi1aHelper <- function(
   result[["parameter"]] <- samplingResult[["parameter"]]
   result[["nPlanBatch"]] <- nPlanBatch
   result[["samplePaths"]] <- samplingResult[["samplePaths"]]
-
-  breakVector <- samplingResult[["breakVector"]]
-  result[["breakVector"]] <-
-    Matrix::sparseVector(
-      x=1, i=which(breakVector!=0),
-      length=length(breakVector))
+  result[["breakVector"]] <- samplingResult[["breakVector"]]
 
   result[["bootObjN1Plan"]] <- bootObjN1Plan
   result[["bootObjN1Mean"]] <- bootObjN1Mean
@@ -98,8 +92,6 @@ designSavi1aHelper <- function(
   result[["nMeanTwoSe"]] <- nMeanTwoSe
 
   result[["futilityResult"]] <- samplingResult[["futilityResult"]]
-  if (!is.null(result[["futilityResult"]])) result[["futility"]] <- TRUE
-  result[["stoppedVector"]] <- samplingResult[["stoppedVector"]]
 
   result[["note"]] <- note
 
@@ -141,13 +133,7 @@ designSavi2Helper <- function(
   result[["ratio"]] <- ratio
 
   result[["samplePaths"]] <- samplingResult[["samplePaths"]]
-
-  breakVector <- samplingResult[["breakVector"]]
-  result[["breakVector"]] <-
-    Matrix::sparseVector(
-      x=1, i=which(breakVector!=0),
-      length=length(breakVector))
-
+  result[["breakVector"]] <- samplingResult[["breakVector"]]
 
   bootObjBeta <- samplingResult[["bootObjBeta"]]
 
@@ -404,7 +390,7 @@ computeBetaBootstrapper <- function(
   breakVector <- samplingResult[["breakVector"]]
 
   # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
-  times[as.logical(breakVector)] <- Inf
+  times[Matrix::which(breakVector!=0)] <- Inf
 
   bootObjBeta <- computeBootObj(
     "values"=times, "objType"="beta",
@@ -443,8 +429,9 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
                                             wantEValuesAtNMax=FALSE,
                                             wantSamplePaths=TRUE) {
 
-  stoppingTimes <- breakVector <- stoppedVector <- integer(nSim)
+  stoppingTimes <- integer(nSim)
   eValuesStopped <- numeric(nSim)
+  breakVector <- Matrix::sparseVector(x=0, i=1, length=nSim)
 
   eValuesAtNMax <- if (wantEValuesAtNMax) numeric(nSim) else NULL
   samplePaths <- if (wantSamplePaths) matrix(nrow=nSim, ncol=nMax[1]) else NULL
@@ -453,6 +440,39 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
                  "stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
                  "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
                  "samplePaths"=samplePaths, "n1Vector"=NULL, "ratio"=NULL,
-                 "simData"=NULL, "stoppedVector"=stoppedVector)
+                 "simData"=NULL)
   return(result)
+}
+
+
+#' Checks and outputs a threshold for a futility analysis
+#'
+#' @param betaFutility numeric > 0 and < 1, used to set the threshold of
+#' a futility procedure
+#' @param beta numeric > 0 and < 1, a tolerable type II error, used to set
+#' the threshold if betaFutility is not given
+#' @param betaDefault numeric > 0 and < 1 a default value (0.2) to run
+#' a futility procedure
+#'
+#' @returns a betaFutility threshold
+#' @export
+#'
+#' @examples
+constructBetaFutilityFrom <- function(betaFutility, beta, betaDefault=0.2) {
+  if (!is.null(betaFutility)) {
+    stopifnot(betaFutility >0, betaFutility < 1)
+    return(betaFutility )
+  }
+
+  if (!is.null(beta)) {
+    stopifnot(beta >0, beta < 1)
+    return(beta )
+  }
+
+  warning("To run a futility procedure ",
+          "a betaFutility threshold needs to be specified ",
+          "by default betaFutility <- ", betaDefault)
+  betaFutility <- betaDefault
+
+  return(betaFutility)
 }

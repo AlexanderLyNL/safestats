@@ -153,32 +153,37 @@ saviZTestStat <- function(
   return(result)
 }
 
-#' Computes E-Values Based on the Z-Statistic in favour of futility over the alternative
+#' Computes Futility E-Values Based on the Z-Statistic in favour of the alternative over futility
+#'
+#' Evidence for futility requires the e-value to be small, i.e. smaller than betaFutility threshold.
+#' If the alternative holds true, i.e. meanDiffTrue >= esMinFutility, then
+#' the e-value in favour of the alternative over futility, e1f, then the probability of
+#' ever seeing e1f <= betaFutility is not more than betaFutility.
 #'
 #' @rdname saviZTestStat
-#' @param meanDiffMin Numeric > 0, same role as the parameter. A minimal clinically relevant mean difference.
-#' Futility is defined as population effect size less than meanDiffMin in magnitude.
+#' @inheritParams designSaviZ
 #' @export
 #'
 #' @examples
-#' saviZTestStat(z=3, n1=100, parameter=0.4, eType="grow")
-#' saviZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
-#' saviZTestStat(z=3, n1=100, parameter=0.4, eType="eCauchy")
+#' saviFutilityZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over futility
+#' saviFutilityZStat(z=0.35, n1=100, parameter=0.4) # evidence for futility over the alternative
 saviFutilityZStat <- function(
     z, n1, n2=NULL, parameter=NULL,
     alternative=c("twoSided", "less", "greater"),
-    paired=FALSE, sigma=1, eType="grow", meanDiffMin=NULL, ...) {
+    paired=FALSE, sigma=1, eType="grow", esMinFutility=NULL, ...) {
 
-  if (is.null(parameter) && is.null(esMin))
+  if (is.null(parameter) && is.null(esMinFutility))
     stop("No parameter, nor minimal mean difference given")
 
-  if (is.null(parameter) && !is.null(esMin))
-    phiS <- abs(esMin)
+  if (is.null(parameter) && !is.null(esMinFutility))
+    parameter <- abs(esMinFutility)
+
+  alternative <- match.arg(alternative)
 
   if (alternative!="twoSided")
     warning("Only twoSided futility tests implemented, switched to twoSided")
 
-  phiS <- abs(parameter)
+  phiS <- parameter
 
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
 
@@ -958,6 +963,7 @@ designFreqZ <- function(
 #' and "phiS". Note that 1-beta defines the power.
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
 #' that we would like to detect.
+#' @param meanDiffTrue numeric, data governing mean difference used for simulation under the alternative
 #' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 #' "greater" or "less".
 #' @param nPlan optional numeric vector of length at most 2. When provided, it is used to find the savi test
@@ -996,11 +1002,18 @@ designFreqZ <- function(
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
 #' @param futility logical, if \code{TRUE} then impose rule to stop
 #' for futility if e < beta. Default \code{FALSE}.
+#' @param esMinFutility numeric, the minimal clinical relevant mean
+#' difference that we do not want to miss under the alternative.
+#' Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)
 #' @param highN integer, largest possible sampling horizon. This might be the
 #' largest n that we are able to fund, which by default is set to 1e4L.
 #' Typically, highN is not used, as the function
 #' `computeNPlanBatchSaviZ()` tries to find the sampling horizon.
 #' If all fails, then use highN as the sampling horizon.
+#' @param wantSampling logical, default TRUE so sampling paths are drawn.
+#' For instance, if meanDiffMin, beta, are given, then nPlan
+#' (scenario 1a) is derived by sampling. Set this to FALSE, whenever we
+#' want to run a futility test without needing to know nPlan
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a saviDesign object that includes:
@@ -1038,13 +1051,16 @@ designSaviZ <- function(
     meanDiffMin=NULL, beta=NULL, nPlan=NULL,
     alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
+    meanDiffTrue=NULL,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, highN=1e4L, ...) {
+    futility=FALSE, esMinFutility=NULL,
+    betaFutility=NULL, betaDefault=0.2,
+    highN=1e4L, wantSampling=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
 
@@ -1082,13 +1098,34 @@ designSaviZ <- function(
     meanDiffMin <- checkAndReturnsEsMinParameterSide(
       "paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin",
       "alternative"=alternative)
+
+    if (is.null(meanDiffTrue))
+      meanDiffTrue <- meanDiffMin
+
+    parameter <- matchParameterZFrom(
+      "parameter"=parameter,
+      "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+      "alternative"=alternative, "eType"=eType)
+  }
+
+  # TODO(Alexander): This relates to
+  if (futility) {
+    esMinFutility <- matchFutilityParameterZFrom(
+      "esMinFutility"=esMinFutility, "meanDiffMin"=meanDiffMin,
+      "meanDiffTrue"=meanDiffTrue)
+
+    if (is.null(esMinFutility))
+      stop("Can't run a futility analysis without esMinFutility or meanDiffMin")
+
+    betaFutility <- constructBetaFutilityFrom(
+      "betaFutility"=betaFutility, "beta"=beta, "betaDefault"=betaDefault)
   }
 
   designScenario <- NULL
 
   tempResult <- list()
 
-  if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan)) {
+  if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan) && wantSampling) {
     designScenario <- "1a"
 
     tempResult <- designSaviZ1aWantNPlan(
@@ -1098,33 +1135,47 @@ designSaviZ <- function(
       "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "futility"=futility, "highN"=highN, ...)
+      "futility"=futility, "esMinFutility"=esMinFutility,
+      "highN"=highN, ...)
 
-    if (isTRUE(futility))
-      designScenario <- "1aWald"
+    if (futility)
+      designScenario <- "1aFutility"
 
-  } else if (!is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
+  } else if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan) && isFALSE(wantSampling) ||
+             !is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
 
-    if (is.null(parameter)) {
-      parameter <- switch(eType,
-                          "mom"=1/2*(meanDiffMin/sigma)^2,
-                          "eGauss"=(meanDiffMin/sigma)^2,
-                          "imom"=(meanDiffMin/sigma)^2,
-                          "eCauchy"=abs(meanDiffMin/sigma),
-                          "grow"=meanDiffMin)
+    tempResult <- list("parameter"=parameter, "esMin"=meanDiffMin)
+
+    if (futility) {
+
+      if (is.null(beta))
+        stop("Cannot do a futility analysis without beta")
+
+      tempResult[["beta"]] <- beta
+
+      futilityParameter <- matchFutilityParameterZFrom(
+        "esMinFutility"=esMinFutility,
+        "meanDiffMin"=meanDiffMin, "meanDiffTrue"=meanDiffTrue)
+
+      futilityResult <- list(parameter=futilityParameter)
+
+      tempResult[["futilityResult"]] <- futilityResult
+
+      designScenario <- "1bFutility"
     }
 
-    tempResult <- list("parameter"=parameter, "esMin"=meanDiffMin)
   } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
     designScenario <- "2"
 
     tempResult <- designSaviZ2WantBeta(
-      "meanDiffMin"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha,
+      "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
       "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
-      "testType"=testType, "parameter"=parameter,
+      "testType"=testType, "parameter"=parameter, "meanDiffMin"=meanDiffMin,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths, "ratio"=ratio,
-      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, ...)
+      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
+      "futility"=futility, "esMinFutility"=esMinFutility,
+      "betaFutility"=betaFutility, ...)
   } else if (is.null(meanDiffMin) && !is.null(beta) && !is.null(nPlan)) {
     designScenario <- "3"
 
@@ -1210,6 +1261,7 @@ designSaviZ <- function(
   ## Name h0 -----
   names(h0) <- "mu"
   result[["h0"]] <- h0
+  result[["futility"]] <- futility
 
   result[["call"]] <- sys.call()
 
@@ -1238,23 +1290,27 @@ designSaviZ1aWantNPlan <- function(
     alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL,
+    ratio=1, parameter=NULL, meanDiffTrue=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, highN=1e4L, ...) {
+    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
+    highN=1e4L, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
   testType <- match.arg(testType)
 
+  if (is.null(meanDiffTrue)) meanDiffTrue <- meanDiffMin
+
   samplingResult <- computeNPlanSaviZ(
-    "meanDiffTrue"=meanDiffMin, "beta"=beta, "alpha"=alpha,
+    "meanDiffTrue"=meanDiffTrue, "beta"=beta, "alpha"=alpha,
     "alternative"=alternative, "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
-    "wantSamplePaths"=wantSamplePaths,
+    "wantSamplePaths"=wantSamplePaths, "meanDiffMin"=meanDiffMin,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-    "futility"=futility, "highN"=highN)
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "highN"=highN)
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
                                "esMin"=meanDiffMin, "beta"=beta,
@@ -1279,13 +1335,15 @@ designSaviZ1aWantNPlan <- function(
 #' @examples
 #' designSaviZ2WantBeta(meanDiffMin=0.9, nPlan=7, nSim=10)
 designSaviZ2WantBeta <- function(
-    meanDiffMin, nPlan,
+    meanDiffTrue, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
+    meanDiffMin=NULL,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
+    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
@@ -1296,15 +1354,19 @@ designSaviZ2WantBeta <- function(
   nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   samplingResult <- computeBetaSaviZ(
-    "meanDiffTrue"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha,
+    "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
     "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
-    "testType"=testType, "parameter"=parameter, "seed"=seed,
+    "testType"=testType, "parameter"=parameter,
+    "meanDiffMin"=meanDiffMin, "seed"=seed,
     "eType"=eType, "wantSamplePaths"=wantSamplePaths,
-    "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "betaFutility"=betaFutility, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
 
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=meanDiffMin, "nPlan"=nPlan, "ratio"=ratio,
                               "testType"=c("oneSample", "paired","twoSample"))
+
+  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
   return(result)
 }
 
@@ -1350,14 +1412,11 @@ designSaviZ3WantEsMin <- function(
                            "parameter"=parameter, "eType"=eType)
   )
 
-  if (is.null(parameter)) {
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffMin/sigma)^2,
-                        "eGauss"=(meanDiffMin/sigma)^2,
-                        "imom"=(meanDiffMin/sigma)^2,
-                        "eCauchy"=abs(meanDiffMin/sigma),
-                        "grow"=meanDiffMin)
-  }
+  parameter <- matchParameterZFrom(
+    "parameter"=parameter,
+    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   result[["parameter"]] <- parameter
   result[["esMin"]] <- meanDiffMin
@@ -1490,7 +1549,7 @@ computeNPlanBatchSaviZ <- function(
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    parameter=NULL,
+    parameter=NULL, meanDiffMin=NULL,
     highN=1e4L, ratio=1, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1512,18 +1571,20 @@ computeNPlanBatchSaviZ <- function(
 
   n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
-  if (is.null(parameter)) {
-    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-      "paramToCheck"=meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffMin")
+  if (is.null(meanDiffMin))
+    meanDiffMin <- meanDiffTrue
 
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=abs(meanDiffTrue))
-  }
+  meanDiffMin <- suppressWarnings(
+    checkAndReturnsEsMinParameterSide(
+      "paramToCheck"=meanDiffMin, "alternative"=alternative,
+      "esMinName"="meanDiffMin")
+  )
+
+  parameter <- matchParameterZFrom(
+    "parameter"=parameter,
+    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   meanDiffTrue <- abs(meanDiffTrue)
 
@@ -1568,7 +1629,6 @@ computeNPlanBatchSaviZ <- function(
               "Set sampling horizon to highN = ", highN)
       tempResult <- list("root"=highN)
     }
-
 
     nEff <- tempResult[["root"]]
   }
@@ -1637,18 +1697,15 @@ computeBetaBatchSaviZ <- function(
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
 
-  if (is.null(parameter)) {
-    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-      "paramToCheck"=meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffMin")
+  meanDiffTrue <- checkAndReturnsEsMinParameterSide(
+    "paramToCheck"=meanDiffTrue, "alternative"=alternative,
+    "esMinName"="meanDiffMin")
 
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=abs(meanDiffTrue))
-  }
+  parameter <- matchParameterZFrom(
+    "parameter"=parameter,
+    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   if (eType=="grow") {
     phiS <- parameter
@@ -1833,7 +1890,6 @@ setLowAndHighEsTrueZ <- function(nEff, eType="mom", alternative="twoSided",
 #' Simulate stopping times for the savi Z-test
 #'
 #' @inheritParams designSaviZ
-#' @param meanDiffTrue numeric, data governing parameter value
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE}, then compute eValues at nMax. Default \code{FALSE}.
 #' @param wantSamplePaths logical. If \code{TRUE}, then output the (stopped) sample paths. Default \code{TRUE}.
@@ -1856,19 +1912,29 @@ sampleStoppingTimesSaviZ <- function(
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
     sigma=1, kappa=sigma,
-    ratio=1, parameter=NULL, nMax=1e3L,
+    ratio=1, meanDiffMin=NULL, parameter=NULL, nMax=1e3L,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=FALSE,
     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
-    beta=NULL, ...) {
-
-  if (isTRUE(futility))
-    stopifnot(!is.null(beta), beta > 0, beta <= 1)
+    esMinFutility=NULL, beta=NULL, betaFutility=NULL, ...) {
 
   stopifnot(alpha > 0, alpha <= 1,
             is.finite(nMax),
             is.finite(meanDiffTrue))
+
+  if (futility) {
+    esMinFutility <- matchFutilityParameterZFrom(
+      "esMinFutility"=esMinFutility, "meanDiffMin"=meanDiffMin,
+      "meanDiffTrue"=meanDiffTrue
+    )
+
+    betaFutility <- constructBetaFutilityFrom(
+      "betaFutility"=betaFutility, "beta"=beta
+    )
+
+    stopifnot(betaFutility > 0, betaFutility < 1)
+  }
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1887,51 +1953,28 @@ sampleStoppingTimesSaviZ <- function(
     "wantEValuesAtNMax"=wantEValuesAtNMax,
     "wantSamplePaths"=wantSamplePaths)
 
-  futilityParameter <- NULL
+  meanDiffTrue <- abs(meanDiffTrue)
 
-  if (isTRUE(futility)) {
+  meanDiffMin <- if (is.null(meanDiffMin)) abs(meanDiffTrue) else abs(meanDiffMin)
+
+  parameter <- matchParameterZFrom(
+    "parameter"=parameter,
+    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
+
+  futilityResult <- NULL
+
+  if (futility) {
+    futilityParameter <- matchFutilityParameterZFrom(
+      "esMinFutility"=esMinFutility,
+      "meanDiffMin"=meanDiffMin, "meanDiffTrue"=meanDiffTrue)
+
     futilityResult <-
-      list("eValuesStopped"=result$eValuesStopped,
-           "samplePaths"=result$samplePaths,
-           "parameter"=NULL)
-  } else {
-    futilityResult <- NULL
-  }
-
-  if (is.null(parameter)) {
-    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-      meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffMin")
-
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=meanDiffTrue)
-
-    # Only used when futility=TRUE
-    if (isTRUE(futility)) {
-      futilityParameter <- abs(meanDiffTrue)
-      futilityResult[["parameter"]] <- futilityParameter
-    }
-  } else {
-    # TODO(Alexander): perhaps add deltaMin as an argument instead
-    #
-    if (isTRUE(futility)) {
-      futilityParameter <- switch(eType,
-                                  "mom"=sigma*sqrt(2*abs(parameter)),
-                                  "eGauss"=sigma*sqrt(abs(parameter)),
-                                  "imom"=sigma*sqrt(abs(parameter)),
-                                  "eCauchy"=sigma*parameter,
-                                  "grow"=parameter)
-
-      # TODO(Alexander): Not sure if this true, because for futility we reverse?
-      if (alternative=="less")
-        futilityParameter <- -futilityParameter
-
-      futilityResult[["parameter"]] <- futilityParameter
-    }
+      list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "samplePaths"=result[["samplePaths"]],
+           "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "parameter"=futilityParameter)
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
@@ -1998,7 +2041,6 @@ sampleStoppingTimesSaviZ <- function(
       if (evidenceNow >= 1/alpha) {
         result[["stoppingTimes"]][sim] <- n1Vector[j]
         result[["eValuesStopped"]][sim] <- evidenceNow
-        result[["stoppedVector"]][sim] <- 1
 
         break()
       }
@@ -2030,10 +2072,11 @@ sampleStoppingTimesSaviZ <- function(
         if (wantSamplePaths)
           futilityResult[["samplePaths"]][sim, j] <- futilityEValue
 
-        if (futilityEValue < beta) {
-          result[["stoppedVector"]][sim] <- -1
-          result[["stoppingTimes"]][sim] <- n1Vector[j]
+        if (futilityEValue < betaFutility) {
+          result[["breakVector"]][sim] <- -1
+          result[["stoppingTimes"]][sim] <- nMax
 
+          futilityResult[["stoppingTimes"]][sim] <- n1Vector[j]
           futilityResult[["eValuesStopped"]][sim] <- futilityEValue
 
           break()
@@ -2062,22 +2105,18 @@ sampleStoppingTimesSaviZ <- function(
   result[["n1Vector"]] <- n1Vector
   result[["ratio"]] <- ratio
 
-  if (isTRUE(wantSimData))
+  if (wantSimData)
     result[["simData"]] <- simData
 
   if (wantSamplePaths) {
     samplePaths <- result[["samplePaths"]]
-    # object.size(samplePaths)
     samplePaths[is.na(samplePaths)] <- 0
     result[["samplePaths"]] <- Matrix::Matrix(samplePaths, sparse=TRUE)
-    # object.size(result[["samplePaths"]])
 
     if (futility) {
       futilitySamplePaths <- futilityResult[["samplePaths"]]
-      # object.size(futilitySamplePaths)
       futilitySamplePaths[is.na(futilitySamplePaths)] <- 0
       futilityResult[["samplePaths"]] <- Matrix::Matrix(futilitySamplePaths, sparse=TRUE)
-      # object.size(futilityResult[["samplePaths"]])
     }
   }
 
@@ -2085,8 +2124,6 @@ sampleStoppingTimesSaviZ <- function(
 
   return(result)
 }
-
-
 
 #' Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
 #'
@@ -2107,10 +2144,12 @@ computeBetaSaviZ <- function(
     meanDiffTrue, nPlan, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
+    meanDiffMin=NULL,
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
+    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2137,14 +2176,11 @@ computeBetaSaviZ <- function(
     "paramToCheck"=meanDiffTrue, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
-  if (is.null(parameter)) {
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=meanDiffTrue)
-  }
+  parameter <- matchParameterZFrom(
+    "parameter"=parameter,
+    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   samplingResult <- sampleStoppingTimesSaviZ(
     "meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
@@ -2154,11 +2190,14 @@ computeBetaSaviZ <- function(
     "eType"=eType,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=FALSE, ...)
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "betaFutility"=betaFutility, ...)
 
-  result <- computeBetaBootstrapper(samplingResult=samplingResult,
-                                    parameter=parameter, nPlan=nPlan,
-                                    nBoot=nBoot)
+  result <- computeBetaBootstrapper("samplingResult"=samplingResult,
+                                    "parameter"=parameter, "nPlan"=nPlan,
+                                    "nBoot"=nBoot)
+
+  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
 
   return(result)
 }
@@ -2186,11 +2225,13 @@ computeNPlanSaviZ <- function(
     alternative=c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
     sigma=1, kappa=sigma,
+    meanDiffMin=NULL,
     ratio=1, parameter=NULL, nMax=1e8,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, highN=1e4L, ...) {
+    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
+    highN=1e4L, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -2215,20 +2256,23 @@ computeNPlanSaviZ <- function(
     "beta"=beta, "sigma"=sigma, "kappa"=kappa,
     "alternative"=alternative, "testType"=testType,
     "parameter"=parameter, "ratio"=ratio, "eType"=eType,
-    "highN"=highN, ...)
+    "meanDiffMin"=meanDiffMin, "highN"=highN, ...)
 
   nPlanBatch <- tempObj[["nPlan"]]
-  parameter <- tempObj[["parameter"]]
+
+  if (is.null(parameter))
+    parameter <- tempObj[["parameter"]]
 
   samplingResult <- sampleStoppingTimesSaviZ(
     "meanDiffTrue"=meanDiffTrue, "alpha"=alpha, "beta"=beta,
     "alternative"=alternative, "testType"=testType,
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
-    "eType"=eType,
+    "eType"=eType, "meanDiffMin"=meanDiffMin,
     "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=futility, ...)
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "betaFutility"=betaFutility, ...)
 
   result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
                                      "parameter"=parameter, "beta"=beta,
@@ -2240,6 +2284,101 @@ computeNPlanSaviZ <- function(
 
 # Helpers ------
 
+#' Match the parameter of a savi z-test
+#'
+#' Based on the meanDiffMin, sigma, alternative and eType
+#'
+#' @inherit designSaviZ
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchParameterZFrom(0.4)
+matchParameterZFrom <- function(meanDiffMin,
+                                    sigma=1,
+                                    alternative=c("twoSided", "greater", "less"),
+                                    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
+                                    parameter=NULL) {
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+
+  # TODO(Alexander):
+  #
+  if (!is.null(parameter))
+    return(parameter)
+
+  parameter <- switch(eType,
+                      "mom"=1/2*(meanDiffMin/sigma)^2,
+                      "eGauss"=(meanDiffMin/sigma)^2,
+                      "imom"=(meanDiffMin/sigma)^2,
+                      "eCauchy"=abs(meanDiffMin/sigma),
+                      "grow"=abs(meanDiffMin))
+
+  if (eType=="grow") {
+    if (alternative=="less")
+      parameter <- - parameter
+  }
+  return(parameter)
+}
+
+#' Match the meanDiffMin of a savi z-test
+#'
+#' Based on the parameter, sigma, alternative and eType
+#'
+#' @inherit designSaviZ
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchMeanDiffMinZFrom(parameter=0.4)
+matchMeanDiffMinZFrom <- function(parameter,
+                                  sigma=1,
+                                  alternative=c("twoSided", "greater", "less"),
+                                  eType=c("mom", "eGauss", "imom", "eCauchy", "grow")) {
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+
+  parameter <- abs(parameter)
+
+  meanDiffMin <- switch(eType,
+                        "mom"=sqrt(2*parameter)*sigma,
+                        "eGauss"=sqrt(parameter)*sigma,
+                        "imom"=sqrt(parameter)*sigma,
+                        "eCauchy"=parameter*sigma,
+                        "grow"=abs(parameter))
+
+  if (eType=="grow" && alternative=="less")
+    meanDiffMin <- -meanDiffMin
+
+  return(meanDiffMin)
+}
+
+#' Match the parameter of a futility savi z-test
+#'
+#' Based on the esMinFutility, meanDiffMin, alternative and eType
+#'
+#' @inherit designSaviZ
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchFutilityParameterZFrom(0.4)
+matchFutilityParameterZFrom <- function(esMinFutility, meanDiffMin, meanDiffTrue) {
+
+  if (!is.null(esMinFutility))
+    return(abs(esMinFutility))
+
+  if (!is.null(meanDiffMin))
+    return(abs(meanDiffMin))
+
+  if (!is.null(meanDiffTrue))
+    return(abs(meanDiffTrue))
+
+}
 
 #' Help function to compute the effective sample size based on a length 2 vector of samples
 #'
@@ -2492,457 +2631,3 @@ subjectiveBfZStat <- function(x1, s21, n1, x2, s22, n2, sigma=1,
     return(exp(logBf10))
 
 }
-
-
-# aap <- function(
-#     meanDiffTrue, alpha=0.05,
-#     alternative = c("twoSided", "less", "greater"),
-#     testType=c("oneSample", "paired", "twoSample"),
-#     sigma=1, kappa=sigma,
-#     ratio=1, parameter=NULL, nMax=1e3L,
-#     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-#     wantEValuesAtNMax=FALSE,
-#     wantSamplePaths=TRUE, wantSimData=FALSE,
-#     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
-#     meanDiffF=meanDiffTrue,
-#     beta=NULL, parameterF=NULL, eTypeF="grow", ...) {
-#
-#   if (isTRUE(futility))
-#     stopifnot(!is.null(beta), beta > 0, beta <= 1)
-#
-#   stopifnot(alpha > 0, alpha <= 1,
-#             is.finite(nMax),
-#             is.finite(meanDiffTrue))
-#
-#   # TODO(Alexander): Remove in v0.9.0
-#   #
-#   if (length(alternative)==1 && alternative=="two.sided") {
-#     warning('The option alternative="two.sided" is deprecated;',
-#             'Please use alternative="twoSided" instead')
-#     alternative <- "twoSided"
-#   }
-#
-#   alternative <- match.arg(alternative)
-#   testType <- match.arg(testType)
-#   eType <- match.arg(eType)
-#
-#   result <- constructSampleStoppingTimesList(
-#     "nSim"=nSim, "nMax"=nMax,
-#     "wantEValuesAtNMax"=wantEValuesAtNMax,
-#     "wantSamplePaths"=wantSamplePaths)
-#
-#   resultF <- NULL
-#
-#   if (isTRUE(futility)) {
-#     resultF <- result
-#     resultF <- resultF[!names(resultF) %in% c("n1Vector", "ratio", "simData", "eValuesAtNMax")]
-#   }
-#
-#   if (is.null(parameter)) {
-#     meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-#       meanDiffTrue, "alternative"=alternative,
-#       "esMinName"="meanDiffMin")
-#
-#     parameter <- switch(eType,
-#                         "mom"=1/2*(meanDiffTrue/sigma)^2,
-#                         "eGauss"=(meanDiffTrue/sigma)^2,
-#                         "imom"=(meanDiffTrue/sigma)^2,
-#                         "eCauchy"=abs(meanDiffTrue/sigma),
-#                         "grow"=meanDiffTrue)
-#   }
-#
-#   if (isTRUE(futility)) {
-#
-#     if (is.null(parameterF)) {
-#       # TODO(Alexander): According to eTypeF
-#       if (eTypeF!="grow")
-#         stop("Only grow futility eType implemented currently.")
-#
-#       parameterF <- meanDiffTrue
-#     }
-#
-#     resultF[["parameter"]] <- abs(parameterF)
-#   }
-#
-#   if (testType=="twoSample" && length(nMax)==1) {
-#     nMax <- c(nMax, ceil(ratio*nMax))
-#     n1Max <- nMax[1]
-#     n2Max <- nMax[2]
-#     ratio <- nMax[2]/nMax[1]
-#   } else if (testType %in% c("paired", "oneSample")){
-#     n1Max <- nMax[1]
-#     n2Max <- NULL
-#     nMax <- n1Max
-#     ratio <- 1
-#   }
-#
-#   if (pb)
-#     pbSavi <- utils::txtProgressBar(style=3, title="Savi test threshold crossing")
-#
-#   tempN <- defineTTestN("lowN"=1, "highN"=nMax[1], "ratio"=ratio, "testType"=testType)
-#
-#   n1Vector <- tempN[["n1"]]
-#   n2Vector <- tempN[["n2"]]
-#   nEffVector <- tempN[["nEff"]]
-#
-#   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=meanDiffTrue/kappa,
-#                                 "sigmaTrue"=kappa, "paired"=FALSE, "seed"=seed)
-#
-#   for (sim in seq_along(result[["stoppingTimes"]])) {
-#     if (testType %in% c("oneSample", "paired")) {
-#       x1 <- simData[["dataGroup1"]][sim, ]
-#       x1BarVector <- 1/(n1Vector)*cumsum(x1)
-#       zVector <- sqrt(n1Vector)*x1BarVector/sigma
-#     } else {
-#       x1 <- simData[["dataGroup1"]][sim, ]
-#       x1BarVector <- 1/(n1Vector)*cumsum(x1)
-#       x1BarVector <- x1BarVector[n1Vector]
-#
-#       x2 <- simData[["dataGroup2"]][sim, ]
-#       x2Cumsum <- cumsum(x2)[n2Vector]
-#       x2BarVector <- 1/n2Vector*x2Cumsum
-#
-#       zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
-#     }
-#
-#     if (wantEValuesAtNMax) {
-#       tempResult <- saviZTestStat("z"=zVector[length(zVector)],
-#                                   "parameter"=parameter,
-#                                   "n1"=nMax[1], n2=nMax[2],
-#                                   "alternative"=alternative, "sigma"=sigma,
-#                                   "eType"=eType)
-#       result[["eValuesAtNMax"]][sim] <- tempResult[["eValue"]]
-#     }
-#
-#     for (j in seq_along(n1Vector)) {
-#       tempResult <- saviZTestStat("z"=zVector[j], "parameter"=parameter,
-#                                   "n1"=n1Vector[j], "n2"=n2Vector[j],
-#                                   "alternative"=alternative, "sigma"=sigma,
-#                                   "eType"=eType)
-#
-#       evidenceNow <- tempResult[["eValue"]]
-#
-#       if (wantSamplePaths)
-#         result[["samplePaths"]][sim, j] <- evidenceNow
-#
-#       if (evidenceNow >= 1/alpha) {
-#         result[["stoppingTimes"]][sim] <- n1Vector[j]
-#         result[["eValuesStopped"]][sim] <- evidenceNow
-#         result[["stoppedVector"]][sim] <- 1
-#
-#         if (wantSamplePaths) {
-#           result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
-#         }
-#
-#         break()
-#       }
-#
-#       if (isTRUE(futility)) {
-#         if (alternative %in% c("less", "twoSided")) {
-#           tempResPlusF <- saviZTestStat("z"=zVector[j], "parameter"=parameterF,
-#                                         "n1"=n1Vector[j], "n2"=n2Vector[j],
-#                                         "alternative"="greater", "sigma"=sigma,
-#                                         "eType"=eTypeF)
-#         }
-#
-#         if (alternative %in% c("greater", "twoSided")) {
-#           tempResMinF <- saviZTestStat("z"=zVector[j], "parameter"=-parameterF,
-#                                        "n1"=n1Vector[j], "n2"=n2Vector[j],
-#                                        "alternative"="less", "sigma"=sigma,
-#                                        "eType"=eTypeF)
-#         }
-#
-#         if (alternative=="twoSided") {
-#           evidenceNowF <- max(tempResPlusF[["eValue"]], tempResMinF[["eValue"]])
-#         } else if (alternative=="greater") {
-#           evidenceNowF <- tempResMinF[["eValue"]]
-#         } else if (alternative=="less") {
-#           evidenceNowF <- tempResPlusF[["eValue"]]
-#         }
-#
-#         if (wantSamplePaths)
-#           resultF[["samplePaths"]][sim, j] <- evidenceNowF
-#
-#         if (evidenceNowF < beta) {
-#           resultF[["stoppingTimes"]][sim] <- n1Vector[j]
-#           resultF[["eValuesStopped"]][sim] <- evidenceNowF
-#           resultF[["stoppedVector"]][sim] <- -2
-#
-#           if (wantSamplePaths) {
-#             resultF[["samplePaths"]][sim, j:nMax[1]] <- evidenceNowF
-#           }
-#
-#           break()
-#         }
-#       }
-#
-#       # Note(Alexander): If passed maximum nPlan[1] stop.
-#       #   For power calculations if beyond nPlan[1], then set to Inf, doesn't matter for the quantile
-#       #
-#       if (n1Vector[j] >= nMax[1]) {
-#         result[["stoppingTimes"]][sim] <- n1Vector[j]
-#         result[["breakVector"]][sim] <- 1
-#         result[["eValuesStopped"]][sim] <- evidenceNow
-#
-#         if (isTRUE(futility)) {
-#           resultF[["stoppingTimes"]][sim] <- n1Vector[j]
-#           resultF[["breakVector"]][sim] <- 1
-#           resultF[["eValuesStopped"]][sim] <- evidenceNowF
-#         }
-#         break()
-#       }
-#     }
-#
-#     if (pb)
-#       utils::setTxtProgressBar(pbSavi, "value"=sim/nSim, "title"="Trials")
-#   }
-#
-#   if (pb)
-#     close(pbSavi)
-#
-#   result[["parameter"]] <- parameter
-#   result[["n1Vector"]] <- n1Vector
-#   result[["ratio"]] <- ratio
-#
-#   if (futility)
-#     result[["futility"]] <- resultF
-#
-#   if (isTRUE(wantSimData))
-#     result[["simData"]] <- simData
-#
-#   return(result)
-# }
-#
-#
-#
-#
-# # sampleStoppingTimesSaviZ2 <- function(
-# #     meanDiffTrue, alpha=0.05,
-# #     alternative = c("twoSided", "less", "greater"),
-# #     testType=c("oneSample", "paired", "twoSample"),
-# #     sigma=1, kappa=sigma,
-# #     ratio=1, parameter=NULL, nMax=1e3L,
-# #     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-# #     wantEValuesAtNMax=FALSE,
-# #     wantSamplePaths=TRUE, wantSimData=FALSE,
-# #     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
-# #     beta=NULL, ...) {
-# #
-# #   if (isTRUE(futility))
-# #     stopifnot(!is.null(beta), beta > 0, beta <= 1)
-# #
-# #   stopifnot(alpha > 0, alpha <= 1,
-# #             is.finite(nMax),
-# #             is.finite(meanDiffTrue))
-# #
-# #   # TODO(Alexander): Remove in v0.9.0
-# #   #
-# #   if (length(alternative)==1 && alternative=="two.sided") {
-# #     warning('The option alternative="two.sided" is deprecated;',
-# #             'Please use alternative="twoSided" instead')
-# #     alternative <- "twoSided"
-# #   }
-# #
-# #   alternative <- match.arg(alternative)
-# #   testType <- match.arg(testType)
-# #   eType <- match.arg(eType)
-# #
-# #   result <- constructSampleStoppingTimesList(
-# #     "nSim"=nSim, "nMax"=nMax,
-# #     "wantEValuesAtNMax"=wantEValuesAtNMax,
-# #     "wantSamplePaths"=wantSamplePaths)
-# #
-# #   futilityParameter <- NULL
-# #
-# #   if (isTRUE(futility)) {
-# #     futilityResult <-
-# #       list("breakVector"=result$breakVector,
-# #            "eValuesStopped"=result$eValuesStopped,
-# #            "samplePaths"=result$samplePaths,
-# #            "parameter"=NULL)
-# #   } else {
-# #     futilityResult <- NULL
-# #   }
-# #
-# #   if (is.null(parameter)) {
-# #     meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-# #       meanDiffTrue, "alternative"=alternative,
-# #       "esMinName"="meanDiffMin")
-# #
-# #     parameter <- switch(eType,
-# #                         "mom"=1/2*(meanDiffTrue/sigma)^2,
-# #                         "eGauss"=(meanDiffTrue/sigma)^2,
-# #                         "imom"=(meanDiffTrue/sigma)^2,
-# #                         "eCauchy"=abs(meanDiffTrue/sigma),
-# #                         "grow"=meanDiffTrue)
-# #
-# #     # Only used when futility=TRUE
-# #     if (isTRUE(futility))
-# #       futilityParameter <- meanDiffTrue
-# #   } else {
-# #     # TODO(Alexander): perhaps add deltaMin as an argument instead
-# #     #
-# #     if (isTRUE(futility)) {
-# #       futilityParameter <- switch(eType,
-# #                                   "mom"=sigma*sqrt(2*abs(parameter)),
-# #                                   "eGauss"=sigma*sqrt(abs(parameter)),
-# #                                   "imom"=sigma*sqrt(abs(parameter)),
-# #                                   "eCauchy"=sigma*parameter,
-# #                                   "grow"=parameter)
-# #
-# #       # TODO(Alexander): Not sure if this true, because for futility we reverse?
-# #       if (alternative=="less")
-# #         futilityParameter <- -futilityParameter
-# #     }
-# #   }
-# #
-# #   if (testType=="twoSample" && length(nMax)==1) {
-# #     nMax <- c(nMax, ceil(ratio*nMax))
-# #     n1Max <- nMax[1]
-# #     n2Max <- nMax[2]
-# #     ratio <- nMax[2]/nMax[1]
-# #   } else if (testType %in% c("paired", "oneSample")){
-# #     n1Max <- nMax[1]
-# #     n2Max <- NULL
-# #     nMax <- n1Max
-# #     ratio <- 1
-# #   }
-# #
-# #   if (pb)
-# #     pbSavi <- utils::txtProgressBar(style=3, title="Savi test threshold crossing")
-# #
-# #   tempN <- defineTTestN("lowN"=1, "highN"=nMax[1], "ratio"=ratio, "testType"=testType)
-# #
-# #   n1Vector <- tempN[["n1"]]
-# #   n2Vector <- tempN[["n2"]]
-# #   nEffVector <- tempN[["nEff"]]
-# #
-# #   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=meanDiffTrue/kappa,
-# #                                 "sigmaTrue"=kappa, "paired"=FALSE, "seed"=seed)
-# #
-# #   for (sim in seq_along(result[["stoppingTimes"]])) {
-# #     if (testType %in% c("oneSample", "paired")) {
-# #       x1 <- simData[["dataGroup1"]][sim, ]
-# #       x1BarVector <- 1/(n1Vector)*cumsum(x1)
-# #       zVector <- sqrt(n1Vector)*x1BarVector/sigma
-# #     } else {
-# #       x1 <- simData[["dataGroup1"]][sim, ]
-# #       x1BarVector <- 1/(n1Vector)*cumsum(x1)
-# #       x1BarVector <- x1BarVector[n1Vector]
-# #
-# #       x2 <- simData[["dataGroup2"]][sim, ]
-# #       x2Cumsum <- cumsum(x2)[n2Vector]
-# #       x2BarVector <- 1/n2Vector*x2Cumsum
-# #
-# #       zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
-# #     }
-# #
-# #     if (wantEValuesAtNMax) {
-# #       tempResult <- saviZTestStat("z"=zVector[length(zVector)],
-# #                                   "parameter"=parameter,
-# #                                   "n1"=nMax[1], n2=nMax[2],
-# #                                   "alternative"=alternative, "sigma"=sigma,
-# #                                   "eType"=eType)
-# #       result[["eValuesAtNMax"]][sim] <- tempResult[["eValue"]]
-# #     }
-# #
-# #     for (j in seq_along(n1Vector)) {
-# #       tempResult <- saviZTestStat("z"=zVector[j], "parameter"=parameter,
-# #                                   "n1"=n1Vector[j], "n2"=n2Vector[j],
-# #                                   "alternative"=alternative, "sigma"=sigma,
-# #                                   "eType"=eType)
-# #
-# #       evidenceNow <- tempResult[["eValue"]]
-# #
-# #       if (wantSamplePaths)
-# #         result[["samplePaths"]][sim, j] <- evidenceNow
-# #
-# #       if (evidenceNow >= 1/alpha) {
-# #         result[["stoppingTimes"]][sim] <- n1Vector[j]
-# #         result[["eValuesStopped"]][sim] <- evidenceNow
-# #         result[["stoppedVector"]][sim] <- 1
-# #
-# #         if (wantSamplePaths) {
-# #           result[["samplePaths"]][sim, j:nMax[1]] <- 0
-# #         }
-# #
-# #         break()
-# #       }
-# #
-# #       # TODO(Alexander): Here use reciprocal as evidence for the null
-# #       #
-# #       # if (futility && !isTRUE(growFutility) && evidenceNow < beta) {
-# #       #   result[["stoppingTimes"]][sim] <- n1Vector[j]
-# #       #   result[["eValuesStopped"]][sim] <- evidenceNow
-# #       #   result[["stoppedVector"]][sim] <- -1
-# #       #
-# #       #   if (wantSamplePaths) {
-# #       #     result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
-# #       #   }
-# #       #
-# #       #   break()
-# #       # }
-# #
-# #       if (futility) {
-# #         futilityPlus0 <- saviZTestStat("z"=zVector[j], "parameter"=futilityParameter,
-# #                                        "n1"=n1Vector[j], "n2"=n2Vector[j],
-# #                                        "alternative"="greater", "sigma"=sigma,
-# #                                        "eType"="grow")
-# #
-# #         futilityMin0 <- saviZTestStat("z"=zVector[j], "parameter"=-futilityParameter,
-# #                                       "n1"=n1Vector[j], "n2"=n2Vector[j],
-# #                                       "alternative"="less", "sigma"=sigma,
-# #                                       "eType"="grow")
-# #
-# #         futilityEValue <- max(futilityPlus0[["eValue"]], futilityMin0[["eValue"]])
-# #
-# #         if (wantSamplePaths)
-# #           futilityResult[["samplePaths"]][sim, j] <- futilityEValue
-# #
-# #         if (futilityEValue < beta) {
-# #           result[["stoppedVector"]][sim] <- -1
-# #           result[["stoppingTimes"]][sim] <- n1Vector[j]
-# #
-# #           futilityResult[["eValuesStopped"]][sim] <- futilityEValue
-# #
-# #           if (wantSamplePaths)
-# #             futilityResult[["samplePaths"]][sim, j:nMax[1]] <- 0
-# #
-# #           break()
-# #         }
-# #       }
-# #
-# #       # Note(Alexander): If passed maximum nPlan[1] stop.
-# #       #   For power calculations if beyond nPlan[1], then set to Inf, doesn't matter for the quantile
-# #       #
-# #       if (n1Vector[j] >= nMax[1]) {
-# #         result[["stoppingTimes"]][sim] <- n1Vector[j]
-# #         result[["breakVector"]][sim] <- 1
-# #         result[["eValuesStopped"]][sim] <- evidenceNow
-# #         break()
-# #       }
-# #     }
-# #
-# #     if (pb)
-# #       utils::setTxtProgressBar(pbSavi, "value"=sim/nSim, "title"="Trials")
-# #   }
-# #
-# #   if (pb)
-# #     close(pbSavi)
-# #
-# #   result[["parameter"]] <- parameter
-# #   result[["n1Vector"]] <- n1Vector
-# #   result[["ratio"]] <- ratio
-# #
-# #   if (isTRUE(wantSimData))
-# #     result[["simData"]] <- simData
-# #
-# #   result[["samplePaths"]] <- Matrix::Matrix(result[["samplePaths"]], sparse=TRUE)
-# #
-# #   if (futility)
-# #     futilityResult[["samplePaths"]] <- Matrix::Matrix(futilityResult[["samplePaths"]], sparse=TRUE)
-# #
-# #   result[["futilityResult"]] <- futilityResult
-# #
-# #   return(result)
-# # }

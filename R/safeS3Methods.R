@@ -548,7 +548,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       firstPassageTimes <- stoppingTimes
 
       # These are the sample paths that did not resulted in a rejection
-      firstPassageTimes[which(breakVector==1)] <- Inf
+      firstPassageTimes[Matrix::which(breakVector==1)] <- Inf
 
       breaksMin <- min(firstPassageTimes)
 
