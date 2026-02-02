@@ -453,6 +453,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   designScenario <- x[["designScenario"]]
 
+  browser()
+
   if (designScenario %in% c("1a", "2")) {
     alpha <- x[["alpha"]]
     nPlan <- x[["nPlan"]][1]

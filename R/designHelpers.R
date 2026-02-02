@@ -339,13 +339,6 @@ computeNPlanBootstrapper <- function(
     beta, nPlanBatch, nBoot) {
 
   times <- samplingResult[["stoppingTimes"]]
-  stoppedVector <- samplingResult[["stoppedVector"]]
-
-  # TODO(Alexander): If stoppedVector is NULL, then
-  # Old sampling method without stopped vector, but only breakVector?
-  #
-  if (!is.null(stoppedVector))
-    times[which(stoppedVector != 1)] <- nPlanBatch
 
   bootObjN1Plan <- computeBootObj(
     "values"=times, "objType"="nPlan",
