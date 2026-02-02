@@ -453,7 +453,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   designScenario <- x[["designScenario"]]
 
-  if (designScenario!="1a" || designScenario!="2")
+  if (!(designScenario %in% c("1a", "2")))
     return()
 
   browser()
