@@ -453,216 +453,220 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   designScenario <- x[["designScenario"]]
 
+  if (designScenario!="1a" || designScenario!="2")
+    return()
+
   browser()
 
-  if (designScenario %in% c("1a", "2")) {
-    alpha <- x[["alpha"]]
-    nPlan <- x[["nPlan"]][1]
+  alpha <- x[["alpha"]]
+  nPlan <- x[["nPlan"]][1]
 
-    if (designScenario=="1a") {
-      nPlanBatch <- x[["nPlanBatch"]][1]
-      breakVector <- x[["breakVector"]]
-      stoppingTimes <- x[["bootObjN1Plan"]][["data"]]
+  if (designScenario=="1a") {
+    nPlanBatch <- x[["nPlanBatch"]][1]
+    breakVector <- x[["breakVector"]]
+    stoppingTimes <- x[["bootObjN1Plan"]][["data"]]
+  }
+
+  if (designScenario=="2") {
+
+    if (is.null(x[["nPlanBatch"]]))
+      x[["nPlanBatch"]] <- nPlan
+
+    browser()
+    print("For two-sample check dimension of x[['nPlanBatch']]")
+
+    nPlanBatch <- x[["nPlanBatch"]]
+    samplePaths <- x[["samplePaths"]]
+    mIter <- dim(samplePaths)[1]
+
+    firstPassageTimes <- breakVector <- integer(mIter)
+
+    for (j in 1:mIter) {
+      firstPassageTimes[j] <- suppressWarnings(
+        min(which(samplePaths[j, ] >= 1/alpha))
+      )
     }
 
-    if (designScenario=="2") {
+    stoppingTimes <- firstPassageTimes
+    stoppingTimes[is.infinite(firstPassageTimes)] <- nPlanBatch
+    breakVector[is.infinite(firstPassageTimes)] <- 1
+  }
 
-      if (is.null(x[["nPlanBatch"]]))
-        x[["nPlanBatch"]] <- nPlan
+  if (numSamplePaths==0) {
+    oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
 
-      nPlanBatch <- x[["nPlanBatch"]]
-      samplePaths <- x[["samplePaths"]]
-      mIter <- dim(samplePaths)[1]
+    maxStoppingTimes <- max(stoppingTimes)
+    minStoppingTimes <- min(stoppingTimes)
 
-      firstPassageTimes <- breakVector <- integer(mIter)
-
-      for (j in 1:mIter) {
-        firstPassageTimes[j] <- suppressWarnings(
-          min(which(samplePaths[j, ] >= 1/alpha))
-        )
-      }
-
-      stoppingTimes <- firstPassageTimes
-      stoppingTimes[is.infinite(firstPassageTimes)] <- nPlanBatch
-      breakVector[is.infinite(firstPassageTimes)] <- 1
+    if (is.null(breaks)) {
+      breaks <- if (maxStoppingTimes-minStoppingTimes > maxNBins)
+        maxNBins
+      else
+        minStoppingTimes:nPlanBatch
     }
 
-    if (numSamplePaths==0) {
-      oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+    stopHist <- hist(stoppingTimes, freq=FALSE,
+                     breaks=breaks,
+                     col=histInnerColour,
+                     border=border, lwd=lwd, xaxt="n", yaxt="n",
+                     xlab="", ylab="", main=main)
 
-      maxStoppingTimes <- max(stoppingTimes)
-      minStoppingTimes <- min(stoppingTimes)
+    if (is.null(xlab))
+      xlab <- "Stopping times"
 
-      if (is.null(breaks)) {
-        breaks <- if (maxStoppingTimes-minStoppingTimes > maxNBins)
-          maxNBins
-        else
-          minStoppingTimes:nPlanBatch
-      }
+    axis(side = 2)
+    axis(side = 1)
+    axis(side = 1, at=c(0, 2*nPlanBatch))
 
-      stopHist <- hist(stoppingTimes, freq=FALSE,
-                       breaks=breaks,
-                       col=histInnerColour,
-                       border=border, lwd=lwd, xaxt="n", yaxt="n",
-                       xlab="", ylab="", main=main)
+    if (is.null(ylab))
+      ylab <- "Density"
 
-      if (is.null(xlab))
-        xlab <- "Stopping times"
+    mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
+    mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
 
-      axis(side = 2)
-      axis(side = 1)
-      axis(side = 1, at=c(0, 2*nPlanBatch))
+    if (maxStoppingTimes-minStoppingTimes > maxNBins) {
+      firstPassageTimes <- stoppingTimes[!breakVector]
+      fptHist <- hist(firstPassageTimes, breaks=stopHist[["breaks"]],
+                      plot=FALSE)
 
-      if (is.null(ylab))
-        ylab <- "Density"
+      lastIndex <- length(stopHist[["counts"]])
 
-      mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
-      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+      rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=fptHist[["density"]][lastIndex],
+           xright=stopHist[["breaks"]][lastIndex+1],
+           ytop=stopHist[["density"]][lastIndex],
+           col=col, border=border)
+    } else {
+      lastIndex <- length(stopHist[["counts"]])
+      rejectedAtNBatch <- stopHist[["counts"]][lastIndex]-sum(breakVector)
 
-      if (maxStoppingTimes-minStoppingTimes > maxNBins) {
-        firstPassageTimes <- stoppingTimes[!breakVector]
-        fptHist <- hist(firstPassageTimes, breaks=stopHist[["breaks"]],
-                        plot=FALSE)
+      totalCount <- sum(stopHist[["counts"]])
 
-        lastIndex <- length(stopHist[["counts"]])
+      rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=rejectedAtNBatch/totalCount,
+           xright=stopHist[["breaks"]][lastIndex+1],
+           ytop=stopHist[["density"]][lastIndex],
+           col=col,
+           border=border)
+    }
 
-        rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=fptHist[["density"]][lastIndex],
-             xright=stopHist[["breaks"]][lastIndex+1],
-             ytop=stopHist[["density"]][lastIndex],
-             col=col, border=border)
+    lines(c(nPlan, nPlan), c(0, max(stopHist[["counts"]])), lwd=lwd, lty=2)
+  }
+
+  if (numSamplePaths > 0) {
+    firstPassageTimes <- stoppingTimes
+
+    # These are the sample paths that did not resulted in a rejection
+    firstPassageTimes[Matrix::which(breakVector!=0)] <- Inf
+
+    breaksMin <- min(firstPassageTimes)
+
+    if (is.null(breaks)) {
+      breaks <- if (nPlanBatch-breaksMin > maxNBins)
+        maxNBins
+      else
+        breaksMin:nPlanBatch
+    }
+
+    fptHist <-
+      hist(firstPassageTimes, plot=FALSE,
+           breaks=breaks)
+
+    oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+
+    y <- fptHist[["density"]]
+    nB <- length(fptHist$breaks)
+    yRange <- range(y, 0)
+
+    if (is.null(ylim))
+      ylim <- c(-1*log(3/(2*alpha)), 2.75*log(1/alpha))
+
+    someConstant <- (ylim[2]+log(alpha))/yRange[2]
+    textHeightQuant <- (ylim[2]+log(alpha))+log(1/alpha)
+
+    if (!is.null(wantQuantiles))
+      someConstant <- 0.8*someConstant
+
+    if (!is.null(wantQuantiles))
+      someConstant <- someConstant*0.9
+
+    if (is.null(xlim))
+      xlim <- c(0, nPlanBatch)
+
+    plot(NULL, xlim = xlim, ylim = ylim, xlab = "", ylab = "",
+         cex.lab = cex, cex.axis = cex, las = 1, main=main,
+         xaxt = "n", yaxt = "n", bty = "n", type = "p", pch = pch,
+         bg = "grey", ...)
+
+    abline(h = log(1), col = "darkgrey", lwd = lwd, lty = 2)
+    abline(h = log(1/alpha))
+
+    criticalP = log(c(alpha, 1, 1/alpha))
+
+    axis(side = 2, at = c(criticalP), tick = TRUE, las = 2, cex.axis = cex,
+         labels = c(alpha, "1", 1/alpha))
+    axis(side = 1)
+    axis(side = 1, at=c(0, 2*xlim[2]))
+
+    if (is.null(ylab))
+      ylab <- "Evidence"
+
+    mtext(ylab, side = 2, line = 2.5, las = 0, cex = cex, adj=0.25)
+
+    if (is.null(xlab))
+      xlab <- "Sample size"
+
+    mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+
+
+    samplePaths <- x[["samplePaths"]]
+
+    stoppedPaths <- samplePaths[!breakVector, ]
+
+    rect(fptHist$breaks[-nB]+0.5, log(1/alpha),
+         fptHist$breaks[-1L]+0.5, someConstant*y+log(1/alpha),
+         col = histInnerColour, border = border, lwd=lwd,
+         angle = 45, density = NULL, lty = NULL)
+
+    finiteFirstPassageTimes <- firstPassageTimes[!breakVector]
+
+    for (i in 1:numSamplePaths) {
+      stoppedTime <- finiteFirstPassageTimes[i]
+      evidenceLine <- stoppedPaths[i, 1:stoppedTime]
+
+      if (evidenceLine[stoppedTime] >= 1/alpha)
+        evidenceLine[stoppedTime] <- 1/alpha
+
+      someScale <- 3*alpha
+
+      evidenceLine <- evidenceLine
+
+      if (isTRUE(wantStepLines)) {
+        xLine <- c(0, rep(1:stoppedTime, each=2))
+        yLine <- c(0, 0, rep(log(evidenceLine), each=2))
+        yLine <- yLine[-length(yLine)]
       } else {
-        lastIndex <- length(stopHist[["counts"]])
-        rejectedAtNBatch <- stopHist[["counts"]][lastIndex]-sum(breakVector)
-
-        totalCount <- sum(stopHist[["counts"]])
-
-        rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=rejectedAtNBatch/totalCount,
-             xright=stopHist[["breaks"]][lastIndex+1],
-             ytop=stopHist[["density"]][lastIndex],
-             col=col,
-             border=border)
+        xLine <- 0:stoppedTime
+        yLine <- c(0, log(evidenceLine))
       }
 
-      lines(c(nPlan, nPlan), c(0, max(stopHist[["counts"]])), lwd=lwd, lty=2)
+      lines(xLine, yLine, col=col, lwd=lwd, lty=1)
+
+      if (evidenceLine[stoppedTime]==1/alpha)
+        points(stoppedTime, log(evidenceLine[stoppedTime]),
+               col=border, pch=pch, lwd=lwd)
     }
 
-    if (numSamplePaths > 0) {
-      firstPassageTimes <- stoppingTimes
+    if (!is.null(wantQuantiles)) {
+      mtext("quantiles", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
 
-      # These are the sample paths that did not resulted in a rejection
-      firstPassageTimes[Matrix::which(breakVector!=0)] <- Inf
+      quants <- stats::quantile(stoppingTimes, wantQuantiles)
 
-      breaksMin <- min(firstPassageTimes)
-
-      if (is.null(breaks)) {
-        breaks <- if (nPlanBatch-breaksMin > maxNBins)
-          maxNBins
-        else
-          breaksMin:nPlanBatch
+      for (i in seq_along(quants)) {
+        text(wantQuantiles[i], x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
+        segments(x0=quants[i], y0=-0.9*log(1/alpha), y1=0.95*textHeightQuant, col=colQuant)
+        text(quants[i], x=quants[i], y=-log(1/alpha), col=colQuant, cex=cex)
       }
-
-      fptHist <-
-        hist(firstPassageTimes, plot=FALSE,
-             breaks=breaks)
-
-      oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
-
-      y <- fptHist[["density"]]
-      nB <- length(fptHist$breaks)
-      yRange <- range(y, 0)
-
-      if (is.null(ylim))
-        ylim <- c(-1*log(3/(2*alpha)), 2.75*log(1/alpha))
-
-      someConstant <- (ylim[2]+log(alpha))/yRange[2]
-      textHeightQuant <- (ylim[2]+log(alpha))+log(1/alpha)
-
-      if (!is.null(wantQuantiles))
-        someConstant <- 0.8*someConstant
-
-      if (!is.null(wantQuantiles))
-        someConstant <- someConstant*0.9
-
-      if (is.null(xlim))
-        xlim <- c(0, nPlanBatch)
-
-      plot(NULL, xlim = xlim, ylim = ylim, xlab = "", ylab = "",
-           cex.lab = cex, cex.axis = cex, las = 1, main=main,
-           xaxt = "n", yaxt = "n", bty = "n", type = "p", pch = pch,
-           bg = "grey", ...)
-
-      abline(h = log(1), col = "darkgrey", lwd = lwd, lty = 2)
-      abline(h = log(1/alpha))
-
-      criticalP = log(c(alpha, 1, 1/alpha))
-
-      axis(side = 2, at = c(criticalP), tick = TRUE, las = 2, cex.axis = cex,
-           labels = c(alpha, "1", 1/alpha))
-      axis(side = 1)
-      axis(side = 1, at=c(0, 2*xlim[2]))
-
-      if (is.null(ylab))
-        ylab <- "Evidence"
-
-      mtext(ylab, side = 2, line = 2.5, las = 0, cex = cex, adj=0.25)
-
-      if (is.null(xlab))
-        xlab <- "Sample size"
-
-      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
-
-
-      samplePaths <- x[["samplePaths"]]
-
-      stoppedPaths <- samplePaths[!breakVector, ]
-
-      rect(fptHist$breaks[-nB]+0.5, log(1/alpha),
-           fptHist$breaks[-1L]+0.5, someConstant*y+log(1/alpha),
-           col = histInnerColour, border = border, lwd=lwd,
-           angle = 45, density = NULL, lty = NULL)
-
-      finiteFirstPassageTimes <- firstPassageTimes[!breakVector]
-
-      for (i in 1:numSamplePaths) {
-        stoppedTime <- finiteFirstPassageTimes[i]
-        evidenceLine <- stoppedPaths[i, 1:stoppedTime]
-
-        if (evidenceLine[stoppedTime] >= 1/alpha)
-          evidenceLine[stoppedTime] <- 1/alpha
-
-        someScale <- 3*alpha
-
-        evidenceLine <- evidenceLine
-
-        if (isTRUE(wantStepLines)) {
-          xLine <- c(0, rep(1:stoppedTime, each=2))
-          yLine <- c(0, 0, rep(log(evidenceLine), each=2))
-          yLine <- yLine[-length(yLine)]
-        } else {
-          xLine <- 0:stoppedTime
-          yLine <- c(0, log(evidenceLine))
-        }
-
-        lines(xLine, yLine, col=col, lwd=lwd, lty=1)
-
-        if (evidenceLine[stoppedTime]==1/alpha)
-          points(stoppedTime, log(evidenceLine[stoppedTime]),
-                 col=border, pch=pch, lwd=lwd)
-      }
-
-      if (!is.null(wantQuantiles)) {
-        mtext("quantiles", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
-
-        quants <- stats::quantile(stoppingTimes, wantQuantiles)
-
-        for (i in seq_along(quants)) {
-          text(wantQuantiles[i], x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
-          segments(x0=quants[i], y0=-0.9*log(1/alpha), y1=0.95*textHeightQuant, col=colQuant)
-          text(quants[i], x=quants[i], y=-log(1/alpha), col=colQuant, cex=cex)
-        }
-      }
-
     }
+
   }
 }
 
