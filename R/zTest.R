@@ -319,8 +319,11 @@ saviZTest.default <- function(
 
   result <- constructSaviTestObj("Z-Test")
 
+  eValueFut <- NULL
+
   # Vars for sequential analysis
   eValueVec <- NULL
+  eValueVecFut <- NULL
   confSeqMatrix <- NULL
   n1Vec <- NULL
   n2Vec <- NULL
@@ -500,6 +503,15 @@ saviZTest.default <- function(
                               "alternative"=alternative, "paired"=paired,
                               "eType"=designObj[["eType"]])
 
+  if (designObj[["futility"]]) {
+    tempResultFut <- saviFutilityZStat(
+      "z"=zStat, "parameter"=designObj[["futilityResult"]][["parameter"]],
+      "n1"=n1, "n2"=n2, "sigma"=sigma,
+      "alternative"="twoSided", "paired"=paired,
+      "eType"="grow")
+    eValueFut <- unname(tempResultFut[["eValue"]])
+  }
+
   ### Compute: confSeq ----
   result[["confSeq"]] <- computeConfidenceIntervalZ(
     "nEff"=nEff, "meanObs"=meanObs, "parameter"=designObj[["parameter"]],
@@ -512,16 +524,24 @@ saviZTest.default <- function(
 
     mIter <- length(n1Vec)
 
-    eValueVec <- numeric(mIter)
+    eValueVecFut <- eValueVec <- numeric(mIter)
     confSeqMatrix <- matrix(nrow=mIter, ncol=2)
 
     for (i in seq_along(n1Vec)) {
-      brie <- saviZTestStat("z"=zStatVec[i],
-                            "parameter"=designObj[["parameter"]],
-                            "n1"=n1Vec[i], "n2"=n2Vec[i], "sigma"=sigma,
-                            "alternative"=alternative, "paired"=paired,
-                            "eType"=designObj[["eType"]])
-      eValueVec[i] <- unname(brie[["eValue"]])
+      res <- saviZTestStat("z"=zStatVec[i],
+                           "parameter"=designObj[["parameter"]],
+                           "n1"=n1Vec[i], "n2"=n2Vec[i], "sigma"=sigma,
+                           "alternative"=alternative, "paired"=paired,
+                           "eType"=designObj[["eType"]])
+      eValueVec[i] <- unname(res[["eValue"]])
+
+      if (designObj[["futility"]]) {
+        resFut <- saviFutilityZStat("z"=zStatVec[i], "n1"=n1Vec[i], "n2"=n2Vec[i],
+                                    "parameter"=designObj[["futilityResult"]][["parameter"]],
+                                    "sigma"=sigma, "alternative"="twoSided", "paired"=paired,
+                                    "eType"="grow")
+        eValueVecFut[i] <- unname(resFut[["eValue"]])
+      }
 
       kaas <- computeConfidenceIntervalZ(
         "nEff"=nEffVec[i], "meanObs"=meanObsVec[i], "parameter"=designObj[["parameter"]],
@@ -541,7 +561,10 @@ saviZTest.default <- function(
   result[["ciValue"]] <- ciValue
   result[["n"]] <- n
 
+  result[["eValueFut"]] <- eValueFut
+
   result[["eValueVec"]] <- eValueVec
+  result[["eValueVecFut"]] <- eValueVecFut
   result[["confSeqMatrix"]] <- confSeqMatrix
   result[["n1Vec"]] <- n1Vec
   result[["n2Vec"]] <- n2Vec

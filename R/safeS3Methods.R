@@ -454,7 +454,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             overColourBorder="#DAA52066",
                             underColour="#556B2F4D",
                             underColourBorder="#556B2FCC",
-                            cex=1.3, ...) {
+                            cex=1.3, yLabPAdj=-1, ...) {
 
   designScenario <- x[["designScenario"]]
 
@@ -654,7 +654,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (is.null(ylab))
       ylab <- "Evidence"
 
-    mtext(ylab, side = 2, line = 2.5, las = 0, cex = cex, adj=0.25)
+    mtext(ylab, side = 2, line = 2.5, las = 0, cex = cex, adj=0.25, padj=yLabPAdj)
 
     if (is.null(xlab))
       xlab <- "Sample size"
@@ -712,9 +712,11 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (nFut < nAlt) {
       nSamplePaths <- min(numSamplePaths, nAlt)
       nSamplePaths2 <- ceil(nFut/nAlt*nSamplePaths)
+      nSamplePaths2 <- min(nSamplePaths2, nFut)
     } else {
       nSamplePaths2 <- min(numSamplePaths, nFut)
       nSamplePaths <- ceil(nAlt/nFut*nSamplePaths2)
+      nSamplePaths <- min(nSamplePaths, nAlt)
     }
 
 
