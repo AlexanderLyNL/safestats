@@ -1136,11 +1136,7 @@ designSaviZ <- function(
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
       "futility"=futility, "esMinFutility"=esMinFutility,
-      "highN"=highN, ...)
-
-    if (futility)
-      designScenario <- "1aFutility"
-
+      "highN"=highN, "betaFutility"=betaFutility, ...)
   } else if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan) && isFALSE(wantSampling) ||
              !is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
@@ -1310,7 +1306,7 @@ designSaviZ1aWantNPlan <- function(
     "wantSamplePaths"=wantSamplePaths, "meanDiffMin"=meanDiffMin,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
     "futility"=futility, "esMinFutility"=esMinFutility,
-    "highN"=highN)
+    "highN"=highN, "betaFutility"=betaFutility)
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
                                "esMin"=meanDiffMin, "beta"=beta,
@@ -1974,7 +1970,7 @@ sampleStoppingTimesSaviZ <- function(
       list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
            "samplePaths"=result[["samplePaths"]],
            "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
-           "parameter"=futilityParameter)
+           "parameter"=futilityParameter, "beta"=betaFutility)
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
