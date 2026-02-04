@@ -458,7 +458,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   designScenario <- x[["designScenario"]]
 
-  if (!(designScenario %in% c("1a", "2")))
+  if (is.null(designScenario) || !(designScenario %in% c("1a", "2")))
     return()
 
   alpha <- x[["alpha"]]

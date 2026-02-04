@@ -968,7 +968,7 @@ saviFutilityTStatNEffNu <- function(
     t, nEff, nu, parameter=NULL,
     alternative = c("twoSided", "less", "greater"), eType="grow",
     tDensity = FALSE, paired = FALSE, esMinFutility, nuMin=2, ...) {
-  # Note overflow for greater t
+  # Note overflow for t big
   #
   #     saviFutilityTStatNEffNu(t=40.017, nEff=10000, nu=6000, parameter=0.4)
   #     saviFutilityTStatNEffNu(t=40.018, nEff=10000, nu=6000, parameter=0.4)
@@ -1288,7 +1288,10 @@ designSaviT <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    futility=FALSE, esMinFutility=NULL,
+    betaFutility=NULL, betaDefault=0.2,
+    highN=1e4L, wantSampling=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1)
 
