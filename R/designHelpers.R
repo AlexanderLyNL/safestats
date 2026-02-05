@@ -28,7 +28,7 @@ designSavi1aHelper <- function(
                  "bootObjN1Plan"=NULL, "bootObjN1Mean"=NULL,
                  "samplePaths"=NULL, "breakVector"=NULL,
                  "futility"=FALSE, "futilityResult"=NULL,
-                 "note"=NULL)
+                 "simData"=NULL, "note"=NULL)
 
   nPlanBatch <- samplingResult[["nPlanBatch"]]
   bootObjN1Plan <- samplingResult[["bootObjN1Plan"]]
@@ -92,6 +92,7 @@ designSavi1aHelper <- function(
   result[["nMeanTwoSe"]] <- nMeanTwoSe
 
   result[["futilityResult"]] <- samplingResult[["futilityResult"]]
+  result[["simData"]] <- samplingResult[["simData"]]
 
   result[["note"]] <- note
 
@@ -126,7 +127,7 @@ designSavi2Helper <- function(
     "parameter"=NULL, "esMin"=esMin, "nPlan"=nPlan,
     "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
-    "bootObjLogImpliedTarget"=NULL,
+    "bootObjLogImpliedTarget"=NULL, "simData"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL)
 
   result[["parameter"]] <- samplingResult[["parameter"]]
@@ -146,6 +147,8 @@ designSavi2Helper <- function(
   result[["logImpliedTarget"]] <- samplingResult[["logImpliedTarget"]]
   result[["bootObjLogImpliedTarget"]] <- bootObjLogImpliedTarget
   result[["logImpliedTargetTwoSe"]] <- 2*bootObjLogImpliedTarget[["bootSe"]]
+
+  result[["simData"]] <- samplingResult[["simData"]]
 
   return(result)
 }
@@ -354,6 +357,7 @@ computeNPlanBootstrapper <- function(
                  "nPlanBatch"=nPlanBatch, "parameter"=parameter,
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
+                 "simData"=samplingResult[["simData"]],
                  "futilityResult"=samplingResult[["futilityResult"]])
 }
 
@@ -399,6 +403,7 @@ computeBetaBootstrapper <- function(
                  "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
+                 "simData"=samplingResult[["simData"]],
                  "parameter"=parameter, "futilityResult"=samplingResult[["futilityResult"]])
 
   return(result)

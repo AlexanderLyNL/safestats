@@ -1078,7 +1078,7 @@ designSaviZ <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=FALSE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL,
@@ -1158,9 +1158,11 @@ designSaviZ <- function(
       "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
       "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
+      "wantSimData"=wantSimData,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
       "futility"=futility, "esMinFutility"=esMinFutility,
       "highN"=highN, "betaFutility"=betaFutility, ...)
+
   } else if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan) && isFALSE(wantSampling) ||
              !is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
@@ -1186,7 +1188,8 @@ designSaviZ <- function(
       "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
       "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
       "testType"=testType, "parameter"=parameter, "meanDiffMin"=meanDiffMin,
-      "eType"=eType, "wantSamplePaths"=wantSamplePaths, "ratio"=ratio,
+      "eType"=eType, "wantSamplePaths"=wantSamplePaths,
+      "ratio"=ratio, "wantSimData"=wantSimData,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
       "futility"=futility, "esMinFutility"=esMinFutility,
       "betaFutility"=betaFutility, ...)
@@ -1306,7 +1309,7 @@ designSaviZ1aWantNPlan <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL, meanDiffTrue=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=FALSE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     highN=1e4L, ...) {
@@ -1321,7 +1324,8 @@ designSaviZ1aWantNPlan <- function(
     "meanDiffTrue"=meanDiffTrue, "beta"=beta, "alpha"=alpha,
     "alternative"=alternative, "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
-    "wantSamplePaths"=wantSamplePaths, "meanDiffMin"=meanDiffMin,
+    "wantSamplePaths"=wantSamplePaths,
+    "meanDiffMin"=meanDiffMin, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "highN"=highN, "betaFutility"=betaFutility)
@@ -1356,7 +1360,7 @@ designSaviZ2WantBeta <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=FALSE,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
@@ -1373,6 +1377,7 @@ designSaviZ2WantBeta <- function(
     "testType"=testType, "parameter"=parameter,
     "meanDiffMin"=meanDiffMin, "seed"=seed,
     "eType"=eType, "wantSamplePaths"=wantSamplePaths,
+    "wantSimData"=wantSimData,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
 
@@ -2160,7 +2165,7 @@ computeBetaSaviZ <- function(
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=FALSE,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
@@ -2199,7 +2204,7 @@ computeBetaSaviZ <- function(
     "alternative" = alternative, "testType"=testType,
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
-    "eType"=eType,
+    "eType"=eType, "wantSimData"=wantSimData,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
     "futility"=futility, "esMinFutility"=esMinFutility,
@@ -2237,7 +2242,7 @@ computeNPlanSaviZ <- function(
     meanDiffMin=NULL,
     ratio=1, parameter=NULL, nMax=1e8,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=FALSE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     highN=1e4L, ...) {
@@ -2265,7 +2270,8 @@ computeNPlanSaviZ <- function(
     "beta"=beta, "sigma"=sigma, "kappa"=kappa,
     "alternative"=alternative, "testType"=testType,
     "parameter"=parameter, "ratio"=ratio, "eType"=eType,
-    "meanDiffMin"=meanDiffMin, "highN"=highN, ...)
+    "meanDiffMin"=meanDiffMin, "highN"=highN,
+    "wantSimData"=wantSimData, ...)
 
   nPlanBatch <- tempObj[["nPlan"]]
 
@@ -2278,7 +2284,7 @@ computeNPlanSaviZ <- function(
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
     "eType"=eType, "meanDiffMin"=meanDiffMin,
-    "wantSamplePaths"=wantSamplePaths,
+    "wantSamplePaths"=wantSamplePaths, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, ...)

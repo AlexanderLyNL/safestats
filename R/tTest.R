@@ -1286,7 +1286,8 @@ designSaviT <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantSamplePaths=TRUE, deltaTrue=NULL,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
+    deltaTrue=NULL,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL,
@@ -1364,11 +1365,10 @@ designSaviT <- function(
       "alpha"=alpha, "alternative"=alternative,
       "ratio"=ratio, "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
-      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "futility"=futility, "esMinFutility"=esMinFutility,
-      "betaFutility"=betaFutility, ...)
+      "wantSimData"=wantSimData, "pb"=pb, "seed"=seed, "nSim"=nSim,
+      "nBoot"=nBoot, "futility"=futility,
+      "esMinFutility"=esMinFutility, "betaFutility"=betaFutility, ...)
 
-    browser()
   } else if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan) && isFALSE(wantSampling) ||
              !is.null(deltaMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
@@ -1512,7 +1512,7 @@ designSaviT1aWantNPlan <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL, deltaTrue=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL,
     betaFutility=NULL, ...) {
@@ -1525,7 +1525,8 @@ designSaviT1aWantNPlan <- function(
     "deltaTrue"=deltaTrue, "beta"=beta, "alpha"=alpha,
     "alternative"=alternative, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
-    "wantSamplePaths"=wantSamplePaths, "deltaMin"=deltaMin,
+    "wantSamplePaths"=wantSamplePaths,
+    "deltaMin"=deltaMin, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "highN"=highN, "betaFutility"=betaFutility)
@@ -1662,7 +1663,7 @@ designSaviT3WantEsMin <- function(
 #' @export
 #'
 #' @examples
-#' designSaviT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+#' designSaviT3bWantParameter(nPlan=20)
 designSaviT3bWantParameter <- function(
     nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
@@ -2018,7 +2019,7 @@ sampleStoppingTimesSaviT <- function(
     lowN=3L, nMax=1e8L,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantEValuesAtNMax=FALSE, nuMin=2,
-    wantSamplePaths=TRUE, wantSimData=FALSE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
     esMinFutility=NULL, beta=NULL, betaFutility=NULL, ...) {
 
@@ -2295,7 +2296,7 @@ computeBetaSaviT <- function(
     "deltaTrue"=deltaTrue, "alpha"=alpha,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
-    "eType"=eType, "nuMin"=nuMin,
+    "eType"=eType, "nuMin"=nuMin, "wantSimData"=wantSimData,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
 
@@ -2330,7 +2331,7 @@ computeNPlanSaviT <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL, nMax=1e8, deltaMin=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
-    wantSamplePaths=TRUE, nuMin=2,
+    wantSamplePaths=TRUE, wantSimData=TRUE, nuMin=2,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL,
     betaFutility=NULL, ...) {
@@ -2366,8 +2367,9 @@ computeNPlanSaviT <- function(
     "deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
-    "eType"=eType, "deltaMin"=deltaMin,
-    "wantSamplePaths"=wantSamplePaths, "nuMin"=nuMin,
+    "eType"=eType, "deltaMin"=deltaMin, "nuMin"=nuMin,
+    "seed"=seed, "wantSamplePaths"=wantSamplePaths,
+    "wantSimData"=wantSimData,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, ...)
 

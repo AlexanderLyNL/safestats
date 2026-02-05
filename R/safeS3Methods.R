@@ -500,10 +500,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     minStoppingTimes <- min(stoppingTimes)
 
     if (is.null(breaks)) {
-      breaks <- if (maxStoppingTimes-minStoppingTimes > maxNBins)
+      breaks <- if (maxStoppingTimes-minStoppingTimes+1 > maxNBins)
         maxNBins
       else
-        minStoppingTimes:nPlanBatch
+        (minStoppingTimes-1):nPlanBatch
     }
 
     stopHist <- hist(stoppingTimes, freq=FALSE,
@@ -584,10 +584,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     breaksMin <- min(firstPassageTimes)
 
     if (is.null(breaks)) {
-      breaks <- if (nPlanBatch-breaksMin > maxNBins) {
+      breaks <- if (nPlanBatch-breaksMin+1 > maxNBins) {
         maxNBins
       } else {
-        breaksMin:nPlanBatch
+        (breaksMin-1):nPlanBatch
       }
     }
 
@@ -628,15 +628,14 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
          xaxt = "n", yaxt = "n", bty = "n", type = "p", pch = pch,
          bg = "grey", ...)
 
+    lines(x=c(0, 1.5*nPlanBatch), y=c(0, 0), col="darkgrey", lwd=lwd, lty=2)
 
-    abline(h = log(1), col = "darkgrey", lwd = lwd, lty = 2)
-
-    abline(h=log(1/alpha))
+    lines(x=c(0, 1.5*nPlanBatch), y=log(c(1/alpha, 1/alpha)))
 
     if (nFut > 0)
-      abline(h=log(betaFutility))
+      lines(x=c(0, 1.5*nPlanBatch), y=log(c(betaFutility, betaFutility)))
 
-    abline(h = -log(1/alpha), lty=2, col="grey")
+    lines(x=c(0, 1.5*nPlanBatch), y=log(c(alpha, alpha)), lty=2, col="grey")
 
     if (nFut > 0) {
       yLabs <- c(alpha, "1", betaFutility, 1/alpha)
