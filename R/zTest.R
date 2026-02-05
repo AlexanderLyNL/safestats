@@ -45,7 +45,7 @@ saviZTestStat <- function(
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
 
   if (eType=="grow") {
-    phiS <- checkAndReturnsEsMinParameterSide(
+    phiS <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=parameter, "alternative"=alternative,
       "esMinName"="phiS")
 
@@ -926,7 +926,7 @@ designFreqZ <- function(
                  "h0"=h0)
   class(result) <- "freqZDesign"
 
-  meanDiffMin <- checkAndReturnsEsMinParameterSide(
+  meanDiffMin <- checkAndReturnEsMinParameterSide(
     "paramToCheck"=meanDiffMin, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
@@ -1103,44 +1103,44 @@ designSaviZ <- function(
 
   if (!is.null(parameter)) {
     if (eType=="grow") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="phiS",
         "alternative"=alternative)
     } else if (eType %in% "eGauss") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="g",
         "alternative"=alternative)
     } else if (eType=="eCauchy") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="kappaG",
         "alternative"=alternative)
     }
   }
 
   if (!is.null(meanDiffMin)) {
-    meanDiffMin <- checkAndReturnsEsMinParameterSide(
+    meanDiffMin <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin",
       "alternative"=alternative)
 
     if (is.null(meanDiffTrue))
       meanDiffTrue <- meanDiffMin
 
-    parameter <- matchParameterZFrom(
-      "parameter"=parameter,
-      "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+    parameter <- matchEParameterWith(
+      "parameter"=parameter, "analysisType"="z",
+      "esMin"=meanDiffMin, "sigma"=sigma,
       "alternative"=alternative, "eType"=eType)
   }
 
   # TODO(Alexander): This relates to
   if (futility) {
-    esMinFutility <- matchFutilityParameterZFrom(
-      "esMinFutility"=esMinFutility, "meanDiffMin"=meanDiffMin,
-      "meanDiffTrue"=meanDiffTrue)
+    esMinFutility <- matchFutilityParameterWith(
+      "esMinFutility"=esMinFutility, "esMin"=meanDiffMin,
+      "esTrue"=meanDiffTrue)
 
     if (is.null(esMinFutility))
       stop("Can't run a futility analysis without esMinFutility or meanDiffMin")
 
-    betaFutility <- matchBetaFutilityFrom(
+    betaFutility <- matchBetaFutilityWith(
       "betaFutility"=betaFutility, "beta"=beta, "betaDefault"=betaDefault)
   }
 
@@ -1173,9 +1173,9 @@ designSaviZ <- function(
 
       tempResult[["beta"]] <- beta
 
-      futilityParameter <- matchFutilityParameterZFrom(
+      futilityParameter <- matchFutilityParameterWith(
         "esMinFutility"=esMinFutility,
-        "meanDiffMin"=meanDiffMin, "meanDiffTrue"=meanDiffTrue)
+        "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
 
       futilityResult <- list(parameter=futilityParameter)
 
@@ -1370,7 +1370,7 @@ designSaviZ2WantBeta <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   samplingResult <- computeBetaSaviZ(
     "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
@@ -1419,7 +1419,7 @@ designSaviZ3WantEsMin <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   result <- list("parameter"=NULL, "esMin"=NULL,
                  "nPlan"=nPlan, "beta"=beta, "ratio"=ratio,
@@ -1431,9 +1431,9 @@ designSaviZ3WantEsMin <- function(
                            "parameter"=parameter, "eType"=eType)
   )
 
-  parameter <- matchParameterZFrom(
-    "parameter"=parameter,
-    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
     "alternative"=alternative, "eType"=eType
   )
 
@@ -1481,7 +1481,7 @@ designSaviZ3bWantParameter <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   n1 <- nPlan[1]
   n2 <- nPlan[2]
@@ -1594,14 +1594,14 @@ computeNPlanBatchSaviZ <- function(
     meanDiffMin <- meanDiffTrue
 
   meanDiffMin <- suppressWarnings(
-    checkAndReturnsEsMinParameterSide(
+    checkAndReturnEsMinParameterSide(
       "paramToCheck"=meanDiffMin, "alternative"=alternative,
       "esMinName"="meanDiffMin")
   )
 
-  parameter <- matchParameterZFrom(
-    "parameter"=parameter,
-    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
     "alternative"=alternative, "eType"=eType
   )
 
@@ -1716,13 +1716,13 @@ computeBetaBatchSaviZ <- function(
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
 
-  meanDiffTrue <- checkAndReturnsEsMinParameterSide(
+  meanDiffTrue <- checkAndReturnEsMinParameterSide(
     "paramToCheck"=meanDiffTrue, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
-  parameter <- matchParameterZFrom(
-    "parameter"=parameter,
-    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
     "alternative"=alternative, "eType"=eType
   )
 
@@ -1943,12 +1943,12 @@ sampleStoppingTimesSaviZ <- function(
             is.finite(meanDiffTrue))
 
   if (futility) {
-    esMinFutility <- matchFutilityParameterZFrom(
-      "esMinFutility"=esMinFutility, "meanDiffMin"=meanDiffMin,
-      "meanDiffTrue"=meanDiffTrue
+    esMinFutility <- matchFutilityParameterWith(
+      "esMinFutility"=esMinFutility, "esMin"=meanDiffMin,
+      "esTrue"=meanDiffTrue
     )
 
-    betaFutility <- matchBetaFutilityFrom(
+    betaFutility <- matchBetaFutilityWith(
       "betaFutility"=betaFutility, "beta"=beta
     )
 
@@ -1976,18 +1976,18 @@ sampleStoppingTimesSaviZ <- function(
 
   meanDiffMin <- if (is.null(meanDiffMin)) abs(meanDiffTrue) else abs(meanDiffMin)
 
-  parameter <- matchParameterZFrom(
-    "parameter"=parameter,
-    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
     "alternative"=alternative, "eType"=eType
   )
 
   futilityResult <- NULL
 
   if (futility) {
-    futilityParameter <- matchFutilityParameterZFrom(
+    futilityParameter <- matchFutilityParameterWith(
       "esMinFutility"=esMinFutility,
-      "meanDiffMin"=meanDiffMin, "meanDiffTrue"=meanDiffTrue)
+      "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
 
     futilityResult <-
       list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
@@ -2191,13 +2191,13 @@ computeBetaSaviZ <- function(
             'times nPlan[1] = ', nPlan[2])
   }
 
-  meanDiffTrue <- checkAndReturnsEsMinParameterSide(
+  meanDiffTrue <- checkAndReturnEsMinParameterSide(
     "paramToCheck"=meanDiffTrue, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
-  parameter <- matchParameterZFrom(
-    "parameter"=parameter,
-    "meanDiffMin"=meanDiffMin, "sigma"=sigma,
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
     "alternative"=alternative, "eType"=eType
   )
 
@@ -2264,7 +2264,7 @@ computeNPlanSaviZ <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  meanDiffTrue <- checkAndReturnsEsMinParameterSide(
+  meanDiffTrue <- checkAndReturnEsMinParameterSide(
     "paramToCheck"=meanDiffTrue, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
@@ -2303,101 +2303,6 @@ computeNPlanSaviZ <- function(
 
 # Helpers ------
 
-#' Match the parameter of a savi z-test
-#'
-#' Based on the meanDiffMin, sigma, alternative and eType
-#'
-#' @inherit designSaviZ
-#'
-#' @returns the parameter, a numeric value
-#' @export
-#'
-#' @examples
-#' matchParameterZFrom(0.4)
-matchParameterZFrom <- function(meanDiffMin,
-                                    sigma=1,
-                                    alternative=c("twoSided", "greater", "less"),
-                                    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-                                    parameter=NULL) {
-  alternative <- match.arg(alternative)
-  eType <- match.arg(eType)
-
-  # TODO(Alexander):
-  #
-  if (!is.null(parameter))
-    return(parameter)
-
-  parameter <- switch(eType,
-                      "mom"=1/2*(meanDiffMin/sigma)^2,
-                      "eGauss"=(meanDiffMin/sigma)^2,
-                      "imom"=(meanDiffMin/sigma)^2,
-                      "eCauchy"=abs(meanDiffMin/sigma),
-                      "grow"=abs(meanDiffMin))
-
-  if (eType=="grow") {
-    if (alternative=="less")
-      parameter <- - parameter
-  }
-  return(parameter)
-}
-
-#' Match the meanDiffMin of a savi z-test
-#'
-#' Based on the parameter, sigma, alternative and eType
-#'
-#' @inherit designSaviZ
-#'
-#' @returns the parameter, a numeric value
-#' @export
-#'
-#' @examples
-#' matchMeanDiffMinZFrom(parameter=0.4)
-matchMeanDiffMinZFrom <- function(parameter,
-                                  sigma=1,
-                                  alternative=c("twoSided", "greater", "less"),
-                                  eType=c("mom", "eGauss", "imom", "eCauchy", "grow")) {
-
-  alternative <- match.arg(alternative)
-  eType <- match.arg(eType)
-
-  parameter <- abs(parameter)
-
-  meanDiffMin <- switch(eType,
-                        "mom"=sqrt(2*parameter)*sigma,
-                        "eGauss"=sqrt(parameter)*sigma,
-                        "imom"=sqrt(parameter)*sigma,
-                        "eCauchy"=parameter*sigma,
-                        "grow"=abs(parameter))
-
-  if (eType=="grow" && alternative=="less")
-    meanDiffMin <- -meanDiffMin
-
-  return(meanDiffMin)
-}
-
-#' Match the parameter of a futility savi z-test
-#'
-#' Based on the esMinFutility, meanDiffMin, alternative and eType
-#'
-#' @inherit designSaviZ
-#'
-#' @returns the parameter, a numeric value
-#' @export
-#'
-#' @examples
-#' matchFutilityParameterZFrom(0.4)
-matchFutilityParameterZFrom <- function(esMinFutility, meanDiffMin, meanDiffTrue) {
-
-  if (!is.null(esMinFutility))
-    return(abs(esMinFutility))
-
-  if (!is.null(meanDiffMin))
-    return(abs(meanDiffMin))
-
-  if (!is.null(meanDiffTrue))
-    return(abs(meanDiffTrue))
-
-}
 
 #' Help function to compute the effective sample size based on a length 2 vector of samples
 #'

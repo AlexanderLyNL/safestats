@@ -438,6 +438,8 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 }
 
 
+# Match args ----
+
 #' Checks and outputs a threshold for a futility analysis
 #'
 #' @param betaFutility numeric > 0 and < 1, used to set the threshold of
@@ -451,7 +453,7 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 #' @export
 #'
 #' @examples
-matchBetaFutilityFrom <- function(betaFutility, beta, betaDefault=0.2) {
+matchBetaFutilityWith <- function(betaFutility, beta, betaDefault=0.2) {
   if (!is.null(betaFutility)) {
     stopifnot(betaFutility >0, betaFutility < 1)
     return(betaFutility )
@@ -468,4 +470,126 @@ matchBetaFutilityFrom <- function(betaFutility, beta, betaDefault=0.2) {
   betaFutility <- betaDefault
 
   return(betaFutility)
+}
+
+#' Match the parameter of a savi z or t-test
+#'
+#' Based on the minimal clinically relevant effect size esMin,
+#' sigma (for z-tests), alternative and eType
+#'
+#' @inherit designSaviZ
+#' @param esMin numeric: meanDiffMin for z-tests, or deltaMin for t-tests
+#' @param type character representing analysis type "z" or "t"
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchParameterZFrom(0.4)
+matchEParameterWith <- function(esMin, analysisType=c("z", "t"),
+                                sigma=1,
+                                alternative=c("twoSided", "greater", "less"),
+                                eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
+                                parameter=NULL) {
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+
+  # TODO(Alexander):
+  #
+  if (!is.null(parameter))
+    return(parameter)
+
+  if (analysisType=="z") {
+    parameter <- switch(eType,
+                        "mom"=1/2*(esMin/sigma)^2,
+                        "eGauss"=(esMin/sigma)^2,
+                        "imom"=(esMin/sigma)^2,
+                        "eCauchy"=abs(esMin/sigma),
+                        "grow"=abs(esMin))
+  }
+
+  if (analysisType=="t") {
+    parameter <- switch(eType,
+                        "mom"=1/2*esMin^2,
+                        "eGauss"=esMin^2,
+                        "imom"=abs(esMin),
+                        "eCauchy"=abs(esMin),
+                        "grow"=abs(esMin))
+  }
+
+  if (eType=="grow") {
+    if (alternative=="less")
+      parameter <- -parameter
+  }
+  return(parameter)
+}
+
+#' Match the meanDiffMin of a savi z-test
+#'
+#' Based on the parameter, sigma, alternative and eType
+#'
+#' @inherit designSaviZ
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchMeanDiffMinZFrom(parameter=0.4)
+#'
+matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
+                           sigma=1,
+                           alternative=c("twoSided", "greater", "less"),
+                           eType=c("mom", "eGauss", "imom", "eCauchy", "grow")) {
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+
+  parameter <- abs(parameter)
+
+  if (analysisType=="z") {
+    esMin <- switch(eType,
+                    "mom"=sqrt(2*parameter)*sigma,
+                    "eGauss"=sqrt(parameter)*sigma,
+                    "imom"=sqrt(parameter)*sigma,
+                    "eCauchy"=parameter*sigma,
+                    "grow"=abs(parameter))
+  }
+
+  if (analysisType=="t") {
+    esMin <- switch(eType,
+                    "mom"=sqrt(2*parameter),
+                    "eGauss"=sqrt(parameter),
+                    "imom"=abs(parameter),
+                    "eCauchy"=abs(parameter),
+                    "grow"=abs(parameter))
+  }
+
+  if (alternative=="less" && eType %in% c("grow", "imom", "eCauchy"))
+    esMin <- -esMin
+
+  return(esMin)
+}
+
+#' Match the parameter of a futility savi z-test
+#'
+#' Based on the esMinFutility, meanDiffMin, alternative and eType
+#'
+#' @inherit designSaviZ
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchFutilityParameterZFrom(0.4)
+matchFutilityParameterWith <- function(esMinFutility, esMin, esTrue) {
+
+  if (!is.null(esMinFutility))
+    return(abs(esMinFutility))
+
+  if (!is.null(esMin))
+    return(abs(esMin))
+
+  if (!is.null(esTrue))
+    return(abs(esTrue))
+
 }

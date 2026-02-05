@@ -1311,22 +1311,22 @@ designSaviT <- function(
 
   if (!is.null(parameter)) {
     if (eType=="grow") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="deltaS",
         "alternative"=alternative)
     } else if (eType %in% "eGauss") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="g",
         "alternative"=alternative)
     } else if (eType=="eCauchy") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="kappaG",
         "alternative"=alternative)
     }
   }
 
   if (!is.null(deltaMin)) {
-    deltaMin <- checkAndReturnsEsMinParameterSide(
+    deltaMin <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=deltaMin, "esMinName"="deltaMin",
       "alternative"=alternative)
   }
@@ -1532,7 +1532,7 @@ designSaviT2WantBeta <- function(
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
 
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   samplingResult <- computeBetaSaviT(
     "deltaTrue"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
@@ -1577,7 +1577,7 @@ designSaviT3WantEsMin <- function(
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
 
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   result <- list("parameter"=NULL, "esMin"=NULL,
                  "nPlan"=nPlan, "beta"=beta, "ratio"=ratio,
@@ -1645,7 +1645,7 @@ designSaviT3bWantParameter <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   n1 <- nPlan[1]
   n2 <- nPlan[2]
@@ -1758,7 +1758,7 @@ computeNPlanBatchSaviT <- function(
   n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
   if (is.null(parameter)) {
-    deltaTrue <- checkAndReturnsEsMinParameterSide(
+    deltaTrue <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=deltaTrue, "alternative"=alternative,
       "esMinName"="deltaTrue")
 
@@ -2006,7 +2006,7 @@ sampleStoppingTimesSaviT <- function(
     "wantSamplePaths"=wantSamplePaths)
 
   if (is.null(parameter)) {
-    deltaTrue <- checkAndReturnsEsMinParameterSide(
+    deltaTrue <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=deltaTrue, "alternative"=alternative,
       "esMinName"="deltaTrue")
 
@@ -2179,7 +2179,7 @@ computeBetaSaviT <- function(
             'times nPlan[1] = ', nPlan[2])
   }
 
-  deltaTrue <- checkAndReturnsEsMinParameterSide(
+  deltaTrue <- checkAndReturnEsMinParameterSide(
     "paramToCheck"=deltaTrue, "alternative"=alternative,
     "esMinName"="deltaTrue")
 
@@ -2246,7 +2246,7 @@ computeNPlanSaviT <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  deltaTrue <- checkAndReturnsEsMinParameterSide(
+  deltaTrue <- checkAndReturnEsMinParameterSide(
     "paramToCheck"=deltaTrue, "alternative"=alternative,
     "esMinName"="deltaTrue")
 

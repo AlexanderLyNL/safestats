@@ -129,7 +129,7 @@ extractNameFromArgs <- function(list, name) {
 #' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
 #'
 #' @return paramToCheck after checking, perhaps with a change in sign
-checkAndReturnsEsMinParameterSide <- function(
+checkAndReturnEsMinParameterSide <- function(
     paramToCheck, alternative=c("twoSided", "greater", "less"),
     esMinName=c("noName", "meanDiffMin", "phiS",
                 "deltaMin", "deltaS",
@@ -254,7 +254,7 @@ checkAndReturnsEsMinParameterSide <- function(
 #'
 #' @return nPlan a vector of sample sizes of length 1 or 2
 #'
-checkAndReturnsNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired", "twoSample")) {
+checkAndReturnNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired", "twoSample")) {
   if (testType=="twoSample" && length(nPlan)==1) {
     nPlan <- c(nPlan, ratio*nPlan)
     warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] = ratio*nPlan[1], that is, ',
