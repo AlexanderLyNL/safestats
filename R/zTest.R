@@ -1154,6 +1154,7 @@ designSaviZ <- function(
     tempResult <- designSaviZ1aWantNPlan(
       "meanDiffMin"=meanDiffMin, "beta"=beta,
       "alpha"=alpha, "alternative"=alternative,
+      "meanDiffTrue"=meanDiffTrue,
       "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
       "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
@@ -1164,24 +1165,18 @@ designSaviZ <- function(
              !is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
 
-    tempResult <- list("parameter"=parameter, "esMin"=meanDiffMin)
+    tempResult <- list("parameter"=parameter,
+                       "esMin"=meanDiffMin, "futility"=futility)
 
     if (futility) {
-
-      if (is.null(beta))
-        stop("Cannot do a futility analysis without beta")
-
-      tempResult[["beta"]] <- beta
-
       futilityParameter <- matchFutilityParameterWith(
         "esMinFutility"=esMinFutility,
         "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
 
-      futilityResult <- list(parameter=futilityParameter)
+      futilityResult <- list("parameter"=futilityParameter,
+                             "beta"=betaFutility)
 
       tempResult[["futilityResult"]] <- futilityResult
-
-      designScenario <- "1bFutility"
     }
 
   } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
@@ -1384,8 +1379,6 @@ designSaviZ2WantBeta <- function(
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=meanDiffMin, "nPlan"=nPlan, "ratio"=ratio,
                               "testType"=c("oneSample", "paired","twoSample"))
-
-  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
   return(result)
 }
 
@@ -2215,9 +2208,6 @@ computeBetaSaviZ <- function(
   result <- computeBetaBootstrapper("samplingResult"=samplingResult,
                                     "parameter"=parameter, "nPlan"=nPlan,
                                     "nBoot"=nBoot)
-
-  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
-
   return(result)
 }
 
@@ -2296,8 +2286,6 @@ computeNPlanSaviZ <- function(
   result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
                                      "parameter"=parameter, "beta"=beta,
                                      "nPlanBatch"=nPlanBatch, "nBoot"=nBoot)
-
-  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
   return(result)
 }
 

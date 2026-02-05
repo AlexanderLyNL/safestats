@@ -1286,7 +1286,7 @@ designSaviT <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, deltaTrue=NULL,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL,
@@ -1329,44 +1329,76 @@ designSaviT <- function(
     deltaMin <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=deltaMin, "esMinName"="deltaMin",
       "alternative"=alternative)
+
+    if (is.null(deltaTrue))
+      deltaTrue <- deltaMin
+
+    parameter <- matchEParameterWith(
+      "parameter"=parameter, "analysisType"="t",
+      "esMin"=deltaMin, "alternative"=alternative,
+      "eType"=eType)
+
+  }
+
+  if (futility) {
+    esMinFutility <- matchFutilityParameterWith(
+      "esMinFutility"=esMinFutility, "esMin"=deltaMin,
+      "esTrue"=deltaTrue)
+
+    if (is.null(esMinFutility))
+      stop("Can't run a futility analysis without esMinFutility or deltaMin")
+
+    betaFutility <- matchBetaFutilityWith(
+      "betaFutility"=betaFutility, "beta"=beta, "betaDefault"=betaDefault)
   }
 
   designScenario <- NULL
 
   tempResult <- list()
 
-  if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan)) {
+  if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan) && wantSampling) {
     designScenario <- "1a"
 
     tempResult <- designSaviT1aWantNPlan(
-      "deltaMin"=deltaMin, "beta"=beta,
+      "deltaMin"=deltaMin, "beta"=beta, "deltaTrue"=deltaTrue,
       "alpha"=alpha, "alternative"=alternative,
-      "ratio"=ratio, "parameter"=parameter, testType=testType,
+      "ratio"=ratio, "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
-      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, ...)
-  } else if (!is.null(deltaMin) && is.null(beta) && is.null(nPlan)) {
+      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
+      "futility"=futility, "esMinFutility"=esMinFutility,
+      "betaFutility"=betaFutility, ...)
+
+    browser()
+  } else if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan) && isFALSE(wantSampling) ||
+             !is.null(deltaMin) && is.null(beta) && is.null(nPlan)) {
     designScenario <- "1b"
 
-    if (is.null(parameter)) {
-      parameter <- switch(eType,
-                          "mom"=deltaMin^2/2,
-                          "eGauss"=deltaMin^2,
-                          "imom"=abs(deltaMin),
-                          "eCauchy"=abs(deltaMin),
-                          "grow"=deltaMin)
+    tempResult <- list("parameter"=parameter,
+                       "esMin"=deltaMin, "futility"=futility)
+
+    if (futility) {
+      futilityParameter <- matchFutilityParameterWith(
+        "esMinFutility"=esMinFutility,
+        "esMin"=deltaMin, "esTrue"=deltaTrue)
+
+      futilityResult <- list("parameter"=futilityParameter,
+                             "beta"=betaFutility)
+
+      tempResult[["futilityResult"]] <- futilityResult
     }
 
-    tempResult <- list("parameter"=parameter, "esMin"=deltaMin)
   } else if (!is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
     # scenario 2: given effect size and nPlan, calculate power and implied target
     designScenario <- "2"
 
     tempResult <- designSaviT2WantBeta(
-      "deltaMin"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
+      "deltaTrue"=deltaTrue, "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative, "testType"=testType,
       "ratio"=ratio, "parameter"=parameter, "eType"=eType,
-      "wantSamplePaths"=wantSamplePaths,
-      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, ...)
+      "wantSamplePaths"=wantSamplePaths, "deltaMin"=deltaMin,
+      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
+      "futility"=futility, "esMinFutility"=esMinFutility,
+      "betaFutility"=betaFutility, ...)
   } else if (is.null(deltaMin) && !is.null(beta) && !is.null(nPlan)) {
     designScenario <- "3"
 
@@ -1439,8 +1471,7 @@ designSaviT <- function(
                                "eGauss"="g",
                                "imom"="tau",
                                "eCauchy"="kappaG",
-                               "grow"="deltaS",
-                               "bayarri"="kappaB")
+                               "grow"="deltaS")
   }
 
   result[["parameter"]] <- parameter
@@ -1448,6 +1479,7 @@ designSaviT <- function(
   ## Name h0 -----
   names(h0) <- "mu"
   result[["h0"]] <- h0
+  result[["futility"]] <- futility
 
   result[["call"]] <- sys.call()
 
@@ -1478,21 +1510,25 @@ designSaviT1aWantNPlan <- function(
     deltaMin, beta, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL,
-    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+    ratio=1, parameter=NULL, deltaTrue=NULL,
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    futility=FALSE, esMinFutility=NULL,
+    betaFutility=NULL, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
   testType <- match.arg(testType)
 
   samplingResult <- computeNPlanSaviT(
-    "deltaTrue"=deltaMin, "beta"=beta, "alpha"=alpha,
+    "deltaTrue"=deltaTrue, "beta"=beta, "alpha"=alpha,
     "alternative"=alternative, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
-    "wantSamplePaths"=wantSamplePaths,
-    "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot)
+    "wantSamplePaths"=wantSamplePaths, "deltaMin"=deltaMin,
+    "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "highN"=highN, "betaFutility"=betaFutility)
 
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
@@ -1736,7 +1772,7 @@ computeNPlanBatchSaviT <- function(
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    parameter=NULL, ratio=1) {
+    parameter=NULL, ratio=1, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1978,15 +2014,30 @@ sampleStoppingTimesSaviT <- function(
     deltaTrue, alpha=0.05,
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL, lowN=3L, nMax=1e8L,
+    ratio=1, deltaMin=NULL, parameter=NULL,
+    lowN=3L, nMax=1e8L,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantEValuesAtNMax=FALSE,
+    wantEValuesAtNMax=FALSE, nuMin=2,
     wantSamplePaths=TRUE, wantSimData=FALSE,
-    pb=TRUE, seed=NULL, nSim=1e3L, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
+    esMinFutility=NULL, beta=NULL, betaFutility=NULL, ...) {
 
   stopifnot(alpha > 0, alpha <= 1,
             is.finite(nMax),
             is.finite(deltaTrue))
+
+  if (futility) {
+    esMinFutility <- matchFutilityParameterWith(
+      "esMinFutility"=esMinFutility, "esMin"=deltaMin,
+      "esTrue"=deltaTrue
+    )
+
+    betaFutility <- matchBetaFutilityWith(
+      "betaFutility"=betaFutility, "beta"=beta
+    )
+
+    stopifnot(betaFutility > 0, betaFutility < 1)
+  }
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -2005,18 +2056,26 @@ sampleStoppingTimesSaviT <- function(
     "wantEValuesAtNMax"=wantEValuesAtNMax,
     "wantSamplePaths"=wantSamplePaths)
 
-  if (is.null(parameter)) {
-    deltaTrue <- checkAndReturnEsMinParameterSide(
-      "paramToCheck"=deltaTrue, "alternative"=alternative,
-      "esMinName"="deltaTrue")
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="t",
+    "esMin"=deltaMin, "alternative"=alternative,
+    "eType"=eType
+  )
 
-    parameter <- switch(eType,
-                        "mom"=deltaTrue^2/2,
-                        "eGauss"=deltaTrue^2,
-                        "imom"=abs(deltaTrue),
-                        "eCauchy"=abs(deltaTrue),
-                        "grow"=deltaTrue)
+  futilityResult <- NULL
+
+  if (futility) {
+    futilityParameter <- matchFutilityParameterWith(
+      "esMinFutility"=esMinFutility,
+      "esMin"=deltaMin, "esTrue"=deltaTrue)
+
+    futilityResult <-
+      list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "samplePaths"=result[["samplePaths"]],
+           "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "parameter"=futilityParameter, "beta"=betaFutility)
   }
+
 
   if (testType=="twoSample" && length(nMax)==1) {
     nMax <- c(nMax, ceil(ratio*nMax))
@@ -2038,6 +2097,7 @@ sampleStoppingTimesSaviT <- function(
   n1Vector <- tempN[["n1"]]
   n2Vector <- tempN[["n2"]]
   nEffVector <- tempN[["nEff"]]
+  nuVector <- tempN[["nu"]]
 
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=deltaTrue,
                                 "sigmaTrue"=1, "paired"=FALSE, "seed"=seed)
@@ -2086,7 +2146,7 @@ sampleStoppingTimesSaviT <- function(
         saviTTestStat("t"=tValues[j], "parameter"=parameter,
                       "n1"=n1Vector[j], "n2"=n2Vector[j],
                       "alternative"=alternative,
-                      "eType"=eType)
+                      "eType"=eType, "nuMin"=nuMin)
       )
 
       evidenceNow <- tempResult[["eValue"]]
@@ -2102,6 +2162,30 @@ sampleStoppingTimesSaviT <- function(
           result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
         }
         break()
+      }
+
+      if (futility) {
+        futRes <- saviFutilityTStatNEffNu(
+          "t"=tValues[j], "nEff"=nEffVector[j], "nu"=nuVector[j],
+          "parameter"=futilityParameter,
+          "alternative"="twoSided",
+          "eType"="grow", "tDensity"=FALSE, "paired"=paired,
+          "nuMin"=nuMin)
+
+        futilityEValue <- futRes[["eValue"]]
+
+        if (wantSamplePaths)
+          futilityResult[["samplePaths"]][sim, j] <- futilityEValue
+
+        if (futilityEValue < betaFutility) {
+          result[["breakVector"]][sim] <- -1
+          result[["stoppingTimes"]][sim] <- nMax
+
+          futilityResult[["stoppingTimes"]][sim] <- n1Vector[j]
+          futilityResult[["eValuesStopped"]][sim] <- futilityEValue
+
+          break()
+        }
       }
 
       # Note(Alexander): If passed maximum nPlan[1] stop.
@@ -2130,6 +2214,21 @@ sampleStoppingTimesSaviT <- function(
   if (isTRUE(wantSimData))
     result[["simData"]] <- simData
 
+
+  if (wantSamplePaths) {
+    samplePaths <- result[["samplePaths"]]
+    samplePaths[is.na(samplePaths)] <- 0
+    result[["samplePaths"]] <- Matrix::Matrix(samplePaths, sparse=TRUE)
+
+    if (futility) {
+      futilitySamplePaths <- futilityResult[["samplePaths"]]
+      futilitySamplePaths[is.na(futilitySamplePaths)] <- 0
+      futilityResult[["samplePaths"]] <- Matrix::Matrix(futilitySamplePaths, sparse=TRUE)
+    }
+  }
+
+  result[["futilityResult"]] <- futilityResult
+
   return(result)
 }
 
@@ -2156,7 +2255,7 @@ computeBetaSaviT <- function(
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, nuMin=2,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2196,7 +2295,7 @@ computeBetaSaviT <- function(
     "deltaTrue"=deltaTrue, "alpha"=alpha,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
-    "eType"=eType,
+    "eType"=eType, "nuMin"=nuMin,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
 
@@ -2229,10 +2328,12 @@ computeNPlanSaviT <- function(
     deltaTrue, beta=0.2, alpha=0.05,
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL, nMax=1e8,
-    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantSamplePaths=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
+    ratio=1, parameter=NULL, nMax=1e8, deltaMin=NULL,
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
+    wantSamplePaths=TRUE, nuMin=2,
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    futility=FALSE, esMinFutility=NULL,
+    betaFutility=NULL, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -2253,18 +2354,22 @@ computeNPlanSaviT <- function(
   tempObj <- computeNPlanBatchSaviT(
     "deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
     "alternative"=alternative, "testType"=testType,
-    "parameter"=parameter, "ratio"=ratio, "eType"=eType)
+    "parameter"=parameter, "ratio"=ratio,
+    "eType"=eType, ...)
 
   nPlanBatch <- tempObj[["nPlan"]]
-  parameter <- tempObj[["parameter"]]
+
+  if (is.null(parameter))
+    parameter <- tempObj[["parameter"]]
 
   samplingResult <- sampleStoppingTimesSaviT(
-    "deltaTrue"=deltaTrue, "alpha"=alpha,
+    "deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
-    "eType"=eType,
-    "wantSamplePaths"=wantSamplePaths,
-    "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
+    "eType"=eType, "deltaMin"=deltaMin,
+    "wantSamplePaths"=wantSamplePaths, "nuMin"=nuMin,
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "betaFutility"=betaFutility, ...)
 
   result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
                                      "parameter"=parameter, "beta"=beta,

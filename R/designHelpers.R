@@ -174,9 +174,6 @@ computeBootObj <- function(
               "logImpliedTarget", "expectedStopTime")) {
   objType <- match.arg(objType)
 
-  # TODO(Alexander): futility
-  # browser()
-
   if (objType=="beta") {
     if (is.null(nPlan) || nPlan <= 0)
       stop("Please provide an nPlan > 0")
@@ -356,7 +353,8 @@ computeNPlanBootstrapper <- function(
                  "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
                  "nPlanBatch"=nPlanBatch, "parameter"=parameter,
                  "samplePaths"=samplingResult[["samplePaths"]],
-                 "breakVector"=samplingResult[["breakVector"]])
+                 "breakVector"=samplingResult[["breakVector"]],
+                 "futilityResult"=samplingResult[["futilityResult"]])
 }
 
 
@@ -401,7 +399,7 @@ computeBetaBootstrapper <- function(
                  "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
-                 "parameter"=parameter)
+                 "parameter"=parameter, "futilityResult"=samplingResult[["futilityResult"]])
 
   return(result)
 }
