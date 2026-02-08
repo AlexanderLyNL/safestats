@@ -553,9 +553,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
   }
 
   betaFutility <- NULL
+  futResult <- x[["futilityResult"]]
 
   if (numSamplePaths > 0) {
-    firstPassageTimes <- stoppingTimes
+    fptAll <- stoppingTimes
 
     # Stop indexes ----
     #
@@ -567,21 +568,18 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     nFut <- length(indexStopFut)
     # nStopNot <- length(indexStopNot)
 
-    firstPassageTimes[indexStopNot] <- Inf
-
-    fptAlt <- firstPassageTimes
+    fptAll[indexStopNot] <- Inf
 
     if (nFut > 0) {
-      futResult <- x[["futilityResult"]]
       fptFut <- as.numeric(futResult[["stoppingTimes"]][indexStopFut])
-
-      firstPassageTimes[indexStopFut] <- fptFut
       betaFutility <- futResult[["beta"]]
+
+      fptAll[indexStopFut] <- fptFut
     }
 
     # Compute hist  ----
     #
-    breaksMin <- min(firstPassageTimes)
+    breaksMin <- min(fptAll)
 
     if (is.null(breaks)) {
       breaks <- if (nPlanBatch-breaksMin+1 > maxNBins) {
@@ -592,7 +590,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     }
 
     fptHist <-
-      hist(firstPassageTimes, plot=FALSE,
+      hist(fptAll, plot=FALSE,
            breaks=breaks)
 
     y <- fptHist[["density"]]
@@ -638,11 +636,11 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     lines(x=c(0, 1.5*nPlanBatch), y=log(c(alpha, alpha)), lty=2, col="grey")
 
     if (nFut > 0) {
-      yLabs <- c(alpha, "1", betaFutility, 1/alpha)
-      criticalP <- log(c(alpha, 1, betaFutility, 1/alpha))
+      yLabs <- c(1e-24, alpha, "1", betaFutility, 1/alpha)
+      criticalP <- log(c(1e-24, alpha, 1, betaFutility, 1/alpha))
     } else {
-      yLabs <- c(alpha, "1", 1/alpha)
-      criticalP <- log(c(alpha, 1, 1/alpha))
+      yLabs <- c(1e-24, alpha, "1", 1/alpha)
+      criticalP <- log(c(1e-24, alpha, 1, 1/alpha))
     }
 
     axis(side = 2, at = c(criticalP), tick = TRUE, las = 2, cex.axis = cex,
@@ -682,18 +680,16 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
          angle = 45, density = NULL, lty = NULL)
 
     if (nFut > 0) {
-
       if (nFut < nAlt) {
         # Futility histogram
         fptHist2 <- hist(fptFut, plot=FALSE, breaks=fptHist[["breaks"]])
-        histRatio <- nFut/(nFut+nAlt)
       } else {
         # Alt histogram
+        fptAlt <- stoppingTimes[indexStopAlt]
         fptHist2 <- hist(fptAlt, plot=FALSE, breaks=fptHist[["breaks"]])
-        histRatio <- nAlt/(nFut+nAlt)
       }
 
-      y2 <- fptHist2[["density"]]*histRatio
+      y2 <- fptHist2[["counts"]]/fptHist[["counts"]]*y
 
       rect(fptHist2[["breaks"]][-nB]+0.5, log(1/alpha),
            fptHist2[["breaks"]][-1L]+0.5, someConstant*y2+log(1/alpha),
@@ -704,22 +700,30 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     # Draw sample paths -----
     samplePaths <- x[["samplePaths"]]
 
+    # Alexander: Just to avoid a matrix turning into a vector
+    if (nAlt==1)
+      indexStopAlt <- c(indexStopAlt, indexStopAlt)
+
     stoppedPaths <- samplePaths[indexStopAlt, ]
 
-    finiteFirstPassageTimesAlt <- fptAlt[indexStopAlt]
+    finiteFirstPassageTimesAlt <- stoppingTimes[indexStopAlt]
 
     if (nFut < nAlt) {
       nSamplePaths <- min(numSamplePaths, nAlt)
       nSamplePaths2 <- ceil(nFut/nAlt*nSamplePaths)
       nSamplePaths2 <- min(nSamplePaths2, nFut)
+
+      # someOrder <- 1:2
     } else {
       nSamplePaths2 <- min(numSamplePaths, nFut)
       nSamplePaths <- ceil(nAlt/nFut*nSamplePaths2)
       nSamplePaths <- min(nSamplePaths, nAlt)
+
+      # someOrder <- 2:1
     }
 
-
-    # TODO(Alexander): Perhaps write as function and call drawHist
+    # TODO(Alexander): Perhaps write as function
+    # and call drawPaths + add an order
     #
     for (i in 1:nSamplePaths) {
       stoppedTime <- finiteFirstPassageTimesAlt[i]
@@ -750,6 +754,12 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     if (nFut > 0) {
       samplePaths <- futResult[["samplePaths"]]
+
+      # Alexander Just to make this into a matrix
+      #
+      if (nFut==1)
+        indexStopFut <- c(indexStopFut, indexStopFut)
+
       stoppedPaths <- samplePaths[indexStopFut, ]
 
       finiteFirstPassageTimesFut <- fptFut

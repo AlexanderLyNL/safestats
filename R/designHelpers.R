@@ -149,6 +149,7 @@ designSavi2Helper <- function(
   result[["logImpliedTargetTwoSe"]] <- 2*bootObjLogImpliedTarget[["bootSe"]]
 
   result[["simData"]] <- samplingResult[["simData"]]
+  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
 
   return(result)
 }

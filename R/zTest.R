@@ -323,7 +323,7 @@ saviZTest.default <- function(
 
   # Vars for sequential analysis
   eValueVec <- NULL
-  eValueVecFut <- NULL
+  eValueFutVec <- NULL
   confSeqMatrix <- NULL
   n1Vec <- NULL
   n2Vec <- NULL
@@ -524,7 +524,7 @@ saviZTest.default <- function(
 
     mIter <- length(n1Vec)
 
-    eValueVecFut <- eValueVec <- numeric(mIter)
+    eValueFutVec <- eValueVec <- numeric(mIter)
     confSeqMatrix <- matrix(nrow=mIter, ncol=2)
 
     for (i in seq_along(n1Vec)) {
@@ -540,7 +540,7 @@ saviZTest.default <- function(
                                     "parameter"=designObj[["futilityResult"]][["parameter"]],
                                     "sigma"=sigma, "alternative"="twoSided", "paired"=paired,
                                     "eType"="grow")
-        eValueVecFut[i] <- unname(resFut[["eValue"]])
+        eValueFutVec[i] <- unname(resFut[["eValue"]])
       }
 
       kaas <- computeConfidenceIntervalZ(
@@ -564,7 +564,7 @@ saviZTest.default <- function(
   result[["eValueFut"]] <- eValueFut
 
   result[["eValueVec"]] <- eValueVec
-  result[["eValueVecFut"]] <- eValueVecFut
+  result[["eValueFutVec"]] <- eValueFutVec
   result[["confSeqMatrix"]] <- confSeqMatrix
   result[["n1Vec"]] <- n1Vec
   result[["n2Vec"]] <- n2Vec
@@ -2263,10 +2263,18 @@ computeNPlanSaviZ <- function(
     "paramToCheck"=meanDiffTrue, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
+  if (is.null(meanDiffMin)) {
+    meanDiffMin <- meanDiffTrue
+  } else {
+    meanDiffMin <- checkAndReturnEsMinParameterSide(
+      "paramToCheck"=meanDiffMin, "alternative"=alternative,
+      "esMinName"="meanDiffMin")
+  }
+
   # TODO(Alexander)
   #
   tempObj <- computeNPlanBatchSaviZ(
-    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
+    "meanDiffTrue"=meanDiffMin, "alpha"=alpha,
     "beta"=beta, "sigma"=sigma, "kappa"=kappa,
     "alternative"=alternative, "testType"=testType,
     "parameter"=parameter, "ratio"=ratio, "eType"=eType,

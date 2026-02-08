@@ -573,8 +573,11 @@ saviTTest.default <- function(
 
   result <- constructSaviTestObj("T-Test")
 
+  eValueFut <- NULL
+
   # Vars for sequential analysis
   eValueVec <- NULL
+  eValueFutVec <- NULL
   confSeqMatrix <- NULL
   n1Vec <- NULL
   n2Vec <- NULL
@@ -779,6 +782,16 @@ saviTTest.default <- function(
                   "eType"=designObj[["eType"]])
   )
 
+  if (designObj[["futility"]]) {
+    testResultFut <- suppressWarnings(
+      saviFutilityTStatNEffNu("t"=tStat, "nEff"=nEff, "nu"=nu,
+        "parameter"=designObj[["futilityResult"]][["parameter"]],
+        "alternative"="twoSided", "paired"=paired,
+        "eType"=designObj[["eType"]])
+    )
+    eValueFut <- unname(testResultFut[["eValue"]])
+  }
+
 
   ### Compute: confSeq ----
   #
@@ -794,17 +807,28 @@ saviTTest.default <- function(
 
     mIter <- length(n1Vec)
 
-    eValueVec <- numeric(mIter)
+    eValueFutVec <- eValueVec <- numeric(mIter)
     confSeqMatrix <- matrix(nrow=mIter, ncol=2)
 
     for (i in seq_along(n1Vec)) {
-      brie <- suppressWarnings(
+      res <- suppressWarnings(
         saviTTestStat("t"=tStatVec[i], "parameter"=designObj[["parameter"]],
                       "n1"=n1Vec[i], "n2"=n2Vec[i], "alternative"=alternative,
                       "paired"=paired, "eType"=designObj[["eType"]])
       )
 
-      eValueVec[i] <- unname(brie[["eValue"]])
+      eValueVec[i] <- unname(res[["eValue"]])
+
+      if (designObj[["futility"]]) {
+        resFut <- suppressWarnings(
+          saviFutilityTStatNEffNu("t"=tStatVec[i],
+            "nEff"=nEffVec[i], "nu"=nuVec[i],
+            "parameter"=designObj[["futilityResult"]][["parameter"]],
+            "alternative"="twoSided", "paired"=paired,
+            "eType"=designObj[["eType"]])
+        )
+        eValueFutVec[i] <- unname(resFut[["eValue"]])
+      }
 
       kaas <- computeConfidenceIntervalT("meanObs"=meanObsVec[i], "sdObs"=sdObsVec[i],
                                          "nEff"=nEffVec[i], "nu"=nuVec[i],
@@ -827,7 +851,10 @@ saviTTest.default <- function(
   result[["n"]] <- n
   result[["ciValue"]] <- ciValue
 
+  result[["eValueFut"]] <- eValueFut
+
   result[["eValueVec"]] <- eValueVec
+  result[["eValueFutVec"]] <- eValueFutVec
   result[["confSeqMatrix"]] <- confSeqMatrix
   result[["n1Vec"]] <- n1Vec
   result[["n2Vec"]] <- n2Vec
@@ -1555,12 +1582,15 @@ designSaviT1aWantNPlan <- function(
 #' @examples
 #' designSaviT2WantBeta(deltaMin=0.9, nPlan=7, nSim=10)
 designSaviT2WantBeta <- function(
-    deltaMin, nPlan,
+    deltaTrue, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
+    deltaMin=NULL,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
-    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantSamplePaths=TRUE,
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
+    wantSamplePaths=TRUE, wantSimData=TRUE,
+    futility=FALSE, esMinFutility=NULL,
+    betaFutility=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
@@ -1572,15 +1602,18 @@ designSaviT2WantBeta <- function(
   nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   samplingResult <- computeBetaSaviT(
-    "deltaTrue"=deltaMin, "nPlan"=nPlan, "alpha"=alpha,
+    "deltaTrue"=deltaTrue, "nPlan"=nPlan, "alpha"=alpha,
     "alternative"=alternative,
     "testType"=testType, "parameter"=parameter,
     "eType"=eType, "wantSamplePaths"=wantSamplePaths,
-    "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
+    "wantSimData"=wantSimData, "deltaMin"=deltaMin,
+    "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb,
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "betaFutility"=betaFutility, ...)
 
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=deltaMin, "nPlan"=nPlan, "ratio"=ratio,
-                              "testType"=c("oneSample", "paired","twoSample"))
+                              "testType"=testType)
   return(result)
 }
 
@@ -2255,9 +2288,11 @@ computeBetaSaviT <- function(
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
-    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantSamplePaths=TRUE, nuMin=2,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
+    wantSamplePaths=TRUE, nuMin=2, wantSimData=TRUE,
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    futility=FALSE, esMinFutility=NULL,
+    betaFutility=NULL, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -2298,11 +2333,13 @@ computeBetaSaviT <- function(
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
     "eType"=eType, "nuMin"=nuMin, "wantSimData"=wantSimData,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
-    "pb"=pb, "seed"=seed, "nSim"=nSim, ...)
+    "pb"=pb, "seed"=seed, "nSim"=nSim,
+    "futility"=futility, "esMinFutility"=esMinFutility,
+    "betaFutility"=betaFutility, ...)
 
-  result <- computeBetaBootstrapper(samplingResult=samplingResult,
-                                    parameter=parameter, nPlan=nPlan,
-                                    nBoot=nBoot)
+  result <- computeBetaBootstrapper(
+    "samplingResult"=samplingResult, "parameter"=parameter,
+    "nPlan"=nPlan, "nBoot"=nBoot)
 
   return(result)
 }
