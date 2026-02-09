@@ -843,6 +843,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' \code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.
 #' @param runInt logical, if \code{TRUE} (default), then shows the running
 #' intersection of the confidence sequence.
+#' @param wantFutility logical, if \code{FALSE}, then don't show the
+#' e-values for futility. Default \code{wantFutility==NULL}, if
+#' \code{designObj[["futility"]]==TRUE} then futility e-values are shown
+#' automatically.
 #' @return Returns nothing just plots
 #' @export
 #'
@@ -855,9 +859,23 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           wantConfSeqPlot=FALSE, add=FALSE,
                           density=NULL, angle=45,
                           xaxt=NULL, yaxt=NULL,
-                          fillOddEven=FALSE, runInt=TRUE, ...) {
+                          fillOddEven=FALSE, runInt=TRUE,
+                          wantFutility=NULL,
+                          lineColourFut="#556B2F4D",
+                          thresholdColourFut="#556B2FCC", ...) {
   eValueVec <- x[["eValueVec"]]
+  eValueFutVec <- x[["eValueFutVec"]]
+
   n1Vec <- x[["n1Vec"]]
+
+  designObj <- x[["designObj"]]
+
+  futility <- FALSE
+
+  if (is.null(wantFutility) && designObj[["futility"]] && !is.null(eValueFutVec)) {
+    futility <- TRUE
+    betaFutility <- designObj[["futilityResult"]][["beta"]]
+  }
 
   if (is.null(n1Vec) || is.null(eValueVec)) {
     warning("Can't plot. No sequential analysis.")
@@ -873,7 +891,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   if (isTRUE(wantConfSeqPlot)) {
     confSeqMatrix <- x[["confSeqMatrix"]]
-    h0 <- x[["designObj"]][["h0"]]
+    h0 <- designObj[["h0"]]
 
     upperLine <- confSeqMatrix[, 2]
     lowerLine <- confSeqMatrix[, 1]
@@ -962,20 +980,35 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   # e-value plot
   if (!isTRUE(wantConfSeqPlot)) {
-    alpha <- x[["designObj"]][["alpha"]]
+    alpha <- designObj[["alpha"]]
     oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
+
+    nInfinite <- sum(is.infinite(eValueVec))
+
+    if (futility) {
+      nInfinite <- nInfinite+sum(is.infinite(eValueFutVec))
+    }
+
+    if (nInfinite >= 1) {
+      warning("Overflow: E-values infinite, removed for plotting")
+
+      finiteIndex <- which(is.finite(eValueVec))
+
+      if (futility) {
+        finiteIndex <- intersect(finiteIndex, which(is.finite(eValueFutVec)))
+        eValueFutVec <- eValueFutVec[finiteIndex]
+      }
+
+      eValueVec <- eValueVec[finiteIndex]
+      n1Vec <- n1Vec[finiteIndex]
+    }
 
     maxEValue <- max(eValueVec, na.rm=TRUE)
     minEValue <- min(eValueVec, na.rm=TRUE)
 
-    if (is.infinite(maxEValue)) {
-      warning("Overflow: E-values infinite, removed for plotting")
-
-      finiteIndex <- which(is.finite(eValueVec))
-      eValueVec <- eValueVec[finiteIndex]
-
-      n1Vec <- n1Vec[finiteIndex]
-      maxEValue <- max(eValueVec, na.rm=TRUE)
+    if (futility) {
+      maxEValue <- max(eValueFutVec, maxEValue, na.rm=TRUE)
+      minEValue <- min(eValueFutVec, minEValue, na.rm=TRUE)
     }
 
     if (!isTRUE(add)) {
@@ -993,7 +1026,14 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       logPlot <- if (isTRUE(logScale)) "y" else ""
 
       maxY <- ceil(max(maxEValue, 1/alpha))
-      minY <- if (isTRUE(logScale)) minEValue else 0
+
+      minY <- minEValue
+
+      if (futility)
+        minY <- min(minY, betaFutility)
+
+      if (isFALSE(logScale))
+        minY <- 0
 
       lastIndex <- length(n1Vec)
       maxX <- n1Vec[lastIndex]
@@ -1016,6 +1056,10 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       if (maxY/threshLine[1] < 10)
         lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
 
+      if (futility)
+        lines(c(1, maxX), c(betaFutility, betaFutility),
+              lwd=lwd, lty=2, col=thresholdColourFut)
+
       if (is.null(xaxt) || xaxt!="n") axis(1)
       if (is.null(yaxt) || yaxt!="n") axis(2)
 
@@ -1027,6 +1071,9 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     }
 
     lines(n1Vec, eValueVec, lwd=lwd, col=lineColour)
+
+    if (futility)
+      lines(n1Vec, eValueFutVec, lwd=lwd, col=lineColourFut)
   }
 }
 
