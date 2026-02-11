@@ -1422,7 +1422,7 @@ designSaviT <- function(
     # scenario 2: given effect size and nPlan, calculate power and implied target
     designScenario <- "2"
 
-    tempResult <- designSaviT2WantBeta(
+    tempResult <- designSaviT2WantPower(
       "deltaTrue"=deltaTrue, "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative, "testType"=testType,
       "ratio"=ratio, "parameter"=parameter, "eType"=eType,
@@ -1588,8 +1588,8 @@ designSaviT1aWantNPlan <- function(
 #' @export
 #'
 #' @examples
-#' designSaviT2WantBeta(deltaMin=0.9, nPlan=7, nSim=10)
-designSaviT2WantBeta <- function(
+#' designSaviT2WantPower(deltaMin=0.9, nPlan=7, nSim=10)
+designSaviT2WantPower <- function(
     deltaTrue, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     deltaMin=NULL,
@@ -1609,7 +1609,7 @@ designSaviT2WantBeta <- function(
 
   nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
-  samplingResult <- computeBetaSaviT(
+  samplingResult <- computePowerSaviT(
     "deltaTrue"=deltaTrue, "nPlan"=nPlan, "alpha"=alpha,
     "alternative"=alternative,
     "testType"=testType, "parameter"=parameter,
@@ -1642,10 +1642,10 @@ designSaviT2WantBeta <- function(
 #' @examples
 #' designSaviT3WantEsMin(beta=0.7, nPlan=10)
 designSaviT3WantEsMin <- function(
-    beta, nPlan,
+    power, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
+    parameter=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     lowEsTrue=0.01, highEsTrue=3, ...) {
 
@@ -1654,8 +1654,9 @@ designSaviT3WantEsMin <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-
   nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
   result <- list("parameter"=NULL, "esMin"=NULL,
                  "nPlan"=nPlan, "beta"=beta, "ratio"=ratio,
@@ -1663,7 +1664,7 @@ designSaviT3WantEsMin <- function(
 
   deltaMin <- tryOrFailWithNA(
     computeMinEsBatchSaviT(
-      "nPlan"=nPlan, "alpha"=alpha, "beta"=beta,
+      "nPlan"=nPlan, "alpha"=alpha, "power"=power, "beta"=NULL,
       "alternative"=alternative, "testType"=testType,
       "parameter"=parameter, "eType"=eType,
       "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue)
@@ -1957,11 +1958,11 @@ computeNPlanBatchSaviT <- function(
 #' @examples
 #' computeMinEsBatchSaviT(27)
 computeMinEsBatchSaviT <- function(
-    nPlan, alpha=0.05, beta=0.2,
+    nPlan, alpha=0.05, power=0.8,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
-    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+    parameter=NULL, beta=NULL,
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     lowEsTrue=0.01, highEsTrue=3, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1977,6 +1978,8 @@ computeMinEsBatchSaviT <- function(
   testType <- match.arg(testType)
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
   if (eType=="mom") {
     paramFunc <- function(deltaTrue) deltaTrue^2/2
@@ -2009,14 +2012,15 @@ computeMinEsBatchSaviT <- function(
 
   targetFunction <- function(deltaTrue) {
     saviTTestStat(
-      stats::qt("p"=beta, "df"=nu, "ncp"=sqrt(nEff)*deltaTrue),
+      stats::qt("p"=1-power, "df"=nu, "ncp"=sqrt(nEff)*deltaTrue),
       "n1"=n1, "n2"=n2, "parameter"=paramFunc(deltaTrue),
       "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
   }
 
   if (eType=="grow")  {
     gaussResult <- computeMinEsBatchSaviT(
-      "nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "alternative"=tempAlternative,
+      "nPlan"=nPlan, "alpha"=alpha, "power"=power,
+      "beta"=NULL, "alternative"=tempAlternative,
       testType=testType, eType="eGauss")
   }
 
@@ -2297,8 +2301,8 @@ sampleStoppingTimesSaviT <- function(
 #'   `r addCite(ly2024safe)`
 #'
 #' @examples
-#' computeBetaSaviT(deltaTrue=0.7, 27, nSim=10)
-computeBetaSaviT <- function(
+#' computePowerSaviT(deltaTrue=0.7, 27, nSim=10)
+computePowerSaviT <- function(
     deltaTrue, nPlan, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
@@ -2343,16 +2347,16 @@ computeBetaSaviT <- function(
   }
 
   samplingResult <- sampleStoppingTimesSaviT(
-    "deltaTrue"=deltaTrue, "alpha"=alpha,
+    "deltaTrue"=deltaTrue, "alpha"=alpha, "power"=power,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
     "eType"=eType, "nuMin"=nuMin, "wantSimData"=wantSimData,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
-    "pb"=pb, "seed"=seed, "nSim"=nSim,
+    "pb"=pb, "seed"=seed, "nSim"=nSim, "beta"=NULL,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, ...)
 
-  result <- computeBetaBootstrapper(
+  result <- computePowerBootstrapper(
     "samplingResult"=samplingResult, "parameter"=parameter,
     "nPlan"=nPlan, "nBoot"=nBoot)
 
@@ -2429,11 +2433,11 @@ computeNPlanSaviT <- function(
 
   samplingResult <- sampleStoppingTimesSaviT(
     "deltaTrue"=deltaTrue, "alpha"=alpha, "power"=power,
-    "beta"=NULL, "alternative"=alternative, "testType"=testType,
+    "alternative"=alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
     "eType"=eType, "deltaMin"=deltaMin, "nuMin"=nuMin,
     "wantSamplePaths"=wantSamplePaths, "wantSimData"=wantSimData,
-    "pb"=pb, "seed"=seed, "nSim"=nSim,
+    "pb"=pb, "seed"=seed, "nSim"=nSim, "beta"=NULL,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, ...)
 

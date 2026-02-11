@@ -8,11 +8,12 @@ sample size}
 computeMinEsBatchSaviT(
   nPlan,
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  beta = NULL,
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   lowEsTrue = 0.01,
   highEsTrue = 3,
   ...
@@ -23,9 +24,6 @@ computeMinEsBatchSaviT(
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
-
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
@@ -41,6 +39,9 @@ non-central t-distributions with in the denominator the likelihood with non-cent
 parameter set to 0, and in the numerator an average likelihood defined by the likelihood
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
+
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
+the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
 a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of

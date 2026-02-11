@@ -5,12 +5,13 @@
 \title{Helper function to designing a T-test (output esMin)}
 \usage{
 designSaviT3WantEsMin(
-  beta,
+  power,
   nPlan,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
+  beta = NULL,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   lowEsTrue = 0.01,
   highEsTrue = 3,
@@ -18,9 +19,6 @@ designSaviT3WantEsMin(
 )
 }
 \arguments{
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
-
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
@@ -40,6 +38,9 @@ non-central t-distributions with in the denominator the likelihood with non-cent
 parameter set to 0, and in the numerator an average likelihood defined by the likelihood
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
+
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
+the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
 a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of

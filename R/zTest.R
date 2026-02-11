@@ -1435,9 +1435,10 @@ designSaviZ3WantEsMin <- function(
                  "note"=NULL)
 
   meanDiffMin <- tryOrFailWithNA(
-    computeMinEsBatchSaviZ("nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "sigma"=sigma,
-                           "kappa"=kappa, "alternative"=alternative, "testType"=testType,
-                           "parameter"=parameter, "eType"=eType)
+    computeMinEsBatchSaviZ(
+      "nPlan"=nPlan, "alpha"=alpha, "power"=power, "beta"=NULL, "sigma"=sigma,
+      "kappa"=kappa, "alternative"=alternative, "testType"=testType,
+      "parameter"=parameter, "eType"=eType)
   )
 
   parameter <- matchEParameterWith(
@@ -1802,6 +1803,8 @@ computeMinEsBatchSaviZ <- function(
   testType <- match.arg(testType)
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
   if (eType=="eCauchy" && nEff > 1e5 || eType=="imom" && nEff > 1e8 ||
       eType=="mom" && alternative %in% c("greater", "less") && nEff > 1e8) {
