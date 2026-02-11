@@ -6,7 +6,7 @@
 \title{Helper function to designing a Z-test (output esMin)}
 \usage{
 designSaviZ3WantEsMin(
-  beta,
+  power,
   nPlan,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
@@ -14,6 +14,7 @@ designSaviZ3WantEsMin(
   kappa = sigma,
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
+  beta = NULL,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   lowEsTrue = 0.01,
   highEsTrue = 3,
@@ -62,6 +63,10 @@ targeted minimal clinically relevant effect size.
 Design scenario 3: nPlan and beta given, goal find meanDiffMin}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
 }
 \value{
 A list with the parameter and the targeted esMin amongst other items

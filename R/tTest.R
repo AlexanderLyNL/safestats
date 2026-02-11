@@ -983,9 +983,8 @@ savi.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
 #' the e-value in favour of the alternative over futility, e1f, then the probability of
 #' ever seeing e1f <= betaFutility is not more than betaFutility.
 #'
-#' @rdname saviZTestStat
-#' @rdname saviZTestStat
-#' @inheritParams designSaviZ
+#' @rdname saviTTestStat
+#' @inheritParams designSaviT
 #' @export
 #'
 #' @examples
@@ -1308,10 +1307,10 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
 #' designObj
 designSaviT <- function(
-    deltaMin=NULL, beta=NULL, nPlan=NULL,
+    deltaMin=NULL, power=NULL, nPlan=NULL,
     alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL,
+    ratio=1, parameter=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
     deltaTrue=NULL,
@@ -1368,6 +1367,11 @@ designSaviT <- function(
 
   }
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
+  if (is.null(beta) && !is.null(power))
+    beta <- 1-power
+
   if (futility) {
     esMinFutility <- matchFutilityParameterWith(
       "esMinFutility"=esMinFutility, "esMin"=deltaMin,
@@ -1377,18 +1381,18 @@ designSaviT <- function(
       stop("Can't run a futility analysis without esMinFutility or deltaMin")
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "beta"=beta, "betaDefault"=betaDefault)
+      "betaFutility"=betaFutility, "power"=power, "beta"=beta, "betaDefault"=betaDefault)
   }
 
   designScenario <- NULL
 
   tempResult <- list()
 
-  if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan) && wantSampling) {
+  if (!is.null(deltaMin) && !is.null(power) && is.null(nPlan) && wantSampling) {
     designScenario <- "1a"
 
     tempResult <- designSaviT1aWantNPlan(
-      "deltaMin"=deltaMin, "beta"=beta, "deltaTrue"=deltaTrue,
+      "deltaMin"=deltaMin, "power"=power, "deltaTrue"=deltaTrue,
       "alpha"=alpha, "alternative"=alternative,
       "ratio"=ratio, "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
@@ -1396,8 +1400,8 @@ designSaviT <- function(
       "nBoot"=nBoot, "futility"=futility,
       "esMinFutility"=esMinFutility, "betaFutility"=betaFutility, ...)
 
-  } else if (!is.null(deltaMin) && !is.null(beta) && is.null(nPlan) && isFALSE(wantSampling) ||
-             !is.null(deltaMin) && is.null(beta) && is.null(nPlan)) {
+  } else if (!is.null(deltaMin) && !is.null(power) && is.null(nPlan) && isFALSE(wantSampling) ||
+             !is.null(deltaMin) && is.null(power) && is.null(nPlan)) {
     designScenario <- "1b"
 
     tempResult <- list("parameter"=parameter,
@@ -1414,7 +1418,7 @@ designSaviT <- function(
       tempResult[["futilityResult"]] <- futilityResult
     }
 
-  } else if (!is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
+  } else if (!is.null(deltaMin) && is.null(power) && !is.null(nPlan)) {
     # scenario 2: given effect size and nPlan, calculate power and implied target
     designScenario <- "2"
 
@@ -1426,15 +1430,15 @@ designSaviT <- function(
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
       "futility"=futility, "esMinFutility"=esMinFutility,
       "betaFutility"=betaFutility, ...)
-  } else if (is.null(deltaMin) && !is.null(beta) && !is.null(nPlan)) {
+  } else if (is.null(deltaMin) && !is.null(power) && !is.null(nPlan)) {
     designScenario <- "3"
 
     tempResult <- designSaviT3WantEsMin(
-      "beta"=beta, "nPlan"=nPlan, "alpha"=alpha,
+      "power"=power, "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative, "testType"=testType,
       "parameter"=parameter, "eType"=eType,
       "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue)
-  } else if (is.null(deltaMin) && is.null(beta) && !is.null(nPlan)) {
+  } else if (is.null(deltaMin) && is.null(power) && !is.null(nPlan)) {
     #scenario 3b: only nPlan known, find the parameter at which the confidence interval
     # is the most narrow at nPlan
 
@@ -1534,10 +1538,10 @@ designSaviT <- function(
 #' @examples
 #' designSaviT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
 designSaviT1aWantNPlan <- function(
-    deltaMin, beta, alpha=0.05,
+    deltaMin, power, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL, deltaTrue=NULL,
+    ratio=1, parameter=NULL, deltaTrue=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
@@ -1548,8 +1552,12 @@ designSaviT1aWantNPlan <- function(
   eType <- match.arg(eType)
   testType <- match.arg(testType)
 
+  if (is.null(deltaTrue)) deltaTrue <- deltaMin
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   samplingResult <- computeNPlanSaviT(
-    "deltaTrue"=deltaTrue, "beta"=beta, "alpha"=alpha,
+    "deltaTrue"=deltaTrue, "power"=power, "alpha"=alpha,
     "alternative"=alternative, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
     "wantSamplePaths"=wantSamplePaths,
@@ -1560,8 +1568,8 @@ designSaviT1aWantNPlan <- function(
 
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
-                               "esMin"=deltaMin, "beta"=beta,
-                               "ratio"=ratio, "testType"=testType)
+                               "esMin"=deltaMin, power=power,
+                               "beta"=NULL, "ratio"=ratio, "testType"=testType)
   return(result)
 }
 
@@ -1802,11 +1810,11 @@ designSaviT3bWantParameter <- function(
 #'   `r addCite(ly2024safe)`
 #'
 computeNPlanBatchSaviT <- function(
-    deltaTrue, alpha=0.05, beta=0.2,
+    deltaTrue, alpha=0.05, power=0.8,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    parameter=NULL, ratio=1, ...) {
+    parameter=NULL, beta=NULL, ratio=1, deltaMin=NULL, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1820,6 +1828,8 @@ computeNPlanBatchSaviT <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   result <- list(nPlan=NULL, "parameter"=parameter)
 
   n1Plan <- NULL
@@ -1827,25 +1837,25 @@ computeNPlanBatchSaviT <- function(
 
   n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
-  if (is.null(parameter)) {
-    deltaTrue <- checkAndReturnEsMinParameterSide(
-      "paramToCheck"=deltaTrue, "alternative"=alternative,
-      "esMinName"="deltaTrue")
+  if (is.null(deltaMin))
+    deltaMin <- deltaTrue
 
-    parameter <- switch(eType,
-                        "mom"=deltaTrue^2/2,
-                        "eGauss"=deltaTrue^2,
-                        "imom"=abs(deltaTrue),
-                        "eCauchy"=abs(deltaTrue),
-                        "grow"=abs(deltaTrue),
-                        "bayarri"=0)
-  }
+  deltaMin <- suppressWarnings(
+    checkAndReturnEsMinParameterSide(
+      "paramToCheck"=deltaMin, "alternative"=alternative,
+      "esMinName"="deltaMin")
+  )
+
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=deltaMin, "alternative"=alternative, "eType"=eType
+  )
 
   deltaTrue <- abs(deltaTrue)
 
   # Sample size of greater sided Z-test as lower/upper bound for
   # the candidate set of nEff
-  qB <- stats::qnorm(beta)
+  qB <- stats::qnorm(1-power)
 
   nTemp <- exp(-2*log(deltaTrue))*
     (2*qB^2 - 2*qB*sqrt(qB^2+2*log(1/alpha))
@@ -1868,7 +1878,7 @@ computeNPlanBatchSaviT <- function(
 
   targetFunction <- function(nEff) {
     saviTTestStat(
-      stats::qt("p"=beta, "df"=nuFunc(nEff), "ncp"=sqrt(nEff)*deltaTrue),
+      stats::qt("p"=1-power, "df"=nuFunc(nEff), "ncp"=sqrt(nEff)*deltaTrue),
       "n1"=n1Func(nEff), "n2"=n2Func(nEff), "parameter"=parameter, "alternative"=tempAlternative,
       "eType"=eType)$eValue-1/alpha
   }
@@ -1885,12 +1895,12 @@ computeNPlanBatchSaviT <- function(
                error=identity)
     )
 
-    if (eType=="bayarri") {
-      tempResult <- suppressWarnings(
-        tryCatch(stats::uniroot(targetFunction, interval=c(nTemp/2, 50*nTemp)),
-                 error=identity)
-      )
-    }
+    # if (eType=="bayarri") {
+    #   tempResult <- suppressWarnings(
+    #     tryCatch(stats::uniroot(targetFunction, interval=c(nTemp/2, 50*nTemp)),
+    #              error=identity)
+    #   )
+    # }
   }
 
   if (inherits(tempResult, "simpleError"))
@@ -2050,8 +2060,8 @@ sampleStoppingTimesSaviT <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, deltaMin=NULL, parameter=NULL,
     lowN=3L, nMax=1e8L,
-    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    wantEValuesAtNMax=FALSE, nuMin=2,
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
+    wantEValuesAtNMax=FALSE, nuMin=2, power=NULL,
     wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
     esMinFutility=NULL, beta=NULL, betaFutility=NULL, ...) {
@@ -2060,6 +2070,8 @@ sampleStoppingTimesSaviT <- function(
             is.finite(nMax),
             is.finite(deltaTrue))
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   if (futility) {
     esMinFutility <- matchFutilityParameterWith(
       "esMinFutility"=esMinFutility, "esMin"=deltaMin,
@@ -2067,7 +2079,7 @@ sampleStoppingTimesSaviT <- function(
     )
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "beta"=beta
+      "betaFutility"=betaFutility, "power"=power, "beta"=1-power
     )
 
     stopifnot(betaFutility > 0, betaFutility < 1)
@@ -2090,6 +2102,10 @@ sampleStoppingTimesSaviT <- function(
     "wantEValuesAtNMax"=wantEValuesAtNMax,
     "wantSamplePaths"=wantSamplePaths)
 
+  deltaTrue <- abs(deltaTrue)
+
+  deltaMin <- if (is.null(deltaMin)) abs(deltaTrue) else abs(deltaMin)
+
   parameter <- matchEParameterWith(
     "parameter"=parameter, "analysisType"="t",
     "esMin"=deltaMin, "alternative"=alternative,
@@ -2109,7 +2125,6 @@ sampleStoppingTimesSaviT <- function(
            "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
            "parameter"=futilityParameter, "beta"=betaFutility)
   }
-
 
   if (testType=="twoSample" && length(nMax)==1) {
     nMax <- c(nMax, ceil(ratio*nMax))
@@ -2363,10 +2378,11 @@ computeBetaSaviT <- function(
 #' @examples
 #' computeNPlanSaviT(0.7, 0.2, nSim=10)
 computeNPlanSaviT <- function(
-    deltaTrue, beta=0.2, alpha=0.05,
+    deltaTrue, power=0.8, alpha=0.05,
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL, nMax=1e8, deltaMin=NULL,
+    deltaMin=NULL, beta=NULL,
+    ratio=1, parameter=NULL, nMax=1e8,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantSamplePaths=TRUE, wantSimData=TRUE, nuMin=2,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
@@ -2389,11 +2405,22 @@ computeNPlanSaviT <- function(
     "paramToCheck"=deltaTrue, "alternative"=alternative,
     "esMinName"="deltaTrue")
 
+  if (is.null(deltaMin)) {
+    deltaMin <- deltaTrue
+  } else {
+    deltaMin <- checkAndReturnEsMinParameterSide(
+      "paramToCheck"=deltaMin, "alternative"=alternative,
+      "esMinName"="deltaMin")
+  }
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   tempObj <- computeNPlanBatchSaviT(
-    "deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
+    "deltaTrue"=deltaMin, "alpha"=alpha, "power"=power,
     "alternative"=alternative, "testType"=testType,
-    "parameter"=parameter, "ratio"=ratio,
-    "eType"=eType, ...)
+    "parameter"=parameter, "ratio"=ratio, "eType"=eType,
+    "meanDiffMin"=deltaMin, #"highN"=highN,
+    "wantSimData"=wantSimData, ...)
 
   nPlanBatch <- tempObj[["nPlan"]]
 
@@ -2401,18 +2428,19 @@ computeNPlanSaviT <- function(
     parameter <- tempObj[["parameter"]]
 
   samplingResult <- sampleStoppingTimesSaviT(
-    "deltaTrue"=deltaTrue, "alpha"=alpha, "beta"=beta,
-    "alternative" = alternative, "testType"=testType,
+    "deltaTrue"=deltaTrue, "alpha"=alpha, "power"=power,
+    "beta"=NULL, "alternative"=alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
     "eType"=eType, "deltaMin"=deltaMin, "nuMin"=nuMin,
-    "seed"=seed, "wantSamplePaths"=wantSamplePaths,
-    "wantSimData"=wantSimData,
+    "wantSamplePaths"=wantSamplePaths, "wantSimData"=wantSimData,
+    "pb"=pb, "seed"=seed, "nSim"=nSim,
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, ...)
 
-  result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
-                                     "parameter"=parameter, "beta"=beta,
-                                     "nPlanBatch"=nPlanBatch, "nBoot"=nBoot)
+  result <- computeNPlanBootstrapper(
+    "samplingResult"=samplingResult, "parameter"=parameter,
+    "beta"=NULL, "power"=power, "nPlanBatch"=nPlanBatch, "nBoot"=nBoot
+  )
   return(result)
 }
 
@@ -2762,314 +2790,314 @@ tTestWidthDerivative <- function(g, nEff, nu, alpha=0.05) {
 }
 
 
-#' Title
+#' #' Title
+#' #'
+#' #' @inheritparams x
+#' #' @param y
+#' #' @param designObj
+#' #' @param paired
+#' #' @param varEqual
+#' #' @param ciValue
+#' #' @param maxRoot
+#' #' @param sequential
+#' #' @param futility
+#' #' @param esMinFutility
+#' #' @param ...
+#' #'
+#' #' @returns
+#' #' @export
+#' #'
+#' #' @examples
+#' saviTTestFut <- function(
+#'     x, y=NULL, designObj=NULL, paired=FALSE,
+#'     varEqual=TRUE, ciValue=NULL,
+#'     maxRoot=10, sequential=NULL,
+#'     futility=FALSE, esMinFutility=NULL,
+#'     nuMin=2, ...) {
 #'
-#' @param x
-#' @param y
-#' @param designObj
-#' @param paired
-#' @param varEqual
-#' @param ciValue
-#' @param maxRoot
-#' @param sequential
-#' @param futility
-#' @param esMinFutility
-#' @param ...
+#'   result <- constructSaviTestObj("T-Test")
 #'
-#' @returns
-#' @export
+#'   # Vars for sequential analysis
+#'   eValueVec <- NULL
+#'   confSeqMatrix <- NULL
+#'   n1Vec <- NULL
+#'   n2Vec <- NULL
 #'
-#' @examples
-saviTTestFut <- function(
-    x, y=NULL, designObj=NULL, paired=FALSE,
-    varEqual=TRUE, ciValue=NULL,
-    maxRoot=10, sequential=NULL,
-    futility=FALSE, esMinFutility=NULL,
-    nuMin=2, ...) {
-
-  result <- constructSaviTestObj("T-Test")
-
-  # Vars for sequential analysis
-  eValueVec <- NULL
-  confSeqMatrix <- NULL
-  n1Vec <- NULL
-  n2Vec <- NULL
-
-  ## Def: test type -------
-  if (is.null(y)) {
-    testType <- "oneSample"
-  } else {
-    if (paired) {
-      testType <- "paired"
-    } else {
-      testType <- "twoSample"
-    }
-  }
-
-  ## Check: designObj ----
-  if (is.null(designObj)) {
-    designObj <- designSaviT(0.5, "eType"="mom",
-                             "testType"=testType)
-    designObj[["pilot"]] <- TRUE
-
-    warningMessage <- paste("No designObj given. Default test computed based",
-                            "on a non-local prior at +1/2 and -1/2.")
-    warning(warningMessage)
-  }
-
-  if (designObj[["testName"]] != "T-Test")
-    warning("The provided design is not constructed for the t-test,",
-            "please use designSaviT() instead. The test results might be invalid.")
-
-  if (designObj[["testType"]] != testType)
-    warning('The test type of designObj is "', designObj[["testType"]],
-            '", whereas the data correspond to a testType "', testType, '"')
-
-  ## Check: Data -----
-  #
-  if (is.null(y)) {
-    ### One-sample -----
-    #
-    if (isTRUE(paired))
-      stop("Data error: Paired analysis requested without specifying the second variable")
-
-    dataName <- deparse1(substitute(x))
-    x <- x[!is.na(x)]
-
-    n <- nEff <- n1 <- length(x)
-    n2 <- NULL
-    nu <- n-1
-
-    meanObs <- estimate <- mean(x)
-    sdObs <- stats::sd(x)
-
-    names(estimate) <- "mean of x"
-    names(n) <- "n1"
-
-    if (is.null(sequential))
-      sequential <- if (n1 <= 200) TRUE else FALSE
-
-    if (sequential) {
-      tempN <- defineTTestN("lowN"=1, "highN"=n1,
-                            "testType"="oneSample")
-
-      nEffVec <- tempN[["nEff"]]
-      n1Vec <- tempN[["n1"]]
-      n2Vec <- tempN[["n2"]]
-      nuVec <- tempN[["nu"]]
-
-      meanObsVec <- 1/nEffVec*cumsum(x)
-      sdObsVec <- sqrt(1/nuVec*(cumsum(x^2)-nEffVec*meanObsVec^2))
-    }
-  } else {
-    dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
-
-    if (isTRUE(paired))
-      xGoodIndeces <- yGoodIndeces  <-
-        stats::complete.cases(x, y)
-    else {
-      yGoodIndeces <- !is.na(y)
-      xGoodIndeces <- !is.na(x)
-    }
-
-    x <- x[xGoodIndeces]
-    y <- y[yGoodIndeces]
-
-    n1 <- length(x)
-    n2 <- length(y)
-
-    ### Paired ----
-    #
-    if (isTRUE(paired)) {
-      if (n1 != n2)
-        stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
-             "but the two samples are not of the same size.")
-
-      nEff <- n1
-      nu <- n1-1
-      meanObs <- estimate <- mean(x-y)
-      sdObs <- stats::sd(x-y)
-      names(estimate) <- "mean of the differences"
-
-      if (is.null(sequential))
-        sequential <- if (n1 <= 200) TRUE else FALSE
-
-      if (sequential) {
-        tempN <- defineTTestN("lowN"=1, "highN"=n1, testType="paired")
-
-        nEffVec <- tempN[["nEff"]]
-        n1Vec <- tempN[["n1"]]
-        n2Vec <- tempN[["n2"]]
-        nuVec <- tempN[["nu"]]
-
-        meanObsVec <- 1/nEffVec*cumsum(x-y)
-        sdObsVec <- sqrt(1/nuVec*(cumsum((x-y)^2)-nEffVec*meanObsVec^2))
-      }
-    } else {
-      ## Two-sample ----
-      nEff <- (1/n1+1/n2)^(-1)
-      nu <- n1+n2-2
-
-      sPooledSquared <- ((n1-1)*stats::var(x)+(n2-1)*stats::var(y))/nu
-
-      sdObs <- sqrt(sPooledSquared)
-
-      estimate <- c(mean(x), mean(y))
-      names(estimate) <- c("mean of x", "mean of y")
-      meanObs <- estimate[1]-estimate[2]
-
-      if (is.null(sequential))
-        sequential <- if (n1 <= 200) TRUE else FALSE
-
-      if (sequential) {
-        tempN <- defineTTestN(1, n1, n2/n1, testType="twoSample")
-
-        nEffVec <- tempN[["nEff"]]
-        nuVec <- tempN[["nu"]]
-
-        # These now serve as an order
-        n1Vec <- tempN[["n1"]]
-        n2Vec <- tempN[["n2"]]
-
-        xMeanObsRaw <- 1/(1:n1)*cumsum(x)
-        yMeanObsRaw <- 1/(1:n2)*cumsum(y)
-
-        xSumsOfSquaresRaw <- (cumsum(x^2)-(1:n1)*xMeanObsRaw^2)
-        ySumsOfSquaresRaw <- (cumsum(y^2)-(1:n2)*yMeanObsRaw^2)
-
-        if (n2/n1==1) {
-          xMeanObsVec <- xMeanObsRaw
-          yMeanObsVec <- yMeanObsRaw
-          xSumsOfSquaresVec <- xSumsOfSquaresRaw
-          ySumsOfSquaresVec <- ySumsOfSquaresRaw
-        } else {
-          vecLength <- length(n1Vec)
-
-          xMeanObsVec <- yMeanObsVec <-
-            xSumsOfSquaresVec <- ySumsOfSquaresVec <- numeric(vecLength)
-
-          for (j in 1:vecLength) {
-            nowN1 <- n1Vec[j]
-            nowN2 <- n2Vec[j]
-
-            xMeanObsVec[j] <- xMeanObsRaw[nowN1]
-            yMeanObsVec[j] <- yMeanObsRaw[nowN2]
-            xSumsOfSquaresVec[j] <- xSumsOfSquaresRaw[nowN1]
-            ySumsOfSquaresVec[j] <- ySumsOfSquaresRaw[nowN2]
-          }
-        }
-
-        sPooledSquaredVec <- (xSumsOfSquaresVec+ySumsOfSquaresVec)/nuVec
-
-        meanObsVec <- xMeanObsVec-yMeanObsVec
-        sdObsVec <- sqrt(sPooledSquaredVec)
-      }
-    }
-
-    n <- c(n1, n2)
-    names(n) <- c("n1", "n2")
-  }
-
-  alpha <- designObj[["alpha"]]
-  alternative <- designObj[["alternative"]]
-  h0 <- designObj[["h0"]]
-
-  if (is.null(ciValue))
-    ciValue <- 1-alpha
-
-  if (ciValue < 0 || ciValue > 1)
-    stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
-
-  tStat <- tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
-
-  if (is.na(tStat))
-    stop("Data error: Could not compute the t-statistic")
-
-  names(tStat) <- "t"
-
-  ### Compute: eValue ----
-  #
-  testResult <- suppressWarnings(
-    saviTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
-                  "n2"=n2, "alternative"=alternative, "paired"=paired,
-                  "eType"=designObj[["eType"]], "nuMin"=nuMin)
-  )
-
-
-  ### Compute: confSeq ----
-  #
-  result[["confSeq"]] <- computeConfidenceIntervalT(
-    "meanObs"=meanObs, "sdObs"=sdObs,
-    "nEff"=nEff, "nu"=nu,
-    "parameter"=designObj[["parameter"]],
-    "eType"=designObj[["eType"]], "ciValue"=ciValue,
-    "maxRoot"=maxRoot, "nuMin"=nuMin)
-
-  eValueVecFut <- NULL
-
-  ## Compute: Sequential ----
-  if (sequential) {
-    tStatVec <- sqrt(nEffVec)*(meanObsVec-h0)/sdObsVec
-
-    mIter <- length(n1Vec)
-
-    eValueVec <- numeric(mIter)
-    confSeqMatrix <- matrix(nrow=mIter, ncol=2)
-
-    if (futility)
-      eValueVecFut <- eValueVec
-
-    for (i in seq_along(n1Vec)) {
-      brie <- suppressWarnings(
-        saviTTestStat("t"=tStatVec[i], "parameter"=designObj[["parameter"]],
-                      "n1"=n1Vec[i], "n2"=n2Vec[i], "alternative"=alternative,
-                      "paired"=paired, "eType"=designObj[["eType"]],
-                      "nuMin"=nuMin)
-      )
-
-      if (futility) {
-        eValueVecFut[i] <- suppressWarnings(unlist(
-          saviFutilityTStatNEffNu(
-            "t"=tStatVec[i], "nEff"=nEffVec[i],
-            "nu"=nuVec[i], "esMinFutility"=esMinFutility,
-            "alternative"="twoSided", "nuMin"=nuMin))
-        )
-      }
-
-      eValueVec[i] <- unname(brie[["eValue"]])
-
-      kaas <- computeConfidenceIntervalT("meanObs"=meanObsVec[i], "sdObs"=sdObsVec[i],
-                                         "nEff"=nEffVec[i], "nu"=nuVec[i],
-                                         "parameter"=designObj[["parameter"]],
-                                         "eType"=designObj[["eType"]], "ciValue"=ciValue,
-                                         "maxRoot"=maxRoot, "nuMin"=nuMin)
-
-      confSeqMatrix[i, ] <- kaas
-    }
-  }
-
-  ### Fill: Result -----
-  #
-  result[["statistic"]] <- tStat
-  result[["estimate"]] <- estimate
-  result[["stderr"]] <- sdObs/sqrt(nEff)
-  result[["dataName"]] <- dataName
-  result[["designObj"]] <- designObj
-  result[["testType"]] <- testType
-  result[["n"]] <- n
-  result[["ciValue"]] <- ciValue
-
-  result[["eValueVec"]] <- eValueVec
-  result[["confSeqMatrix"]] <- confSeqMatrix
-  result[["n1Vec"]] <- n1Vec
-  result[["n2Vec"]] <- n2Vec
-
-  result[["eValue"]] <- testResult[["eValue"]]
-  result[["eValueApproxError"]] <- testResult[["eValueApproxError"]]
-
-  result[["eValueVecFut"]] <- eValueVecFut
-
-  names(result[["statistic"]]) <- "t"
-
-  return(result)
-}
+#'   ## Def: test type -------
+#'   if (is.null(y)) {
+#'     testType <- "oneSample"
+#'   } else {
+#'     if (paired) {
+#'       testType <- "paired"
+#'     } else {
+#'       testType <- "twoSample"
+#'     }
+#'   }
+#'
+#'   ## Check: designObj ----
+#'   if (is.null(designObj)) {
+#'     designObj <- designSaviT(0.5, "eType"="mom",
+#'                              "testType"=testType)
+#'     designObj[["pilot"]] <- TRUE
+#'
+#'     warningMessage <- paste("No designObj given. Default test computed based",
+#'                             "on a non-local prior at +1/2 and -1/2.")
+#'     warning(warningMessage)
+#'   }
+#'
+#'   if (designObj[["testName"]] != "T-Test")
+#'     warning("The provided design is not constructed for the t-test,",
+#'             "please use designSaviT() instead. The test results might be invalid.")
+#'
+#'   if (designObj[["testType"]] != testType)
+#'     warning('The test type of designObj is "', designObj[["testType"]],
+#'             '", whereas the data correspond to a testType "', testType, '"')
+#'
+#'   ## Check: Data -----
+#'   #
+#'   if (is.null(y)) {
+#'     ### One-sample -----
+#'     #
+#'     if (isTRUE(paired))
+#'       stop("Data error: Paired analysis requested without specifying the second variable")
+#'
+#'     dataName <- deparse1(substitute(x))
+#'     x <- x[!is.na(x)]
+#'
+#'     n <- nEff <- n1 <- length(x)
+#'     n2 <- NULL
+#'     nu <- n-1
+#'
+#'     meanObs <- estimate <- mean(x)
+#'     sdObs <- stats::sd(x)
+#'
+#'     names(estimate) <- "mean of x"
+#'     names(n) <- "n1"
+#'
+#'     if (is.null(sequential))
+#'       sequential <- if (n1 <= 200) TRUE else FALSE
+#'
+#'     if (sequential) {
+#'       tempN <- defineTTestN("lowN"=1, "highN"=n1,
+#'                             "testType"="oneSample")
+#'
+#'       nEffVec <- tempN[["nEff"]]
+#'       n1Vec <- tempN[["n1"]]
+#'       n2Vec <- tempN[["n2"]]
+#'       nuVec <- tempN[["nu"]]
+#'
+#'       meanObsVec <- 1/nEffVec*cumsum(x)
+#'       sdObsVec <- sqrt(1/nuVec*(cumsum(x^2)-nEffVec*meanObsVec^2))
+#'     }
+#'   } else {
+#'     dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
+#'
+#'     if (isTRUE(paired))
+#'       xGoodIndeces <- yGoodIndeces  <-
+#'         stats::complete.cases(x, y)
+#'     else {
+#'       yGoodIndeces <- !is.na(y)
+#'       xGoodIndeces <- !is.na(x)
+#'     }
+#'
+#'     x <- x[xGoodIndeces]
+#'     y <- y[yGoodIndeces]
+#'
+#'     n1 <- length(x)
+#'     n2 <- length(y)
+#'
+#'     ### Paired ----
+#'     #
+#'     if (isTRUE(paired)) {
+#'       if (n1 != n2)
+#'         stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
+#'              "but the two samples are not of the same size.")
+#'
+#'       nEff <- n1
+#'       nu <- n1-1
+#'       meanObs <- estimate <- mean(x-y)
+#'       sdObs <- stats::sd(x-y)
+#'       names(estimate) <- "mean of the differences"
+#'
+#'       if (is.null(sequential))
+#'         sequential <- if (n1 <= 200) TRUE else FALSE
+#'
+#'       if (sequential) {
+#'         tempN <- defineTTestN("lowN"=1, "highN"=n1, testType="paired")
+#'
+#'         nEffVec <- tempN[["nEff"]]
+#'         n1Vec <- tempN[["n1"]]
+#'         n2Vec <- tempN[["n2"]]
+#'         nuVec <- tempN[["nu"]]
+#'
+#'         meanObsVec <- 1/nEffVec*cumsum(x-y)
+#'         sdObsVec <- sqrt(1/nuVec*(cumsum((x-y)^2)-nEffVec*meanObsVec^2))
+#'       }
+#'     } else {
+#'       ## Two-sample ----
+#'       nEff <- (1/n1+1/n2)^(-1)
+#'       nu <- n1+n2-2
+#'
+#'       sPooledSquared <- ((n1-1)*stats::var(x)+(n2-1)*stats::var(y))/nu
+#'
+#'       sdObs <- sqrt(sPooledSquared)
+#'
+#'       estimate <- c(mean(x), mean(y))
+#'       names(estimate) <- c("mean of x", "mean of y")
+#'       meanObs <- estimate[1]-estimate[2]
+#'
+#'       if (is.null(sequential))
+#'         sequential <- if (n1 <= 200) TRUE else FALSE
+#'
+#'       if (sequential) {
+#'         tempN <- defineTTestN(1, n1, n2/n1, testType="twoSample")
+#'
+#'         nEffVec <- tempN[["nEff"]]
+#'         nuVec <- tempN[["nu"]]
+#'
+#'         # These now serve as an order
+#'         n1Vec <- tempN[["n1"]]
+#'         n2Vec <- tempN[["n2"]]
+#'
+#'         xMeanObsRaw <- 1/(1:n1)*cumsum(x)
+#'         yMeanObsRaw <- 1/(1:n2)*cumsum(y)
+#'
+#'         xSumsOfSquaresRaw <- (cumsum(x^2)-(1:n1)*xMeanObsRaw^2)
+#'         ySumsOfSquaresRaw <- (cumsum(y^2)-(1:n2)*yMeanObsRaw^2)
+#'
+#'         if (n2/n1==1) {
+#'           xMeanObsVec <- xMeanObsRaw
+#'           yMeanObsVec <- yMeanObsRaw
+#'           xSumsOfSquaresVec <- xSumsOfSquaresRaw
+#'           ySumsOfSquaresVec <- ySumsOfSquaresRaw
+#'         } else {
+#'           vecLength <- length(n1Vec)
+#'
+#'           xMeanObsVec <- yMeanObsVec <-
+#'             xSumsOfSquaresVec <- ySumsOfSquaresVec <- numeric(vecLength)
+#'
+#'           for (j in 1:vecLength) {
+#'             nowN1 <- n1Vec[j]
+#'             nowN2 <- n2Vec[j]
+#'
+#'             xMeanObsVec[j] <- xMeanObsRaw[nowN1]
+#'             yMeanObsVec[j] <- yMeanObsRaw[nowN2]
+#'             xSumsOfSquaresVec[j] <- xSumsOfSquaresRaw[nowN1]
+#'             ySumsOfSquaresVec[j] <- ySumsOfSquaresRaw[nowN2]
+#'           }
+#'         }
+#'
+#'         sPooledSquaredVec <- (xSumsOfSquaresVec+ySumsOfSquaresVec)/nuVec
+#'
+#'         meanObsVec <- xMeanObsVec-yMeanObsVec
+#'         sdObsVec <- sqrt(sPooledSquaredVec)
+#'       }
+#'     }
+#'
+#'     n <- c(n1, n2)
+#'     names(n) <- c("n1", "n2")
+#'   }
+#'
+#'   alpha <- designObj[["alpha"]]
+#'   alternative <- designObj[["alternative"]]
+#'   h0 <- designObj[["h0"]]
+#'
+#'   if (is.null(ciValue))
+#'     ciValue <- 1-alpha
+#'
+#'   if (ciValue < 0 || ciValue > 1)
+#'     stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
+#'
+#'   tStat <- tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+#'
+#'   if (is.na(tStat))
+#'     stop("Data error: Could not compute the t-statistic")
+#'
+#'   names(tStat) <- "t"
+#'
+#'   ### Compute: eValue ----
+#'   #
+#'   testResult <- suppressWarnings(
+#'     saviTTestStat("t"=tStat, "parameter"=designObj[["parameter"]], "n1"=n1,
+#'                   "n2"=n2, "alternative"=alternative, "paired"=paired,
+#'                   "eType"=designObj[["eType"]], "nuMin"=nuMin)
+#'   )
+#'
+#'
+#'   ### Compute: confSeq ----
+#'   #
+#'   result[["confSeq"]] <- computeConfidenceIntervalT(
+#'     "meanObs"=meanObs, "sdObs"=sdObs,
+#'     "nEff"=nEff, "nu"=nu,
+#'     "parameter"=designObj[["parameter"]],
+#'     "eType"=designObj[["eType"]], "ciValue"=ciValue,
+#'     "maxRoot"=maxRoot, "nuMin"=nuMin)
+#'
+#'   eValueVecFut <- NULL
+#'
+#'   ## Compute: Sequential ----
+#'   if (sequential) {
+#'     tStatVec <- sqrt(nEffVec)*(meanObsVec-h0)/sdObsVec
+#'
+#'     mIter <- length(n1Vec)
+#'
+#'     eValueVec <- numeric(mIter)
+#'     confSeqMatrix <- matrix(nrow=mIter, ncol=2)
+#'
+#'     if (futility)
+#'       eValueVecFut <- eValueVec
+#'
+#'     for (i in seq_along(n1Vec)) {
+#'       brie <- suppressWarnings(
+#'         saviTTestStat("t"=tStatVec[i], "parameter"=designObj[["parameter"]],
+#'                       "n1"=n1Vec[i], "n2"=n2Vec[i], "alternative"=alternative,
+#'                       "paired"=paired, "eType"=designObj[["eType"]],
+#'                       "nuMin"=nuMin)
+#'       )
+#'
+#'       if (futility) {
+#'         eValueVecFut[i] <- suppressWarnings(unlist(
+#'           saviFutilityTStatNEffNu(
+#'             "t"=tStatVec[i], "nEff"=nEffVec[i],
+#'             "nu"=nuVec[i], "esMinFutility"=esMinFutility,
+#'             "alternative"="twoSided", "nuMin"=nuMin))
+#'         )
+#'       }
+#'
+#'       eValueVec[i] <- unname(brie[["eValue"]])
+#'
+#'       kaas <- computeConfidenceIntervalT("meanObs"=meanObsVec[i], "sdObs"=sdObsVec[i],
+#'                                          "nEff"=nEffVec[i], "nu"=nuVec[i],
+#'                                          "parameter"=designObj[["parameter"]],
+#'                                          "eType"=designObj[["eType"]], "ciValue"=ciValue,
+#'                                          "maxRoot"=maxRoot, "nuMin"=nuMin)
+#'
+#'       confSeqMatrix[i, ] <- kaas
+#'     }
+#'   }
+#'
+#'   ### Fill: Result -----
+#'   #
+#'   result[["statistic"]] <- tStat
+#'   result[["estimate"]] <- estimate
+#'   result[["stderr"]] <- sdObs/sqrt(nEff)
+#'   result[["dataName"]] <- dataName
+#'   result[["designObj"]] <- designObj
+#'   result[["testType"]] <- testType
+#'   result[["n"]] <- n
+#'   result[["ciValue"]] <- ciValue
+#'
+#'   result[["eValueVec"]] <- eValueVec
+#'   result[["confSeqMatrix"]] <- confSeqMatrix
+#'   result[["n1Vec"]] <- n1Vec
+#'   result[["n2Vec"]] <- n2Vec
+#'
+#'   result[["eValue"]] <- testResult[["eValue"]]
+#'   result[["eValueApproxError"]] <- testResult[["eValueApproxError"]]
+#'
+#'   result[["eValueVecFut"]] <- eValueVecFut
+#'
+#'   names(result[["statistic"]]) <- "t"
+#'
+#'   return(result)
+#' }

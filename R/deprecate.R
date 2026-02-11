@@ -927,6 +927,10 @@ designSafeLogrank2WantBeta <- function(
 
 
 # 2x2 ------
+#' @rdname designSaviTwoProportions
+#' @aliases designSaviTwoProportions
+#' @usage NULL
+#' @export
 designSafeTwoProportions <- function(na, nb,
                                      nBlocksPlan = NULL,
                                      beta = NULL,
@@ -951,7 +955,10 @@ designSafeTwoProportions <- function(na, nb,
     simThetaAMin=simThetaAMin, simThetaAMax=simThetaAMax)
 }
 
-
+#' @rdname saviTwoProportionsTest
+#' @aliases saviTwoProportionsTest
+#' @usage NULL
+#' @export
 safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
                                    confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
 
@@ -966,6 +973,10 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
     pilot=pilot)
 }
 
+#' @rdname savi.prop.test
+#' @aliases savi.prop.test
+#' @usage NULL
+#' @export
 safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
                            confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
 
@@ -979,6 +990,10 @@ safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FA
     pilot=pilot)
 }
 
+#' @rdname print.savi2x2Sim
+#' @aliases print.savi2x2Sim
+#' @usage NULL
+#' @export
 print.safe2x2Sim <- function(x, ...) {
 
   warning('The function print.safe2x2Sim is deprecated;',
@@ -988,6 +1003,10 @@ print.safe2x2Sim <- function(x, ...) {
 }
 
 
+#' @rdname plot.savi2x2Sim
+#' @aliases plot.savi2x2Sim
+#' @usage NULL
+#' @export
 plot.safe2x2Sim <- function(x, ...) {
 
   warning('The function print.safe2x2Sim is deprecated;',

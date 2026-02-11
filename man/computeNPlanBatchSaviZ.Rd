@@ -9,20 +9,22 @@ difference, alpha and beta.}
 computeNPlanBatchSaviZ(
   meanDiffTrue,
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   sigma = 1,
   kappa = sigma,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   parameter = NULL,
-  highN = 1e+06,
+  meanDiffMin = NULL,
+  beta = NULL,
+  highN = 10000L,
   ratio = 1,
   ...
 )
 }
 \arguments{
-\item{meanDiffTrue}{numeric, data governing parameter value}
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
@@ -52,13 +54,23 @@ denominator the likelihood with mean difference 0 and in the numerator an averag
 likelihood defined by the likelihood at the parameter value phiS. For the two sided
 case 1/2 at -phiS and 1/2 phiS.}
 
-\item{highN}{integer that defines the largest n of our search space for n. This might be the
-largest n that we are able to fund.}
+\item{highN}{integer, largest possible sampling horizon. This might be the
+largest n that we are able to fund, which by default is set to 1e4L.
+Typically, highN is not used, as the function
+\code{computeNPlanBatchSaviZ()} tries to find the sampling horizon.
+If all fails, then use highN as the sampling horizon.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
+
+\item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
+that we would like to detect.}
 }
 \value{
 a list which contains at least nPlan and the phiS, that is, the parameter that defines

@@ -7,22 +7,27 @@
 \usage{
 designSaviZ1aWantNPlan(
   meanDiffMin,
-  beta,
+  power,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
+  beta = NULL,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
+  meanDiffTrue = NULL,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
   futility = FALSE,
-  growFutility = FALSE,
+  esMinFutility = NULL,
+  betaFutility = NULL,
+  highN = 10000L,
   ...
 )
 }
@@ -77,10 +82,23 @@ or for the computation of the logarithm of the implied target.}
 \item{futility}{logical, if \code{TRUE} then impose rule to stop
 for futility if e < beta. Default \code{FALSE}.}
 
-\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
-to stop for futility (e < beta). Default \code{FALSE}.}
-
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
+
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
+
+\item{esMinFutility}{numeric, the minimal clinical relevant mean
+difference that we do not want to miss under the alternative.
+Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)}
+
+\item{highN}{integer, largest possible sampling horizon. This might be the
+largest n that we are able to fund, which by default is set to 1e4L.
+Typically, highN is not used, as the function
+\code{computeNPlanBatchSaviZ()} tries to find the sampling horizon.
+If all fails, then use highN as the sampling horizon.}
 }
 \value{
 A list with the parameter and the targeted nPlan amongst other items

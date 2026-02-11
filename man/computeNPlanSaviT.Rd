@@ -8,19 +8,26 @@ minimal clinical relevant standardised mean difference.}
 \usage{
 computeNPlanSaviT(
   deltaTrue,
-  beta = 0.2,
+  power = 0.8,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
+  deltaMin = NULL,
+  beta = NULL,
   ratio = 1,
   parameter = NULL,
   nMax = 1e+08,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
+  nuMin = 2,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  futility = FALSE,
+  esMinFutility = NULL,
+  betaFutility = NULL,
   ...
 )
 }
@@ -72,6 +79,11 @@ approximation of the power, the number of samples for the savi t test under cont
 or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
+
+\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
+we would the experiment to be able to detect.}
+
+\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.

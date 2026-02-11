@@ -11,16 +11,23 @@ sampleStoppingTimesSaviT(
   alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
+  deltaMin = NULL,
   parameter = NULL,
   lowN = 3L,
   nMax = 100000000L,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   wantEValuesAtNMax = FALSE,
+  nuMin = 2,
+  power = NULL,
   wantSamplePaths = TRUE,
-  wantSimData = FALSE,
+  wantSimData = TRUE,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
+  futility = FALSE,
+  esMinFutility = NULL,
+  beta = NULL,
+  betaFutility = NULL,
   ...
 )
 }
@@ -71,6 +78,12 @@ two point masses at the minimal clinically relevant standardised effect size.}
 for the savi t test under continuous monitoring.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
+
+\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
+we would the experiment to be able to detect.}
+
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
+the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping

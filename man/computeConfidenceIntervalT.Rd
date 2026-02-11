@@ -13,7 +13,8 @@ computeConfidenceIntervalT(
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   alternative = c("twoSided", "greater", "less"),
   ciValue = 0.95,
-  maxRoot = 11
+  maxRoot = 11,
+  nuMin = 2
 )
 }
 \arguments{

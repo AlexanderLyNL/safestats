@@ -5,6 +5,7 @@
 \alias{saviTTestStatNEffNu}
 \alias{saviTTestStatNEffNuMom}
 \alias{saviTTestStatTDensity}
+\alias{saviFutilityTStatNEffNu}
 \title{Computes E-Values Based on the T-Statistic}
 \usage{
 saviTTestStat(
@@ -15,6 +16,7 @@ saviTTestStat(
   alternative = c("twoSided", "less", "greater"),
   tDensity = FALSE,
   paired = FALSE,
+  nuMin = 2,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   ...
 )
@@ -27,6 +29,7 @@ saviTTestStatNEffNu(
   alternative = c("twoSided", "less", "greater"),
   tDensity = FALSE,
   paired = FALSE,
+  nuMin = 2,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   ...
 )
@@ -50,6 +53,20 @@ saviTTestStatTDensity(
   nEff,
   alternative = c("twoSided", "less", "greater"),
   paired = FALSE,
+  ...
+)
+
+saviFutilityTStatNEffNu(
+  t,
+  nEff,
+  nu,
+  parameter = NULL,
+  alternative = c("twoSided", "less", "greater"),
+  eType = "grow",
+  tDensity = FALSE,
+  paired = FALSE,
+  esMinFutility,
+  nuMin = 2,
   ...
 )
 }
@@ -90,10 +107,17 @@ design object by deltaS.
 
 This is \code{\link{saviTTestStat}()} based on t-densities instead of
 hypergeometric functions.
+
+Evidence for futility requires the e-value to be small, i.e. smaller than betaFutility threshold.
+If the alternative holds true, i.e. meanDiffTrue >= esMinFutility, then
+the e-value in favour of the alternative over futility, e1f, then the probability of
+ever seeing e1f <= betaFutility is not more than betaFutility.
 }
 \examples{
 saviTTestStat(t=1, n1=100, parameter=0.4)
 saviTTestStat(t=3, n1=100, parameter=0.3)
+saviFutilityTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over futility
+saviFutilityTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for futility over the alternative
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

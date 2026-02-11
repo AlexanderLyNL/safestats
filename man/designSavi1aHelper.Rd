@@ -8,8 +8,9 @@
 designSavi1aHelper(
   samplingResult,
   esMin,
-  beta,
+  power,
   ratio,
+  beta = NULL,
   testType = c("oneSample", "paired", "twoSample")
 )
 }

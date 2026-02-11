@@ -7,18 +7,24 @@
 \usage{
 designSaviT1aWantNPlan(
   deltaMin,
-  beta,
+  power,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  deltaTrue = NULL,
+  beta = NULL,
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  futility = FALSE,
+  esMinFutility = NULL,
+  betaFutility = NULL,
   ...
 )
 }

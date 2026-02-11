@@ -9,12 +9,13 @@ sample size}
 computeMinEsBatchSaviZ(
   nPlan,
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   sigma = 1,
   kappa = sigma,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
+  beta = NULL,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   lowEsTrue = 0.01,
   highEsTrue = 0.002,
@@ -63,6 +64,10 @@ targeted minimal clinically relevant effect size.
 Design scenario 3: nPlan and beta given, goal find meanDiffMin}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
 }
 \value{
 numeric > 0 that represents the minimal detectable mean difference

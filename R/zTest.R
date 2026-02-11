@@ -982,8 +982,9 @@ designFreqZ <- function(
 #'
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
-#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-#' and "phiS". Note that 1-beta defines the power.
+#' @param power numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+#' the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+#' power <- 1-beta. This overrides the "beta" argument
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
 #' that we would like to detect.
 #' @param meanDiffTrue numeric, data governing mean difference used for simulation under the alternative
@@ -1017,6 +1018,8 @@ designFreqZ <- function(
 #' a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 #' two point masses at the minimal clinically relevant effect size.
 #' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
+#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
+#' and "phiS". Note that 1-beta defines the power.
 #' @param lowEsTrue numeric, lower bound for the candidate set of the
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
@@ -1071,14 +1074,14 @@ designFreqZ <- function(
 #' # Detectable relevant mean difference
 #' designObj <- designSaviZ(nPlan = 100, beta=0.2)
 designSaviZ <- function(
-    meanDiffMin=NULL, beta=NULL, nPlan=NULL,
+    meanDiffMin=NULL, power=NULL, nPlan=NULL,
     alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
-    meanDiffTrue=NULL,
+    meanDiffTrue=NULL, beta=NULL,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE, wantSimData=FALSE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL,
@@ -1131,7 +1134,11 @@ designSaviZ <- function(
       "alternative"=alternative, "eType"=eType)
   }
 
-  # TODO(Alexander): This relates to
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
+  if (is.null(beta) && !is.null(power))
+    beta <- 1-power
+
   if (futility) {
     esMinFutility <- matchFutilityParameterWith(
       "esMinFutility"=esMinFutility, "esMin"=meanDiffMin,
@@ -1141,18 +1148,18 @@ designSaviZ <- function(
       stop("Can't run a futility analysis without esMinFutility or meanDiffMin")
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "beta"=beta, "betaDefault"=betaDefault)
+      "betaFutility"=betaFutility, "power"=power, "betaDefault"=betaDefault)
   }
 
   designScenario <- NULL
 
   tempResult <- list()
 
-  if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan) && wantSampling) {
+  if (!is.null(meanDiffMin) && !is.null(power) && is.null(nPlan) && wantSampling) {
     designScenario <- "1a"
 
     tempResult <- designSaviZ1aWantNPlan(
-      "meanDiffMin"=meanDiffMin, "beta"=beta,
+      "meanDiffMin"=meanDiffMin, "power"=power,
       "alpha"=alpha, "alternative"=alternative,
       "meanDiffTrue"=meanDiffTrue,
       "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
@@ -1163,8 +1170,8 @@ designSaviZ <- function(
       "futility"=futility, "esMinFutility"=esMinFutility,
       "highN"=highN, "betaFutility"=betaFutility, ...)
 
-  } else if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan) && isFALSE(wantSampling) ||
-             !is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
+  } else if (!is.null(meanDiffMin) && !is.null(power) && is.null(nPlan) && isFALSE(wantSampling) ||
+             !is.null(meanDiffMin) && is.null(power) && is.null(nPlan)) {
     designScenario <- "1b"
 
     tempResult <- list("parameter"=parameter,
@@ -1181,10 +1188,10 @@ designSaviZ <- function(
       tempResult[["futilityResult"]] <- futilityResult
     }
 
-  } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
+  } else if (!is.null(meanDiffMin) && is.null(power) && !is.null(nPlan)) {
     designScenario <- "2"
 
-    tempResult <- designSaviZ2WantBeta(
+    tempResult <- designSaviZ2WantPower(
       "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
       "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
       "testType"=testType, "parameter"=parameter, "meanDiffMin"=meanDiffMin,
@@ -1193,17 +1200,17 @@ designSaviZ <- function(
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
       "futility"=futility, "esMinFutility"=esMinFutility,
       "betaFutility"=betaFutility, ...)
-  } else if (is.null(meanDiffMin) && !is.null(beta) && !is.null(nPlan)) {
+  } else if (is.null(meanDiffMin) && !is.null(power) && !is.null(nPlan)) {
     designScenario <- "3"
 
     tempResult <- designSaviZ3WantEsMin(
-      "beta"=beta, "nPlan"=nPlan, "alpha"=alpha,
+      "power"=power, "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative,
       "sigma"=sigma, "kappa"=kappa,
       "testType"=testType,
       "parameter"=parameter, "eType"=eType,
       "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue, ...)
-  } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
+  } else if (is.null(meanDiffMin) && is.null(power) && !is.null(nPlan)) {
     #scenario 3b: only nPlan known, find the parameter at which the confidence interval
     # is the most narrow at nPlan
 
@@ -1303,13 +1310,13 @@ designSaviZ <- function(
 #' @examples
 #' designSaviZ1aWantNPlan(meanDiffMin=0.9, beta=0.7, nSim=10)
 designSaviZ1aWantNPlan <- function(
-    meanDiffMin, beta, alpha=0.05,
+    meanDiffMin, power, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
-    sigma=1, kappa=sigma,
+    sigma=1, kappa=sigma, beta=NULL,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL, meanDiffTrue=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE, wantSimData=FALSE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     highN=1e4L, ...) {
@@ -1320,8 +1327,10 @@ designSaviZ1aWantNPlan <- function(
 
   if (is.null(meanDiffTrue)) meanDiffTrue <- meanDiffMin
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   samplingResult <- computeNPlanSaviZ(
-    "meanDiffTrue"=meanDiffTrue, "beta"=beta, "alpha"=alpha,
+    "meanDiffTrue"=meanDiffTrue, "power"=power, "alpha"=alpha,
     "alternative"=alternative, "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
     "wantSamplePaths"=wantSamplePaths,
@@ -1331,8 +1340,8 @@ designSaviZ1aWantNPlan <- function(
     "highN"=highN, "betaFutility"=betaFutility)
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
-                               "esMin"=meanDiffMin, "beta"=beta,
-                               "ratio"=ratio, "testType"=testType)
+                               "esMin"=meanDiffMin, "power"=power,
+                               "beta"=NULL, "ratio"=ratio, "testType"=testType)
   return(result)
 }
 
@@ -1351,8 +1360,8 @@ designSaviZ1aWantNPlan <- function(
 #' @export
 #'
 #' @examples
-#' designSaviZ2WantBeta(meanDiffMin=0.9, nPlan=7, nSim=10)
-designSaviZ2WantBeta <- function(
+#' designSaviZ2WantPower(meanDiffMin=0.9, nPlan=7, nSim=10)
+designSaviZ2WantPower <- function(
     meanDiffTrue, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
@@ -1360,7 +1369,7 @@ designSaviZ2WantBeta <- function(
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE, wantSimData=FALSE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
@@ -1371,7 +1380,7 @@ designSaviZ2WantBeta <- function(
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
   nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
-  samplingResult <- computeBetaSaviZ(
+  samplingResult <- computePowerSaviZ(
     "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
     "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
     "testType"=testType, "parameter"=parameter,
@@ -1404,11 +1413,11 @@ designSaviZ2WantBeta <- function(
 #' @examples
 #' designSaviZ3WantEsMin(beta=0.7, nPlan=10)
 designSaviZ3WantEsMin <- function(
-    beta, nPlan,
+    power, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
+    parameter=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     lowEsTrue=0.01, highEsTrue=3, ...) {
 
@@ -1419,8 +1428,10 @@ designSaviZ3WantEsMin <- function(
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
   nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   result <- list("parameter"=NULL, "esMin"=NULL,
-                 "nPlan"=nPlan, "beta"=beta, "ratio"=ratio,
+                 "nPlan"=nPlan, "power"=power, "ratio"=ratio,
                  "note"=NULL)
 
   meanDiffMin <- tryOrFailWithNA(
@@ -1562,11 +1573,11 @@ designSaviZ3bWantParameter <- function(
 #'   `r addCite(ly2024safe)`
 #'
 computeNPlanBatchSaviZ <- function(
-    meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+    meanDiffTrue, alpha=0.05, power=0.8, sigma=1, kappa=sigma,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    parameter=NULL, meanDiffMin=NULL,
+    parameter=NULL, meanDiffMin=NULL, beta=NULL,
     highN=1e4L, ratio=1, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1580,6 +1591,8 @@ computeNPlanBatchSaviZ <- function(
   alternative <- match.arg(alternative)
   testType <- match.arg(testType)
   eType <- match.arg(eType)
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
   result <- list(nPlan=NULL, parameter=NULL)
 
@@ -1607,7 +1620,7 @@ computeNPlanBatchSaviZ <- function(
 
   # Note(Alexander): Computes one-sided grow sample size used
   # to bound the candidate set of nEff
-  qB <- stats::qnorm(beta)
+  qB <- stats::qnorm(1-power)
 
   nTemp <- exp(2*(log(kappa)-log(meanDiffTrue))) *
     (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))
@@ -1630,7 +1643,7 @@ computeNPlanBatchSaviZ <- function(
     }
 
     targetFunction <- function(nEff) {
-      saviZTestStat(stats::qnorm("p"=beta, "mean"=sqrt(nEff)*meanDiffTrue/sigma, "sd"=kappa/sigma),
+      saviZTestStat(stats::qnorm("p"=1-power, "mean"=sqrt(nEff)*meanDiffTrue/sigma, "sd"=kappa/sigma),
                     "n1"=n1Func(nEff), "n2"=n2Func(nEff),
                     "parameter"=parameter, "sigma"=sigma,
                     "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
@@ -1768,10 +1781,10 @@ computeBetaBatchSaviZ <- function(
 #' @examples
 #' computeMinEsBatchSaviZ(27)
 computeMinEsBatchSaviZ <- function(
-    nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+    nPlan, alpha=0.05, power=0.8, sigma=1, kappa=sigma,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
+    parameter=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     lowEsTrue=0.01, highEsTrue=0.002, ...) {
 
@@ -1826,7 +1839,7 @@ computeMinEsBatchSaviZ <- function(
   }
 
   targetFunction <- function(deltaTrue) {
-    saviZTestStat(stats::qnorm("p"=beta, "mean"=sqrt(nEff)*deltaTrue, "sd"=kappa/sigma),
+    saviZTestStat(stats::qnorm("p"=1-power, "mean"=sqrt(nEff)*deltaTrue, "sd"=kappa/sigma),
                   "n1"=n1Func(nEff), "n2"=n2Func(nEff),
                   "parameter"=paramFunc(deltaTrue), "sigma"=1,
                   "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
@@ -1931,14 +1944,16 @@ sampleStoppingTimesSaviZ <- function(
     sigma=1, kappa=sigma,
     ratio=1, meanDiffMin=NULL, parameter=NULL, nMax=1e3L,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantEValuesAtNMax=FALSE,
-    wantSamplePaths=TRUE, wantSimData=FALSE,
+    wantEValuesAtNMax=FALSE, power=NULL,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
     esMinFutility=NULL, beta=NULL, betaFutility=NULL, ...) {
 
   stopifnot(alpha > 0, alpha <= 1,
             is.finite(nMax),
             is.finite(meanDiffTrue))
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
   if (futility) {
     esMinFutility <- matchFutilityParameterWith(
@@ -1947,7 +1962,7 @@ sampleStoppingTimesSaviZ <- function(
     )
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "beta"=beta
+      "betaFutility"=betaFutility, "beta"=1-power
     )
 
     stopifnot(betaFutility > 0, betaFutility < 1)
@@ -2156,8 +2171,8 @@ sampleStoppingTimesSaviZ <- function(
 #' @export
 #'
 #' @examples
-#' computeBetaSaviZ(meanDiffTrue=0.7, 20, nSim=10)
-computeBetaSaviZ <- function(
+#' computePowerSaviZ(meanDiffTrue=0.7, 20, nSim=10)
+computePowerSaviZ <- function(
     meanDiffTrue, nPlan, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
@@ -2165,7 +2180,7 @@ computeBetaSaviZ <- function(
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE, wantSimData=FALSE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
@@ -2210,7 +2225,7 @@ computeBetaSaviZ <- function(
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, ...)
 
-  result <- computeBetaBootstrapper("samplingResult"=samplingResult,
+  result <- computePowerBootstrapper("samplingResult"=samplingResult,
                                     "parameter"=parameter, "nPlan"=nPlan,
                                     "nBoot"=nBoot)
   return(result)
@@ -2235,14 +2250,14 @@ computeBetaSaviZ <- function(
 #' @examples
 #' computeNPlanSaviZ(0.7, 0.2, nSim=10)
 computeNPlanSaviZ <- function(
-    meanDiffTrue, beta=0.2, alpha=0.05,
+    meanDiffTrue, power=0.8, alpha=0.05,
     alternative=c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
     sigma=1, kappa=sigma,
-    meanDiffMin=NULL,
+    meanDiffMin=NULL, beta=NULL,
     ratio=1, parameter=NULL, nMax=1e8,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE, wantSimData=FALSE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
     highN=1e4L, ...) {
@@ -2271,11 +2286,13 @@ computeNPlanSaviZ <- function(
       "esMinName"="meanDiffMin")
   }
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   # TODO(Alexander)
   #
   tempObj <- computeNPlanBatchSaviZ(
     "meanDiffTrue"=meanDiffMin, "alpha"=alpha,
-    "beta"=beta, "sigma"=sigma, "kappa"=kappa,
+    "power"=power, "sigma"=sigma, "kappa"=kappa,
     "alternative"=alternative, "testType"=testType,
     "parameter"=parameter, "ratio"=ratio, "eType"=eType,
     "meanDiffMin"=meanDiffMin, "highN"=highN,
@@ -2287,8 +2304,8 @@ computeNPlanSaviZ <- function(
     parameter <- tempObj[["parameter"]]
 
   samplingResult <- sampleStoppingTimesSaviZ(
-    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha, "beta"=beta,
-    "alternative"=alternative, "testType"=testType,
+    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha, "power"=power,
+    "beta"=NULL, "alternative"=alternative, "testType"=testType,
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
     "eType"=eType, "meanDiffMin"=meanDiffMin,
@@ -2297,9 +2314,10 @@ computeNPlanSaviZ <- function(
     "futility"=futility, "esMinFutility"=esMinFutility,
     "betaFutility"=betaFutility, ...)
 
-  result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
-                                     "parameter"=parameter, "beta"=beta,
-                                     "nPlanBatch"=nPlanBatch, "nBoot"=nBoot)
+  result <- computeNPlanBootstrapper(
+    "samplingResult"=samplingResult, "parameter"=parameter,
+    "beta"=NULL, "power"=power, "nPlanBatch"=nPlanBatch, "nBoot"=nBoot
+  )
   return(result)
 }
 

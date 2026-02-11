@@ -12,7 +12,7 @@
 \usage{
 designSaviT(
   deltaMin = NULL,
-  beta = NULL,
+  power = NULL,
   nPlan = NULL,
   alpha = 0.05,
   h0 = 0,
@@ -20,14 +20,23 @@ designSaviT(
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
+  beta = NULL,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
+  deltaTrue = NULL,
   lowEsTrue = 0.01,
   highEsTrue = 3,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  futility = FALSE,
+  esMinFutility = NULL,
+  betaFutility = NULL,
+  betaDefault = 0.2,
+  highN = 10000L,
+  wantSampling = TRUE,
   ...
 )
 }

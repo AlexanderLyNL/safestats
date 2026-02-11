@@ -5,15 +5,20 @@
 \title{Helper function to designing a T-test (output beta)}
 \usage{
 designSaviT2WantBeta(
-  deltaMin,
+  deltaTrue,
   nPlan,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
+  deltaMin = NULL,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
+  futility = FALSE,
+  esMinFutility = NULL,
+  betaFutility = NULL,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
@@ -22,9 +27,6 @@ designSaviT2WantBeta(
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
-we would the experiment to be able to detect.}
-
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
@@ -32,6 +34,9 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
+
+\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
+we would the experiment to be able to detect.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 

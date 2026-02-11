@@ -35,7 +35,7 @@ This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
-\item{meanDiffTrue}{numeric, data governing parameter value}
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the savi z test under continuous monitoring.}

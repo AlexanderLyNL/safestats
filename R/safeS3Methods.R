@@ -42,9 +42,11 @@ constructSaviDesignObj <- function(testName) {
     "nPlanBatch"=NULL,
     "nPlan"=NULL, "nPlanTwoSe"=NULL, "bootObjN1Plan"=NULL,
     "nMean"=NULL, "nMeanTwoSe"=NULL, "bootObjN1Mean"=NULL,
-    "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
+    "power"=NULL, "powerTwoSe"=NULL, "bootObjBeta"=NULL,
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
     "bootObjLogImpliedTarget"=NULL,
+    "beta"=NULL, "betaTwoSe"=NULL,
+    "futilityResult"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL, "designScenario"=NULL,
     "call"=NULL, "timeStamp"=Sys.time(), "note"=NULL)
 
@@ -308,20 +310,34 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   testName <- designObj[["testName"]]
   testType <- designObj[["testType"]]
 
+  futility <- if (!is.null(x[["futilityResult"]])) TRUE else FALSE
+
   note <- designObj[["note"]]
-  analysisName <- paste(getNameTestType("testType"=testType, "testName"=testName), "Design")
+
+  tempName <- getNameTestType("testType"=testType, "testName"=testName)
+
+  extraChar <- if (futility) " + Futility" else ""
+
+  analysisName <- paste0(tempName, extraChar, " Design")
 
   cat("\n")
   cat(strwrap(analysisName, prefix = prefix), sep = "\n")
   cat("\n")
 
-  designObj[["decision rule"]] <- 1/designObj[["alpha"]]
-
   displayList <- list()
 
+  if (futility) {
+    designObj[["decision rule 1"]] <- 1/designObj[["alpha"]]
+    designObj[["decision rule 2"]] <- designObj[["futilityResult"]][["beta"]]
+  } else {
+    designObj[["decision rule"]] <- 1/designObj[["alpha"]]
+  }
+
   for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
-                 "alternativeRestriction", "beta", "parameter",
-                 "alpha", "decision rule", "logImpliedTarget", "eType")) {
+                 "alternativeRestriction", "power", "beta",
+                 "parameter", "alpha",
+                 "decision rule", "decision rule 1", "decision rule 2",
+                 "logImpliedTarget", "eType")) {
     itemValue <- designObj[[item]]
     itemValueString <- format(itemValue, digits=digits)
 
@@ -351,6 +367,16 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
           tempNeem <- names(designObj[[item]])
           displayList[[paste(tempNeem, collapse=", ")]] <- itemValue
         }
+      } else if (item=="power") {
+        powerTwoSe <- designObj[["powerTwoSe"]]
+        itemValueString <- format(itemValue, digits=digits)
+
+        if (!is.null(powerTwoSe)) {
+          displayList[[paste0("power", "\U00B1", "2se")]] <-
+            paste0(itemValueString, "\U00B1",format(powerTwoSe, digits=digits))
+        } else {
+          displayList[["power"]] <- itemValueString
+        }
       } else if (item=="beta") {
         betaTwoSe <- designObj[["betaTwoSe"]]
         itemValueString <- format(1-itemValue, digits=digits)
@@ -365,6 +391,10 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
         displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValueString
       } else if (item=="decision rule") {
         displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
+      } else if (item=="decision rule 1") {
+        displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
+      } else if (item=="decision rule 2") {
+        displayList[["decision rule: e-value <= beta"]] <- itemValueString
       } else if (item=="logImpliedTarget") {
         tempNeem <- "log(implied target)"
         logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
@@ -448,13 +478,23 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             numSamplePaths=100, wantStepLines=FALSE,
                             wantQuantiles=NULL, border="#1F78B4E6",
                             breaks=NULL, lwd=2, pch=15,
-                            histInnerColour="#A6CEE380",
+                            histInnerColour=col,
                             colQuant="#AA0000",
-                            col="#DAA52052",
-                            overColourBorder="#DAA52066",
-                            underColour="#556B2F4D",
-                            underColourBorder="#556B2FCC",
-                            cex=1.3, yLabPAdj=-1, ...) {
+                            col="#A6CEE380",
+                            overColourBorder=border,
+                            underColour="#FFB90F86",
+                            underColourBorder="#FFB90FCC",
+                            histInnerColourContinue="#556B2F4D",
+                            borderColourContinue="#556B2FCC",
+                            cex=1.3, yLabPAdj=-1,
+                            wantNotStoppedHist=FALSE,
+                            wantNotStoppedSamplePaths=FALSE,
+                            wantLegend=TRUE,
+                            legendAdjFut=c(-0.1, 0.5, 1),
+                            legendAdj=c(0.2, 0.8),
+                            legendCexFactor=0.65,
+                            pchColourUnder="#FFB90FCC",
+                            pchColourOver="#1F78B4E6",...) {
 
   designScenario <- x[["designScenario"]]
 
@@ -554,6 +594,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   betaFutility <- NULL
   futResult <- x[["futilityResult"]]
+  histFut <- NULL
 
   if (numSamplePaths > 0) {
     fptAll <- stoppingTimes
@@ -566,9 +607,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     nAlt <- length(indexStopAlt)
     nFut <- length(indexStopFut)
-    # nStopNot <- length(indexStopNot)
+    nNotStopped <- length(indexStopNot)
 
-    fptAll[indexStopNot] <- Inf
+    nAll <- length(stoppingTimes)
+
 
     if (nFut > 0) {
       fptFut <- as.numeric(futResult[["stoppingTimes"]][indexStopFut])
@@ -576,6 +618,16 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       fptAll[indexStopFut] <- fptFut
     }
+
+
+    fptAllFinite <- fptAll
+
+    fptStopped <- fptAll
+    fptStopped[indexStopNot] <- Inf
+
+    if (isFALSE(wantNotStoppedHist))
+      fptAll <- fptStopped
+
 
     # Compute hist  ----
     #
@@ -589,12 +641,13 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       }
     }
 
-    fptHist <-
-      hist(fptAll, plot=FALSE,
-           breaks=breaks)
+    histAll <- hist(fptAll, plot=FALSE, breaks=breaks)
 
-    y <- fptHist[["density"]]
-    nB <- length(fptHist$breaks)
+    histStopped <- hist(fptStopped, plot=FALSE,
+                        breaks=breaks)
+
+    y <- histAll[["density"]]
+    nB <- length(histAll[["breaks"]])
     yRange <- range(y, 0)
 
     yMin <- -1*log(3/(2*alpha))
@@ -605,11 +658,11 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (is.null(ylim))
       ylim <- c(yMin, 2.75*log(1/alpha))
 
-    someConstant <- (ylim[2]+log(alpha))/yRange[2]
+    someConstant <- 0.8*(ylim[2]+log(alpha))/yRange[2]
     textHeightQuant <- (ylim[2]+log(alpha))+log(1/alpha)
 
-    if (!is.null(wantQuantiles))
-      someConstant <- 0.9*0.8*someConstant
+    # if (!is.null(wantQuantiles))
+    # someConstant <- 0.9*0.8*someConstant
 
     # if (!is.null(wantQuantiles))
     #   someConstant <- someConstant*0.9
@@ -632,8 +685,6 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     if (nFut > 0)
       lines(x=c(0, 1.5*nPlanBatch), y=log(c(betaFutility, betaFutility)))
-
-    lines(x=c(0, 1.5*nPlanBatch), y=log(c(alpha, alpha)), lty=2, col="grey")
 
     if (nFut > 0) {
       yLabs <- c(1e-24, alpha, "1", betaFutility, 1/alpha)
@@ -661,38 +712,55 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     # Draw hist -----
     #
     if (nFut > nAlt) {
-      histInnerColourAll <- underColour
-      borderColourAll <- underColourBorder
+      histInnerColour1 <- underColour
+      borderColour1 <- underColourBorder
 
       histInnerColour2 <- histInnerColour
       borderColour2 <- border
     } else {
-      histInnerColourAll <- histInnerColour
-      borderColourAll <- border
+      histInnerColour1 <- histInnerColour
+      borderColour1 <- border
 
       histInnerColour2 <- underColour
       borderColour2 <- underColourBorder
     }
 
-    rect(fptHist[["breaks"]][-nB]+0.5, log(1/alpha),
-         fptHist[["breaks"]][-1L]+0.5, someConstant*y+log(1/alpha),
-         col = histInnerColourAll, border = borderColourAll, lwd=lwd,
+    # TODO(Alexander): Here perhaps if for show stopped
+    #
+    #       BUT THEN ALSO CHECK hist all exists or not
+    #
+    if (wantNotStoppedHist) {
+      rect(histAll[["breaks"]][-nB]+0.5, log(1/alpha),
+           histAll[["breaks"]][-1L]+0.5, someConstant*y+log(1/alpha),
+           col = histInnerColourContinue,
+           border = borderColourContinue,
+           lwd=lwd,
+           angle = 45, density = NULL, lty = NULL)
+    }
+
+    yStopped <- histStopped[["counts"]]/histAll[["counts"]]*y
+
+    rect(histAll[["breaks"]][-nB]+0.5, log(1/alpha),
+         histAll[["breaks"]][-1L]+0.5, someConstant*yStopped+log(1/alpha),
+         col = histInnerColour1,
+         border = borderColour1,
+         lwd=lwd,
          angle = 45, density = NULL, lty = NULL)
 
     if (nFut > 0) {
       if (nFut < nAlt) {
         # Futility histogram
-        fptHist2 <- hist(fptFut, plot=FALSE, breaks=fptHist[["breaks"]])
+        hist2 <- hist(fptFut, plot=FALSE, breaks=histAll[["breaks"]])
       } else {
         # Alt histogram
         fptAlt <- stoppingTimes[indexStopAlt]
-        fptHist2 <- hist(fptAlt, plot=FALSE, breaks=fptHist[["breaks"]])
+        hist2 <- hist(fptAlt, plot=FALSE, breaks=histAll[["breaks"]])
       }
 
-      y2 <- fptHist2[["counts"]]/fptHist[["counts"]]*y
+      y2 <- hist2[["counts"]]/histAll[["counts"]]*y
 
-      rect(fptHist2[["breaks"]][-nB]+0.5, log(1/alpha),
-           fptHist2[["breaks"]][-1L]+0.5, someConstant*y2+log(1/alpha),
+      rect(hist2[["breaks"]][-nB]+0.5, log(1/alpha),
+           hist2[["breaks"]][-1L]+0.5, someConstant*y2+log(1/alpha),
            col = histInnerColour2, border = borderColour2, lwd=lwd,
            angle = 45, density = NULL, lty = NULL)
     }
@@ -701,98 +769,59 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     samplePaths <- x[["samplePaths"]]
 
     # Alexander: Just to avoid a matrix turning into a vector
+    #
     if (nAlt==1)
       indexStopAlt <- c(indexStopAlt, indexStopAlt)
 
-    stoppedPaths <- samplePaths[indexStopAlt, ]
+    if (nFut==1)
+      indexStopFut <- c(indexStopFut, indexStopFut)
 
-    finiteFirstPassageTimesAlt <- stoppingTimes[indexStopAlt]
+    if (nNotStopped==1)
+      indexStopNot <- c(indexStopNot, indexStopNot)
+
+    stoppedPaths <- samplePaths
+
+    if (nFut > 0)
+      stoppedPaths[indexStopFut, ] <- x[["futilityResult"]][["samplePaths"]][indexStopFut, ]
+
+    nSamplePathsNot <- min(ceil(nNotStopped/nAll*numSamplePaths), nNotStopped)
+    nSamplePathsFut <- min(ceil(nFut/nAll*numSamplePaths), nFut)
+    nSamplePathsAlt <- min(ceil(nAlt/nAll*numSamplePaths), nAlt)
 
     if (nFut < nAlt) {
-      nSamplePaths <- min(numSamplePaths, nAlt)
-      nSamplePaths2 <- ceil(nFut/nAlt*nSamplePaths)
-      nSamplePaths2 <- min(nSamplePaths2, nFut)
-
-      # someOrder <- 1:2
+      nSamplePaths <- c(nSamplePathsNot, nSamplePathsAlt, nSamplePathsFut)
+      indexes <- list(indexStopNot, indexStopAlt, indexStopFut)
+      underColourTemp <- underColourBorder
+      overColourTemp <- col
     } else {
-      nSamplePaths2 <- min(numSamplePaths, nFut)
-      nSamplePaths <- ceil(nAlt/nFut*nSamplePaths2)
-      nSamplePaths <- min(nSamplePaths, nAlt)
-
-      # someOrder <- 2:1
+      nSamplePaths <- c(nSamplePathsNot, nSamplePathsFut, nSamplePathsAlt)
+      indexes <- list(indexStopNot, indexStopFut, indexStopAlt)
+      underColourTemp <- underColourBorder
+      overColourTemp <- border
     }
 
-    # TODO(Alexander): Perhaps write as function
-    # and call drawPaths + add an order
-    #
-    for (i in 1:nSamplePaths) {
-      stoppedTime <- finiteFirstPassageTimesAlt[i]
-      evidenceLine <- stoppedPaths[i, 1:stoppedTime]
-
-      if (evidenceLine[stoppedTime] >= 1/alpha)
-        evidenceLine[stoppedTime] <- 1/alpha
-
-      someScale <- 3*alpha
-
-      evidenceLine <- evidenceLine
-
-      if (isTRUE(wantStepLines)) {
-        xLine <- c(0, rep(1:stoppedTime, each=2))
-        yLine <- c(0, 0, rep(log(evidenceLine), each=2))
-        yLine <- yLine[-length(yLine)]
-      } else {
-        xLine <- 0:stoppedTime
-        yLine <- c(0, log(evidenceLine))
-      }
-
-      lines(xLine, yLine, col=col, lwd=lwd, lty=1)
-
-      if (evidenceLine[stoppedTime]==1/alpha)
-        points(stoppedTime, log(evidenceLine[stoppedTime]),
-               col=overColourBorder, pch=pch, lwd=lwd)
+    if (isFALSE(wantNotStoppedSamplePaths)) {
+      indexes <- indexes[-1]
+      nSamplePaths <- nSamplePaths[-1]
     }
 
-    if (nFut > 0) {
-      samplePaths <- futResult[["samplePaths"]]
+    for (i in seq_along(nSamplePaths)) {
+      if (nSamplePaths[i]==0)
+        next()
 
-      # Alexander Just to make this into a matrix
-      #
-      if (nFut==1)
-        indexStopFut <- c(indexStopFut, indexStopFut)
-
-      stoppedPaths <- samplePaths[indexStopFut, ]
-
-      finiteFirstPassageTimesFut <- fptFut
-
-      for (i in 1:nSamplePaths2) {
-        stoppedTime <- finiteFirstPassageTimesFut[i]
-        evidenceLine <- stoppedPaths[i, 1:stoppedTime]
-
-        if (evidenceLine[stoppedTime] <= betaFutility)
-          evidenceLine[stoppedTime] <- betaFutility
-
-        someScale <- 3*alpha
-
-        evidenceLine <- evidenceLine
-
-        if (isTRUE(wantStepLines)) {
-          xLine <- c(0, rep(1:stoppedTime, each=2))
-          yLine <- c(0, 0, rep(log(evidenceLine), each=2))
-          yLine <- yLine[-length(yLine)]
-        } else {
-          xLine <- 0:stoppedTime
-          yLine <- c(0, log(evidenceLine))
-        }
-
-        lines(xLine, yLine, col=underColour, lwd=lwd, lty=1)
-
-        if (evidenceLine[stoppedTime]==betaFutility)
-          points(stoppedTime, log(evidenceLine[stoppedTime]),
-                 col=underColourBorder, pch=pch, lwd=lwd)
-      }
+      drawSamplePaths("fpt"=fptAllFinite[indexes[[i]]], "n"=nSamplePaths[i],
+                      "pathsMatrix"=stoppedPaths[indexes[[i]], ], "alpha"=alpha,
+                      "beta"=betaFutility,
+                      "underColour"=adjustcolor(underColourTemp, alpha.f=1-nSamplePathsFut/nAll),
+                      "continueColour"=adjustcolor(histInnerColourContinue, alpha.f=1-nSamplePathsNot/nAll),
+                      "col"=adjustcolor(overColourTemp, alpha.f=1-nSamplePathsAlt/nAll),
+                      "pch"=pch, "lwd"=lwd, "wantStepLines"=wantStepLines)
     }
 
-    if (!is.null(wantQuantiles)) {
+    if (is.null(wantQuantiles) && !is.null(x[["power"]]))
+      wantQuantiles <- x[["power"]]
+
+    if (!is.null(wantQuantiles) && !isFALSE(wantQuantiles)) {
       mtext("quantiles", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
 
       quants <- stats::quantile(stoppingTimes, wantQuantiles)
@@ -802,6 +831,38 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
         segments(x0=quants[i], y0=-0.9*log(1/alpha), y1=0.95*textHeightQuant, col=colQuant)
         text(quants[i], x=quants[i], y=-log(1/alpha), col=colQuant, cex=cex)
       }
+    }
+
+    if (wantLegend) {
+      if (nFut > 0) {
+        mtext(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
+              col=border, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdjFut[1])
+
+        mtext(paste0("Futility: ", round(nFut/nAll*100, 1), "%"),
+              col=underColourBorder, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdjFut[2])
+
+        mtext(paste0("No decision: ", round(nNotStopped/nAll*100, 1), "%"),
+              col=borderColourContinue, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdjFut[3])
+      } else {
+        mtext(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
+              col=border, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdj[1])
+        mtext(paste0("No rejection: ", round(nNotStopped/nAll*100, 1), "%"),
+              col=borderColourContinue, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdj[2])
+      }
+
+
+
+      # legend("topleft",
+      #        legend=c(paste("Alternative: ", round(nAlt/nAll*100, 1), "%"),
+      #                 paste("Futility: ", round(nFut/nAll*100, 1), "%"),
+      #                 paste("Continued: ", round(nNotStopped/nAll*100, 1)), "%"),
+      #        col=c(col, underColour, histInnerColourContinue),
+      #        lty=1, cex=cex, lwd=lwd, box.lty=box.lty, xpd=TRUE)
     }
 
   }
@@ -862,7 +923,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           fillOddEven=FALSE, runInt=TRUE,
                           wantFutility=NULL,
                           lineColourFut="#556B2F4D",
-                          thresholdColourFut="#556B2FCC", ...) {
+                          thresholdColourFut="#556B2FCC",
+                          ...) {
   eValueVec <- x[["eValueVec"]]
   eValueFutVec <- x[["eValueFutVec"]]
 
@@ -1077,3 +1139,64 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
   }
 }
 
+
+#' Helper function to draw sample paths
+#'
+#' @inheritParams designSaviZ
+#' @inheritParams plot.saviDesign
+#' @param fpt vector, of first passage times
+#' @param n integer, number of paths to draw
+#' @param pathsMatrix numeric matrix, representing
+#' @param continueColour hex colour for the sample paths
+#' @param underColour hex colour for the sample paths
+#' @param histInnerColourAll
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+drawSamplePaths <- function(fpt, n, pathsMatrix, alpha, betaFutility,
+                            col="#1F78B4E6", pch=15, lwd=2,
+                            underColour="#FFB90FCC",
+                            continueColour="#556B2F4D",
+                            pchColourUnder="#FFB90FCC",
+                            pchColourOver="#1F78B4E6",
+                            wantStepLines=FALSE) {
+
+  for (i in 1:n) {
+    pathStopped <- NULL
+
+    stoppedTime <- fpt[i]
+    evidenceLine <- pathsMatrix[i, 1:stoppedTime]
+
+    if (evidenceLine[stoppedTime] >= 1/alpha) {
+      evidenceLine[stoppedTime] <- 1/alpha
+      someColour <- col
+      pathStopped <- "alt"
+      pchColour <- pchColourOver
+    } else if (!is.null(betaFutility) && evidenceLine[stoppedTime] <= betaFutility) {
+      evidenceLine[stoppedTime] <- betaFutility
+      someColour <- underColour
+      pathStopped <- "fut"
+      pchColour <- pchColourUnder
+    } else {
+      someColour <- continueColour
+    }
+
+
+    if (isTRUE(wantStepLines)) {
+      xLine <- c(0, rep(1:stoppedTime, each=2))
+      yLine <- c(0, 0, rep(log(evidenceLine), each=2))
+      yLine <- yLine[-length(yLine)]
+    } else {
+      xLine <- 0:stoppedTime
+      yLine <- c(0, log(evidenceLine))
+    }
+
+    lines(xLine, yLine, col=someColour, lwd=lwd, lty=1)
+
+    if (!is.null(pathStopped) && pathStopped %in% c("alt", "fut"))
+      points(stoppedTime, log(evidenceLine[stoppedTime]),
+             col=pchColour, pch=pch, lwd=lwd)
+  }
+}

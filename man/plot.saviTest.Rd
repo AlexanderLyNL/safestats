@@ -26,8 +26,13 @@
   add = FALSE,
   density = NULL,
   angle = 45,
+  xaxt = NULL,
+  yaxt = NULL,
   fillOddEven = FALSE,
   runInt = TRUE,
+  wantFutility = NULL,
+  lineColourFut = "#556B2F4D",
+  thresholdColourFut = "#556B2FCC",
   ...
 )
 }
@@ -94,6 +99,11 @@ negative values and \code{NA} suppress shading (and so allow colour filling).}
 
 \item{runInt}{logical, if \code{TRUE} (default), then shows the running
 intersection of the confidence sequence.}
+
+\item{wantFutility}{logical, if \code{FALSE}, then don't show the
+e-values for futility. Default \code{wantFutility==NULL}, if
+\code{designObj[["futility"]]==TRUE} then futility e-values are shown
+automatically.}
 }
 \value{
 Returns nothing just plots

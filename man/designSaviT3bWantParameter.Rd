@@ -48,7 +48,7 @@ A list with the parameter and the parameter amongst other items
 Finds the parameter and deltaMin when provided with only alpha, nPlan
 }
 \examples{
-designSaviT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+designSaviT3bWantParameter(nPlan=20)
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

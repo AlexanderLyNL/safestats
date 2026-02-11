@@ -8,12 +8,15 @@ relevant standardised effect size, alpha and beta.}
 computeNPlanBatchSaviT(
   deltaTrue,
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
   parameter = NULL,
-  ratio = 1
+  beta = NULL,
+  ratio = 1,
+  deltaMin = NULL,
+  ...
 )
 }
 \arguments{
@@ -22,9 +25,6 @@ This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
-
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
@@ -45,8 +45,16 @@ parameter set to 0, and in the numerator an average likelihood defined by the li
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
 
+\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
+the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+
+\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
+we would the experiment to be able to detect.}
+
+\item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
 a list which contains at least nPlan and the deltaS the parameter that defines the savi test

@@ -7,18 +7,21 @@
 \usage{
 designSaviZ(
   meanDiffMin = NULL,
-  beta = NULL,
+  power = NULL,
   nPlan = NULL,
   alpha = 0.05,
   h0 = 0,
   alternative = c("twoSided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
+  meanDiffTrue = NULL,
+  beta = NULL,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
   lowEsTrue = 0.01,
   highEsTrue = 3,
   pb = TRUE,
@@ -26,7 +29,11 @@ designSaviZ(
   nSim = 1000L,
   nBoot = nSim,
   futility = FALSE,
-  growFutility = FALSE,
+  esMinFutility = NULL,
+  betaFutility = NULL,
+  betaDefault = 0.2,
+  highN = 10000L,
+  wantSampling = TRUE,
   ...
 )
 }
@@ -95,10 +102,28 @@ or for the computation of the logarithm of the implied target.}
 \item{futility}{logical, if \code{TRUE} then impose rule to stop
 for futility if e < beta. Default \code{FALSE}.}
 
-\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
-to stop for futility (e < beta). Default \code{FALSE}.}
-
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
+
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
+
+\item{esMinFutility}{numeric, the minimal clinical relevant mean
+difference that we do not want to miss under the alternative.
+Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)}
+
+\item{highN}{integer, largest possible sampling horizon. This might be the
+largest n that we are able to fund, which by default is set to 1e4L.
+Typically, highN is not used, as the function
+\code{computeNPlanBatchSaviZ()} tries to find the sampling horizon.
+If all fails, then use highN as the sampling horizon.}
+
+\item{wantSampling}{logical, default TRUE so sampling paths are drawn.
+For instance, if meanDiffMin, beta, are given, then nPlan
+(scenario 1a) is derived by sampling. Set this to FALSE, whenever we
+want to run a futility test without needing to know nPlan}
 }
 \value{
 Returns a saviDesign object that includes:

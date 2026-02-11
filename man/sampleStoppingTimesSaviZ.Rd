@@ -13,23 +13,26 @@ sampleStoppingTimesSaviZ(
   sigma = 1,
   kappa = sigma,
   ratio = 1,
+  meanDiffMin = NULL,
   parameter = NULL,
   nMax = 1000L,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantEValuesAtNMax = FALSE,
+  power = NULL,
   wantSamplePaths = TRUE,
-  wantSimData = FALSE,
+  wantSimData = TRUE,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   futility = FALSE,
-  growFutility = FALSE,
+  esMinFutility = NULL,
   beta = NULL,
+  betaFutility = NULL,
   ...
 )
 }
 \arguments{
-\item{meanDiffTrue}{numeric, data governing parameter value}
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
@@ -77,13 +80,21 @@ for the savi z test under continuous monitoring.}
 \item{futility}{logical, if \code{TRUE} then impose rule to stop
 for futility if e < beta. Default \code{FALSE}.}
 
-\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
-to stop for futility (e < beta). Default \code{FALSE}.}
-
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 and "phiS". Note that 1-beta defines the power.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
+that we would like to detect.}
+
+\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
+
+\item{esMinFutility}{numeric, the minimal clinical relevant mean
+difference that we do not want to miss under the alternative.
+Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping

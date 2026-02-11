@@ -3,6 +3,7 @@
 \name{safeZTestStat}
 \alias{safeZTestStat}
 \alias{saviZTestStat}
+\alias{saviFutilityZStat}
 \title{Computes E-Values Based on the Z-Statistic}
 \usage{
 saviZTestStat(
@@ -14,6 +15,19 @@ saviZTestStat(
   paired = FALSE,
   sigma = 1,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
+  ...
+)
+
+saviFutilityZStat(
+  z,
+  n1,
+  n2 = NULL,
+  parameter = NULL,
+  alternative = c("twoSided", "less", "greater"),
+  paired = FALSE,
+  sigma = 1,
+  eType = "grow",
+  esMinFutility = NULL,
   ...
 )
 }
@@ -40,17 +54,28 @@ a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based 
 two point masses at the minimal clinically relevant effect size.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{esMinFutility}{numeric, the minimal clinical relevant mean
+difference that we do not want to miss under the alternative.
+Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)}
 }
 \value{
 Returns an e-value.
 }
 \description{
 Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
+
+Evidence for futility requires the e-value to be small, i.e. smaller than betaFutility threshold.
+If the alternative holds true, i.e. meanDiffTrue >= esMinFutility, then
+the e-value in favour of the alternative over futility, e1f, then the probability of
+ever seeing e1f <= betaFutility is not more than betaFutility.
 }
 \examples{
 saviZTestStat(z=3, n1=100, parameter=0.4, eType="grow")
 saviZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
 saviZTestStat(z=3, n1=100, parameter=0.4, eType="eCauchy")
+saviFutilityZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over futility
+saviFutilityZStat(z=0.35, n1=100, parameter=0.4) # evidence for futility over the alternative
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

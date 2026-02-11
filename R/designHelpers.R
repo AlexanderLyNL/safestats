@@ -17,18 +17,18 @@
 #' samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
 #' result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
 designSavi1aHelper <- function(
-    samplingResult, esMin, beta, ratio,
+    samplingResult, esMin, power, ratio, beta=NULL,
     testType=c("oneSample", "paired","twoSample")) {
 
   testType <- match.arg(testType)
 
-  result <- list("parameter"=NULL, "esMin"=esMin, "beta"=beta,
+  result <- list("parameter"=NULL, "esMin"=esMin, "power"=power,
                  "nPlan"=NULL, "nPlanTwoSe"=NULL, "nPlanBatch"=NULL,
                  "nMean"=NULL, "nMeanTwoSe"=NULL,
                  "bootObjN1Plan"=NULL, "bootObjN1Mean"=NULL,
                  "samplePaths"=NULL, "breakVector"=NULL,
                  "futility"=FALSE, "futilityResult"=NULL,
-                 "simData"=NULL, "note"=NULL)
+                 "simData"=NULL, "beta"=beta, "note"=NULL)
 
   nPlanBatch <- samplingResult[["nPlanBatch"]]
   bootObjN1Plan <- samplingResult[["bootObjN1Plan"]]
@@ -125,9 +125,10 @@ designSavi2Helper <- function(
 
   result <- list(
     "parameter"=NULL, "esMin"=esMin, "nPlan"=nPlan,
-    "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
+    "power"=NULL, "powerTwoSe"=NULL, "bootObjPower"=NULL,
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
     "bootObjLogImpliedTarget"=NULL, "simData"=NULL,
+    "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL)
 
   result[["parameter"]] <- samplingResult[["parameter"]]
@@ -136,11 +137,25 @@ designSavi2Helper <- function(
   result[["samplePaths"]] <- samplingResult[["samplePaths"]]
   result[["breakVector"]] <- samplingResult[["breakVector"]]
 
-  bootObjBeta <- samplingResult[["bootObjBeta"]]
+  someBeta <- samplingResult[["beta"]]
 
-  result[["beta"]] <- samplingResult[["beta"]]
-  result[["bootObjBeta"]] <- bootObjBeta
-  result[["betaTwoSe"]] <- 2*bootObjBeta[["bootSe"]]
+  if (!is.null(someBeta)) {
+    bootObjBeta <- samplingResult[["bootObjBeta"]]
+
+    result[["beta"]] <- someBeta
+    result[["bootObjBeta"]] <- bootObjBeta
+    result[["betaTwoSe"]] <- 2*bootObjBeta[["bootSe"]]
+  }
+
+  somePower <- samplingResult[["power"]]
+
+  if (!is.null(somePower)) {
+    bootObjPower <- samplingResult[["bootObjPower"]]
+
+    result[["power"]] <- somePower
+    result[["bootObjPower"]] <- bootObjPower
+    result[["powerTwoSe"]] <- 2*bootObjPower[["bootSe"]]
+  }
 
   bootObjLogImpliedTarget <- samplingResult[["bootObjLogImpliedTarget"]]
 
@@ -172,13 +187,15 @@ designSavi2Helper <- function(
 #' @examples
 #' computeBootObj(1:100, objType="nPlan", beta=0.3)
 computeBootObj <- function(
-    values, beta=NULL, nPlan=NULL,
-    nBoot=1e3L, alpha=NULL,
-    objType=c("nPlan", "nMean", "beta", "betaFromEValues",
+    values, power=NULL, nPlan=NULL,
+    nBoot=1e3L, alpha=NULL, beta=NULL,
+    objType=c("nPlan", "nMean", "power", "beta", "betaFromEValues",
               "logImpliedTarget", "expectedStopTime")) {
   objType <- match.arg(objType)
 
-  if (objType=="beta") {
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
+  if (objType=="power") {
     if (is.null(nPlan) || nPlan <= 0)
       stop("Please provide an nPlan > 0")
 
@@ -187,8 +204,32 @@ computeBootObj <- function(
 
     bootObj <- try(
       boot::boot(times, function(x, idx) {
-                            1-mean(x[idx] <= nPlan)
-                          },  R = nBoot)
+        mean(x[idx] <= nPlan)
+      },  R = nBoot)
+    )
+
+    j <- 1
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(times, function(x, idx) {
+          mean(x[idx] <= nPlan)
+        },  R = nBoot/2^j)
+      )
+
+      j <- j+1
+    }
+  } else if (objType=="beta") {
+    if (is.null(nPlan) || nPlan <= 0)
+      stop("Please provide an nPlan > 0")
+
+    times <- values
+    stopifnot(nPlan > 0)
+
+    bootObj <- try(
+      boot::boot(times, function(x, idx) {
+        1-mean(x[idx] <= nPlan)
+      },  R = nBoot)
     )
 
     j <- 1
@@ -229,14 +270,16 @@ computeBootObj <- function(
     }
 
   } else if (objType=="nPlan") {
-    if (is.null(beta) || beta <= 0 || beta >= 1)
-      stop("Please provide a beta in (0, 1)")
+    if (is.null(beta)) {
+      if (is.null(power) || power <= 0 || power >= 1)
+        stop("Please provide a targeted power in (0, 1)")
+    }
 
     times <- values
 
     bootObj <- try(
       boot::boot(times, function(x, idx) {
-        stats::quantile(x[idx], prob=1-beta, names=FALSE)
+        stats::quantile(x[idx], prob=power, names=FALSE)
       } , R = nBoot)
     )
 
@@ -245,7 +288,7 @@ computeBootObj <- function(
     while (isTryError(bootObj) && j < 21) {
       bootObj <- try(
         boot::boot(times, function(x, idx) {
-          stats::quantile(x[idx], prob=1-beta, names=FALSE)
+          stats::quantile(x[idx], prob=power, names=FALSE)
         } , R = nBoot/2^j)
       )
 
@@ -319,7 +362,6 @@ computeBootObj <- function(
   return(bootObj)
 }
 
-
 #' Helper function to compute uncertainty regarding nPlan estimates
 #'
 #' @inheritParams designSafe1aHelper
@@ -337,13 +379,15 @@ computeBootObj <- function(
 #' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 computeNPlanBootstrapper <- function(
     samplingResult, parameter,
-    beta, nPlanBatch, nBoot) {
+    power, nPlanBatch, nBoot, beta=NULL) {
 
   times <- samplingResult[["stoppingTimes"]]
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   bootObjN1Plan <- computeBootObj(
     "values"=times, "objType"="nPlan",
-    "beta"=beta, "nBoot"=nBoot)
+    "power"=power, "nBoot"=nBoot, "beta"=beta)
 
   n1Plan <- ceil(bootObjN1Plan[["t0"]])
 
@@ -410,6 +454,52 @@ computeBetaBootstrapper <- function(
   return(result)
 }
 
+#' Helper function to compute uncertainty regarding nPlan estimates
+#'
+#' @inheritParams designSafe2Helper
+#' @inheritParams computeBootObj
+#' @inheritParams computeNPlanBootstrapper
+#'
+#' @return list with bootstrap objects
+#' @export
+#'
+#' @examples
+#' samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+#' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
+computePowerBootstrapper <- function(
+    samplingResult, parameter,
+    nPlan, nBoot) {
+
+  times <- samplingResult[["stoppingTimes"]]
+
+  # Note(Alexander): Break vector is 1 whenever the sample path did not stop
+  breakVector <- samplingResult[["breakVector"]]
+
+  # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
+  times[Matrix::which(breakVector!=0)] <- Inf
+
+  bootObjPower <- computeBootObj(
+    "values"=times, "objType"="power",
+    "nPlan"=nPlan[1], "nBoot"=nBoot)
+
+  eValuesAtNMax <- samplingResult[["eValuesAtNMax"]]
+
+  bootObjLogImpliedTarget <- computeBootObj(
+    "values"=eValuesAtNMax, "objType"="logImpliedTarget",
+    "nBoot"=nBoot)
+
+  result <- list("power" = bootObjPower[["t0"]],
+                 "bootObjPower" = bootObjPower,
+                 "logImpliedTarget"=bootObjLogImpliedTarget[["t0"]],
+                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
+                 "samplePaths"=samplingResult[["samplePaths"]],
+                 "breakVector"=samplingResult[["breakVector"]],
+                 "simData"=samplingResult[["simData"]],
+                 "parameter"=parameter, "futilityResult"=samplingResult[["futilityResult"]])
+
+  return(result)
+}
+
 #' Construct a list to be set in the sampleStoppingTimes... function
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
 #' for the safe z test under continuous monitoring.
@@ -457,15 +547,21 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 #' @export
 #'
 #' @examples
-matchBetaFutilityWith <- function(betaFutility, beta, betaDefault=0.2) {
+#' matchBetaFutilityWith(0.3)
+matchBetaFutilityWith <- function(betaFutility, power, beta=NULL, betaDefault=0.2) {
   if (!is.null(betaFutility)) {
     stopifnot(betaFutility >0, betaFutility < 1)
-    return(betaFutility )
+    return(betaFutility)
   }
 
-  if (!is.null(beta)) {
+  if (!is.null(power)) {
+    stopifnot(power > 0, power < 1)
+    return(1-power)
+  }
+
+  if (!is.null(beta) && length(beta)!=0) {
     stopifnot(beta >0, beta < 1)
-    return(beta )
+    return(beta)
   }
 
   warning("To run a futility procedure ",
@@ -596,4 +692,20 @@ matchFutilityParameterWith <- function(esMinFutility, esMin, esTrue) {
   if (!is.null(esTrue))
     return(abs(esTrue))
 
+}
+
+matchPowerWith <- function(power, beta) {
+  if (!is.null(power)) {
+    if (!is.null(beta))
+      warning("Both power and beta specified. Preference given to power")
+
+    return(power)
+  }
+
+  if (!is.null(beta)) {
+    power <- 1-beta
+    return(power)
+  }
+
+  return(NULL)
 }
