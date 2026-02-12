@@ -315,7 +315,8 @@ saviZTest <- function(x, ...) {
 #' @export
 saviZTest.default <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
-    ciValue=NULL, maxRoot=10, sequential=NULL, ...) {
+    ciValue=NULL, maxRoot=10, sequential=NULL,
+    varEqual=TRUE, ...) {
 
   result <- constructSaviTestObj("Z-Test")
 
@@ -331,12 +332,15 @@ saviZTest.default <- function(
   ### Def: test type -------
   if (is.null(y)) {
     testType <- "oneSample"
+
+    if (paired)
+      stop("Data error: Paired analysis requested without specifying the second variable")
+
+    dataName <- deparse1(substitute(x))
   } else {
-    if (paired) {
-      testType <- "paired"
-    } else {
-      testType <- "twoSample"
-    }
+    testType <- if (paired) "paired" else "twoSample"
+
+    dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
   }
 
   ### Check: designObj ----
@@ -358,126 +362,12 @@ saviZTest.default <- function(
     warning('The test type of designObj is "', designObj[["testType"]],
             '", whereas the data correspond to a testType "', testType, '"')
 
-  ### Check: Data -----
-  #
-  if (is.null(y)) {
-    #### One-sample -----
-    #
-    if (isTRUE(paired))
-      stop("Data error: Paired analysis requested without specifying the second variable")
+  sumStats <- computeZTSumStats(
+    "x"=x, "y"=y, "sequential"=sequential,
+    "varEqual"=varEqual, "paired"=paired,
+    "testType"=testType)
 
-    dataName <- deparse1(substitute(x))
-    x <- x[!is.na(x)]
-
-    n <- nEff <- n1 <- length(x)
-    n2 <- NULL
-
-    meanObs <- estimate <- mean(x)
-
-
-    names(estimate) <- "mean of x"
-    names(n) <- "n1"
-
-    if (is.null(sequential))
-      sequential <- if (n1 <= 200) TRUE else FALSE
-
-    if (sequential) {
-      tempN <- defineTTestN("lowN"=1, "highN"=n1,
-                            "testType"="oneSample")
-
-      nEffVec <- tempN[["nEff"]]
-      n1Vec <- tempN[["n1"]]
-      n2Vec <- tempN[["n2"]]
-
-      meanObsVec <- 1/nEffVec*cumsum(x)
-    }
-  } else {
-    dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
-
-    if (isTRUE(paired))
-      xGoodIndeces <- yGoodIndeces  <-
-        stats::complete.cases(x, y)
-    else {
-      yGoodIndeces <- !is.na(y)
-      xGoodIndeces <- !is.na(x)
-    }
-
-    x <- x[xGoodIndeces]
-    y <- y[yGoodIndeces]
-
-    n1 <- length(x)
-    n2 <- length(y)
-
-    #### Paired ----
-    #
-    if (isTRUE(paired)) {
-      if (n1 != n2)
-        stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
-             "but the two samples are not of the same size.")
-      nEff <- n1
-      meanObs <- estimate <- mean(x-y)
-      names(estimate) <- "mean of the differences"
-
-      if (is.null(sequential))
-        sequential <- if (n1 <= 200) TRUE else FALSE
-
-      if (sequential) {
-        tempN <- defineTTestN("lowN"=1, "highN"=n1, testType="paired")
-
-        nEffVec <- tempN[["nEff"]]
-        n1Vec <- tempN[["n1"]]
-        n2Vec <- tempN[["n2"]]
-
-        meanObsVec <- 1/nEffVec*cumsum(x-y)
-      }
-    } else {
-      ### Two-sample ----
-      #
-      nEff <- (1/n1+1/n2)^(-1)
-      estimate <- c(mean(x), mean(y))
-      names(estimate) <- c("mean of x", "mean of y")
-      meanObs <- estimate[1]-estimate[2]
-
-      if (is.null(sequential))
-        sequential <- if (n1 <= 200) TRUE else FALSE
-
-      if (sequential) {
-        tempN <- defineTTestN(1, n1, n2/n1, testType="twoSample")
-
-        nEffVec <- tempN[["nEff"]]
-
-        # These now serve as an order
-        n1Vec <- tempN[["n1"]]
-        n2Vec <- tempN[["n2"]]
-
-        xMeanObsRaw <- 1/(1:n1)*cumsum(x)
-        yMeanObsRaw <- 1/(1:n2)*cumsum(y)
-
-        if (n2/n1==1) {
-          xMeanObsVec <- xMeanObsRaw
-          yMeanObsVec <- yMeanObsRaw
-        } else {
-          vecLength <- length(n1Vec)
-
-          xMeanObsVec <- yMeanObsVec <-
-            numeric(vecLength)
-
-          for (j in 1:vecLength) {
-            nowN1 <- n1Vec[j]
-            nowN2 <- n2Vec[j]
-
-            xMeanObsVec[j] <- xMeanObsRaw[nowN1]
-            yMeanObsVec[j] <- yMeanObsRaw[nowN2]
-          }
-        }
-
-        meanObsVec <- xMeanObsVec-yMeanObsVec
-      }
-    }
-
-    n <- c(n1, n2)
-    names(n) <- c("n1", "n2")
-  }
+  list2env(sumStats, envir=environment())
 
   alpha <- designObj[["alpha"]]
   sigma <- designObj[["sigma"]]
@@ -573,6 +463,14 @@ saviZTest.default <- function(
 
   result[["eValue"]] <- tempResult[["eValue"]]
   result[["eValueApproxError"]] <- tempResult[["eValueApproxError"]]
+
+  # Sumstats
+  result[["meanObs"]] <- meanObs
+  result[["sdObs"]] <- meanObs
+  result[["meanObsVec"]] <- meanObsVec
+  result[["sdObsVec"]] <- sdObsVec
+  result[["nEffVec"]] <- nEffVec
+  result[["nuVec"]] <- nuVec
 
   names(result[["statistic"]]) <- "z"
 

@@ -46,7 +46,7 @@ constructSaviDesignObj <- function(testName) {
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
     "bootObjLogImpliedTarget"=NULL,
     "beta"=NULL, "betaTwoSe"=NULL,
-    "futilityResult"=NULL,
+    "futilityResult"=NULL, "varEqual"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL, "designScenario"=NULL,
     "call"=NULL, "timeStamp"=Sys.time(), "note"=NULL)
 
@@ -633,11 +633,13 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     #
     breaksMin <- min(fptAll)
 
+    nMax <- min(nPlanBatch, max(fptAllFinite))
+
     if (is.null(breaks)) {
-      breaks <- if (nPlanBatch-breaksMin+1 > maxNBins) {
+      breaks <- if (nMax-breaksMin+1 > maxNBins) {
         maxNBins
       } else {
-        (breaksMin-1):nPlanBatch
+        (breaksMin-1):nMax
       }
     }
 
@@ -824,7 +826,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (!is.null(wantQuantiles) && !isFALSE(wantQuantiles)) {
       mtext("quantiles", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
 
-      quants <- stats::quantile(stoppingTimes, wantQuantiles)
+      quants <- round(
+        stats::quantile(stoppingTimes, wantQuantiles), 2)
 
       for (i in seq_along(quants)) {
         text(wantQuantiles[i], x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
@@ -915,15 +918,18 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           xlim=NULL, ylim=NULL, lwd=3, cex=1.3,
                           fillPlot=NULL, switchNFill=1e4,
                           logScale=NULL, switchNLog=30,
-                          h0Colour="gold", lineColour="#1F78B4E6",
+                          h0Colour="darkgrey", lineColour="#1F78B4E6",
                           col="#A6CEE380", border="#1F78B4E6",
                           wantConfSeqPlot=FALSE, add=FALSE,
                           density=NULL, angle=45,
                           xaxt=NULL, yaxt=NULL,
                           fillOddEven=FALSE, runInt=TRUE,
                           wantFutility=NULL,
-                          lineColourFut="#556B2F4D",
-                          thresholdColourFut="#556B2FCC",
+                          underColour="#FFB90F86",
+                          underColourBorder="black",
+                          # underColourBorder="#FFB90FCC",
+                          pchColourUnder="#FFB90FCC",
+                          pchColourOver="#1F78B4E6",
                           ...) {
   eValueVec <- x[["eValueVec"]]
   eValueFutVec <- x[["eValueFutVec"]]
@@ -1120,7 +1126,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       if (futility)
         lines(c(1, maxX), c(betaFutility, betaFutility),
-              lwd=lwd, lty=2, col=thresholdColourFut)
+              lwd=lwd, lty=2, col=underColourBorder)
 
       if (is.null(xaxt) || xaxt!="n") axis(1)
       if (is.null(yaxt) || yaxt!="n") axis(2)
@@ -1135,7 +1141,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     lines(n1Vec, eValueVec, lwd=lwd, col=lineColour)
 
     if (futility)
-      lines(n1Vec, eValueFutVec, lwd=lwd, col=lineColourFut)
+      lines(n1Vec, eValueFutVec, lwd=lwd, col=underColour)
   }
 }
 
