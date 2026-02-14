@@ -39,7 +39,7 @@ constructSaviDesignObj <- function(testName) {
     "parameter"=NULL, "esMin"=NULL, "alpha"=NULL,
     "alternative"=NULL, "h0"=NULL, "pilot"=FALSE,
     "eType"=NULL, "testType"=NULL, "testName"=NULL,
-    "nPlanBatch"=NULL,
+    "nPlanBatch"=NULL, "esTrue"=NULL,
     "nPlan"=NULL, "nPlanTwoSe"=NULL, "bootObjN1Plan"=NULL,
     "nMean"=NULL, "nMeanTwoSe"=NULL, "bootObjN1Mean"=NULL,
     "power"=NULL, "powerTwoSe"=NULL, "bootObjBeta"=NULL,
@@ -595,6 +595,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
   betaFutility <- NULL
   futResult <- x[["futilityResult"]]
   histFut <- NULL
+  futility <- x[["futility"]]
 
   if (numSamplePaths > 0) {
     fptAll <- stoppingTimes
@@ -611,8 +612,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     nAll <- length(stoppingTimes)
 
-
-    if (nFut > 0) {
+    if (futility) {
       fptFut <- as.numeric(futResult[["stoppingTimes"]][indexStopFut])
       betaFutility <- futResult[["beta"]]
 
@@ -654,7 +654,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     yMin <- -1*log(3/(2*alpha))
 
-    if (nFut > 0)
+    if (futility)
       yMin <- min(c(yMin, -1*log(3/(2*betaFutility))))
 
     if (is.null(ylim))
@@ -685,10 +685,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     lines(x=c(0, 1.5*nPlanBatch), y=log(c(1/alpha, 1/alpha)))
 
-    if (nFut > 0)
+    if (futility)
       lines(x=c(0, 1.5*nPlanBatch), y=log(c(betaFutility, betaFutility)))
 
-    if (nFut > 0) {
+    if (futility) {
       yLabs <- c(1e-24, alpha, "1", betaFutility, 1/alpha)
       criticalP <- log(c(1e-24, alpha, 1, betaFutility, 1/alpha))
     } else {
@@ -749,7 +749,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
          lwd=lwd,
          angle = 45, density = NULL, lty = NULL)
 
-    if (nFut > 0) {
+    if (futility) {
       if (nFut < nAlt) {
         # Futility histogram
         hist2 <- hist(fptFut, plot=FALSE, breaks=histAll[["breaks"]])
@@ -783,7 +783,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     stoppedPaths <- samplePaths
 
-    if (nFut > 0)
+    if (futility)
       stoppedPaths[indexStopFut, ] <- x[["futilityResult"]][["samplePaths"]][indexStopFut, ]
 
     nSamplePathsNot <- min(ceil(nNotStopped/nAll*numSamplePaths), nNotStopped)
@@ -808,15 +808,23 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     }
 
     for (i in seq_along(nSamplePaths)) {
+
+      underColourTemp <- adjustcolor(
+        underColourTemp, alpha.f=max(1-nSamplePathsFut/nAll, 0.1))
+      continueColourTemp <- adjustcolor(
+        histInnerColourContinue, alpha.f=max(1-nSamplePathsNot/nAll, 0.1))
+      overColourTemp <- adjustcolor(
+        overColourTemp, alpha.f=max(1-nSamplePathsAlt/nAll, 0.1))
+
       if (nSamplePaths[i]==0)
         next()
 
       drawSamplePaths("fpt"=fptAllFinite[indexes[[i]]], "n"=nSamplePaths[i],
                       "pathsMatrix"=stoppedPaths[indexes[[i]], ], "alpha"=alpha,
                       "beta"=betaFutility,
-                      "underColour"=adjustcolor(underColourTemp, alpha.f=1-nSamplePathsFut/nAll),
-                      "continueColour"=adjustcolor(histInnerColourContinue, alpha.f=1-nSamplePathsNot/nAll),
-                      "col"=adjustcolor(overColourTemp, alpha.f=1-nSamplePathsAlt/nAll),
+                      "underColour"= underColourTemp,
+                      "continueColour"=continueColourTemp,
+                      "col"=overColourTemp,
                       "pch"=pch, "lwd"=lwd, "wantStepLines"=wantStepLines)
     }
 
@@ -830,14 +838,22 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
         stats::quantile(stoppingTimes, wantQuantiles), 2)
 
       for (i in seq_along(quants)) {
-        text(wantQuantiles[i], x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
+        text(names(quants[i]), x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
+
+        # if (x[["futility"]]) {
+        #   # text(names(quants[i]), x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
+        # }
         segments(x0=quants[i], y0=-0.9*log(1/alpha), y1=0.95*textHeightQuant, col=colQuant)
         text(quants[i], x=quants[i], y=-log(1/alpha), col=colQuant, cex=cex)
       }
     }
 
     if (wantLegend) {
-      if (nFut > 0) {
+      mtext(paste0("True ", names(x[["esMin"]]), x[["esTrue"]]),
+            col=colQuant, side=3, line = 4, las = 1,
+            cex = cex*legendCexFactor, adj=0)
+
+      if (futility) {
         mtext(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
               col=border, side=1, line = 4, las = 1,
               cex = cex*legendCexFactor, adj=legendAdjFut[1])

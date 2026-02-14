@@ -1384,6 +1384,9 @@ designSaviT <- function(
 
   result[["esMin"]] <- esMin
 
+  if (!is.null(deltaTrue))
+    result[["esTrue"]] <- deltaTrue
+
   ## Name nPlan ----
   nPlan <- result[["nPlan"]]
 

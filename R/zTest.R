@@ -1145,6 +1145,9 @@ designSaviZ <- function(
   ## Name esMin ----
   esMin <- result[["esMin"]]
 
+  if (!is.null(meanDiffTrue))
+    result[["esTrue"]] <- meanDiffTrue
+
   if (is.na(esMin))
     esMin <- NULL
 
