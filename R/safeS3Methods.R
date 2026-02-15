@@ -488,11 +488,11 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             borderColourContinue="#556B2FCC",
                             cex=1.3, yLabPAdj=-1,
                             wantNotStoppedHist=FALSE,
-                            wantNotStoppedSamplePaths=FALSE,
+                            wantNotStoppedSamplePaths=TRUE,
                             wantLegend=TRUE,
                             legendAdjFut=c(-0.1, 0.5, 1),
                             legendAdj=c(0.2, 0.8),
-                            legendCexFactor=0.65,
+                            legendCexFactor=0.85,
                             pchColourUnder="#FFB90FCC",
                             pchColourOver="#1F78B4E6",...) {
 
@@ -837,20 +837,47 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       quants <- round(
         stats::quantile(stoppingTimes, wantQuantiles), 2)
 
+      quantileNames <- round(wantQuantiles*100,2)
+
       for (i in seq_along(quants)) {
+        # if (futility) {
+        #
+        #   if (nFut < nAlt) {
+        #     # Futility histogram
+        #     hist2 <- hist(fptFut, plot=FALSE, breaks=histAll[["breaks"]])
+        #
+        #     #
+        #     borderColour1
+        #     borderColour2
+        #
+        #     futQuantName <- round(sum(fptFut <= quants[i])/nAll, 0)
+        #
+        #     text(quantileNames[i], x=quants[i], y=textHeightQuant, col=overColourBorder, cex=legendCexFactor*cex, pos=2)
+        #     text(names(quants[i]), x=quants[i], y=textHeightQuant, col=underColourBorder, cex=legendCexFactor*cex, pos=4)
+        #
+        #   } else {
+        #     # Alt histogram
+        #     fptAlt <- stoppingTimes[indexStopAlt]
+        #     hist2 <- hist(fptAlt, plot=FALSE, breaks=histAll[["breaks"]])
+        #   }
+        #
+        #
+        # } else {
+        #   text(quantileNames[i], x=quants[i], y=textHeightQuant, col=overColourBorder, cex=cex)
+        # }
+
         text(names(quants[i]), x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
 
-        # if (x[["futility"]]) {
-        #   # text(names(quants[i]), x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
-        # }
+        # TODO(Alexander): perhaps change the lower position as minimum of -log(1/alpha) and log(beta)
+        #
         segments(x0=quants[i], y0=-0.9*log(1/alpha), y1=0.95*textHeightQuant, col=colQuant)
         text(quants[i], x=quants[i], y=-log(1/alpha), col=colQuant, cex=cex)
       }
     }
 
     if (wantLegend) {
-      mtext(paste0("True ", names(x[["esMin"]]), x[["esTrue"]]),
-            col=colQuant, side=3, line = 4, las = 1,
+      mtext(paste0("True ", names(x[["esMin"]]), " = ", x[["esTrue"]]),
+            col=colQuant, side=3, line = 1, las = 1,
             cex = cex*legendCexFactor, adj=0)
 
       if (futility) {
