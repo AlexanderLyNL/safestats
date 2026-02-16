@@ -832,7 +832,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       wantQuantiles <- x[["power"]]
 
     if (!is.null(wantQuantiles) && !isFALSE(wantQuantiles)) {
-      mtext("quantiles", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
+      mtext("Quantiles [%]", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
 
       quants <- round(
         stats::quantile(stoppingTimes, wantQuantiles), 2)
@@ -866,7 +866,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
         #   text(quantileNames[i], x=quants[i], y=textHeightQuant, col=overColourBorder, cex=cex)
         # }
 
-        text(names(quants[i]), x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
+        text(quantileNames[i], x=quants[i],
+             y=textHeightQuant, col=colQuant, cex=cex)
 
         # TODO(Alexander): perhaps change the lower position as minimum of -log(1/alpha) and log(beta)
         #
