@@ -10,7 +10,7 @@ designSaviT3bWantParameter(
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   ...
 )
 }

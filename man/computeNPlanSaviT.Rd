@@ -25,6 +25,8 @@ computeNPlanSaviT(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  sigmaTrue = 1,
+  sigmaTrue2 = 1,
   futility = FALSE,
   esMinFutility = NULL,
   betaFutility = NULL,
@@ -84,6 +86,8 @@ or for the computation of the logarithm of the implied target.}
 we would the experiment to be able to detect.}
 
 \item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
+
+\item{sigmaTrue}{numeric > 0, population standard deviation}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.

@@ -834,40 +834,32 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (!is.null(wantQuantiles) && !isFALSE(wantQuantiles)) {
       mtext("Quantiles [%]", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
 
-      quants <- round(
-        stats::quantile(stoppingTimes, wantQuantiles), 2)
+      badQuantileIndeces <- which(wantQuantiles > nAlt/nAll)
 
-      quantileNames <- round(wantQuantiles*100,2)
+      if (length(badQuantileIndeces) >= 1) {
+        warning(paste0("Requested quantiles: ", wantQuantiles[badQuantileIndeces], " cannot be displayed. Max power here ", nAlt/nAll))
+        wantQuantiles <- c(wantQuantiles[-badQuantileIndeces], nAlt/nAll)
+      }
+
+
+      quants <- round(stats::quantile(stoppingTimes, wantQuantiles), 2)
+
+      quantileNames <- round(wantQuantiles*100, 2)
 
       for (i in seq_along(quants)) {
-        # if (futility) {
-        #
-        #   if (nFut < nAlt) {
-        #     # Futility histogram
-        #     hist2 <- hist(fptFut, plot=FALSE, breaks=histAll[["breaks"]])
-        #
-        #     #
-        #     borderColour1
-        #     borderColour2
-        #
-        #     futQuantName <- round(sum(fptFut <= quants[i])/nAll, 0)
-        #
-        #     text(quantileNames[i], x=quants[i], y=textHeightQuant, col=overColourBorder, cex=legendCexFactor*cex, pos=2)
-        #     text(names(quants[i]), x=quants[i], y=textHeightQuant, col=underColourBorder, cex=legendCexFactor*cex, pos=4)
-        #
-        #   } else {
-        #     # Alt histogram
-        #     fptAlt <- stoppingTimes[indexStopAlt]
-        #     hist2 <- hist(fptAlt, plot=FALSE, breaks=histAll[["breaks"]])
-        #   }
-        #
-        #
-        # } else {
-        #   text(quantileNames[i], x=quants[i], y=textHeightQuant, col=overColourBorder, cex=cex)
-        # }
 
-        text(quantileNames[i], x=quants[i],
-             y=textHeightQuant, col=colQuant, cex=cex)
+        if (futility) {
+          quantFut <- round(sum(fptFut <= quants[i])/nAll*100, 2)
+
+          text(quantileNames[i], x=quants[i], y=textHeightQuant,
+               col=overColourBorder, cex=legendCexFactor*cex, pos=2)
+          text("+", x=quants[i],
+               y=textHeightQuant, col=colQuant, cex=cex)
+          text(quantFut, x=quants[i], y=textHeightQuant, col=underColourBorder, cex=legendCexFactor*cex, pos=4)
+        } else {
+          text(quantileNames[i], x=quants[i],
+               y=textHeightQuant, col=overColourBorder, cex=cex)
+        }
 
         # TODO(Alexander): perhaps change the lower position as minimum of -log(1/alpha) and log(beta)
         #

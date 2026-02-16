@@ -24,6 +24,8 @@ designSaviT1aWantNPlan(
   nBoot = nSim,
   futility = FALSE,
   esMinFutility = NULL,
+  sigmaTrue = 1,
+  sigmaTrue2 = 1,
   betaFutility = NULL,
   ...
 )

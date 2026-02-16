@@ -21,6 +21,8 @@ sampleStoppingTimesSaviT(
   power = NULL,
   wantSamplePaths = TRUE,
   wantSimData = TRUE,
+  sigmaTrue = 1,
+  sigmaTrue2 = 1,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
@@ -81,6 +83,8 @@ for the savi t test under continuous monitoring.}
 
 \item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 we would the experiment to be able to detect.}
+
+\item{sigmaTrue}{numeric > 0, population standard deviation}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
 the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}

@@ -17,7 +17,7 @@ saviTTestStat(
   tDensity = FALSE,
   paired = FALSE,
   nuMin = 2,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   ...
 )
 
@@ -30,7 +30,7 @@ saviTTestStatNEffNu(
   tDensity = FALSE,
   paired = FALSE,
   nuMin = 2,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   ...
 )
 

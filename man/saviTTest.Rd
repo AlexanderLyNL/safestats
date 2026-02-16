@@ -26,6 +26,8 @@ saviTTest(x, ...)
   ciValue = NULL,
   maxRoot = 10,
   sequential = NULL,
+  tDensity = FALSE,
+  nuMin = 2,
   ...
 )
 

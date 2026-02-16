@@ -18,7 +18,7 @@
   switchNFill = 10000,
   logScale = NULL,
   switchNLog = 30,
-  h0Colour = "gold",
+  h0Colour = "darkgrey",
   lineColour = "#1F78B4E6",
   col = "#A6CEE380",
   border = "#1F78B4E6",
@@ -31,8 +31,10 @@
   fillOddEven = FALSE,
   runInt = TRUE,
   wantFutility = NULL,
-  lineColourFut = "#556B2F4D",
-  thresholdColourFut = "#556B2FCC",
+  underColour = "#FFB90F86",
+  underColourBorder = "black",
+  pchColourUnder = "#FFB90FCC",
+  pchColourOver = "#1F78B4E6",
   ...
 )
 }

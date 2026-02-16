@@ -10,6 +10,7 @@ generateNormalData(
   deltaTrue = NULL,
   muGlobal = 0,
   sigmaTrue = 1,
+  sigmaTrue2 = 1,
   paired = FALSE,
   seed = NULL,
   meanDiffTrue = NULL

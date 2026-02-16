@@ -31,11 +31,11 @@
   cex = 1.3,
   yLabPAdj = -1,
   wantNotStoppedHist = FALSE,
-  wantNotStoppedSamplePaths = FALSE,
+  wantNotStoppedSamplePaths = TRUE,
   wantLegend = TRUE,
   legendAdjFut = c(-0.1, 0.5, 1),
   legendAdj = c(0.2, 0.8),
-  legendCexFactor = 0.65,
+  legendCexFactor = 0.85,
   pchColourUnder = "#FFB90FCC",
   pchColourOver = "#1F78B4E6",
   ...

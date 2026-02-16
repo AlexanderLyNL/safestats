@@ -12,7 +12,7 @@ designSaviT3WantEsMin(
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
   beta = NULL,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   lowEsTrue = 0.01,
   highEsTrue = 3,
   ...

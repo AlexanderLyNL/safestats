@@ -11,7 +11,9 @@ computeNPlanBatchSaviT(
   power = 0.8,
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
+  sigmaTrue = 1,
+  sigmaTrue2 = 1,
   parameter = NULL,
   beta = NULL,
   ratio = 1,
@@ -34,6 +36,8 @@ designed test has to adhere to. Note that it also defines the rejection rule e10
 \item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
 a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 two point masses at the minimal clinically relevant standardised effect size.}
+
+\item{sigmaTrue}{numeric > 0, population standard deviation}
 
 \item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
 For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed

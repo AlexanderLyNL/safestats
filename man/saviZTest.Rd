@@ -21,6 +21,7 @@ saviZTest(x, ...)
   ciValue = NULL,
   maxRoot = 10,
   sequential = NULL,
+  varEqual = TRUE,
   ...
 )
 
