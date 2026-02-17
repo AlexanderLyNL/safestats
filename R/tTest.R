@@ -623,7 +623,7 @@ saviTTest.default <- function(
     "testType"=testType)
 
   sumStats[["nuVec"]][1] <- 0
-  nu <- sumStats[["nuVec"]][length(nuVec)]
+  nu <- sumStats[["nuVec"]][length(sumStats[["nuVec"]])]
 
   list2env(sumStats, envir=environment())
 
