@@ -566,13 +566,16 @@ saviTTest <- function(x, ...) {
 #' @export
 saviTTest.default <- function(
     x, y=NULL, designObj=NULL, paired=FALSE,
-    varEqual=TRUE, ciValue=NULL,
+    varEqual=NULL, ciValue=NULL,
     maxRoot=10, sequential=NULL,
     tDensity=FALSE, nuMin=2, ...) {
 
   result <- constructSaviTestObj("T-Test")
 
   eValueFut <- NULL
+
+  if (is.null(varEqual))
+    varEqual <- designObj[["varEqual"]]
 
   # Vars for sequential analysis
   eValueVec <- NULL
@@ -677,11 +680,7 @@ saviTTest.default <- function(
   # TODO(Alexander):
   #
   if (sequential) {
-    if (varEqual==TRUE) {
-      tStatVec <- sqrt(nEffVec)*(meanObsVec-h0)/sdObsVec
-    } else {
-      tStatVec <- (meanObsVec-h0)/sdObsVec
-    }
+    tStatVec <- sqrt(nEffVec)*(meanObsVec-h0)/sdObsVec
 
     mIter <- length(n1Vec)
 
@@ -745,7 +744,7 @@ saviTTest.default <- function(
 
   # Sumstats
   result[["meanObs"]] <- meanObs
-  result[["sdObs"]] <- meanObs
+  result[["sdObs"]] <- sdObs
   result[["meanObsVec"]] <- meanObsVec
   result[["sdObsVec"]] <- sdObsVec
   result[["nEffVec"]] <- nEffVec
@@ -2508,14 +2507,17 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
 
     sPooledSquared <- ((n1-1)*stats::var(x)+(n2-1)*stats::var(y))/nu
 
-    sdObs <- sqrt(sPooledSquared)
+    if (varEqual) {
+      sdObs <- sqrt(sPooledSquared)
+    } else {
+      sdObs <- sqrt((1/n1*stats::var(x)+1/n2*stats::var(y))*nEff)
+    }
 
     estimate <- c(mean(x), mean(y))
     names(estimate) <- c("mean of x", "mean of y")
     meanObs <- estimate[1]-estimate[2]
 
     if (sequential) {
-
       xMeanObsRaw <- 1/(1:n1)*cumsum(x)
       yMeanObsRaw <- 1/(1:n2)*cumsum(y)
 
@@ -2562,8 +2564,17 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
 
         nuVec <- exp(logNumeratorVec-logDenominatorVec)
 
+        # Alexander: Remove bad data
+        # Zero sums-of-squares means Inf t, but nu = 0
+        badN1Indeces <- which(n1Vec<=1)
+        badN2Indeces <- which(n2Vec<=1)
+
+        nuVec[union(badN1Indeces, badN2Indeces)] <- 0
+        varXVec[badN1Indeces] <- 0
+        varYVec[badN2Indeces] <- 0
+
         sSquaredVec <- 1/n1Vec*varXVec + 1/n2Vec*varYVec
-        sdObsVec <- sqrt(sSquaredVec)
+        sdObsVec <- sqrt(sSquaredVec*nEff)
       }
     }
   }

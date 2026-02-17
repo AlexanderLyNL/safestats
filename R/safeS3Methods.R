@@ -689,8 +689,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       lines(x=c(0, 1.5*nPlanBatch), y=log(c(betaFutility, betaFutility)))
 
     if (futility) {
-      yLabs <- c(1e-24, alpha, "1", betaFutility, 1/alpha)
-      criticalP <- log(c(1e-24, alpha, 1, betaFutility, 1/alpha))
+      yLabs <- c(1e-24, betaFutility, "1", 1/alpha)
+      criticalP <- log(c(1e-24, betaFutility, 1, 1/alpha))
     } else {
       yLabs <- c(1e-24, alpha, "1", 1/alpha)
       criticalP <- log(c(1e-24, alpha, 1, 1/alpha))
@@ -837,8 +837,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       badQuantileIndeces <- which(wantQuantiles > nAlt/nAll)
 
       if (length(badQuantileIndeces) >= 1) {
-        warning(paste0("Requested quantiles: ", wantQuantiles[badQuantileIndeces], " cannot be displayed. Max power here ", nAlt/nAll))
-        wantQuantiles <- c(wantQuantiles[-badQuantileIndeces], nAlt/nAll)
+        warning(paste0("The requested quantile(s) ", wantQuantiles[badQuantileIndeces], " cannot be displayed. Max power in this simulation run: ", nAlt/nAll))
+        wantQuantiles <- wantQuantiles[-badQuantileIndeces]
       }
 
 
