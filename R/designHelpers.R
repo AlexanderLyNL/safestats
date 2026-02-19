@@ -391,6 +391,13 @@ computeNPlanBootstrapper <- function(
 
   n1Plan <- ceil(bootObjN1Plan[["t0"]])
 
+  futResult <- samplingResult[["futilityResult"]]
+
+  if (!is.null(futResult)) {
+    futIndex <- Matrix::which(samplingResult[["breakVector"]]==-1)
+    times[futIndex] <- as.numeric(futResult[["stoppingTimes"]])[futIndex]
+  }
+
   bootObjN1Mean <- computeBootObj(
     "values"=times, "objType"="nMean",
     "nPlan"=n1Plan, "nBoot"=nBoot)
