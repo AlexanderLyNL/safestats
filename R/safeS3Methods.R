@@ -484,8 +484,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             overColourBorder=border,
                             underColour="#FFB90F86",
                             underColourBorder="#FFB90FCC",
-                            histInnerColourContinue="#556B2F4D",
-                            borderColourContinue="#556B2FCC",
+                            continueColour="#556B2F4D",
+                            continueColourBorder="#556B2FCC",
                             cex=1.3, yLabPAdj=-1,
                             wantNotStoppedHist=FALSE,
                             wantNotStoppedSamplePaths=TRUE,
@@ -734,8 +734,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (wantNotStoppedHist) {
       rect(histAll[["breaks"]][-nB]+0.5, log(1/alpha),
            histAll[["breaks"]][-1L]+0.5, someConstant*y+log(1/alpha),
-           col = histInnerColourContinue,
-           border = borderColourContinue,
+           col = continueColour,
+           border = continueColourBorder,
            lwd=lwd,
            angle = 45, density = NULL, lty = NULL)
     }
@@ -812,7 +812,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       underColourTemp <- adjustcolor(
         underColourTemp, alpha.f=max(1-nSamplePathsFut/nAll, 0.1))
       continueColourTemp <- adjustcolor(
-        histInnerColourContinue, alpha.f=max(1-nSamplePathsNot/nAll, 0.1))
+        continueColour, alpha.f=max(1-nSamplePathsNot/nAll, 0.1))
       overColourTemp <- adjustcolor(
         overColourTemp, alpha.f=max(1-nSamplePathsAlt/nAll, 0.1))
 
@@ -869,7 +869,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     }
 
     if (wantLegend) {
-      mtext(paste0("True ", names(x[["esMin"]]), " = ", x[["esTrue"]]),
+      mtext(paste0("True ", names(x[["esMin"]]), " = ", round(x[["esTrue"]], 3)),
             col=colQuant, side=3, line = 1, las = 1,
             cex = cex*legendCexFactor, adj=0)
 
@@ -883,14 +883,14 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
               cex = cex*legendCexFactor, adj=legendAdjFut[2])
 
         mtext(paste0("No decision: ", round(nNotStopped/nAll*100, 1), "%"),
-              col=borderColourContinue, side=1, line = 4, las = 1,
+              col=continueColourBorder, side=1, line = 4, las = 1,
               cex = cex*legendCexFactor, adj=legendAdjFut[3])
       } else {
         mtext(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
               col=border, side=1, line = 4, las = 1,
               cex = cex*legendCexFactor, adj=legendAdj[1])
         mtext(paste0("No rejection: ", round(nNotStopped/nAll*100, 1), "%"),
-              col=borderColourContinue, side=1, line = 4, las = 1,
+              col=continueColourBorder, side=1, line = 4, las = 1,
               cex = cex*legendCexFactor, adj=legendAdj[2])
       }
 
@@ -900,7 +900,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       #        legend=c(paste("Alternative: ", round(nAlt/nAll*100, 1), "%"),
       #                 paste("Futility: ", round(nFut/nAll*100, 1), "%"),
       #                 paste("Continued: ", round(nNotStopped/nAll*100, 1)), "%"),
-      #        col=c(col, underColour, histInnerColourContinue),
+      #        col=c(col, underColour, continueColour),
       #        lty=1, cex=cex, lwd=lwd, box.lty=box.lty, xpd=TRUE)
     }
 

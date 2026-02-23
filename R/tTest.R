@@ -625,9 +625,6 @@ saviTTest.default <- function(
     "varEqual"=varEqual, "paired"=paired,
     "testType"=testType)
 
-  sumStats[["nuVec"]][1] <- 0
-  nu <- sumStats[["nuVec"]][length(sumStats[["nuVec"]])]
-
   list2env(sumStats, envir=environment())
 
   alpha <- designObj[["alpha"]]
@@ -640,7 +637,7 @@ saviTTest.default <- function(
   if (ciValue < 0 || ciValue > 1)
     stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
 
-  tStat <- tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+  tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
 
   if (is.na(tStat))
     stop("Data error: Could not compute the t-statistic")
@@ -2503,13 +2500,28 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
     }
   } else if (testType=="twoSample") {
     nEff <- (1/n1+1/n2)^(-1)
-    nu <- n1+n2-2
+
+    if (varEqual) {
+      nu <- n1+n2-2
+    } else {
+      varX <- stats::var(x)
+      varY <- stats::var(y)
+
+      nu <- (varX/n1+varY/n2)^2/
+        ((varX/n1)^2/(n1-1)+(varY/n2)^2/(n2-1))
+
+      if (is.na(nu))
+        nu <- 0
+
+    }
 
     sPooledSquared <- ((n1-1)*stats::var(x)+(n2-1)*stats::var(y))/nu
 
     if (varEqual) {
       sdObs <- sqrt(sPooledSquared)
     } else {
+
+
       sdObs <- sqrt((1/n1*stats::var(x)+1/n2*stats::var(y))*nEff)
     }
 
@@ -2566,12 +2578,11 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
 
         # Alexander: Remove bad data
         # Zero sums-of-squares means Inf t, but nu = 0
-        badN1Indeces <- which(n1Vec<=1)
-        badN2Indeces <- which(n2Vec<=1)
+        badIndeces <- which(is.na(nuVec))
 
-        nuVec[union(badN1Indeces, badN2Indeces)] <- 0
-        varXVec[badN1Indeces] <- 0
-        varYVec[badN2Indeces] <- 0
+        nuVec[badIndeces] <- 0
+        varXVec[badIndeces] <- 0
+        varYVec[badIndeces] <- 0
 
         sSquaredVec <- 1/n1Vec*varXVec + 1/n2Vec*varYVec
         sdObsVec <- sqrt(sSquaredVec*nEff)
