@@ -2501,12 +2501,18 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
   } else if (testType=="twoSample") {
     nEff <- (1/n1+1/n2)^(-1)
 
+    varX <- stats::var(x)
+    varY <- stats::var(y)
+
+    if (is.na(varX))
+      varX <- 0
+
+    if (is.na(varY))
+      varY <- 0
+
     if (varEqual) {
       nu <- n1+n2-2
     } else {
-      varX <- stats::var(x)
-      varY <- stats::var(y)
-
       nu <- (varX/n1+varY/n2)^2/
         ((varX/n1)^2/(n1-1)+(varY/n2)^2/(n2-1))
 
@@ -2515,14 +2521,11 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
 
     }
 
-    sPooledSquared <- ((n1-1)*stats::var(x)+(n2-1)*stats::var(y))/nu
-
     if (varEqual) {
+      sPooledSquared <- ((n1-1)*varX+(n2-1)*varY)/nu
       sdObs <- sqrt(sPooledSquared)
     } else {
-
-
-      sdObs <- sqrt((1/n1*stats::var(x)+1/n2*stats::var(y))*nEff)
+      sdObs <- sqrt((1/n1*varX+1/n2*varY)*nEff)
     }
 
     estimate <- c(mean(x), mean(y))
