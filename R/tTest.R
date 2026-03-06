@@ -658,7 +658,7 @@ saviTTest.default <- function(
     testResultFut <- suppressWarnings(
       saviFutilityTStatNEffNu("t"=tStat, "nEff"=nEff, "nu"=nu,
         "parameter"=designObj[["futilityResult"]][["parameter"]],
-        "alternative"="twoSided", "paired"=paired,
+        "alternative"=designObj[["alternative"]], "paired"=paired,
         "eType"=designObj[["eType"]])
     )
     eValueFut <- unname(testResultFut[["eValue"]])
@@ -701,7 +701,7 @@ saviTTest.default <- function(
           saviFutilityTStatNEffNu("t"=tStatVec[i],
             "nEff"=nEffVec[i], "nu"=nuVec[i],
             "parameter"=designObj[["futilityResult"]][["parameter"]],
-            "alternative"="twoSided", "paired"=paired,
+            "alternative"=designObj[["alternative"]], "paired"=paired,
             "eType"=designObj[["eType"]])
         )
         eValueFutVec[i] <- unname(resFut[["eValue"]])
@@ -891,27 +891,31 @@ saviFutilityTStatNEffNu <- function(
 
   alternative <- match.arg(alternative)
 
-  if (alternative!="twoSided")
-    warning("Only twoSided futility tests implemented, switched to twoSided")
+  if (alternative %in% c("twoSided", "greater"))
+    sPlus0 <- suppressWarnings(
+      saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+                          "alternative"="greater", "tDensity"=TRUE, "paired"=paired,
+                          "eType"="grow", "nuMin"=nuMin)[["eValue"]]
+    )
 
-  sPlus0 <- suppressWarnings(
-    saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
-                        "alternative"="greater", "tDensity"=TRUE, "paired"=paired,
-                        "eType"="grow", "nuMin"=nuMin)[["eValue"]]
-  )
+  if (alternative %in% c("twoSided", "less"))
+    sMin0 <- suppressWarnings(
+      saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=-parameter,
+                          "alternative"="less", "tDensity"=TRUE, "paired"=paired,
+                          "eType"="grow", "nuMin"=nuMin)[["eValue"]]
+    )
 
-  sMin0 <- suppressWarnings(
-    saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=-parameter,
-                        "alternative"="less", "tDensity"=TRUE, "paired"=paired,
-                        "eType"="grow", "nuMin"=nuMin)[["eValue"]]
-  )
+  eValue <- switch(alternative,
+                   "twoSided"=max(sPlus0, sMin0),
+                   "greater"=sPlus0,
+                   "less"=sMin0)
 
-  result <- list("eValue"=max(sPlus0, sMin0))
-
-  if (result[["eValue"]] < 0) {
+  if (eValue < 0) {
     warning("Overflow: e-value smaller than 0")
-    result[["eValue"]] <- 2^(-15)
+    eValue <- 2^(-15)
   }
+
+  result <- list("eValue"=eValue)
 
   return(result)
 }
@@ -2138,7 +2142,7 @@ sampleStoppingTimesSaviT <- function(
         futRes <- saviFutilityTStatNEffNu(
           "t"=tValues[j], "nEff"=nEffVector[j], "nu"=nuVector[j],
           "parameter"=futilityParameter,
-          "alternative"="twoSided",
+          "alternative"=alternative,
           "eType"="grow", "tDensity"=FALSE, "paired"=paired,
           "nuMin"=nuMin)
 
@@ -2323,11 +2327,11 @@ computeNPlanSaviT <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  deltaTrue <- checkAndReturnEsMinParameterSide(
-    "paramToCheck"=deltaTrue, "alternative"=alternative,
-    "esMinName"="deltaTrue")
-
   if (is.null(deltaMin)) {
+    deltaTrue <- checkAndReturnEsMinParameterSide(
+      "paramToCheck"=deltaTrue, "alternative"=alternative,
+      "esMinName"="deltaTrue")
+
     deltaMin <- deltaTrue
   } else {
     deltaMin <- checkAndReturnEsMinParameterSide(

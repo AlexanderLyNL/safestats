@@ -131,8 +131,8 @@ extractNameFromArgs <- function(list, name) {
 #' @return paramToCheck after checking, perhaps with a change in sign
 checkAndReturnEsMinParameterSide <- function(
     paramToCheck, alternative=c("twoSided", "greater", "less"),
-    esMinName=c("noName", "meanDiffMin", "phiS",
-                "deltaMin", "deltaS",
+    esMinName=c("noName", "meanDiffMin", "meanDiffTrue",
+                "phiS", "deltaMin", "deltaS",
                 "hrMin", "thetaS", "deltaTrue",
                 "g", "kappaG"), paramDomain=NULL) {
 
@@ -149,7 +149,7 @@ checkAndReturnEsMinParameterSide <- function(
   esMinName <- match.arg(esMinName)
 
   if (alternative == "twoSided") {
-    if (esMinName %in% c("meanDiffMin", "deltaMin", "deltaTrue"))
+    if (esMinName %in% c("meanDiffMin", "meanDiffTrue", "deltaMin", "deltaTrue"))
       return(abs(paramToCheck))
 
     return(paramToCheck)
@@ -166,7 +166,7 @@ checkAndReturnEsMinParameterSide <- function(
     paramName <- "the savi test defining parameter"
     hypParamName <- "test relevant parameter"
     paramDomain <- "unknown"
-  } else if (paramName=="phiS" || esMinName=="meanDiffMin") {
+  } else if (paramName=="phiS" || esMinName=="meanDiffMin" || esMinName=="meanDiffTrue") {
     hypParamName <- "meanDiff"
     paramDomain <- "realNumbers"
   } else if (paramName=="deltaS" || esMinName=="deltaMin"  || esMinName=="deltaTrue") {

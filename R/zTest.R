@@ -180,22 +180,27 @@ saviFutilityZStat <- function(
 
   alternative <- match.arg(alternative)
 
-  if (alternative!="twoSided")
-    warning("Only twoSided futility tests implemented, switched to twoSided")
-
   phiS <- parameter
 
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
 
-  sPlus0 <- exp(sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
-  sMin0 <- exp(-sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
+  if (alternative %in% c("twoSided", "greater"))
+    sPlus0 <- exp(sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
 
-  result <- list("eValue"=max(sPlus0, sMin0))
+  if (alternative %in% c("twoSided", "less"))
+    sMin0 <- exp(-sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
 
-  if (result[["eValue"]] < 0) {
+  eValue <- switch(alternative,
+                   "twoSided"=max(sPlus0, sMin0),
+                   "greater"=sPlus0,
+                   "less"=sMin0)
+
+  if (eValue < 0) {
     warning("Overflow: e-value smaller than 0")
-    result[["eValue"]] <- 2^(-15)
+    eValue <- 2^(-15)
   }
+
+  result <- list("eValue"=eValue)
 
   return(result)
 }
@@ -397,7 +402,7 @@ saviZTest.default <- function(
     tempResultFut <- saviFutilityZStat(
       "z"=zStat, "parameter"=designObj[["futilityResult"]][["parameter"]],
       "n1"=n1, "n2"=n2, "sigma"=sigma,
-      "alternative"="twoSided", "paired"=paired,
+      "alternative"=alternative, "paired"=paired,
       "eType"="grow")
     eValueFut <- unname(tempResultFut[["eValue"]])
   }
@@ -428,8 +433,8 @@ saviZTest.default <- function(
       if (designObj[["futility"]]) {
         resFut <- saviFutilityZStat("z"=zStatVec[i], "n1"=n1Vec[i], "n2"=n2Vec[i],
                                     "parameter"=designObj[["futilityResult"]][["parameter"]],
-                                    "sigma"=sigma, "alternative"="twoSided", "paired"=paired,
-                                    "eType"="grow")
+                                    "sigma"=sigma, "alternative"=designObj[["alternative"]],
+                                    "paired"=paired, "eType"="grow")
         eValueFutVec[i] <- unname(resFut[["eValue"]])
       }
 
@@ -1859,6 +1864,8 @@ sampleStoppingTimesSaviZ <- function(
 
   power <- matchPowerWith("power"=power, "beta"=beta)
 
+  # browser()
+
   if (futility) {
     esMinFutility <- matchFutilityParameterWith(
       "esMinFutility"=esMinFutility, "esMin"=meanDiffMin,
@@ -1996,12 +2003,11 @@ sampleStoppingTimesSaviZ <- function(
       # }
 
       if (futility) {
-
         futRes <- saviFutilityZStat(
           "z"=zVector[j], "parameter"=futilityParameter,
           "n1"=n1Vector[j], "n2"=n2Vector[j],
-          "alternative"="twoSided", "sigma"=sigma,
-          "eType"="grow")
+          "alternative"=alternative,
+          "sigma"=sigma, "eType"="grow")
 
         futilityEValue <- futRes[["eValue"]]
 
@@ -2178,11 +2184,11 @@ computeNPlanSaviZ <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  meanDiffTrue <- checkAndReturnEsMinParameterSide(
-    "paramToCheck"=meanDiffTrue, "alternative"=alternative,
-    "esMinName"="meanDiffMin")
-
   if (is.null(meanDiffMin)) {
+    meanDiffTrue <- checkAndReturnEsMinParameterSide(
+      "paramToCheck"=meanDiffTrue, "alternative"=alternative,
+      "esMinName"="meanDiffTrue")
+
     meanDiffMin <- meanDiffTrue
   } else {
     meanDiffMin <- checkAndReturnEsMinParameterSide(
