@@ -92,7 +92,7 @@ saviTTestStatNEffNu <- function(
   if (nu <= 1)
     return(list("eValue"=1))
 
-  if (is.infinite(t) && nu <= nuMin)
+  if (is.infinite(t) || is.na(t) && nu <= nuMin)
     return(list("eValue"=1))
 
   if (eType=="grow") {
@@ -637,7 +637,22 @@ saviTTest.default <- function(
   if (ciValue < 0 || ciValue > 1)
     stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
 
-  tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+  if (nu <= nuMin || is.na(sdObs)) {
+    tStat <- 0
+  } else {
+    tStat <- try(sqrt(nEff)*(meanObs - h0)/sdObs)
+
+    if (isTryError(tStat))
+      browser()
+  }
+
+  # tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+  #
+  # if (meanObs==0 && sdObs==0) {
+  #   tStat <- 0
+  # } else {
+  #   tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+  # }
 
   if (is.na(tStat))
     stop("Data error: Could not compute the t-statistic")
@@ -659,7 +674,7 @@ saviTTest.default <- function(
       saviFutilityTStatNEffNu("t"=tStat, "nEff"=nEff, "nu"=nu,
         "parameter"=designObj[["futilityResult"]][["parameter"]],
         "alternative"=designObj[["alternative"]], "paired"=paired,
-        "eType"=designObj[["eType"]])
+        "nuMin"=nuMin)
     )
     eValueFut <- unname(testResultFut[["eValue"]])
   }
@@ -702,7 +717,7 @@ saviTTest.default <- function(
             "nEff"=nEffVec[i], "nu"=nuVec[i],
             "parameter"=designObj[["futilityResult"]][["parameter"]],
             "alternative"=designObj[["alternative"]], "paired"=paired,
-            "eType"=designObj[["eType"]])
+            "nuMin"=nuMin)
         )
         eValueFutVec[i] <- unname(resFut[["eValue"]])
       }
@@ -895,7 +910,7 @@ saviFutilityTStatNEffNu <- function(
     sPlus0 <- suppressWarnings(
       saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
                           "alternative"="greater", "tDensity"=TRUE, "paired"=paired,
-                          "eType"="grow", "nuMin"=nuMin)[["eValue"]]
+                          "eType"=eType, "nuMin"=nuMin)[["eValue"]]
     )
 
   if (alternative %in% c("twoSided", "less"))
@@ -2143,7 +2158,7 @@ sampleStoppingTimesSaviT <- function(
           "t"=tValues[j], "nEff"=nEffVector[j], "nu"=nuVector[j],
           "parameter"=futilityParameter,
           "alternative"=alternative,
-          "eType"="grow", "tDensity"=FALSE, "paired"=paired,
+          "tDensity"=FALSE, "paired"=paired,
           "nuMin"=nuMin)
 
         futilityEValue <- futRes[["eValue"]]
