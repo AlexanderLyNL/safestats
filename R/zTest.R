@@ -1051,7 +1051,8 @@ designSaviZ <- function(
       stop("Can't run a futility analysis without esMinFutility or meanDiffMin")
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "power"=power, "betaDefault"=betaDefault)
+      "betaFutility"=betaFutility, "alpha"=alpha,
+      "power"=power, "betaDefault"=betaDefault)
   }
 
   designScenario <- NULL
@@ -1873,7 +1874,7 @@ sampleStoppingTimesSaviZ <- function(
     )
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "beta"=1-power
+      "betaFutility"=betaFutility, "alpha"=alpha, "beta"=1-power
     )
 
     stopifnot(betaFutility > 0, betaFutility < 1)

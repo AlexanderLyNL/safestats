@@ -555,11 +555,14 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 #'
 #' @examples
 #' matchBetaFutilityWith(0.3)
-matchBetaFutilityWith <- function(betaFutility, power, beta=NULL, betaDefault=0.2) {
+matchBetaFutilityWith <- function(betaFutility, alpha=NULL, power, beta=NULL, betaDefault=0.2) {
   if (!is.null(betaFutility)) {
-    stopifnot(betaFutility >0, betaFutility < 1)
+    stopifnot(betaFutility > 0, betaFutility < 1)
     return(betaFutility)
   }
+
+  if (!is.null(alpha))
+    return(alpha)
 
   if (!is.null(power)) {
     stopifnot(power > 0, power < 1)

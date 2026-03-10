@@ -83,7 +83,10 @@ saviTTestStatNEffNu <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     ...) {
 
-  stopifnot(nEff >= 0, nu >= 0)
+  if (nu < 0 || nEff < 0)
+    return(list(eValue=1))
+
+  # stopifnot(nEff >= 0, nu >= 0)
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -238,9 +241,10 @@ saviTTestStatNEffNuMom <- function(
     ...) {
 
   g <- parameter
+  alternative <- match.arg(alternative)
 
   # Do t-density approximation numeric
-  if (tDensity) {
+  if (tDensity && is.finite(t)) {
     momIntegrand <- function(delta) {
       exp(
         stats::dt(t, df=nu, ncp=sqrt(nEff)*delta, log=TRUE)
@@ -442,12 +446,15 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
     term1 <- if (is.infinite(logTerm1)) 0 else exp(logTerm1)
     term2 <- if (is.infinite(logTerm2)) 0 else exp(logTerm2)
 
-    result <- (term1+term2)/2
+    result <- try((term1+term2)/2)
   } else {
-    result <- exp(
+    result <- try(exp(
       stats::dt(t, df=nu, ncp=sqrt(nEff)*deltaS, log=TRUE) -
-        stats::dt(t, df=nu, ncp=0, log=TRUE))
+        stats::dt(t, df=nu, ncp=0, log=TRUE)))
   }
+
+  if (isTryError(result))
+    browser()
 
   if (result < 0) {
     warning("Numerical overflow: E-value is essentially zero")
@@ -568,7 +575,7 @@ saviTTest.default <- function(
     x, y=NULL, designObj=NULL, paired=FALSE,
     varEqual=NULL, ciValue=NULL,
     maxRoot=10, sequential=NULL,
-    tDensity=FALSE, nuMin=2, ...) {
+    tDensity=FALSE, nuMin=2, wantCi=TRUE, ...) {
 
   result <- constructSaviTestObj("T-Test")
 
@@ -634,10 +641,13 @@ saviTTest.default <- function(
   if (is.null(ciValue))
     ciValue <- 1-alpha
 
-  if (ciValue < 0 || ciValue > 1)
+  if (wantCi && ciValue < 0 || ciValue > 1)
     stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
 
   tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+
+  if (is.na(tStat) && sdObs==0 && meanObs-h0==0)
+    tStat <- 0
 
   if (is.na(tStat))
     stop("Data error: Could not compute the t-statistic")
@@ -658,19 +668,20 @@ saviTTest.default <- function(
     testResultFut <- suppressWarnings(
       saviFutilityTStatNEffNu("t"=tStat, "nEff"=nEff, "nu"=nu,
         "parameter"=designObj[["futilityResult"]][["parameter"]],
-        "alternative"=designObj[["alternative"]], "paired"=paired,
-        "eType"=designObj[["eType"]])
+        "alternative"=designObj[["alternative"]], "paired"=paired)
     )
     eValueFut <- unname(testResultFut[["eValue"]])
   }
 
   ### Compute: confSeq ----
   #
-  result[["confSeq"]] <- computeConfidenceIntervalT(
-    "meanObs"=meanObs, "sdObs"=sdObs,
-    "nEff"=nEff, "nu"=nu,
-    "parameter"=designObj[["parameter"]],
-    "eType"=designObj[["eType"]], "ciValue"=ciValue, "maxRoot"=maxRoot)
+  if (wantCi) {
+    result[["confSeq"]] <- computeConfidenceIntervalT(
+      "meanObs"=meanObs, "sdObs"=sdObs,
+      "nEff"=nEff, "nu"=nu,
+      "parameter"=designObj[["parameter"]],
+      "eType"=designObj[["eType"]], "ciValue"=ciValue, "maxRoot"=maxRoot)
+  }
 
   ## Compute: Sequential ----
   #
@@ -701,19 +712,20 @@ saviTTest.default <- function(
           saviFutilityTStatNEffNu("t"=tStatVec[i],
             "nEff"=nEffVec[i], "nu"=nuVec[i],
             "parameter"=designObj[["futilityResult"]][["parameter"]],
-            "alternative"=designObj[["alternative"]], "paired"=paired,
-            "eType"=designObj[["eType"]])
+            "alternative"=designObj[["alternative"]], "paired"=paired)
         )
         eValueFutVec[i] <- unname(resFut[["eValue"]])
       }
 
-      kaas <- computeConfidenceIntervalT("meanObs"=meanObsVec[i], "sdObs"=sdObsVec[i],
-                                         "nEff"=nEffVec[i], "nu"=nuVec[i],
-                                         "parameter"=designObj[["parameter"]],
-                                         "eType"=designObj[["eType"]], "ciValue"=ciValue,
-                                         "maxRoot"=maxRoot)
+      if (wantCi) {
+        kaas <- computeConfidenceIntervalT("meanObs"=meanObsVec[i], "sdObs"=sdObsVec[i],
+                                           "nEff"=nEffVec[i], "nu"=nuVec[i],
+                                           "parameter"=designObj[["parameter"]],
+                                           "eType"=designObj[["eType"]], "ciValue"=ciValue,
+                                           "maxRoot"=maxRoot)
 
-      confSeqMatrix[i, ] <- kaas
+        confSeqMatrix[i, ] <- kaas
+      }
     }
   }
 
@@ -891,19 +903,45 @@ saviFutilityTStatNEffNu <- function(
 
   alternative <- match.arg(alternative)
 
-  if (alternative %in% c("twoSided", "greater"))
-    sPlus0 <- suppressWarnings(
-      saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
-                          "alternative"="greater", "tDensity"=TRUE, "paired"=paired,
-                          "eType"="grow", "nuMin"=nuMin)[["eValue"]]
-    )
+  if (is.finite(t)) {
+    if (alternative %in% c("twoSided", "greater"))
+      sPlus0 <- suppressWarnings(
+        saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+                            "alternative"="greater", "tDensity"=TRUE, "paired"=paired,
+                            "eType"="grow", "nuMin"=nuMin)[["eValue"]]
+      )
 
-  if (alternative %in% c("twoSided", "less"))
-    sMin0 <- suppressWarnings(
-      saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=-parameter,
-                          "alternative"="less", "tDensity"=TRUE, "paired"=paired,
-                          "eType"="grow", "nuMin"=nuMin)[["eValue"]]
-    )
+    if (alternative %in% c("twoSided", "less"))
+      sMin0 <- suppressWarnings(
+        saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=-parameter,
+                            "alternative"="less", "tDensity"=TRUE, "paired"=paired,
+                            "eType"="grow", "nuMin"=nuMin)[["eValue"]]
+      )
+  } else {
+    expTerm <- exp(-nEff*parameter^2/2)
+
+    aHypTerm <- hypergeo::genhypergeo(U=(nu+1)/2, L=1/2, z=nEff*parameter^2/2)
+    bHypTerm <- sqrt(2*nEff)*exp(lgamma((nu+2)/2)-lgamma((nu+1)/2))*parameter*
+      hypergeo::genhypergeo(U=nu/2+1, L=3/2, z=nEff*parameter^2/2)
+
+    if (alternative %in% c("twoSided", "greater")) {
+      sPlus0 <- expTerm*(aHypTerm+bHypTerm)
+
+      if (is.infinite(sPlus0)) {
+        sPlus0 <- 1e270
+        # warning("Large (positive) value for the alternative over futility")
+      }
+    }
+
+    if (alternative %in% c("twoSided", "less")) {
+      sMin0 <- expTerm*(aHypTerm-bHypTerm)
+
+      if (is.infinite(sPlus0)) {
+        sMin0 <- 1e270
+        # warning("Large (negative) value for the alternative over futility")
+      }
+    }
+  }
 
   eValue <- switch(alternative,
                    "twoSided"=max(sPlus0, sMin0),
@@ -1268,7 +1306,8 @@ designSaviT <- function(
       stop("Can't run a futility analysis without esMinFutility or deltaMin")
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "power"=power, "beta"=beta, "betaDefault"=betaDefault)
+      "betaFutility"=betaFutility, "alpha"=alpha,
+      "power"=power, "beta"=beta, "betaDefault"=betaDefault)
   }
 
   designScenario <- NULL
@@ -1999,7 +2038,7 @@ sampleStoppingTimesSaviT <- function(
     )
 
     betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "power"=power, "beta"=1-power
+      "betaFutility"=betaFutility, "alpha"=alpha, "power"=power, "beta"=1-power
     )
 
     stopifnot(betaFutility > 0, betaFutility < 1)
