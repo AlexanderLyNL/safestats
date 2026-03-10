@@ -95,7 +95,7 @@ saviTTestStatNEffNu <- function(
   if (nu <= 1)
     return(list("eValue"=1))
 
-  if (is.infinite(t) && nu <= nuMin)
+  if (is.infinite(t) || is.na(t) && nu <= nuMin)
     return(list("eValue"=1))
 
   if (eType=="grow") {
@@ -644,7 +644,22 @@ saviTTest.default <- function(
   if (wantCi && ciValue < 0 || ciValue > 1)
     stop("Can't make a confidence sequence with ciValue < 0 or ciValue > 1, or alpha < 0 or alpha > 1")
 
-  tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+  if (nu <= nuMin || is.na(sdObs)) {
+    tStat <- 0
+  } else {
+    tStat <- try(sqrt(nEff)*(meanObs - h0)/sdObs)
+
+    if (isTryError(tStat))
+      browser()
+  }
+
+  # tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+  #
+  # if (meanObs==0 && sdObs==0) {
+  #   tStat <- 0
+  # } else {
+  #   tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
+  # }
 
   if (is.na(tStat) && sdObs==0 && meanObs-h0==0)
     tStat <- 0
@@ -668,7 +683,8 @@ saviTTest.default <- function(
     testResultFut <- suppressWarnings(
       saviFutilityTStatNEffNu("t"=tStat, "nEff"=nEff, "nu"=nu,
         "parameter"=designObj[["futilityResult"]][["parameter"]],
-        "alternative"=designObj[["alternative"]], "paired"=paired)
+        "alternative"=designObj[["alternative"]], "paired"=paired,
+        "nuMin"=nuMin)
     )
     eValueFut <- unname(testResultFut[["eValue"]])
   }
@@ -712,7 +728,8 @@ saviTTest.default <- function(
           saviFutilityTStatNEffNu("t"=tStatVec[i],
             "nEff"=nEffVec[i], "nu"=nuVec[i],
             "parameter"=designObj[["futilityResult"]][["parameter"]],
-            "alternative"=designObj[["alternative"]], "paired"=paired)
+            "alternative"=designObj[["alternative"]], "paired"=paired,
+            "nuMin"=nuMin)
         )
         eValueFutVec[i] <- unname(resFut[["eValue"]])
       }
@@ -2182,7 +2199,7 @@ sampleStoppingTimesSaviT <- function(
           "t"=tValues[j], "nEff"=nEffVector[j], "nu"=nuVector[j],
           "parameter"=futilityParameter,
           "alternative"=alternative,
-          "eType"="grow", "tDensity"=FALSE, "paired"=paired,
+          "tDensity"=FALSE, "paired"=paired,
           "nuMin"=nuMin)
 
         futilityEValue <- futRes[["eValue"]]
