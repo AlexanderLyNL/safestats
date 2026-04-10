@@ -99,49 +99,13 @@ saviTTestStatNEffNu <- function(
     return(list("eValue"=1))
 
   if (eType=="grow") {
-    # TODO(Alexander):
-    #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
-    #   1. Use Kummer's transform again (??)
-    #   2. Switch to numerical integration. Boundary case
-    #
-    # saviTTestStat(t=-3.1878, parameter=0.29, n1=315, alternative="greater")
-    # saviTTestStat(t=-3.1879, parameter=0.29, n1=315, alternative="greater")
-    # saviTTestStat(t=-3.188, parameter=0.29, n1=315, alternative="greater")
 
-    if (alternative=="twoSided") {
-      deltaS <- parameter
-      a <- t^2/(nu+t^2)
-      expTerm <- exp((a-1)*nEff*deltaS^2/2)
+    tempResult <- saviTTestStatNEffNuGrow(
+      t=t, nEff=nEff, nu=nu, parameter=parameter,
+      alternative=alternative, tDensity=tDensity,
+      paired=paired, ...)
 
-      zeroIndex <- which(abs(expTerm) < .Machine$double.eps)
-      eValues <- vector("numeric", length(expTerm))
-
-      zArg <- (-1)*a*nEff*deltaS^2/2
-      zArg <- zArg[!zeroIndex]
-      # Note(Alexander): This made the vector shorter. Only there where expTerm is non-zero will we evaluate
-      # the hypergeometric functions
-
-      aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
-      eValues[!zeroIndex] <- expTerm[!zeroIndex] * aKummerFunction
-    } else {
-      if (alternative=="greater") {
-        eValues <- saviTTestStatTDensity("t"=t, "parameter"=abs(parameter),
-                                         "nu"=nu, "nEff"=nEff, "alternative"=alternative)
-      } else if (alternative=="less") {
-        eValues <- saviTTestStatTDensity("t"=t, "parameter"=-abs(parameter),
-                                         "nu"=nu, "nEff"=nEff, "alternative"=alternative)
-      }
-    }
-
-    if (eValues <= 0) {
-      # warning("Numerical overflow: eValue close to zero. Ratio of t density employed.")
-      # TODO(Alexander): Numerical integrate here
-      eValues <- saviTTestStatTDensity("t"=t, "parameter"=parameter, "nu"=nu,
-                                       "nEff"=nEff, "alternative"=alternative)
-    }
-
-    result <- list("eValue"=eValues)
-    return(result)
+    return(tempResult)
   } else if (eType=="eCauchy") {
     kappaG <- parameter
 
@@ -408,6 +372,117 @@ saviTTestStatNEffNuMom <- function(
   }
 }
 
+#' SaviTTestStat based on the t-statistic, nEff and nu and the grow prior
+#'
+#' @rdname saviTTestStat
+#' @inheritParams saviTTestStatNEffNu
+#'
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(ly2024safe)`
+#'   `r addCite(perez2024estatistics)`
+#'   `r addCite(wang2025anytime)`
+#'
+#' @export
+#'
+saviTTestStatNEffNuGrow <- function(
+    t, nEff, nu, parameter,
+    alternative=c("twoSided", "less", "greater"),
+    tDensity=FALSE,
+    paired=FALSE, ...) {
+
+  # TODO(Alexander):
+  #   One-sided not as stable as two-sided due to hypergeo::genhypergeo for the odd component
+  #   1. Use Kummer's transform again (??)
+  #   2. Switch to numerical integration. Boundary case
+  #
+
+  deltaS <- parameter
+
+  alternative <- match.arg(alternative)
+
+  if (isTRUE(tDensity)) {
+    eValue <- saviTTestStatTDensity(
+      "t"=t, "parameter"=parameter,
+      "nu"=nu, "nEff"=nEff, "alternative"=alternative)
+    return(list("eValue"=eValue))
+  }
+
+  if (is.finite(t)) {
+    a <- t^2/(nu+t^2)
+    expTerm <- exp((a-1)*nEff*deltaS^2/2)
+
+    zArg <- (-1)*a*nEff*deltaS^2/2
+
+    aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
+
+    if (alternative=="twoSided") {
+      eValue <- expTerm * aKummerFunction
+    } else {
+      bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu) *
+        Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
+
+      if (alternative=="greater") {
+        eValue <- expTerm*(aKummerFunction + bKummerFunction)
+      } else if (alternative=="less") {
+        eValue <- expTerm*(aKummerFunction - bKummerFunction)
+      }
+    }
+
+    if (is.null(eValue) || is.na(eValue) || eValue <= 0) {
+      eValue <- saviTTestStatTDensity(
+        "t"=t, "parameter"=parameter,
+        "nu"=nu, "nEff"=nEff, "alternative"=alternative)
+    }
+  } else if (is.infinite(t)) {
+    expTerm <- exp(-nEff*parameter^2/2)
+    aHypTerm <- hypergeo::genhypergeo(U=(nu+1)/2, L=1/2, z=nEff*parameter^2/2)
+
+    if (expTerm==0 && is.infinite(aHypTerm)) {
+      x <- nEff*parameter^2/2
+
+      expTerm <- exp(lgamma(1/2)-lgamma((nu+1)/2)+nu/2*log(x))
+      seriesTerm <- 1 + nu^2/4*x^(-1)
+      aPart <- expTerm*seriesTerm
+
+      if (alternative=="twoSided") {
+        eValue <- aPart
+      } else {
+        expTerm <- 2*exp(lgamma(3/2)-lgamma((nu+1)/2)+nu/2*log(x))
+        seriesTerm <- 1 + nu*(nu-1)/4*x^(-1)
+
+        bPart <- expTerm*seriesTerm
+
+        if (alternative=="greater") {
+          eValue <- aPart+sign(t)*bPart
+        } else if (alternative=="less") {
+          eValue <- aPart-sign(t)*bPart
+        }
+      }
+    } else {
+      if (alternative=="twoSided") {
+        eValue <- expTerm*aHypTerm
+      } else {
+        bHypTerm <- sqrt(2*nEff)*exp(lgamma((nu+2)/2)-lgamma((nu+1)/2))*parameter*
+          hypergeo::genhypergeo(U=nu/2+1, L=3/2, z=nEff*parameter^2/2)
+
+        if (alternative=="greater") {
+          eValue <- expTerm*(aHypTerm+sign(t)*bHypTerm)
+        } else if (alternative=="less") {
+          eValue <- expTerm*(aHypTerm-sign(t)*bHypTerm)
+        }
+      }
+    }
+
+    if (eValue < 0)
+      eValue <- 1e-270
+  }
+
+  result <- list("eValue"=eValue)
+  return(result)
+}
+
 #' saviTTestStat() based on t-densities
 #'
 #' This is \code{\link{saviTTestStat}()} based on t-densities instead of
@@ -452,9 +527,6 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
       stats::dt(t, df=nu, ncp=sqrt(nEff)*deltaS, log=TRUE) -
         stats::dt(t, df=nu, ncp=0, log=TRUE)))
   }
-
-  if (isTryError(result))
-    browser()
 
   if (result < 0) {
     warning("Numerical overflow: E-value is essentially zero")
@@ -918,47 +990,24 @@ saviFutilityTStatNEffNu <- function(
   if (is.null(parameter) && !is.null(esMinFutility))
     parameter <- abs(esMinFutility)
 
+  if (nu < nuMin)
+    return(list("eValue"=1))
+
   alternative <- match.arg(alternative)
 
-  if (is.finite(t)) {
-    if (alternative %in% c("twoSided", "greater"))
-      sPlus0 <- suppressWarnings(
-        saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
-                            "alternative"="greater", "tDensity"=TRUE, "paired"=paired,
-                            "eType"="grow", "nuMin"=nuMin)[["eValue"]]
-      )
+  if (alternative %in% c("twoSided", "greater"))
+    sPlus0 <- suppressWarnings(
+      saviTTestStatNEffNuGrow(
+        "t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+        "alternative"="greater", "paired"=paired)[["eValue"]]
+    )
 
-    if (alternative %in% c("twoSided", "less"))
-      sMin0 <- suppressWarnings(
-        saviTTestStatNEffNu("t"=t, "nEff"=nEff, "nu"=nu, "parameter"=-parameter,
-                            "alternative"="less", "tDensity"=TRUE, "paired"=paired,
-                            "eType"="grow", "nuMin"=nuMin)[["eValue"]]
-      )
-  } else {
-    expTerm <- exp(-nEff*parameter^2/2)
-
-    aHypTerm <- hypergeo::genhypergeo(U=(nu+1)/2, L=1/2, z=nEff*parameter^2/2)
-    bHypTerm <- sqrt(2*nEff)*exp(lgamma((nu+2)/2)-lgamma((nu+1)/2))*parameter*
-      hypergeo::genhypergeo(U=nu/2+1, L=3/2, z=nEff*parameter^2/2)
-
-    if (alternative %in% c("twoSided", "greater")) {
-      sPlus0 <- expTerm*(aHypTerm+bHypTerm)
-
-      if (is.infinite(sPlus0)) {
-        sPlus0 <- 1e270
-        # warning("Large (positive) value for the alternative over futility")
-      }
-    }
-
-    if (alternative %in% c("twoSided", "less")) {
-      sMin0 <- expTerm*(aHypTerm-bHypTerm)
-
-      if (is.infinite(sPlus0)) {
-        sMin0 <- 1e270
-        # warning("Large (negative) value for the alternative over futility")
-      }
-    }
-  }
+  if (alternative %in% c("twoSided", "less"))
+    sMin0 <- suppressWarnings(
+      saviTTestStatNEffNuGrow(
+        "t"=t, "nEff"=nEff, "nu"=nu, "parameter"=parameter,
+        "alternative"="less", "paired"=paired)[["eValue"]]
+    )
 
   eValue <- switch(alternative,
                    "twoSided"=max(sPlus0, sMin0),
@@ -967,7 +1016,7 @@ saviFutilityTStatNEffNu <- function(
 
   if (eValue < 0) {
     warning("Overflow: e-value smaller than 0")
-    eValue <- 2^(-15)
+    eValue <- 1e-270
   }
 
   result <- list("eValue"=eValue)
@@ -1043,6 +1092,8 @@ computeConfidenceIntervalT <- function(
       upperB <- maxRoot
       maxRoot <- 2*maxRoot
     }
+
+    targetFunction <- Vectorize(targetFunction)
 
     tempResult <- suppressWarnings(
       tryCatch(stats::uniroot(targetFunction, c(lowerB, upperB)),
@@ -1710,7 +1761,12 @@ designSaviT3bWantParameter <- function(
 
   minG <- (alpha^(-2/nu)-1)/nEff
 
-  tempResult <- uniroot(function(g)tTestWidthDerivative(g, nEff=nEff, nu=nu, alpha=alpha),
+  someTargetFunction <- function(g)
+    tTestWidthDerivative(g, nEff=nEff, nu=nu, alpha=alpha)
+
+  someTargetFunction <- Vectorize(someTargetFunction)
+
+  tempResult <- uniroot(someTargetFunction,
                         c(minG, max(exp(-log(alpha))*minG, 1e6)),
                         tol=min(.Machine$double.eps^0.25, 1/nEff))
 
@@ -1856,6 +1912,8 @@ computeNPlanBatchSaviT <- function(
       "eType"=eType)$eValue-1/alpha
   }
 
+  targetFunction <- Vectorize(targetFunction)
+
   tempResult <- suppressWarnings(
     tryCatch(stats::uniroot(targetFunction, interval=c(nTemp/2, 2*nTemp)),
              error=identity)
@@ -1987,6 +2045,8 @@ computeMinEsBatchSaviT <- function(
       "n1"=n1, "n2"=n2, "parameter"=paramFunc(deltaTrue),
       "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
   }
+
+  targetFunction <- Vectorize(targetFunction)
 
   if (eType=="grow")  {
     gaussResult <- computeMinEsBatchSaviT(
