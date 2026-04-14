@@ -431,6 +431,18 @@ saviTTestStatNEffNuGrow <- function(
     }
 
     if (is.null(eValue) || is.na(eValue) || eValue <= 0) {
+      aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg, tol=1e-30))
+      bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu) *
+        Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg, tol=1e-30))
+
+      if (alternative=="greater") {
+        eValue <- expTerm*(aKummerFunction + bKummerFunction)
+      } else if (alternative=="less") {
+        eValue <- expTerm*(aKummerFunction - bKummerFunction)
+      }
+    }
+
+    if (is.null(eValue) || is.na(eValue) || eValue <= 0) {
       eValue <- saviTTestStatTDensity(
         "t"=t, "parameter"=parameter,
         "nu"=nu, "nEff"=nEff, "alternative"=alternative)
