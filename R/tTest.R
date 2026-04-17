@@ -415,30 +415,44 @@ saviTTestStatNEffNuGrow <- function(
 
     zArg <- (-1)*a*nEff*deltaS^2/2
 
+    compMode <- 1
+
     aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg))
+    aKummerFunction2 <- aKummerFunction
+
+    if (aKummerFunction > 0) {
+      aPart <- expTerm * aKummerFunction
+    } else if (aKummerFunction <= 0) {
+      compMode <- 2
+
+      aKummerFunction2 <- max(compute1F1AllVersions(U=-nu/2, L=1/2, z=zArg))
+      aPart <- expTerm * aKummerFunction2
+    }
 
     if (alternative=="twoSided") {
-      eValue <- expTerm * aKummerFunction
+      eValue <- aPart
     } else {
       bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu) *
         Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg))
 
-      if (alternative=="greater") {
-        eValue <- expTerm*(aKummerFunction + bKummerFunction)
-      } else if (alternative=="less") {
-        eValue <- expTerm*(aKummerFunction - bKummerFunction)
-      }
-    }
+      signAlt <- if (alternative=="greater") 1 else -1
 
-    if (is.null(eValue) || is.na(eValue) || eValue <= 0) {
-      aKummerFunction <- Re(hypergeo::genhypergeo(U=-nu/2, L=1/2, zArg, tol=1e-30))
-      bKummerFunction <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu) *
-        Re(hypergeo::genhypergeo(U=(1-nu)/2, L=3/2, zArg, tol=1e-30))
+      bPart <- expTerm*signAlt*bKummerFunction
 
-      if (alternative=="greater") {
-        eValue <- expTerm*(aKummerFunction + bKummerFunction)
-      } else if (alternative=="less") {
-        eValue <- expTerm*(aKummerFunction - bKummerFunction)
+      eValue <- aPart + bPart
+
+      if (eValue <= 0) {
+        signBPart <- sign(bPart)
+
+        if (compMode==1) {
+          compMode <- 2
+          aKummerFunction2 <- max(compute1F1AllVersions(U=-nu/2, L=1/2, z=zArg))
+        }
+
+        bKummerFunction2 <- exp(lgamma(nu/2+1)-lgamma((nu+1)/2))*sqrt(2*nEff)*deltaS*t/sqrt(t^2+nu) *
+          min(compute1F1AllVersions(U=(1-nu)/2, L=3/2, z=zArg))
+
+        eValue <- expTerm*(aKummerFunction2 + signBPart*bKummerFunction2)
       }
     }
 
@@ -2737,6 +2751,43 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
   return(res)
 }
 
+#' Computes 6 equivalent forms of the confluent hypergeometric function 1f1
+#'
+#' Repeated calls of \code{\link[hypergeo]{genhypergeo}},
+#' which provides further details.
+#'
+#' @param U Upper arguments respectively (real or complex)
+#' @param L Lower arguments respectively (real or complex)
+#' @param z Primary complex argument
+#' @param tol tolerance with default zero meaning to iterate
+#' until additional terms to not change the partial sum
+#' @param maxiter Maximum number of iterations to perform
+#'
+#' @returns a vector
+#' @export
+#'
+#' @examples
+#' compute1F1AllVersions(U=-359, L=1/2, z=-0.1891234)
+compute1F1AllVersions <- function(U, L, z, tol=0, maxiter=2000) {
+  a1 <- Re(hypergeo::genhypergeo_contfrac_single(
+    "U"=U, "L"=L, "z"=z, "tol"=tol, "maxiter"=maxiter))
+  a2 <- Re(hypergeo::genhypergeo_series(
+    "U"=U, "L"=L, "z"=z, "tol"=tol, "maxiter"=maxiter))
+  a3 <- Re(hypergeo::genhypergeo_shanks(
+    "U"=U, "L"=L, "z"=z, "maxiter"=maxiter))
+
+  a4 <- Re(hypergeo::genhypergeo_contfrac_single(
+    "U"=L-U, "L"=L, "z"=-z, "tol"=tol, "maxiter"=maxiter))*exp(z)
+  a5 <- Re(hypergeo::genhypergeo_series(
+    "U"=L-U, "L"=L, "z"=-z, "tol"=tol, "maxiter"=maxiter))*exp(z)
+  a6 <- Re(hypergeo::genhypergeo_shanks(
+    "U"=L-U, "L"=L, "z"=-z, "maxiter"=maxiter))*exp(z)
+
+  # res <- list(a1=a1, a2=a2, a3=a3, a4=a4, a5=a5, a6=a6)
+  res <- c(a1, a2, a3, a4, a5, a6)
+  return(res)
+}
+
 # Data generating fnt ------
 
 #' Generates Normally Distributed Data Depending on the Design
@@ -3362,3 +3413,5 @@ tTestWidthDerivative <- function(g, nEff, nu, alpha=0.05) {
 #'
 #'   return(result)
 #' }
+
+
