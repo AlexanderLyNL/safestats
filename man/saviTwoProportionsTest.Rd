@@ -3,6 +3,7 @@
 \name{safeTwoProportionsTest}
 \alias{safeTwoProportionsTest}
 \alias{saviTwoProportionsTest}
+\alias{safe.prop.test}
 \alias{savi.prop.test}
 \title{Perform a Savi Test for Two Proportions with Stream Data}
 \usage{

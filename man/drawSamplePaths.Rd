@@ -9,8 +9,8 @@ drawSamplePaths(
   n,
   pathsMatrix,
   alpha,
-  betaFutility,
-  col = "#1F78B4E6",
+  betaMinEffi,
+  col = "#A6CEE380",
   pch = 15,
   lwd = 2,
   underColour = "#FFB90FCC",
@@ -47,4 +47,16 @@ as step functions (realistic).}
 }
 \description{
 Helper function to draw sample paths
+}
+\examples{
+set.seed(2)
+designObj <- designSaviZ(0.8, power=0.9, nSim=100)
+plot(designObj, col="white")
+
+drawSamplePaths(fpt=designObj$bootObjN1Plan$data,
+                n=designObj$nPlan,
+                pathsMatrix=designObj$samplePaths,
+                alpha=designObj$alpha,
+                betaMinEffi=designObj$betaMinEffii)
+
 }

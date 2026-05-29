@@ -22,12 +22,13 @@ saviTTest(x, ...)
   y = NULL,
   designObj = NULL,
   paired = FALSE,
-  varEqual = TRUE,
+  varEqual = NULL,
   ciValue = NULL,
   maxRoot = 10,
   sequential = NULL,
   tDensity = FALSE,
   nuMin = 2,
+  wantCi = TRUE,
   ...
 )
 

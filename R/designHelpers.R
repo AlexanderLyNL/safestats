@@ -27,7 +27,7 @@ designSavi1aHelper <- function(
                  "nMean"=NULL, "nMeanTwoSe"=NULL,
                  "bootObjN1Plan"=NULL, "bootObjN1Mean"=NULL,
                  "samplePaths"=NULL, "breakVector"=NULL,
-                 "futility"=FALSE, "futilityResult"=NULL,
+                 "minEffiTest"=FALSE, "minEffiTestResult"=NULL,
                  "simData"=NULL, "beta"=beta, "note"=NULL)
 
   nPlanBatch <- samplingResult[["nPlanBatch"]]
@@ -91,7 +91,7 @@ designSavi1aHelper <- function(
   result[["nMean"]] <- nMean
   result[["nMeanTwoSe"]] <- nMeanTwoSe
 
-  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
+  result[["minEffiTestResult"]] <- samplingResult[["minEffiTestResult"]]
   result[["simData"]] <- samplingResult[["simData"]]
 
   result[["note"]] <- note
@@ -164,7 +164,7 @@ designSavi2Helper <- function(
   result[["logImpliedTargetTwoSe"]] <- 2*bootObjLogImpliedTarget[["bootSe"]]
 
   result[["simData"]] <- samplingResult[["simData"]]
-  result[["futilityResult"]] <- samplingResult[["futilityResult"]]
+  result[["minEffiTestResult"]] <- samplingResult[["minEffiTestResult"]]
 
   return(result)
 }
@@ -391,11 +391,11 @@ computeNPlanBootstrapper <- function(
 
   n1Plan <- ceil(bootObjN1Plan[["t0"]])
 
-  futResult <- samplingResult[["futilityResult"]]
+  minEffiRes <- samplingResult[["minEffiTestResult"]]
 
-  if (!is.null(futResult)) {
-    futIndex <- Matrix::which(samplingResult[["breakVector"]]==-1)
-    times[futIndex] <- as.numeric(futResult[["stoppingTimes"]])[futIndex]
+  if (!is.null(minEffiRes)) {
+    minEffiIndex <- Matrix::which(samplingResult[["breakVector"]]==-1)
+    times[minEffiIndex] <- as.numeric(minEffiRes[["stoppingTimes"]])[minEffiIndex]
   }
 
   bootObjN1Mean <- computeBootObj(
@@ -410,7 +410,7 @@ computeNPlanBootstrapper <- function(
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
                  "simData"=samplingResult[["simData"]],
-                 "futilityResult"=samplingResult[["futilityResult"]])
+                 "minEffiTestResult"=samplingResult[["minEffiTestResult"]])
 }
 
 
@@ -456,7 +456,7 @@ computeBetaBootstrapper <- function(
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
                  "simData"=samplingResult[["simData"]],
-                 "parameter"=parameter, "futilityResult"=samplingResult[["futilityResult"]])
+                 "parameter"=parameter, "minEffiTestResult"=samplingResult[["minEffiTestResult"]])
 
   return(result)
 }
@@ -502,7 +502,7 @@ computePowerBootstrapper <- function(
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
                  "simData"=samplingResult[["simData"]],
-                 "parameter"=parameter, "futilityResult"=samplingResult[["futilityResult"]])
+                 "parameter"=parameter, "minEffiTestResult"=samplingResult[["minEffiTestResult"]])
 
   return(result)
 }
@@ -541,24 +541,24 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 
 # Match args ----
 
-#' Checks and outputs a threshold for a futility analysis
+#' Checks and outputs a threshold for a minimal efficacy analysis
 #'
-#' @param betaFutility numeric > 0 and < 1, used to set the threshold of
-#' a futility procedure
+#' @param betaMinEffi numeric > 0 and < 1, used to set the threshold of
+#' a minimal efficacy procedure
 #' @param beta numeric > 0 and < 1, a tolerable type II error, used to set
-#' the threshold if betaFutility is not given
+#' the threshold if betaMinEffi is not given
 #' @param betaDefault numeric > 0 and < 1 a default value (0.2) to run
-#' a futility procedure
+#' a minimal efficacy procedure
 #'
-#' @returns a betaFutility threshold
+#' @returns a betaMinEffi threshold
 #' @export
 #'
 #' @examples
-#' matchBetaFutilityWith(0.3)
-matchBetaFutilityWith <- function(betaFutility, alpha=NULL, power, beta=NULL, betaDefault=0.2) {
-  if (!is.null(betaFutility)) {
-    stopifnot(betaFutility > 0, betaFutility < 1)
-    return(betaFutility)
+#' matchBetaMinEffiWith(0.3)
+matchBetaMinEffiWith <- function(betaMinEffi, alpha=NULL, power, beta=NULL, betaDefault=0.2) {
+  if (!is.null(betaMinEffi)) {
+    stopifnot(betaMinEffi > 0, betaMinEffi < 1)
+    return(betaMinEffi)
   }
 
   if (!is.null(alpha))
@@ -574,12 +574,12 @@ matchBetaFutilityWith <- function(betaFutility, alpha=NULL, power, beta=NULL, be
     return(beta)
   }
 
-  warning("To run a futility procedure ",
-          "a betaFutility threshold needs to be specified ",
-          "by default betaFutility <- ", betaDefault)
-  betaFutility <- betaDefault
+  warning("To run a minimal efficacy procedure ",
+          "a betaMinEffi threshold needs to be specified ",
+          "by default betaMinEffi <- ", betaDefault)
+  betaMinEffi <- betaDefault
 
-  return(betaFutility)
+  return(betaMinEffi)
 }
 
 #' Match the parameter of a savi z or t-test
@@ -680,9 +680,9 @@ matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
   return(esMin)
 }
 
-#' Match the parameter of a futility savi z-test
+#' Match the parameter of a minimal efficacy savi z-test
 #'
-#' Based on the esMinFutility, meanDiffMin, alternative and eType
+#' Based on the minEffiSize, meanDiffMin, alternative and eType
 #'
 #' @inherit designSaviZ
 #'
@@ -690,11 +690,11 @@ matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
 #' @export
 #'
 #' @examples
-#' matchFutilityParameterZFrom(0.4)
-matchFutilityParameterWith <- function(esMinFutility, esMin, esTrue) {
+#' matchMinEffiParameterWith(0.4)
+matchMinEffiParameterWith <- function(minEffiSize, esMin, esTrue) {
 
-  if (!is.null(esMinFutility))
-    return(abs(esMinFutility))
+  if (!is.null(minEffiSize))
+    return(abs(minEffiSize))
 
   if (!is.null(esMin))
     return(abs(esMin))

@@ -4,8 +4,9 @@
 \alias{saviTTestStat}
 \alias{saviTTestStatNEffNu}
 \alias{saviTTestStatNEffNuMom}
+\alias{saviTTestStatNEffNuGrow}
 \alias{saviTTestStatTDensity}
-\alias{saviFutilityTStatNEffNu}
+\alias{saviMinEffiTStatNEffNu}
 \title{Computes E-Values Based on the T-Statistic}
 \usage{
 saviTTestStat(
@@ -46,6 +47,17 @@ saviTTestStatNEffNuMom(
   ...
 )
 
+saviTTestStatNEffNuGrow(
+  t,
+  nEff,
+  nu,
+  parameter,
+  alternative = c("twoSided", "less", "greater"),
+  tDensity = FALSE,
+  paired = FALSE,
+  ...
+)
+
 saviTTestStatTDensity(
   t,
   parameter,
@@ -56,7 +68,7 @@ saviTTestStatTDensity(
   ...
 )
 
-saviFutilityTStatNEffNu(
+saviMinEffiTStatNEffNu(
   t,
   nEff,
   nu,
@@ -65,7 +77,7 @@ saviFutilityTStatNEffNu(
   eType = "grow",
   tDensity = FALSE,
   paired = FALSE,
-  esMinFutility,
+  minEffiSize,
   nuMin = 2,
   ...
 )
@@ -108,18 +120,23 @@ design object by deltaS.
 This is \code{\link{saviTTestStat}()} based on t-densities instead of
 hypergeometric functions.
 
-Evidence for futility requires the e-value to be small, i.e. smaller than betaFutility threshold.
-If the alternative holds true, i.e. meanDiffTrue >= esMinFutility, then
-the e-value in favour of the alternative over futility, e1f, then the probability of
-ever seeing e1f <= betaFutility is not more than betaFutility.
+Evidence for minimal efficacy requires the e-value to be small, i.e. smaller than betaMinEffi threshold.
+If the alternative holds true, i.e. meanDiffTrue >= minEffiSize, then
+the e-value in favour of the alternative over minimal efficacy, e1Mf, then the probability of
+ever seeing e1f <= betaMinEffi is not more than betaMinEffi.
 }
 \examples{
 saviTTestStat(t=1, n1=100, parameter=0.4)
 saviTTestStat(t=3, n1=100, parameter=0.3)
-saviFutilityTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over futility
-saviFutilityTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for futility over the alternative
+saviMinEffiTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over minimal efficacy
+saviMinEffiTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for minimal efficacy over the alternative
 }
 \references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Pérez-Ortiz, M. F., Lardy, T., de Heide, R., & Grünwald, P. D. (2024). E-statistics, group invariance and anytime valid testing. \emph{The Annals of Statistics}, \strong{52}(\emph{4}), 1410-1432, http://dx.doi.org/10.1214/24-AOS2394. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Wang, H., & Ramdas, A. (in press). Anytime-valid t-tests and confidence sequences for Gaussian means with unknown variance. \emph{Sequential Analysis}, https://doi.org/10.48550/arXiv.2310.03722. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Pérez-Ortiz, M. F., Lardy, T., de Heide, R., & Grünwald, P. D. (2024). E-statistics, group invariance and anytime valid testing. \emph{The Annals of Statistics}, \strong{52}(\emph{4}), 1410-1432, http://dx.doi.org/10.1214/24-AOS2394. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

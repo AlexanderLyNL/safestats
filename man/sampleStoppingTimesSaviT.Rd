@@ -26,10 +26,10 @@ sampleStoppingTimesSaviT(
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
-  futility = FALSE,
-  esMinFutility = NULL,
+  minEffiTest = FALSE,
+  minEffiSize = NULL,
   beta = NULL,
-  betaFutility = NULL,
+  betaMinEffi = NULL,
   ...
 )
 }

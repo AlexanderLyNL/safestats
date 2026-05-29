@@ -41,7 +41,7 @@ library("remotes")
 This then allows you to install and load the development version of `safestats` as follows: 
 
 ```{r eval=FALSE}
-remotes::install_github("AlexanderLyNL/safestats", ref = "088")
+remotes::install_github("AlexanderLyNL/safestats", ref = "futility88")
 library(safestats)
 ```
 

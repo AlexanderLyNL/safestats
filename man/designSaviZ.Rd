@@ -28,9 +28,9 @@ designSaviZ(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
-  futility = FALSE,
-  esMinFutility = NULL,
-  betaFutility = NULL,
+  minEffiTest = FALSE,
+  minEffiSize = NULL,
+  betaMinEffi = NULL,
   betaDefault = 0.2,
   highN = 10000L,
   wantSampling = TRUE,
@@ -99,8 +99,8 @@ for the savi z test under continuous monitoring.}
 approximation of the power, the number of samples for the savi z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
 
-\item{futility}{logical, if \code{TRUE} then impose rule to stop
-for futility if e < beta. Default \code{FALSE}.}
+\item{minEffiTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e < beta. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
@@ -110,9 +110,9 @@ power <- 1-beta. This overrides the "beta" argument}
 
 \item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
-\item{esMinFutility}{numeric, the minimal clinical relevant mean
+\item{minEffiSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)}
+Default minEffiSize=NULL implies minEffiSize=abs(meanDiffMin)}
 
 \item{highN}{integer, largest possible sampling horizon. This might be the
 largest n that we are able to fund, which by default is set to 1e4L.
@@ -123,7 +123,7 @@ If all fails, then use highN as the sampling horizon.}
 \item{wantSampling}{logical, default TRUE so sampling paths are drawn.
 For instance, if meanDiffMin, beta, are given, then nPlan
 (scenario 1a) is derived by sampling. Set this to FALSE, whenever we
-want to run a futility test without needing to know nPlan}
+want to run a minimal efficacy test without needing to know nPlan}
 }
 \value{
 Returns a saviDesign object that includes:

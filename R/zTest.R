@@ -153,30 +153,30 @@ saviZTestStat <- function(
   return(result)
 }
 
-#' Computes Futility E-Values Based on the Z-Statistic in favour of the alternative over futility
+#' Computes Minimal Efficacy E-Values Based on the Z-Statistic in favour of the alternative over practical equivalence
 #'
-#' Evidence for futility requires the e-value to be small, i.e. smaller than betaFutility threshold.
-#' If the alternative holds true, i.e. meanDiffTrue >= esMinFutility, then
-#' the e-value in favour of the alternative over futility, e1f, then the probability of
-#' ever seeing e1f <= betaFutility is not more than betaFutility.
+#' Evidence for practical equivalence requires the e-value to be small, i.e. smaller than betaMinEffi threshold.
+#' If the alternative holds true, i.e. meanDiffTrue >= minEffiSize, then
+#' the e-value in favour of the alternative over minimal efficiency, e1f, then the probability of
+#' ever seeing e1f <= betaMinEffi is not more than betaMinEffi.
 #'
 #' @rdname saviZTestStat
 #' @inheritParams designSaviZ
 #' @export
 #'
 #' @examples
-#' saviFutilityZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over futility
-#' saviFutilityZStat(z=0.35, n1=100, parameter=0.4) # evidence for futility over the alternative
-saviFutilityZStat <- function(
+#' saviMinEffiZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over minimal efficacy
+#' saviMinEffiZStat(z=0.35, n1=100, parameter=0.4) # evidence for minimal efficacy over the alternative
+saviMinEffiZStat <- function(
     z, n1, n2=NULL, parameter=NULL,
     alternative=c("twoSided", "less", "greater"),
-    paired=FALSE, sigma=1, eType="grow", esMinFutility=NULL, ...) {
+    paired=FALSE, sigma=1, eType="grow", minEffiSize=NULL, ...) {
 
-  if (is.null(parameter) && is.null(esMinFutility))
+  if (is.null(parameter) && is.null(minEffiSize))
     stop("No parameter, nor minimal mean difference given")
 
-  if (is.null(parameter) && !is.null(esMinFutility))
-    parameter <- abs(esMinFutility)
+  if (is.null(parameter) && !is.null(minEffiSize))
+    parameter <- abs(minEffiSize)
 
   alternative <- match.arg(alternative)
 
@@ -325,11 +325,11 @@ saviZTest.default <- function(
 
   result <- constructSaviTestObj("Z-Test")
 
-  eValueFut <- NULL
+  eValueMinEffi <- NULL
 
   # Vars for sequential analysis
   eValueVec <- NULL
-  eValueFutVec <- NULL
+  eValueMinEffiVec <- NULL
   confSeqMatrix <- NULL
   n1Vec <- NULL
   n2Vec <- NULL
@@ -398,13 +398,13 @@ saviZTest.default <- function(
                               "alternative"=alternative, "paired"=paired,
                               "eType"=designObj[["eType"]])
 
-  if (designObj[["futility"]]) {
-    tempResultFut <- saviFutilityZStat(
-      "z"=zStat, "parameter"=designObj[["futilityResult"]][["parameter"]],
+  if (designObj[["minEffiTest"]]) {
+    tempResultFut <- saviMinEffiZStat(
+      "z"=zStat, "parameter"=designObj[["minEffiTestResult"]][["parameter"]],
       "n1"=n1, "n2"=n2, "sigma"=sigma,
       "alternative"=alternative, "paired"=paired,
       "eType"="grow")
-    eValueFut <- unname(tempResultFut[["eValue"]])
+    eValueMinEffi <- unname(tempResultFut[["eValue"]])
   }
 
   ### Compute: confSeq ----
@@ -419,7 +419,7 @@ saviZTest.default <- function(
 
     mIter <- length(n1Vec)
 
-    eValueFutVec <- eValueVec <- numeric(mIter)
+    eValueMinEffiVec <- eValueVec <- numeric(mIter)
     confSeqMatrix <- matrix(nrow=mIter, ncol=2)
 
     for (i in seq_along(n1Vec)) {
@@ -430,12 +430,12 @@ saviZTest.default <- function(
                            "eType"=designObj[["eType"]])
       eValueVec[i] <- unname(res[["eValue"]])
 
-      if (designObj[["futility"]]) {
-        resFut <- saviFutilityZStat("z"=zStatVec[i], "n1"=n1Vec[i], "n2"=n2Vec[i],
-                                    "parameter"=designObj[["futilityResult"]][["parameter"]],
+      if (designObj[["minEffiTest"]]) {
+        minEffiRes <- saviMinEffiZStat("z"=zStatVec[i], "n1"=n1Vec[i], "n2"=n2Vec[i],
+                                    "parameter"=designObj[["minEffiTestResult"]][["parameter"]],
                                     "sigma"=sigma, "alternative"=designObj[["alternative"]],
                                     "paired"=paired, "eType"="grow")
-        eValueFutVec[i] <- unname(resFut[["eValue"]])
+        eValueMinEffiVec[i] <- unname(minEffiRes[["eValue"]])
       }
 
       kaas <- computeConfidenceIntervalZ(
@@ -456,10 +456,10 @@ saviZTest.default <- function(
   result[["ciValue"]] <- ciValue
   result[["n"]] <- n
 
-  result[["eValueFut"]] <- eValueFut
+  result[["eValueMinEffi"]] <- eValueMinEffi
 
   result[["eValueVec"]] <- eValueVec
-  result[["eValueFutVec"]] <- eValueFutVec
+  result[["eValueMinEffiVec"]] <- eValueMinEffiVec
   result[["confSeqMatrix"]] <- confSeqMatrix
   result[["n1Vec"]] <- n1Vec
   result[["n2Vec"]] <- n2Vec
@@ -709,6 +709,10 @@ computeConfidenceIntervalZ <- function(
   }
 
   if (eType=="mom" && alternative=="twoSided") {
+    # TODO(Alexander): Perhaps add check for parameter then meanDiffMin
+    #
+    #   meanDiffMin easier to work with
+    #
     g <- parameter
 
     width <- sigma/sqrt(nEff)*
@@ -929,11 +933,11 @@ designFreqZ <- function(
 #' @param highEsTrue numeric, upper bound for the candidate set of the
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
-#' @param futility logical, if \code{TRUE} then impose rule to stop
-#' for futility if e < beta. Default \code{FALSE}.
-#' @param esMinFutility numeric, the minimal clinical relevant mean
+#' @param minEffiTest logical, if \code{TRUE} then impose rule to stop
+#' for minimal efficiency if e < beta. Default \code{FALSE}.
+#' @param minEffiSize numeric, the minimal clinical relevant mean
 #' difference that we do not want to miss under the alternative.
-#' Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)
+#' Default minEffiSize=NULL implies minEffiSize=abs(meanDiffMin)
 #' @param highN integer, largest possible sampling horizon. This might be the
 #' largest n that we are able to fund, which by default is set to 1e4L.
 #' Typically, highN is not used, as the function
@@ -942,7 +946,7 @@ designFreqZ <- function(
 #' @param wantSampling logical, default TRUE so sampling paths are drawn.
 #' For instance, if meanDiffMin, beta, are given, then nPlan
 #' (scenario 1a) is derived by sampling. Set this to FALSE, whenever we
-#' want to run a futility test without needing to know nPlan
+#' want to run a minimal efficacy test without needing to know nPlan
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a saviDesign object that includes:
@@ -987,8 +991,8 @@ designSaviZ <- function(
     wantSamplePaths=TRUE, wantSimData=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, esMinFutility=NULL,
-    betaFutility=NULL, betaDefault=0.2,
+    minEffiTest=FALSE, minEffiSize=NULL,
+    betaMinEffi=NULL, betaDefault=0.2,
     highN=1e4L, wantSampling=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
@@ -1042,16 +1046,16 @@ designSaviZ <- function(
   if (is.null(beta) && !is.null(power))
     beta <- 1-power
 
-  if (futility) {
-    esMinFutility <- matchFutilityParameterWith(
-      "esMinFutility"=esMinFutility, "esMin"=meanDiffMin,
+  if (minEffiTest) {
+    minEffiSize <- matchMinEffiParameterWith(
+      "minEffiSize"=minEffiSize, "esMin"=meanDiffMin,
       "esTrue"=meanDiffTrue)
 
-    if (is.null(esMinFutility))
-      stop("Can't run a futility analysis without esMinFutility or meanDiffMin")
+    if (is.null(minEffiSize))
+      stop("Can't run a minimal efficacy analysis without minEffiSize or meanDiffMin")
 
-    betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "alpha"=alpha,
+    betaMinEffi <- matchBetaMinEffiWith(
+      "betaMinEffi"=betaMinEffi, "alpha"=alpha,
       "power"=power, "betaDefault"=betaDefault)
   }
 
@@ -1071,25 +1075,25 @@ designSaviZ <- function(
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "wantSimData"=wantSimData,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "futility"=futility, "esMinFutility"=esMinFutility,
-      "highN"=highN, "betaFutility"=betaFutility, ...)
+      "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
+      "highN"=highN, "betaMinEffi"=betaMinEffi, ...)
 
   } else if (!is.null(meanDiffMin) && !is.null(power) && is.null(nPlan) && isFALSE(wantSampling) ||
              !is.null(meanDiffMin) && is.null(power) && is.null(nPlan)) {
     designScenario <- "1b"
 
     tempResult <- list("parameter"=parameter,
-                       "esMin"=meanDiffMin, "futility"=futility)
+                       "esMin"=meanDiffMin, "minEffiTest"=minEffiTest)
 
-    if (futility) {
-      futilityParameter <- matchFutilityParameterWith(
-        "esMinFutility"=esMinFutility,
+    if (minEffiTest) {
+      minEffiParameter <- matchMinEffiParameterWith(
+        "minEffiSize"=minEffiSize,
         "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
 
-      futilityResult <- list("parameter"=futilityParameter,
-                             "beta"=betaFutility)
+      minEffiTestResult <- list("parameter"=minEffiParameter,
+                             "beta"=betaMinEffi)
 
-      tempResult[["futilityResult"]] <- futilityResult
+      tempResult[["minEffiTestResult"]] <- minEffiTestResult
     }
 
   } else if (!is.null(meanDiffMin) && is.null(power) && !is.null(nPlan)) {
@@ -1102,8 +1106,8 @@ designSaviZ <- function(
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "ratio"=ratio, "wantSimData"=wantSimData,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "futility"=futility, "esMinFutility"=esMinFutility,
-      "betaFutility"=betaFutility, ...)
+      "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
+      "betaMinEffi"=betaMinEffi, ...)
   } else if (is.null(meanDiffMin) && !is.null(power) && !is.null(nPlan)) {
     designScenario <- "3"
 
@@ -1192,7 +1196,7 @@ designSaviZ <- function(
   ## Name h0 -----
   names(h0) <- "mu"
   result[["h0"]] <- h0
-  result[["futility"]] <- futility
+  result[["minEffiTest"]] <- minEffiTest
 
   result[["call"]] <- sys.call()
 
@@ -1225,7 +1229,7 @@ designSaviZ1aWantNPlan <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
+    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
     highN=1e4L, ...) {
 
   alternative <- match.arg(alternative)
@@ -1243,8 +1247,8 @@ designSaviZ1aWantNPlan <- function(
     "wantSamplePaths"=wantSamplePaths,
     "meanDiffMin"=meanDiffMin, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-    "futility"=futility, "esMinFutility"=esMinFutility,
-    "highN"=highN, "betaFutility"=betaFutility)
+    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
+    "highN"=highN, "betaMinEffi"=betaMinEffi)
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
                                "esMin"=meanDiffMin, "power"=power,
@@ -1277,7 +1281,7 @@ designSaviZ2WantPower <- function(
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
+    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
@@ -1294,8 +1298,8 @@ designSaviZ2WantPower <- function(
     "meanDiffMin"=meanDiffMin, "seed"=seed,
     "eType"=eType, "wantSamplePaths"=wantSamplePaths,
     "wantSimData"=wantSimData,
-    "futility"=futility, "esMinFutility"=esMinFutility,
-    "betaFutility"=betaFutility, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
+    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
+    "betaMinEffi"=betaMinEffi, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
 
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=meanDiffMin, "nPlan"=nPlan, "ratio"=ratio,
@@ -1856,8 +1860,8 @@ sampleStoppingTimesSaviZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantEValuesAtNMax=FALSE, power=NULL,
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
-    esMinFutility=NULL, beta=NULL, betaFutility=NULL, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, minEffiTest=FALSE,
+    minEffiSize=NULL, beta=NULL, betaMinEffi=NULL, ...) {
 
   stopifnot(alpha > 0, alpha <= 1,
             is.finite(nMax),
@@ -1867,17 +1871,17 @@ sampleStoppingTimesSaviZ <- function(
 
   # browser()
 
-  if (futility) {
-    esMinFutility <- matchFutilityParameterWith(
-      "esMinFutility"=esMinFutility, "esMin"=meanDiffMin,
+  if (minEffiTest) {
+    minEffiSize <- matchMinEffiParameterWith(
+      "minEffiSize"=minEffiSize, "esMin"=meanDiffMin,
       "esTrue"=meanDiffTrue
     )
 
-    betaFutility <- matchBetaFutilityWith(
-      "betaFutility"=betaFutility, "alpha"=alpha, "beta"=1-power
+    betaMinEffi <- matchBetaMinEffiWith(
+      "betaMinEffi"=betaMinEffi, "alpha"=alpha, "beta"=1-power
     )
 
-    stopifnot(betaFutility > 0, betaFutility < 1)
+    stopifnot(betaMinEffi > 0, betaMinEffi < 1)
   }
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1907,18 +1911,18 @@ sampleStoppingTimesSaviZ <- function(
     "alternative"=alternative, "eType"=eType
   )
 
-  futilityResult <- NULL
+  minEffiTestResult <- NULL
 
-  if (futility) {
-    futilityParameter <- matchFutilityParameterWith(
-      "esMinFutility"=esMinFutility,
+  if (minEffiTest) {
+    minEffiParameter <- matchMinEffiParameterWith(
+      "minEffiSize"=minEffiSize,
       "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
 
-    futilityResult <-
+    minEffiTestResult <-
       list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
            "samplePaths"=result[["samplePaths"]],
            "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
-           "parameter"=futilityParameter, "beta"=betaFutility)
+           "parameter"=minEffiParameter, "beta"=betaMinEffi)
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
@@ -1991,7 +1995,7 @@ sampleStoppingTimesSaviZ <- function(
 
       # TODO(Alexander): Here use reciprocal as evidence for the null
       #
-      # if (futility && !isTRUE(growFutility) && evidenceNow < beta) {
+      # if (minEffiTest && !isTRUE(growFutility) && evidenceNow < beta) {
       #   result[["stoppingTimes"]][sim] <- n1Vector[j]
       #   result[["eValuesStopped"]][sim] <- evidenceNow
       #   result[["stoppedVector"]][sim] <- -1
@@ -2003,24 +2007,24 @@ sampleStoppingTimesSaviZ <- function(
       #   break()
       # }
 
-      if (futility) {
-        futRes <- saviFutilityZStat(
-          "z"=zVector[j], "parameter"=futilityParameter,
+      if (minEffiTest) {
+        minEffiRes <- saviMinEffiZStat(
+          "z"=zVector[j], "parameter"=minEffiParameter,
           "n1"=n1Vector[j], "n2"=n2Vector[j],
           "alternative"=alternative,
           "sigma"=sigma, "eType"="grow")
 
-        futilityEValue <- futRes[["eValue"]]
+        minEffiEValue <- minEffiRes[["eValue"]]
 
         if (wantSamplePaths)
-          futilityResult[["samplePaths"]][sim, j] <- futilityEValue
+          minEffiTestResult[["samplePaths"]][sim, j] <- minEffiEValue
 
-        if (futilityEValue < betaFutility) {
+        if (minEffiEValue < betaMinEffi) {
           result[["breakVector"]][sim] <- -1
           result[["stoppingTimes"]][sim] <- nMax
 
-          futilityResult[["stoppingTimes"]][sim] <- n1Vector[j]
-          futilityResult[["eValuesStopped"]][sim] <- futilityEValue
+          minEffiTestResult[["stoppingTimes"]][sim] <- n1Vector[j]
+          minEffiTestResult[["eValuesStopped"]][sim] <- minEffiEValue
 
           break()
         }
@@ -2056,14 +2060,14 @@ sampleStoppingTimesSaviZ <- function(
     samplePaths[is.na(samplePaths)] <- 0
     result[["samplePaths"]] <- Matrix::Matrix(samplePaths, sparse=TRUE)
 
-    if (futility) {
-      futilitySamplePaths <- futilityResult[["samplePaths"]]
-      futilitySamplePaths[is.na(futilitySamplePaths)] <- 0
-      futilityResult[["samplePaths"]] <- Matrix::Matrix(futilitySamplePaths, sparse=TRUE)
+    if (minEffiTest) {
+      minEffiSamplePaths <- minEffiTestResult[["samplePaths"]]
+      minEffiSamplePaths[is.na(minEffiSamplePaths)] <- 0
+      minEffiTestResult[["samplePaths"]] <- Matrix::Matrix(minEffiSamplePaths, sparse=TRUE)
     }
   }
 
-  result[["futilityResult"]] <- futilityResult
+  result[["minEffiTestResult"]] <- minEffiTestResult
 
   return(result)
 }
@@ -2092,7 +2096,7 @@ computePowerSaviZ <- function(
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
+    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2133,8 +2137,8 @@ computePowerSaviZ <- function(
     "eType"=eType, "wantSimData"=wantSimData,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=futility, "esMinFutility"=esMinFutility,
-    "betaFutility"=betaFutility, ...)
+    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
+    "betaMinEffi"=betaMinEffi, ...)
 
   result <- computePowerBootstrapper("samplingResult"=samplingResult,
                                     "parameter"=parameter, "nPlan"=nPlan,
@@ -2170,7 +2174,7 @@ computeNPlanSaviZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, esMinFutility=NULL, betaFutility=NULL,
+    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
     highN=1e4L, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2222,8 +2226,8 @@ computeNPlanSaviZ <- function(
     "eType"=eType, "meanDiffMin"=meanDiffMin,
     "wantSamplePaths"=wantSamplePaths, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=futility, "esMinFutility"=esMinFutility,
-    "betaFutility"=betaFutility, ...)
+    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
+    "betaMinEffi"=betaMinEffi, ...)
 
   result <- computeNPlanBootstrapper(
     "samplingResult"=samplingResult, "parameter"=parameter,

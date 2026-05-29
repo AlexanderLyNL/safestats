@@ -103,8 +103,8 @@ negative values and \code{NA} suppress shading (and so allow colour filling).}
 intersection of the confidence sequence.}
 
 \item{wantFutility}{logical, if \code{FALSE}, then don't show the
-e-values for futility. Default \code{wantFutility==NULL}, if
-\code{designObj[["futility"]]==TRUE} then futility e-values are shown
+e-values for minEffiTest. Default \code{wantFutility==NULL}, if
+\code{designObj[["minEffiTest"]]==TRUE} then minimal efficacy e-values are shown
 automatically.}
 }
 \value{

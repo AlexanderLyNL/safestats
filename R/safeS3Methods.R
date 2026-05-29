@@ -46,7 +46,7 @@ constructSaviDesignObj <- function(testName) {
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
     "bootObjLogImpliedTarget"=NULL,
     "beta"=NULL, "betaTwoSe"=NULL,
-    "futilityResult"=NULL, "varEqual"=NULL,
+    "minEffiTestResult"=NULL, "varEqual"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL, "designScenario"=NULL,
     "call"=NULL, "timeStamp"=Sys.time(), "note"=NULL)
 
@@ -310,13 +310,13 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   testName <- designObj[["testName"]]
   testType <- designObj[["testType"]]
 
-  futility <- if (!is.null(x[["futilityResult"]])) TRUE else FALSE
+  minEffiTest <- if (!is.null(x[["minEffiTestResult"]])) TRUE else FALSE
 
   note <- designObj[["note"]]
 
   tempName <- getNameTestType("testType"=testType, "testName"=testName)
 
-  extraChar <- if (futility) " + Futility" else ""
+  extraChar <- if (minEffiTest) " + Minimal Efficacy Test" else ""
 
   analysisName <- paste0(tempName, extraChar, " Design")
 
@@ -326,9 +326,9 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   displayList <- list()
 
-  if (futility) {
+  if (minEffiTest) {
     designObj[["decision rule 1"]] <- 1/designObj[["alpha"]]
-    designObj[["decision rule 2"]] <- designObj[["futilityResult"]][["beta"]]
+    designObj[["decision rule 2"]] <- designObj[["minEffiTestResult"]][["beta"]]
   } else {
     designObj[["decision rule"]] <- 1/designObj[["alpha"]]
   }
@@ -468,24 +468,33 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' @param col colour of the lines
 #' @param colQuant colour of the quantiles
 #' @param cex size of the labels and the quantile text
+#' @param histFewestAtTop logical, if TRUE, then fewest counts
+#' (of against the null or against minimal efficacy) at the top
+#' of the histogram
+#' @param density the density of shading lines, in lines per inch.
+#' The default value of NULL means that no shading lines are drawn.
+#' Non-positive values of density also inhibit the drawing of shading lines.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Nothing it only plots
 #' @export
 #'
+#'
 plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
-                            xlim=NULL, ylim=NULL, maxNBins=35,
+                            xlim=NULL, ylim=NULL, maxNBins=40,
                             numSamplePaths=100, wantStepLines=FALSE,
-                            wantQuantiles=NULL, border="#1F78B4E6",
+                            wantQuantiles=NULL,
                             breaks=NULL, lwd=2, pch=15,
-                            histInnerColour=col,
                             colQuant="#AA0000",
-                            col="#A6CEE380",
-                            overColourBorder=border,
-                            underColour="#FFB90F86",
-                            underColourBorder="#FFB90FCC",
-                            continueColour="#556B2F4D",
-                            continueColourBorder="#556B2FCC",
+                            overColour="#8FC6E3",
+                            overColourBorder="#1F78B4E6",
+                            underColour="#E7A72199",
+                            underColourBorder="#BD8E17FF",
+                            continueColour="#8CA252E6",
+                            continueColourBorder="#637939E6",
+                            histInnerColour=col,
+                            col=overColour,
+                            border=overColourBorder,
                             cex=1.3, yLabPAdj=-1,
                             wantNotStoppedHist=FALSE,
                             wantNotStoppedSamplePaths=TRUE,
@@ -493,8 +502,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             legendAdjFut=c(-0.1, 0.5, 1),
                             legendAdj=c(0.2, 0.8),
                             legendCexFactor=0.85,
-                            pchColourUnder="#FFB90FCC",
-                            pchColourOver="#1F78B4E6",...) {
+                            histFewestAtTop=FALSE,
+                            density=NULL, wantTitle=TRUE, ...) {
 
   designScenario <- x[["designScenario"]]
 
@@ -592,10 +601,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     lines(c(nPlan, nPlan), c(0, max(stopHist[["counts"]])), lwd=lwd, lty=2)
   }
 
-  betaFutility <- NULL
-  futResult <- x[["futilityResult"]]
-  histFut <- NULL
-  futility <- x[["futility"]]
+  betaMinEffi <- NULL
+  minEffiResult <- x[["minEffiTestResult"]]
+  histMinEffi <- NULL
+  minEffiTest <- x[["minEffiTest"]]
 
   if (numSamplePaths > 0) {
     fptAll <- stoppingTimes
@@ -612,22 +621,23 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     nAll <- length(stoppingTimes)
 
-    if (futility) {
-      fptFut <- as.numeric(futResult[["stoppingTimes"]][indexStopFut])
-      betaFutility <- futResult[["beta"]]
+    fptAlt <- stoppingTimes[indexStopAlt]
+    fptNot <- stoppingTimes[indexStopNot]
+
+    if (minEffiTest) {
+      fptFut <- as.integer(minEffiResult[["stoppingTimes"]][indexStopFut])
+      betaMinEffi <- minEffiResult[["beta"]]
 
       fptAll[indexStopFut] <- fptFut
     }
 
-
     fptAllFinite <- fptAll
 
-    fptStopped <- fptAll
-    fptStopped[indexStopNot] <- Inf
-
-    if (isFALSE(wantNotStoppedHist))
-      fptAll <- fptStopped
-
+    # fptStopped <- fptAll
+    # fptStopped[indexStopNot] <- Inf
+    #
+    # if (isFALSE(wantNotStoppedHist))
+    #   fptAll <- fptStopped
 
     # Compute hist  ----
     #
@@ -637,37 +647,37 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     if (is.null(breaks)) {
       breaks <- if (nMax-breaksMin+1 > maxNBins) {
-        maxNBins
+        seq(breaksMin-1, nMax, length=maxNBins)
       } else {
         (breaksMin-1):nMax
       }
     }
 
-    histAll <- hist(fptAll, plot=FALSE, breaks=breaks)
+    histAlt <- if (nAlt > 0) hist(fptAlt, plot=FALSE, breaks=breaks) else
+      list(counts=rep(0, length=length(breaks)-1))
 
-    histStopped <- hist(fptStopped, plot=FALSE,
-                        breaks=breaks)
+    histFut <- if (isTRUE(minEffiTest) && nFut > 0) hist(fptFut, plot=FALSE, breaks=breaks) else
+      list(counts=rep(0, length=length(breaks)-1))
 
-    y <- histAll[["density"]]
-    nB <- length(histAll[["breaks"]])
-    yRange <- range(y, 0)
+    histNot <- if (isTRUE(wantNotStoppedHist) && nNotStopped > 0) hist(fptNot, plot=FALSE, breaks=breaks) else
+      list(counts=rep(0, length=length(breaks)-1))
+
+    nHistTotal <- sum(histAlt[["counts"]], histFut[["counts"]], histNot[["counts"]])
+
+    breaks <- histAlt[["breaks"]]
+
+    yMaxHist <- max(histAlt[["counts"]], histFut[["counts"]])/nHistTotal
 
     yMin <- -1*log(3/(2*alpha))
 
-    if (futility)
-      yMin <- min(c(yMin, -1*log(3/(2*betaFutility))))
+    if (isTRUE(minEffiTest))
+      yMin <- min(c(yMin, -1*log(3/(2*betaMinEffi))))
 
     if (is.null(ylim))
       ylim <- c(yMin, 2.75*log(1/alpha))
 
-    someConstant <- 0.8*(ylim[2]+log(alpha))/yRange[2]
+    someConstant <- 0.8*(ylim[2]+log(alpha))/yMaxHist
     textHeightQuant <- (ylim[2]+log(alpha))+log(1/alpha)
-
-    # if (!is.null(wantQuantiles))
-    # someConstant <- 0.9*0.8*someConstant
-
-    # if (!is.null(wantQuantiles))
-    #   someConstant <- someConstant*0.9
 
     if (is.null(xlim))
       xlim <- c(0, nPlanBatch)
@@ -685,18 +695,18 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     lines(x=c(0, 1.5*nPlanBatch), y=log(c(1/alpha, 1/alpha)))
 
-    if (futility)
-      lines(x=c(0, 1.5*nPlanBatch), y=log(c(betaFutility, betaFutility)))
+    if (minEffiTest)
+      lines(x=c(0, 1.5*nPlanBatch), y=log(c(betaMinEffi, betaMinEffi)))
 
-    if (futility) {
-      yLabs <- c(1e-24, betaFutility, "1", 1/alpha)
-      criticalP <- log(c(1e-24, betaFutility, 1, 1/alpha))
+    if (minEffiTest) {
+      yLabs <- c(1e-24, betaMinEffi, "1", 1/alpha)
+      criticalP <- log(c(1e-24, betaMinEffi, 1, 1/alpha))
     } else {
       yLabs <- c(1e-24, alpha, "1", 1/alpha)
       criticalP <- log(c(1e-24, alpha, 1, 1/alpha))
     }
 
-    axis(side = 2, at = c(criticalP), tick = TRUE, las = 2, cex.axis = cex,
+    axis(side = 2, at = criticalP, tick = TRUE, las = 2, cex.axis = cex,
          labels = yLabs)
     axis(side = 1)
     axis(side = 1, at=c(0, 2*xlim[2]))
@@ -713,58 +723,49 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     # Draw hist -----
     #
-    if (nFut > nAlt) {
-      histInnerColour1 <- underColour
-      borderColour1 <- underColourBorder
+    histOrder <- if (nAlt >= nFut) c(2, 1, 3) else 1:3
 
-      histInnerColour2 <- histInnerColour
-      borderColour2 <- border
-    } else {
-      histInnerColour1 <- histInnerColour
-      borderColour1 <- border
+    if (histFewestAtTop)
+      histOrder <- if (nAlt >= nFut) 1:3 else c(2, 1, 3)
 
-      histInnerColour2 <- underColour
-      borderColour2 <- underColourBorder
-    }
+    # histOrder <- order(c(nAlt, nFut, nNotStopped), decreasing=decreasingHist)
+    lineColours <- c(col, underColour, continueColour)
+    borderColours <- c(border, underColourBorder, continueColourBorder)
 
-    # TODO(Alexander): Here perhaps if for show stopped
-    #
-    #       BUT THEN ALSO CHECK hist all exists or not
-    #
-    if (wantNotStoppedHist) {
-      rect(histAll[["breaks"]][-nB]+0.5, log(1/alpha),
-           histAll[["breaks"]][-1L]+0.5, someConstant*y+log(1/alpha),
-           col = continueColour,
-           border = continueColourBorder,
-           lwd=lwd,
-           angle = 45, density = NULL, lty = NULL)
-    }
+    countMat <- matrix(c(histAlt[["counts"]],
+                         histFut[["counts"]],
+                         histNot[["counts"]]), nrow=3, byrow=TRUE)
 
-    yStopped <- histStopped[["counts"]]/histAll[["counts"]]*y
+    countMat <- countMat[histOrder, ]
 
-    rect(histAll[["breaks"]][-nB]+0.5, log(1/alpha),
-         histAll[["breaks"]][-1L]+0.5, someConstant*yStopped+log(1/alpha),
-         col = histInnerColour1,
-         border = borderColour1,
-         lwd=lwd,
-         angle = 45, density = NULL, lty = NULL)
+    cumsumCountMat <- apply(countMat, 2, cumsum)
 
-    if (futility) {
-      if (nFut < nAlt) {
-        # Futility histogram
-        hist2 <- hist(fptFut, plot=FALSE, breaks=histAll[["breaks"]])
+    for (i in 1:3) {
+      someRow <- countMat[i, ]
+      tempIndex <- which(countMat[i, ]!=0)
+
+      if (i==1) {
+        tempHeightLower <- rep(0, length(breaks)-1)
       } else {
-        # Alt histogram
-        fptAlt <- stoppingTimes[indexStopAlt]
-        hist2 <- hist(fptAlt, plot=FALSE, breaks=histAll[["breaks"]])
+        tempHeightLower <- cumsumCountMat[i-1, ]/nHistTotal
       }
 
-      y2 <- hist2[["counts"]]/histAll[["counts"]]*y
+      tempHeightUpper <- cumsumCountMat[i, ]/nHistTotal
 
-      rect(hist2[["breaks"]][-nB]+0.5, log(1/alpha),
-           hist2[["breaks"]][-1L]+0.5, someConstant*y2+log(1/alpha),
-           col = histInnerColour2, border = borderColour2, lwd=lwd,
-           angle = 45, density = NULL, lty = NULL)
+      tempColour <- lineColours[histOrder[i]]
+      tempColourBorder <- borderColours[histOrder[i]]
+
+      for (j in seq_along(tempIndex)) {
+        leftCornerIndex <- tempIndex[j]
+
+        leftCorner <- breaks[leftCornerIndex]+0.5
+        rightCorner <- breaks[leftCornerIndex+1]+0.5
+
+        rect(leftCorner, someConstant*tempHeightLower[leftCornerIndex] + log(1/alpha),
+             rightCorner, someConstant*tempHeightUpper[leftCornerIndex] + log(1/alpha),
+             col = tempColour, border = tempColourBorder, lwd=2,
+             angle = 45, density = density, lty = NULL)
+      }
     }
 
     # Draw sample paths -----
@@ -783,49 +784,68 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     stoppedPaths <- samplePaths
 
-    if (futility)
-      stoppedPaths[indexStopFut, ] <- x[["futilityResult"]][["samplePaths"]][indexStopFut, ]
+    if (minEffiTest)
+      stoppedPaths[indexStopFut, ] <- x[["minEffiTestResult"]][["samplePaths"]][indexStopFut, ]
 
-    nSamplePathsNot <- min(ceil(nNotStopped/nAll*numSamplePaths), nNotStopped)
-    nSamplePathsFut <- min(ceil(nFut/nAll*numSamplePaths), nFut)
-    nSamplePathsAlt <- min(ceil(nAlt/nAll*numSamplePaths), nAlt)
+    nLinesNot <- if (isFALSE(wantNotStoppedSamplePaths)) 0 else
+      min(ceil(nNotStopped/nAll*numSamplePaths), nNotStopped)
 
-    if (nFut < nAlt) {
-      nSamplePaths <- c(nSamplePathsNot, nSamplePathsAlt, nSamplePathsFut)
-      indexes <- list(indexStopNot, indexStopAlt, indexStopFut)
-      underColourTemp <- underColourBorder
-      overColourTemp <- col
+    if (nAlt >= nFut) {
+      nLinesFut <- min(ceil(nFut/nAll*numSamplePaths), nFut)
+      nLinesAlt <- min(numSamplePaths-nLinesFut-nLinesNot, nAlt)
     } else {
-      nSamplePaths <- c(nSamplePathsNot, nSamplePathsFut, nSamplePathsAlt)
-      indexes <- list(indexStopNot, indexStopFut, indexStopAlt)
-      underColourTemp <- underColourBorder
-      overColourTemp <- border
+      nLinesAlt <- min(ceil(nAlt/nAll*numSamplePaths), nAlt)
+      nLinesFut <- min(numSamplePaths-nLinesAlt-nLinesNot, nFut)
     }
 
-    if (isFALSE(wantNotStoppedSamplePaths)) {
-      indexes <- indexes[-1]
-      nSamplePaths <- nSamplePaths[-1]
-    }
+    linesOrder <- order(c(nAlt, nFut, nNotStopped), decreasing=TRUE)
 
-    for (i in seq_along(nSamplePaths)) {
+    nLinesToPlot <- c(nLinesAlt, nLinesFut, nLinesNot)[linesOrder]
 
-      underColourTemp <- adjustcolor(
-        underColourTemp, alpha.f=max(1-nSamplePathsFut/nAll, 0.1))
-      continueColourTemp <- adjustcolor(
-        continueColour, alpha.f=max(1-nSamplePathsNot/nAll, 0.1))
-      overColourTemp <- adjustcolor(
-        overColourTemp, alpha.f=max(1-nSamplePathsAlt/nAll, 0.1))
+    lastPoints <- if (!is.null(betaMinEffi)) c(1/alpha, betaMinEffi) else
+      c(1/alpha, NULL)
 
-      if (nSamplePaths[i]==0)
+    lastPoints <- c(lastPoints, NULL)[linesOrder]
+
+    lineIndexes <- list(indexStopAlt, indexStopFut, indexStopNot)[linesOrder]
+
+    for (i in 1:3) {
+      someLineColour <- lineColours[linesOrder[i]]
+      someBorderColour <- borderColours[linesOrder[i]]
+      someNLinesToPlot <- nLinesToPlot[i]
+      someLastPoint <- lastPoints[i]
+      someIndexSet <- lineIndexes[[i]]
+
+      someLineColour <- adjustcolor(
+        someLineColour,
+        alpha.f=max(1-someNLinesToPlot/sum(nLinesToPlot), 0.25))
+
+      if (someNLinesToPlot==0)
         next()
 
-      drawSamplePaths("fpt"=fptAllFinite[indexes[[i]]], "n"=nSamplePaths[i],
-                      "pathsMatrix"=stoppedPaths[indexes[[i]], ], "alpha"=alpha,
-                      "beta"=betaFutility,
-                      "underColour"= underColourTemp,
-                      "continueColour"=continueColourTemp,
-                      "col"=overColourTemp,
-                      "pch"=pch, "lwd"=lwd, "wantStepLines"=wantStepLines)
+      for (j in 1:someNLinesToPlot) {
+        stoppedTime <- fptAllFinite[someIndexSet[j]]
+
+        evidenceLine <- stoppedPaths[someIndexSet[j], 1:stoppedTime]
+
+        if (!is.null(someLastPoint) && !is.na(someLastPoint))
+          evidenceLine[stoppedTime] <- someLastPoint
+
+        if (isTRUE(wantStepLines)) {
+          xLine <- c(0, rep(1:stoppedTime, each=2))
+          yLine <- c(0, 0, rep(log(evidenceLine), each=2))
+          yLine <- yLine[-length(yLine)]
+        } else {
+          xLine <- 0:stoppedTime
+          yLine <- c(0, log(evidenceLine))
+        }
+
+        lines(xLine, yLine, col=someLineColour, lwd=lwd, lty=1)
+
+        if (!is.null(someLastPoint) && !is.na(someLastPoint))
+          points(stoppedTime, log(evidenceLine[stoppedTime]),
+                 col=someBorderColour, pch=pch, lwd=lwd)
+      }
     }
 
     if (is.null(wantQuantiles) && !is.null(x[["power"]]))
@@ -848,7 +868,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       for (i in seq_along(quants)) {
 
-        if (futility) {
+        if (minEffiTest) {
           quantFut <- round(sum(fptFut <= quants[i])/nAll*100, 2)
 
           text(quantileNames[i], x=quants[i], y=textHeightQuant,
@@ -868,17 +888,19 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       }
     }
 
-    if (wantLegend) {
+    if (wantTitle)
       mtext(paste0("True ", names(x[["esMin"]]), " = ", round(x[["esTrue"]], 3)),
             col=colQuant, side=3, line = 1, las = 1,
             cex = cex*legendCexFactor, adj=0)
 
-      if (futility) {
+    if (wantLegend) {
+
+      if (minEffiTest) {
         mtext(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
               col=border, side=1, line = 4, las = 1,
               cex = cex*legendCexFactor, adj=legendAdjFut[1])
 
-        mtext(paste0("Futility: ", round(nFut/nAll*100, 1), "%"),
+        mtext(paste0("Inferior effect: ", round(nFut/nAll*100, 1), "%"),
               col=underColourBorder, side=1, line = 4, las = 1,
               cex = cex*legendCexFactor, adj=legendAdjFut[2])
 
@@ -944,8 +966,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' @param runInt logical, if \code{TRUE} (default), then shows the running
 #' intersection of the confidence sequence.
 #' @param wantFutility logical, if \code{FALSE}, then don't show the
-#' e-values for futility. Default \code{wantFutility==NULL}, if
-#' \code{designObj[["futility"]]==TRUE} then futility e-values are shown
+#' e-values for minEffiTest. Default \code{wantFutility==NULL}, if
+#' \code{designObj[["minEffiTest"]]==TRUE} then minimal efficacy e-values are shown
 #' automatically.
 #' @return Returns nothing just plots
 #' @export
@@ -954,18 +976,20 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           xlim=NULL, ylim=NULL, lwd=3, cex=1.3,
                           fillPlot=NULL, switchNFill=1e4,
                           logScale=NULL, switchNLog=30,
-                          h0Colour="darkgrey", lineColour="#1F78B4E6",
-                          col="#A6CEE380", border="#1F78B4E6",
+                          h0Colour="darkgrey",
+                          overColour="#8FC6E3",
+                          overColourBorder="#1F78B4E6",
+                          underColour="#E7A72199",
+                          underColourBorder="#BD8E17FF",
+                          continueColour="#8CA252E6",
+                          continueColourBorder="#637939E6",
+                          col=overColour,
+                          border=overColourBorder,
                           wantConfSeqPlot=FALSE, add=FALSE,
                           density=NULL, angle=45,
                           xaxt=NULL, yaxt=NULL,
                           fillOddEven=FALSE, runInt=TRUE,
                           wantFutility=NULL,
-                          underColour="#FFB90F86",
-                          underColourBorder="black",
-                          # underColourBorder="#FFB90FCC",
-                          pchColourUnder="#FFB90FCC",
-                          pchColourOver="#1F78B4E6",
                           ...) {
   eValueVec <- x[["eValueVec"]]
   eValueFutVec <- x[["eValueFutVec"]]
@@ -974,11 +998,11 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   designObj <- x[["designObj"]]
 
-  futility <- FALSE
+  minEffiTest <- FALSE
 
-  if (is.null(wantFutility) && designObj[["futility"]] && !is.null(eValueFutVec)) {
-    futility <- TRUE
-    betaFutility <- designObj[["futilityResult"]][["beta"]]
+  if (is.null(wantFutility) && designObj[["minEffiTest"]] && !is.null(eValueFutVec)) {
+    minEffiTest <- TRUE
+    betaMinEffi <- designObj[["minEffiTestResult"]][["beta"]]
   }
 
   if (is.null(n1Vec) || is.null(eValueVec)) {
@@ -1046,8 +1070,6 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
            type="l", xlab = "", ylab = "", cex.lab = cex,
            cex.axis = cex, xaxt="n", yaxt="n", bty="n", log=logPlot)
 
-      lines(c(1, maxX), c(h0, h0), lwd=lwd, lty=2, col=h0Colour)
-
       if (is.null(xaxt) || xaxt!="n") axis(1)
       if (is.null(yaxt) || yaxt!="n") axis(2)
 
@@ -1080,6 +1102,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       lines(n1Vec, upperLine, col=border, lwd=lwd)
       lines(n1Vec, lowerLine, col=border, lwd=lwd)
     }
+
+    lines(c(1, maxX), c(h0, h0), lwd=lwd, lty=2, col=h0Colour)
   }
 
   # e-value plot
@@ -1089,7 +1113,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     nInfinite <- sum(is.infinite(eValueVec))
 
-    if (futility) {
+    if (minEffiTest) {
       nInfinite <- nInfinite+sum(is.infinite(eValueFutVec))
     }
 
@@ -1098,7 +1122,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       finiteIndex <- which(is.finite(eValueVec))
 
-      if (futility) {
+      if (minEffiTest) {
         finiteIndex <- intersect(finiteIndex, which(is.finite(eValueFutVec)))
         eValueFutVec <- eValueFutVec[finiteIndex]
       }
@@ -1110,7 +1134,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     maxEValue <- max(eValueVec, na.rm=TRUE)
     minEValue <- min(eValueVec, na.rm=TRUE)
 
-    if (futility) {
+    if (minEffiTest) {
       maxEValue <- max(eValueFutVec, maxEValue, na.rm=TRUE)
       minEValue <- min(eValueFutVec, minEValue, na.rm=TRUE)
     }
@@ -1133,8 +1157,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       minY <- minEValue
 
-      if (futility)
-        minY <- min(minY, betaFutility)
+      if (minEffiTest)
+        minY <- min(minY, betaMinEffi)
 
       if (isFALSE(logScale))
         minY <- 0
@@ -1160,8 +1184,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       if (maxY/threshLine[1] < 10)
         lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
 
-      if (futility)
-        lines(c(1, maxX), c(betaFutility, betaFutility),
+      if (minEffiTest)
+        lines(c(1, maxX), c(betaMinEffi, betaMinEffi),
               lwd=lwd, lty=2, col=underColourBorder)
 
       if (is.null(xaxt) || xaxt!="n") axis(1)
@@ -1174,71 +1198,9 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
     }
 
-    lines(n1Vec, eValueVec, lwd=lwd, col=lineColour)
+    lines(n1Vec, eValueVec, lwd=lwd, col=overColour)
 
-    if (futility)
+    if (minEffiTest)
       lines(n1Vec, eValueFutVec, lwd=lwd, col=underColour)
-  }
-}
-
-
-#' Helper function to draw sample paths
-#'
-#' @inheritParams designSaviZ
-#' @inheritParams plot.saviDesign
-#' @param fpt vector, of first passage times
-#' @param n integer, number of paths to draw
-#' @param pathsMatrix numeric matrix, representing
-#' @param continueColour hex colour for the sample paths
-#' @param underColour hex colour for the sample paths
-#' @param histInnerColourAll
-#'
-#' @returns
-#' @export
-#'
-#' @examples
-drawSamplePaths <- function(fpt, n, pathsMatrix, alpha, betaFutility,
-                            col="#1F78B4E6", pch=15, lwd=2,
-                            underColour="#FFB90FCC",
-                            continueColour="#556B2F4D",
-                            pchColourUnder="#FFB90FCC",
-                            pchColourOver="#1F78B4E6",
-                            wantStepLines=FALSE) {
-
-  for (i in 1:n) {
-    pathStopped <- NULL
-
-    stoppedTime <- fpt[i]
-    evidenceLine <- pathsMatrix[i, 1:stoppedTime]
-
-    if (evidenceLine[stoppedTime] >= 1/alpha) {
-      evidenceLine[stoppedTime] <- 1/alpha
-      someColour <- col
-      pathStopped <- "alt"
-      pchColour <- pchColourOver
-    } else if (!is.null(betaFutility) && evidenceLine[stoppedTime] <= betaFutility) {
-      evidenceLine[stoppedTime] <- betaFutility
-      someColour <- underColour
-      pathStopped <- "fut"
-      pchColour <- pchColourUnder
-    } else {
-      someColour <- continueColour
-    }
-
-
-    if (isTRUE(wantStepLines)) {
-      xLine <- c(0, rep(1:stoppedTime, each=2))
-      yLine <- c(0, 0, rep(log(evidenceLine), each=2))
-      yLine <- yLine[-length(yLine)]
-    } else {
-      xLine <- 0:stoppedTime
-      yLine <- c(0, log(evidenceLine))
-    }
-
-    lines(xLine, yLine, col=someColour, lwd=lwd, lty=1)
-
-    if (!is.null(pathStopped) && pathStopped %in% c("alt", "fut"))
-      points(stoppedTime, log(evidenceLine[stoppedTime]),
-             col=pchColour, pch=pch, lwd=lwd)
   }
 }

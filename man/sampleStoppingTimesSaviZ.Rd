@@ -24,10 +24,10 @@ sampleStoppingTimesSaviZ(
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
-  futility = FALSE,
-  esMinFutility = NULL,
+  minEffiTest = FALSE,
+  minEffiSize = NULL,
   beta = NULL,
-  betaFutility = NULL,
+  betaMinEffi = NULL,
   ...
 )
 }
@@ -77,8 +77,8 @@ two point masses at the minimal clinically relevant effect size.}
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
 for the savi z test under continuous monitoring.}
 
-\item{futility}{logical, if \code{TRUE} then impose rule to stop
-for futility if e < beta. Default \code{FALSE}.}
+\item{minEffiTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e < beta. Default \code{FALSE}.}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
 and "phiS". Note that 1-beta defines the power.}
@@ -92,9 +92,9 @@ that we would like to detect.}
 the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
 power <- 1-beta. This overrides the "beta" argument}
 
-\item{esMinFutility}{numeric, the minimal clinical relevant mean
+\item{minEffiSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default esMinFutility=NULL implies esMinFutility=abs(meanDiffMin)}
+Default minEffiSize=NULL implies minEffiSize=abs(meanDiffMin)}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping

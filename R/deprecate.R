@@ -421,7 +421,7 @@ sampleStoppingTimesSafeT <- function(
 }
 
 
-#' @describeIn computeBetaSaviT Deprecated version of computeBetaSaviT
+#' @describeIn computePowerSaviT Deprecated version of computeBetaSaviT
 #' @usage NULL
 #' @export
 computeBetaSafeT <- function(
@@ -435,9 +435,9 @@ computeBetaSafeT <- function(
 
 
   warning('The function computeBetaSafeT is deprecated;',
-          'Please use computeBetaSaviT instead')
+          'Please use computePowerSaviT instead')
 
-  computeBetaSaviT(
+  computePowerSaviT(
     deltaTrue=deltaTrue, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     testType=testType,
@@ -561,7 +561,7 @@ designSafeZ <- function(
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE, ...) {
+    minEffiTest=FALSE, growFutility=FALSE, ...) {
 
   warning('The function designSafeZ is deprecated;',
           'Please use designSaviZ instead')
@@ -575,7 +575,7 @@ designSafeZ <- function(
     wantSamplePaths=wantSamplePaths,
     lowEsTrue=lowEsTrue, highEsTrue=highEsTrue,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    futility=futility, growFutility=growFutility, ...)
+    minEffiTest=futility, growFutility=growFutility, ...)
 }
 
 #' @describeIn designSaviZ1aWantNPlan Deprecated version of designSaviZ1aWantNPlan
@@ -590,7 +590,7 @@ designSafeZ1aWantNPlan <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE, ...) {
+    minEffiTest=FALSE, growFutility=FALSE, ...) {
 
   warning('The function designSafeZ1aWantNPlan is deprecated;',
           'Please use designSaviZ1aWantNPlan instead')
@@ -603,10 +603,10 @@ designSafeZ1aWantNPlan <- function(
     eType=eType,
     wantSamplePaths=wantSamplePaths,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    futility=futility, growFutility=growFutility, ...)
+    minEffiTest=minEffiTest, growFutility=growFutility, ...)
 }
 
-#' @describeIn designSaviZ2WantBeta Deprecated version of designSaviZ2WantBeta
+#' @describeIn designSaviZ2WantPower Deprecated version of designSaviZ2WantBeta
 #' @usage NULL
 #' @export
 designSafeZ2WantBeta <- function(
@@ -622,7 +622,7 @@ designSafeZ2WantBeta <- function(
   warning('The function designSafeZ2WantBeta is deprecated;',
           'Please use designSaviZ2WantBeta instead')
 
-  designSaviZ2WantBeta(
+  designSaviZ2WantPower(
     meanDiffMin=meanDiffMin, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     sigma=sigma, kappa=kappa, testType=testType,
@@ -758,7 +758,7 @@ sampleStoppingTimesSafeZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=FALSE,
-    pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
+    pb=TRUE, seed=NULL, nSim=1e3L, minEffiTest=FALSE,
     growFutility=FALSE, beta=NULL, ...) {
 
   warning('The function sampleStoppingTimesSafeZ is deprecated;',
@@ -773,11 +773,11 @@ sampleStoppingTimesSafeZ <- function(
     wantEValuesAtNMax=wantEValuesAtNMax,
     wantSamplePaths=wantSamplePaths,
     wantSimData=wantSimData,
-    pb=pb, seed=seed, nSim=nSim, futility=futility,
+    pb=pb, seed=seed, nSim=nSim, minEffiTest=minEffiTest,
     growFutility=growFutility, ...)
 }
 
-#' @describeIn computeBetaSaviZ Deprecated version of computeBetaSaviZ
+#' @describeIn computePowerSaviZ Deprecated version of computeBetaSaviZ
 #' @usage NULL
 #' @export
 computeBetaSafeZ <- function(
@@ -792,9 +792,9 @@ computeBetaSafeZ <- function(
 
 
   warning('The function computeBetaSafeZ is deprecated;',
-          'Please use computeBetaSaviZ instead')
+          'Please use computePowerSaviZ instead')
 
-  computeBetaSaviZ(
+  computePowerSaviZ(
     meanDiffTrue=meanDiffTrue, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     sigma=sigma, kappa=kappa,
@@ -816,7 +816,7 @@ computeNPlanSafeZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE,
+    minEffiTest=FALSE, growFutility=FALSE,
     ...) {
 
   warning('The function computeNPlanSafeZ is deprecated;',
@@ -831,7 +831,7 @@ computeNPlanSafeZ <- function(
     nMax=nMax,
     wantSamplePaths=wantSamplePaths,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    futility=futility, growFutility=growFutility, ...)
+    minEffiTest=minEffiTest, growFutility=growFutility, ...)
 }
 
 # LOGRANK ------
@@ -973,7 +973,7 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
     pilot=pilot)
 }
 
-#' @rdname savi.prop.test
+#' @rdname saviTwoProportionsTest
 #' @aliases savi.prop.test
 #' @usage NULL
 #' @export
@@ -981,9 +981,9 @@ safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FA
                            confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
 
   warning('The function safe.prop.test is deprecated;',
-          'Please use savi.prop.test instead')
+          'Please use saviTwoProportionsTest instead')
 
-  savi.prop.test(
+  saviTwoProportionsTest(
     ya=ya, yb=yb, designObj=designObj, wantConfidenceSequence=wantConfidenceSequence,
     ciValue=ciValue, confidenceBoundGridPrecision=confidenceBoundGridPrecision,
     logOddsConfidenceSearchBounds=logOddsConfidenceSearchBounds,
