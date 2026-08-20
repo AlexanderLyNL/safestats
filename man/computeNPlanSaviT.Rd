@@ -27,9 +27,9 @@ computeNPlanSaviT(
   nBoot = nSim,
   sigmaTrue = 1,
   sigmaTrue2 = 1,
-  minEffiTest = FALSE,
-  minEffiSize = NULL,
-  betaMinEffi = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  alphaRelevance = NULL,
   ...
 )
 }

@@ -19,9 +19,9 @@ designSaviZ2WantPower(
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
   wantSimData = TRUE,
-  minEffiTest = FALSE,
-  minEffiSize = NULL,
-  betaMinEffi = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  alphaRelevance = NULL,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
@@ -82,12 +82,12 @@ or for the computation of the logarithm of the implied target.}
 
 \item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
-\item{minEffiTest}{logical, if \code{TRUE} then impose rule to stop
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
 for minimal efficiency if e < beta. Default \code{FALSE}.}
 
-\item{minEffiSize}{numeric, the minimal clinical relevant mean
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default minEffiSize=NULL implies minEffiSize=abs(meanDiffMin)}
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 }
 \value{
 A list with the parameter and beta amongst other items

@@ -28,9 +28,9 @@ designSaviZ(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
-  minEffiTest = FALSE,
-  minEffiSize = NULL,
-  betaMinEffi = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  alphaRelevance = NULL,
   betaDefault = 0.2,
   highN = 10000L,
   wantSampling = TRUE,
@@ -99,7 +99,7 @@ for the savi z test under continuous monitoring.}
 approximation of the power, the number of samples for the savi z test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
 
-\item{minEffiTest}{logical, if \code{TRUE} then impose rule to stop
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
 for minimal efficiency if e < beta. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
@@ -110,9 +110,9 @@ power <- 1-beta. This overrides the "beta" argument}
 
 \item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
-\item{minEffiSize}{numeric, the minimal clinical relevant mean
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default minEffiSize=NULL implies minEffiSize=abs(meanDiffMin)}
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 
 \item{highN}{integer, largest possible sampling horizon. This might be the
 largest n that we are able to fund, which by default is set to 1e4L.

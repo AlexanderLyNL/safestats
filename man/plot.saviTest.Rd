@@ -19,9 +19,14 @@
   logScale = NULL,
   switchNLog = 30,
   h0Colour = "darkgrey",
-  lineColour = "#1F78B4E6",
-  col = "#A6CEE380",
-  border = "#1F78B4E6",
+  overColour = "#8FC6E3",
+  overColourBorder = "#1F78B4E6",
+  underColour = "#E7A72199",
+  underColourBorder = "#BD8E17FF",
+  continueColour = "#8CA252E6",
+  continueColourBorder = "#637939E6",
+  col = overColour,
+  border = overColourBorder,
   wantConfSeqPlot = FALSE,
   add = FALSE,
   density = NULL,
@@ -31,10 +36,6 @@
   fillOddEven = FALSE,
   runInt = TRUE,
   wantFutility = NULL,
-  underColour = "#FFB90F86",
-  underColourBorder = "black",
-  pchColourUnder = "#FFB90FCC",
-  pchColourOver = "#1F78B4E6",
   ...
 )
 }
@@ -103,8 +104,8 @@ negative values and \code{NA} suppress shading (and so allow colour filling).}
 intersection of the confidence sequence.}
 
 \item{wantFutility}{logical, if \code{FALSE}, then don't show the
-e-values for minEffiTest. Default \code{wantFutility==NULL}, if
-\code{designObj[["minEffiTest"]]==TRUE} then minimal efficacy e-values are shown
+e-values for relevanceTest. Default \code{wantFutility==NULL}, if
+\code{designObj[["relevanceTest"]]==TRUE} then minimal efficacy e-values are shown
 automatically.}
 }
 \value{

@@ -27,7 +27,7 @@ designSavi1aHelper <- function(
                  "nMean"=NULL, "nMeanTwoSe"=NULL,
                  "bootObjN1Plan"=NULL, "bootObjN1Mean"=NULL,
                  "samplePaths"=NULL, "breakVector"=NULL,
-                 "minEffiTest"=FALSE, "minEffiTestResult"=NULL,
+                 "relevanceTest"=FALSE, "relevanceTestSim"=NULL,
                  "simData"=NULL, "beta"=beta, "note"=NULL)
 
   nPlanBatch <- samplingResult[["nPlanBatch"]]
@@ -91,7 +91,7 @@ designSavi1aHelper <- function(
   result[["nMean"]] <- nMean
   result[["nMeanTwoSe"]] <- nMeanTwoSe
 
-  result[["minEffiTestResult"]] <- samplingResult[["minEffiTestResult"]]
+  result[["relevanceTestSim"]] <- samplingResult[["relevanceTestSim"]]
   result[["simData"]] <- samplingResult[["simData"]]
 
   result[["note"]] <- note
@@ -164,7 +164,7 @@ designSavi2Helper <- function(
   result[["logImpliedTargetTwoSe"]] <- 2*bootObjLogImpliedTarget[["bootSe"]]
 
   result[["simData"]] <- samplingResult[["simData"]]
-  result[["minEffiTestResult"]] <- samplingResult[["minEffiTestResult"]]
+  result[["relevanceTestSim"]] <- samplingResult[["relevanceTestSim"]]
 
   return(result)
 }
@@ -391,11 +391,11 @@ computeNPlanBootstrapper <- function(
 
   n1Plan <- ceil(bootObjN1Plan[["t0"]])
 
-  minEffiRes <- samplingResult[["minEffiTestResult"]]
+  relevanceRes <- samplingResult[["relevanceTestSim"]]
 
-  if (!is.null(minEffiRes)) {
-    minEffiIndex <- Matrix::which(samplingResult[["breakVector"]]==-1)
-    times[minEffiIndex] <- as.numeric(minEffiRes[["stoppingTimes"]])[minEffiIndex]
+  if (!is.null(relevanceRes)) {
+    relevanceIndex <- Matrix::which(samplingResult[["breakVector"]]==-1)
+    times[relevanceIndex] <- as.numeric(relevanceRes[["stoppingTimes"]])[relevanceIndex]
   }
 
   bootObjN1Mean <- computeBootObj(
@@ -410,7 +410,7 @@ computeNPlanBootstrapper <- function(
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
                  "simData"=samplingResult[["simData"]],
-                 "minEffiTestResult"=samplingResult[["minEffiTestResult"]])
+                 "relevanceTestSim"=samplingResult[["relevanceTestSim"]])
 }
 
 
@@ -456,7 +456,7 @@ computeBetaBootstrapper <- function(
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
                  "simData"=samplingResult[["simData"]],
-                 "parameter"=parameter, "minEffiTestResult"=samplingResult[["minEffiTestResult"]])
+                 "parameter"=parameter, "relevanceTestSim"=samplingResult[["relevanceTestSim"]])
 
   return(result)
 }
@@ -502,7 +502,7 @@ computePowerBootstrapper <- function(
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
                  "simData"=samplingResult[["simData"]],
-                 "parameter"=parameter, "minEffiTestResult"=samplingResult[["minEffiTestResult"]])
+                 "parameter"=parameter, "relevanceTestSim"=samplingResult[["relevanceTestSim"]])
 
   return(result)
 }
@@ -543,22 +543,22 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 
 #' Checks and outputs a threshold for a minimal efficacy analysis
 #'
-#' @param betaMinEffi numeric > 0 and < 1, used to set the threshold of
+#' @param alphaRelevance numeric > 0 and < 1, used to set the threshold of
 #' a minimal efficacy procedure
 #' @param beta numeric > 0 and < 1, a tolerable type II error, used to set
-#' the threshold if betaMinEffi is not given
+#' the threshold if alphaRelevance is not given
 #' @param betaDefault numeric > 0 and < 1 a default value (0.2) to run
 #' a minimal efficacy procedure
 #'
-#' @returns a betaMinEffi threshold
+#' @returns a alphaRelevance threshold
 #' @export
 #'
 #' @examples
-#' matchBetaMinEffiWith(0.3)
-matchBetaMinEffiWith <- function(betaMinEffi, alpha=NULL, power, beta=NULL, betaDefault=0.2) {
-  if (!is.null(betaMinEffi)) {
-    stopifnot(betaMinEffi > 0, betaMinEffi < 1)
-    return(betaMinEffi)
+#' matchAlphaRelevanceWith(0.3)
+matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power, beta=NULL, betaDefault=0.2) {
+  if (!is.null(alphaRelevance)) {
+    stopifnot(alphaRelevance > 0, alphaRelevance < 1)
+    return(alphaRelevance)
   }
 
   if (!is.null(alpha))
@@ -575,11 +575,11 @@ matchBetaMinEffiWith <- function(betaMinEffi, alpha=NULL, power, beta=NULL, beta
   }
 
   warning("To run a minimal efficacy procedure ",
-          "a betaMinEffi threshold needs to be specified ",
-          "by default betaMinEffi <- ", betaDefault)
-  betaMinEffi <- betaDefault
+          "a alphaRelevance threshold needs to be specified ",
+          "by default alphaRelevance <- ", betaDefault)
+  alphaRelevance <- betaDefault
 
-  return(betaMinEffi)
+  return(alphaRelevance)
 }
 
 #' Match the parameter of a savi z or t-test
@@ -682,7 +682,7 @@ matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
 
 #' Match the parameter of a minimal efficacy savi z-test
 #'
-#' Based on the minEffiSize, meanDiffMin, alternative and eType
+#' Based on the relevanceSize, meanDiffMin, alternative and eType
 #'
 #' @inherit designSaviZ
 #'
@@ -690,11 +690,11 @@ matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
 #' @export
 #'
 #' @examples
-#' matchMinEffiParameterWith(0.4)
-matchMinEffiParameterWith <- function(minEffiSize, esMin, esTrue) {
+#' matchRelevanceParameterWith(0.4)
+matchRelevanceParameterWith <- function(relevanceSize, esMin, esTrue) {
 
-  if (!is.null(minEffiSize))
-    return(abs(minEffiSize))
+  if (!is.null(relevanceSize))
+    return(abs(relevanceSize))
 
   if (!is.null(esMin))
     return(abs(esMin))

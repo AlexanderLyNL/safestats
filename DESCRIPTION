@@ -19,7 +19,7 @@ Authors@R: c(
   person("Peter", "Grunwald", email = "Peter.Grunwald@cwi.nl",
   role = c("ctb"))
   )
-Maintainer: Alexander Ly <a.ly@jasp-stats.org>
+Maintainer: Alexander Ly <alexander.ly.nl@gmail.com>
 Description: Functions to design and apply tests that are anytime valid. The
   functions can be used to design hypothesis tests in the prospective/randomised
   control trial setting or in the observational/retrospective setting. The

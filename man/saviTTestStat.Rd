@@ -6,7 +6,7 @@
 \alias{saviTTestStatNEffNuMom}
 \alias{saviTTestStatNEffNuGrow}
 \alias{saviTTestStatTDensity}
-\alias{saviMinEffiTStatNEffNu}
+\alias{saviRelevanceTStatNEffNu}
 \title{Computes E-Values Based on the T-Statistic}
 \usage{
 saviTTestStat(
@@ -68,7 +68,7 @@ saviTTestStatTDensity(
   ...
 )
 
-saviMinEffiTStatNEffNu(
+saviRelevanceTStatNEffNu(
   t,
   nEff,
   nu,
@@ -77,7 +77,7 @@ saviMinEffiTStatNEffNu(
   eType = "grow",
   tDensity = FALSE,
   paired = FALSE,
-  minEffiSize,
+  relevanceSize,
   nuMin = 2,
   ...
 )
@@ -120,16 +120,16 @@ design object by deltaS.
 This is \code{\link{saviTTestStat}()} based on t-densities instead of
 hypergeometric functions.
 
-Evidence for minimal efficacy requires the e-value to be small, i.e. smaller than betaMinEffi threshold.
-If the alternative holds true, i.e. meanDiffTrue >= minEffiSize, then
+Evidence for minimal efficacy requires the e-value to be small, i.e. smaller than alphaRelevance threshold.
+If the alternative holds true, i.e. meanDiffTrue >= relevanceSize, then
 the e-value in favour of the alternative over minimal efficacy, e1Mf, then the probability of
-ever seeing e1f <= betaMinEffi is not more than betaMinEffi.
+ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
 }
 \examples{
 saviTTestStat(t=1, n1=100, parameter=0.4)
 saviTTestStat(t=3, n1=100, parameter=0.3)
-saviMinEffiTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over minimal efficacy
-saviMinEffiTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for minimal efficacy over the alternative
+saviRelevanceTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over minimal efficacy
+saviRelevanceTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for minimal efficacy over the alternative
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

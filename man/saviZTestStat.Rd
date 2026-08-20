@@ -3,7 +3,7 @@
 \name{safeZTestStat}
 \alias{safeZTestStat}
 \alias{saviZTestStat}
-\alias{saviMinEffiZStat}
+\alias{saviRelevanceZStat}
 \title{Computes E-Values Based on the Z-Statistic}
 \usage{
 saviZTestStat(
@@ -18,7 +18,7 @@ saviZTestStat(
   ...
 )
 
-saviMinEffiZStat(
+saviRelevanceZStat(
   z,
   n1,
   n2 = NULL,
@@ -27,7 +27,7 @@ saviMinEffiZStat(
   paired = FALSE,
   sigma = 1,
   eType = "grow",
-  minEffiSize = NULL,
+  relevanceSize = NULL,
   ...
 )
 }
@@ -55,9 +55,9 @@ two point masses at the minimal clinically relevant effect size.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
-\item{minEffiSize}{numeric, the minimal clinical relevant mean
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default minEffiSize=NULL implies minEffiSize=abs(meanDiffMin)}
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 }
 \value{
 Returns an e-value.
@@ -65,17 +65,17 @@ Returns an e-value.
 \description{
 Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
 
-Evidence for practical equivalence requires the e-value to be small, i.e. smaller than betaMinEffi threshold.
-If the alternative holds true, i.e. meanDiffTrue >= minEffiSize, then
+Evidence for practical equivalence requires the e-value to be small, i.e. smaller than alphaRelevance threshold.
+If the alternative holds true, i.e. meanDiffTrue >= relevanceSize, then
 the e-value in favour of the alternative over minimal efficiency, e1f, then the probability of
-ever seeing e1f <= betaMinEffi is not more than betaMinEffi.
+ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
 }
 \examples{
 saviZTestStat(z=3, n1=100, parameter=0.4, eType="grow")
 saviZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
 saviZTestStat(z=3, n1=100, parameter=0.4, eType="eCauchy")
-saviMinEffiZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over minimal efficacy
-saviMinEffiZStat(z=0.35, n1=100, parameter=0.4) # evidence for minimal efficacy over the alternative
+saviRelevanceZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over minimal efficacy
+saviRelevanceZStat(z=0.35, n1=100, parameter=0.4) # evidence for minimal efficacy over the alternative
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

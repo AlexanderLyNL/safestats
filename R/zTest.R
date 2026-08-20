@@ -155,28 +155,28 @@ saviZTestStat <- function(
 
 #' Computes Minimal Efficacy E-Values Based on the Z-Statistic in favour of the alternative over practical equivalence
 #'
-#' Evidence for practical equivalence requires the e-value to be small, i.e. smaller than betaMinEffi threshold.
-#' If the alternative holds true, i.e. meanDiffTrue >= minEffiSize, then
+#' Evidence for practical equivalence requires the e-value to be small, i.e. smaller than alphaRelevance threshold.
+#' If the alternative holds true, i.e. meanDiffTrue >= relevanceSize, then
 #' the e-value in favour of the alternative over minimal efficiency, e1f, then the probability of
-#' ever seeing e1f <= betaMinEffi is not more than betaMinEffi.
+#' ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
 #'
 #' @rdname saviZTestStat
 #' @inheritParams designSaviZ
 #' @export
 #'
 #' @examples
-#' saviMinEffiZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over minimal efficacy
-#' saviMinEffiZStat(z=0.35, n1=100, parameter=0.4) # evidence for minimal efficacy over the alternative
-saviMinEffiZStat <- function(
+#' saviRelevanceZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over minimal efficacy
+#' saviRelevanceZStat(z=0.35, n1=100, parameter=0.4) # evidence for minimal efficacy over the alternative
+saviRelevanceZStat <- function(
     z, n1, n2=NULL, parameter=NULL,
     alternative=c("twoSided", "less", "greater"),
-    paired=FALSE, sigma=1, eType="grow", minEffiSize=NULL, ...) {
+    paired=FALSE, sigma=1, eType="grow", relevanceSize=NULL, ...) {
 
-  if (is.null(parameter) && is.null(minEffiSize))
+  if (is.null(parameter) && is.null(relevanceSize))
     stop("No parameter, nor minimal mean difference given")
 
-  if (is.null(parameter) && !is.null(minEffiSize))
-    parameter <- abs(minEffiSize)
+  if (is.null(parameter) && !is.null(relevanceSize))
+    parameter <- abs(relevanceSize)
 
   alternative <- match.arg(alternative)
 
@@ -325,11 +325,11 @@ saviZTest.default <- function(
 
   result <- constructSaviTestObj("Z-Test")
 
-  eValueMinEffi <- NULL
+  eRelevance <- NULL
 
   # Vars for sequential analysis
   eValueVec <- NULL
-  eValueMinEffiVec <- NULL
+  eRelevanceVec <- NULL
   confSeqMatrix <- NULL
   n1Vec <- NULL
   n2Vec <- NULL
@@ -398,13 +398,13 @@ saviZTest.default <- function(
                               "alternative"=alternative, "paired"=paired,
                               "eType"=designObj[["eType"]])
 
-  if (designObj[["minEffiTest"]]) {
-    tempResultFut <- saviMinEffiZStat(
-      "z"=zStat, "parameter"=designObj[["minEffiTestResult"]][["parameter"]],
+  if (designObj[["relevanceTest"]]) {
+    tempResultFut <- saviRelevanceZStat(
+      "z"=zStat, "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
       "n1"=n1, "n2"=n2, "sigma"=sigma,
       "alternative"=alternative, "paired"=paired,
       "eType"="grow")
-    eValueMinEffi <- unname(tempResultFut[["eValue"]])
+    eRelevance <- unname(tempResultFut[["eValue"]])
   }
 
   ### Compute: confSeq ----
@@ -419,7 +419,7 @@ saviZTest.default <- function(
 
     mIter <- length(n1Vec)
 
-    eValueMinEffiVec <- eValueVec <- numeric(mIter)
+    eRelevanceVec <- eValueVec <- numeric(mIter)
     confSeqMatrix <- matrix(nrow=mIter, ncol=2)
 
     for (i in seq_along(n1Vec)) {
@@ -430,12 +430,12 @@ saviZTest.default <- function(
                            "eType"=designObj[["eType"]])
       eValueVec[i] <- unname(res[["eValue"]])
 
-      if (designObj[["minEffiTest"]]) {
-        minEffiRes <- saviMinEffiZStat("z"=zStatVec[i], "n1"=n1Vec[i], "n2"=n2Vec[i],
-                                    "parameter"=designObj[["minEffiTestResult"]][["parameter"]],
+      if (designObj[["relevanceTest"]]) {
+        relevanceRes <- saviRelevanceZStat("z"=zStatVec[i], "n1"=n1Vec[i], "n2"=n2Vec[i],
+                                    "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
                                     "sigma"=sigma, "alternative"=designObj[["alternative"]],
                                     "paired"=paired, "eType"="grow")
-        eValueMinEffiVec[i] <- unname(minEffiRes[["eValue"]])
+        eRelevanceVec[i] <- unname(relevanceRes[["eValue"]])
       }
 
       kaas <- computeConfidenceIntervalZ(
@@ -456,10 +456,10 @@ saviZTest.default <- function(
   result[["ciValue"]] <- ciValue
   result[["n"]] <- n
 
-  result[["eValueMinEffi"]] <- eValueMinEffi
+  result[["eRelevance"]] <- eRelevance
 
   result[["eValueVec"]] <- eValueVec
-  result[["eValueMinEffiVec"]] <- eValueMinEffiVec
+  result[["eRelevanceVec"]] <- eRelevanceVec
   result[["confSeqMatrix"]] <- confSeqMatrix
   result[["n1Vec"]] <- n1Vec
   result[["n2Vec"]] <- n2Vec
@@ -933,11 +933,11 @@ designFreqZ <- function(
 #' @param highEsTrue numeric, upper bound for the candidate set of the
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
-#' @param minEffiTest logical, if \code{TRUE} then impose rule to stop
+#' @param relevanceTest logical, if \code{TRUE} then impose rule to stop
 #' for minimal efficiency if e < beta. Default \code{FALSE}.
-#' @param minEffiSize numeric, the minimal clinical relevant mean
+#' @param relevanceSize numeric, the minimal clinical relevant mean
 #' difference that we do not want to miss under the alternative.
-#' Default minEffiSize=NULL implies minEffiSize=abs(meanDiffMin)
+#' Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)
 #' @param highN integer, largest possible sampling horizon. This might be the
 #' largest n that we are able to fund, which by default is set to 1e4L.
 #' Typically, highN is not used, as the function
@@ -991,8 +991,8 @@ designSaviZ <- function(
     wantSamplePaths=TRUE, wantSimData=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    minEffiTest=FALSE, minEffiSize=NULL,
-    betaMinEffi=NULL, betaDefault=0.2,
+    relevanceTest=FALSE, relevanceSize=NULL,
+    alphaRelevance=NULL, betaDefault=0.2,
     highN=1e4L, wantSampling=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
@@ -1046,16 +1046,16 @@ designSaviZ <- function(
   if (is.null(beta) && !is.null(power))
     beta <- 1-power
 
-  if (minEffiTest) {
-    minEffiSize <- matchMinEffiParameterWith(
-      "minEffiSize"=minEffiSize, "esMin"=meanDiffMin,
+  if (relevanceTest) {
+    relevanceSize <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize, "esMin"=meanDiffMin,
       "esTrue"=meanDiffTrue)
 
-    if (is.null(minEffiSize))
-      stop("Can't run a minimal efficacy analysis without minEffiSize or meanDiffMin")
+    if (is.null(relevanceSize))
+      stop("Can't run a minimal efficacy analysis without relevanceSize or meanDiffMin")
 
-    betaMinEffi <- matchBetaMinEffiWith(
-      "betaMinEffi"=betaMinEffi, "alpha"=alpha,
+    alphaRelevance <- matchAlphaRelevanceWith(
+      "alphaRelevance"=alphaRelevance, "alpha"=alpha,
       "power"=power, "betaDefault"=betaDefault)
   }
 
@@ -1075,25 +1075,25 @@ designSaviZ <- function(
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "wantSimData"=wantSimData,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
-      "highN"=highN, "betaMinEffi"=betaMinEffi, ...)
+      "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+      "highN"=highN, "alphaRelevance"=alphaRelevance, ...)
 
   } else if (!is.null(meanDiffMin) && !is.null(power) && is.null(nPlan) && isFALSE(wantSampling) ||
              !is.null(meanDiffMin) && is.null(power) && is.null(nPlan)) {
     designScenario <- "1b"
 
     tempResult <- list("parameter"=parameter,
-                       "esMin"=meanDiffMin, "minEffiTest"=minEffiTest)
+                       "esMin"=meanDiffMin, "relevanceTest"=relevanceTest)
 
-    if (minEffiTest) {
-      minEffiParameter <- matchMinEffiParameterWith(
-        "minEffiSize"=minEffiSize,
+    if (relevanceTest) {
+      relevanceParameter <- matchRelevanceParameterWith(
+        "relevanceSize"=relevanceSize,
         "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
 
-      minEffiTestResult <- list("parameter"=minEffiParameter,
-                             "beta"=betaMinEffi)
+      relevanceTestSim <- list("parameter"=relevanceParameter,
+                             "alpha"=alphaRelevance)
 
-      tempResult[["minEffiTestResult"]] <- minEffiTestResult
+      tempResult[["relevanceTestSim"]] <- relevanceTestSim
     }
 
   } else if (!is.null(meanDiffMin) && is.null(power) && !is.null(nPlan)) {
@@ -1106,8 +1106,8 @@ designSaviZ <- function(
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "ratio"=ratio, "wantSimData"=wantSimData,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
-      "betaMinEffi"=betaMinEffi, ...)
+      "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+      "alphaRelevance"=alphaRelevance, ...)
   } else if (is.null(meanDiffMin) && !is.null(power) && !is.null(nPlan)) {
     designScenario <- "3"
 
@@ -1196,7 +1196,7 @@ designSaviZ <- function(
   ## Name h0 -----
   names(h0) <- "mu"
   result[["h0"]] <- h0
-  result[["minEffiTest"]] <- minEffiTest
+  result[["relevanceTest"]] <- relevanceTest
 
   result[["call"]] <- sys.call()
 
@@ -1229,7 +1229,7 @@ designSaviZ1aWantNPlan <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
     highN=1e4L, ...) {
 
   alternative <- match.arg(alternative)
@@ -1247,8 +1247,8 @@ designSaviZ1aWantNPlan <- function(
     "wantSamplePaths"=wantSamplePaths,
     "meanDiffMin"=meanDiffMin, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
-    "highN"=highN, "betaMinEffi"=betaMinEffi)
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "highN"=highN, "alphaRelevance"=alphaRelevance)
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
                                "esMin"=meanDiffMin, "power"=power,
@@ -1281,7 +1281,7 @@ designSaviZ2WantPower <- function(
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
@@ -1298,8 +1298,8 @@ designSaviZ2WantPower <- function(
     "meanDiffMin"=meanDiffMin, "seed"=seed,
     "eType"=eType, "wantSamplePaths"=wantSamplePaths,
     "wantSimData"=wantSimData,
-    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
-    "betaMinEffi"=betaMinEffi, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "alphaRelevance"=alphaRelevance, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
 
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=meanDiffMin, "nPlan"=nPlan, "ratio"=ratio,
@@ -1860,8 +1860,8 @@ sampleStoppingTimesSaviZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantEValuesAtNMax=FALSE, power=NULL,
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    pb=TRUE, seed=NULL, nSim=1e3L, minEffiTest=FALSE,
-    minEffiSize=NULL, beta=NULL, betaMinEffi=NULL, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, relevanceTest=FALSE,
+    relevanceSize=NULL, beta=NULL, alphaRelevance=NULL, ...) {
 
   stopifnot(alpha > 0, alpha <= 1,
             is.finite(nMax),
@@ -1871,17 +1871,17 @@ sampleStoppingTimesSaviZ <- function(
 
   # browser()
 
-  if (minEffiTest) {
-    minEffiSize <- matchMinEffiParameterWith(
-      "minEffiSize"=minEffiSize, "esMin"=meanDiffMin,
+  if (relevanceTest) {
+    relevanceSize <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize, "esMin"=meanDiffMin,
       "esTrue"=meanDiffTrue
     )
 
-    betaMinEffi <- matchBetaMinEffiWith(
-      "betaMinEffi"=betaMinEffi, "alpha"=alpha, "beta"=1-power
+    alphaRelevance <- matchAlphaRelevanceWith(
+      "alphaRelevance"=alphaRelevance, "alpha"=alpha, "beta"=1-power
     )
 
-    stopifnot(betaMinEffi > 0, betaMinEffi < 1)
+    stopifnot(alphaRelevance > 0, alphaRelevance < 1)
   }
 
   # TODO(Alexander): Remove in v0.9.0
@@ -1911,18 +1911,18 @@ sampleStoppingTimesSaviZ <- function(
     "alternative"=alternative, "eType"=eType
   )
 
-  minEffiTestResult <- NULL
+  relevanceTestSim <- NULL
 
-  if (minEffiTest) {
-    minEffiParameter <- matchMinEffiParameterWith(
-      "minEffiSize"=minEffiSize,
+  if (relevanceTest) {
+    relevanceParameter <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize,
       "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
 
-    minEffiTestResult <-
+    relevanceTestSim <-
       list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
            "samplePaths"=result[["samplePaths"]],
            "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
-           "parameter"=minEffiParameter, "beta"=betaMinEffi)
+           "parameter"=relevanceParameter, "alpha"=alphaRelevance)
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
@@ -1995,7 +1995,7 @@ sampleStoppingTimesSaviZ <- function(
 
       # TODO(Alexander): Here use reciprocal as evidence for the null
       #
-      # if (minEffiTest && !isTRUE(growFutility) && evidenceNow < beta) {
+      # if (relevanceTest && !isTRUE(growFutility) && evidenceNow < beta) {
       #   result[["stoppingTimes"]][sim] <- n1Vector[j]
       #   result[["eValuesStopped"]][sim] <- evidenceNow
       #   result[["stoppedVector"]][sim] <- -1
@@ -2007,24 +2007,24 @@ sampleStoppingTimesSaviZ <- function(
       #   break()
       # }
 
-      if (minEffiTest) {
-        minEffiRes <- saviMinEffiZStat(
-          "z"=zVector[j], "parameter"=minEffiParameter,
+      if (relevanceTest) {
+        relevanceRes <- saviRelevanceZStat(
+          "z"=zVector[j], "parameter"=relevanceParameter,
           "n1"=n1Vector[j], "n2"=n2Vector[j],
           "alternative"=alternative,
           "sigma"=sigma, "eType"="grow")
 
-        minEffiEValue <- minEffiRes[["eValue"]]
+        relevanceEValue <- relevanceRes[["eValue"]]
 
         if (wantSamplePaths)
-          minEffiTestResult[["samplePaths"]][sim, j] <- minEffiEValue
+          relevanceTestSim[["samplePaths"]][sim, j] <- relevanceEValue
 
-        if (minEffiEValue < betaMinEffi) {
+        if (relevanceEValue < alphaRelevance) {
           result[["breakVector"]][sim] <- -1
           result[["stoppingTimes"]][sim] <- nMax
 
-          minEffiTestResult[["stoppingTimes"]][sim] <- n1Vector[j]
-          minEffiTestResult[["eValuesStopped"]][sim] <- minEffiEValue
+          relevanceTestSim[["stoppingTimes"]][sim] <- n1Vector[j]
+          relevanceTestSim[["eValuesStopped"]][sim] <- relevanceEValue
 
           break()
         }
@@ -2060,14 +2060,14 @@ sampleStoppingTimesSaviZ <- function(
     samplePaths[is.na(samplePaths)] <- 0
     result[["samplePaths"]] <- Matrix::Matrix(samplePaths, sparse=TRUE)
 
-    if (minEffiTest) {
-      minEffiSamplePaths <- minEffiTestResult[["samplePaths"]]
-      minEffiSamplePaths[is.na(minEffiSamplePaths)] <- 0
-      minEffiTestResult[["samplePaths"]] <- Matrix::Matrix(minEffiSamplePaths, sparse=TRUE)
+    if (relevanceTest) {
+      relevanceSamplePaths <- relevanceTestSim[["samplePaths"]]
+      relevanceSamplePaths[is.na(relevanceSamplePaths)] <- 0
+      relevanceTestSim[["samplePaths"]] <- Matrix::Matrix(relevanceSamplePaths, sparse=TRUE)
     }
   }
 
-  result[["minEffiTestResult"]] <- minEffiTestResult
+  result[["relevanceTestSim"]] <- relevanceTestSim
 
   return(result)
 }
@@ -2096,7 +2096,7 @@ computePowerSaviZ <- function(
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2137,8 +2137,8 @@ computePowerSaviZ <- function(
     "eType"=eType, "wantSimData"=wantSimData,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
-    "betaMinEffi"=betaMinEffi, ...)
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "alphaRelevance"=alphaRelevance, ...)
 
   result <- computePowerBootstrapper("samplingResult"=samplingResult,
                                     "parameter"=parameter, "nPlan"=nPlan,
@@ -2174,7 +2174,7 @@ computeNPlanSaviZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    minEffiTest=FALSE, minEffiSize=NULL, betaMinEffi=NULL,
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
     highN=1e4L, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2226,8 +2226,8 @@ computeNPlanSaviZ <- function(
     "eType"=eType, "meanDiffMin"=meanDiffMin,
     "wantSamplePaths"=wantSamplePaths, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "minEffiTest"=minEffiTest, "minEffiSize"=minEffiSize,
-    "betaMinEffi"=betaMinEffi, ...)
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "alphaRelevance"=alphaRelevance, ...)
 
   result <- computeNPlanBootstrapper(
     "samplingResult"=samplingResult, "parameter"=parameter,

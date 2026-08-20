@@ -46,7 +46,7 @@ constructSaviDesignObj <- function(testName) {
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
     "bootObjLogImpliedTarget"=NULL,
     "beta"=NULL, "betaTwoSe"=NULL,
-    "minEffiTestResult"=NULL, "varEqual"=NULL,
+    "relevanceTestSim"=NULL, "varEqual"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL, "designScenario"=NULL,
     "call"=NULL, "timeStamp"=Sys.time(), "note"=NULL)
 
@@ -310,13 +310,13 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   testName <- designObj[["testName"]]
   testType <- designObj[["testType"]]
 
-  minEffiTest <- if (!is.null(x[["minEffiTestResult"]])) TRUE else FALSE
+  relevanceTest <- if (!is.null(x[["relevanceTestSim"]])) TRUE else FALSE
 
   note <- designObj[["note"]]
 
   tempName <- getNameTestType("testType"=testType, "testName"=testName)
 
-  extraChar <- if (minEffiTest) " + Minimal Efficacy Test" else ""
+  extraChar <- if (relevanceTest) " + e-Relevance Test" else ""
 
   analysisName <- paste0(tempName, extraChar, " Design")
 
@@ -326,9 +326,9 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   displayList <- list()
 
-  if (minEffiTest) {
+  if (relevanceTest) {
     designObj[["decision rule 1"]] <- 1/designObj[["alpha"]]
-    designObj[["decision rule 2"]] <- designObj[["minEffiTestResult"]][["beta"]]
+    designObj[["decision rule 2"]] <- designObj[["relevanceTestSim"]][["alpha"]]
   } else {
     designObj[["decision rule"]] <- 1/designObj[["alpha"]]
   }
@@ -393,8 +393,10 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
         displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
       } else if (item=="decision rule 1") {
         displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
+      } else if (item == "eType") {
+        displayList[["e-variable type"]] <- itemValueString
       } else if (item=="decision rule 2") {
-        displayList[["decision rule: e-value <= beta"]] <- itemValueString
+        displayList[["decision rule: e-relevance <= alphaRelevance"]] <- itemValueString
       } else if (item=="logImpliedTarget") {
         tempNeem <- "log(implied target)"
         logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
@@ -408,10 +410,8 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
         displayList[[tempNeem]] <- itemValueString
       } else if (item=="esMin") {
         displayList[[paste("minimal", names(itemValue))]] <- itemValueString
-      } else if (item == "alternativeRestriction"){
+      } else if (item == "alternativeRestriction") {
         displayList[["alternative restriction"]] <- itemValueString
-      } else if (item == "eType"){
-        displayList[["e-variable type"]] <- itemValueString
       } else {
         displayList[[item]] <- itemValueString
       }
@@ -601,10 +601,10 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     lines(c(nPlan, nPlan), c(0, max(stopHist[["counts"]])), lwd=lwd, lty=2)
   }
 
-  betaMinEffi <- NULL
-  minEffiResult <- x[["minEffiTestResult"]]
-  histMinEffi <- NULL
-  minEffiTest <- x[["minEffiTest"]]
+  alphaRelevance <- NULL
+  relevanceTestSim <- x[["relevanceTestSim"]]
+  histRelevance <- NULL
+  relevanceTest <- x[["relevanceTest"]]
 
   if (numSamplePaths > 0) {
     fptAll <- stoppingTimes
@@ -624,9 +624,9 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     fptAlt <- stoppingTimes[indexStopAlt]
     fptNot <- stoppingTimes[indexStopNot]
 
-    if (minEffiTest) {
-      fptFut <- as.integer(minEffiResult[["stoppingTimes"]][indexStopFut])
-      betaMinEffi <- minEffiResult[["beta"]]
+    if (relevanceTest) {
+      fptFut <- as.integer(relevanceTestSim[["stoppingTimes"]][indexStopFut])
+      alphaRelevance <- relevanceTestSim[["alpha"]]
 
       fptAll[indexStopFut] <- fptFut
     }
@@ -656,7 +656,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     histAlt <- if (nAlt > 0) hist(fptAlt, plot=FALSE, breaks=breaks) else
       list(counts=rep(0, length=length(breaks)-1))
 
-    histFut <- if (isTRUE(minEffiTest) && nFut > 0) hist(fptFut, plot=FALSE, breaks=breaks) else
+    histFut <- if (isTRUE(relevanceTest) && nFut > 0) hist(fptFut, plot=FALSE, breaks=breaks) else
       list(counts=rep(0, length=length(breaks)-1))
 
     histNot <- if (isTRUE(wantNotStoppedHist) && nNotStopped > 0) hist(fptNot, plot=FALSE, breaks=breaks) else
@@ -670,8 +670,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     yMin <- -1*log(3/(2*alpha))
 
-    if (isTRUE(minEffiTest))
-      yMin <- min(c(yMin, -1*log(3/(2*betaMinEffi))))
+    if (isTRUE(relevanceTest))
+      yMin <- min(c(yMin, -1*log(3/(2*alphaRelevance))))
 
     if (is.null(ylim))
       ylim <- c(yMin, 2.75*log(1/alpha))
@@ -695,12 +695,12 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     lines(x=c(0, 1.5*nPlanBatch), y=log(c(1/alpha, 1/alpha)))
 
-    if (minEffiTest)
-      lines(x=c(0, 1.5*nPlanBatch), y=log(c(betaMinEffi, betaMinEffi)))
+    if (relevanceTest)
+      lines(x=c(0, 1.5*nPlanBatch), y=log(c(alphaRelevance, alphaRelevance)))
 
-    if (minEffiTest) {
-      yLabs <- c(1e-24, betaMinEffi, "1", 1/alpha)
-      criticalP <- log(c(1e-24, betaMinEffi, 1, 1/alpha))
+    if (relevanceTest) {
+      yLabs <- c(1e-24, alphaRelevance, "1", 1/alpha)
+      criticalP <- log(c(1e-24, alphaRelevance, 1, 1/alpha))
     } else {
       yLabs <- c(1e-24, alpha, "1", 1/alpha)
       criticalP <- log(c(1e-24, alpha, 1, 1/alpha))
@@ -784,8 +784,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     stoppedPaths <- samplePaths
 
-    if (minEffiTest)
-      stoppedPaths[indexStopFut, ] <- x[["minEffiTestResult"]][["samplePaths"]][indexStopFut, ]
+    if (relevanceTest)
+      stoppedPaths[indexStopFut, ] <- x[["relevanceTestSim"]][["samplePaths"]][indexStopFut, ]
 
     nLinesNot <- if (isFALSE(wantNotStoppedSamplePaths)) 0 else
       min(ceil(nNotStopped/nAll*numSamplePaths), nNotStopped)
@@ -802,7 +802,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     nLinesToPlot <- c(nLinesAlt, nLinesFut, nLinesNot)[linesOrder]
 
-    lastPoints <- if (!is.null(betaMinEffi)) c(1/alpha, betaMinEffi) else
+    lastPoints <- if (!is.null(alphaRelevance)) c(1/alpha, alphaRelevance) else
       c(1/alpha, NULL)
 
     lastPoints <- c(lastPoints, NULL)[linesOrder]
@@ -868,7 +868,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       for (i in seq_along(quants)) {
 
-        if (minEffiTest) {
+        if (relevanceTest) {
           quantFut <- round(sum(fptFut <= quants[i])/nAll*100, 2)
 
           text(quantileNames[i], x=quants[i], y=textHeightQuant,
@@ -895,7 +895,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     if (wantLegend) {
 
-      if (minEffiTest) {
+      if (relevanceTest) {
         mtext(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
               col=border, side=1, line = 4, las = 1,
               cex = cex*legendCexFactor, adj=legendAdjFut[1])
@@ -925,7 +925,6 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       #        col=c(col, underColour, continueColour),
       #        lty=1, cex=cex, lwd=lwd, box.lty=box.lty, xpd=TRUE)
     }
-
   }
 }
 
@@ -966,8 +965,8 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' @param runInt logical, if \code{TRUE} (default), then shows the running
 #' intersection of the confidence sequence.
 #' @param wantFutility logical, if \code{FALSE}, then don't show the
-#' e-values for minEffiTest. Default \code{wantFutility==NULL}, if
-#' \code{designObj[["minEffiTest"]]==TRUE} then minimal efficacy e-values are shown
+#' e-values for relevanceTest. Default \code{wantFutility==NULL}, if
+#' \code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
 #' automatically.
 #' @return Returns nothing just plots
 #' @export
@@ -992,17 +991,17 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           wantFutility=NULL,
                           ...) {
   eValueVec <- x[["eValueVec"]]
-  eValueFutVec <- x[["eValueFutVec"]]
+  eRelevanceVec <- x[["eRelevanceVec"]]
 
   n1Vec <- x[["n1Vec"]]
 
   designObj <- x[["designObj"]]
 
-  minEffiTest <- FALSE
+  relevanceTest <- FALSE
 
-  if (is.null(wantFutility) && designObj[["minEffiTest"]] && !is.null(eValueFutVec)) {
-    minEffiTest <- TRUE
-    betaMinEffi <- designObj[["minEffiTestResult"]][["beta"]]
+  if ((is.null(wantFutility) || isTRUE(wantFutility)) && designObj[["relevanceTest"]] && !is.null(eRelevanceVec)) {
+    relevanceTest <- TRUE
+    alphaRelevance <- designObj[["relevanceTestSim"]][["alpha"]]
   }
 
   if (is.null(n1Vec) || is.null(eValueVec)) {
@@ -1113,8 +1112,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     nInfinite <- sum(is.infinite(eValueVec))
 
-    if (minEffiTest) {
-      nInfinite <- nInfinite+sum(is.infinite(eValueFutVec))
+    if (relevanceTest) {
+      nInfinite <- nInfinite+sum(is.infinite(eRelevanceVec))
     }
 
     if (nInfinite >= 1) {
@@ -1122,9 +1121,9 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       finiteIndex <- which(is.finite(eValueVec))
 
-      if (minEffiTest) {
-        finiteIndex <- intersect(finiteIndex, which(is.finite(eValueFutVec)))
-        eValueFutVec <- eValueFutVec[finiteIndex]
+      if (relevanceTest) {
+        finiteIndex <- intersect(finiteIndex, which(is.finite(eRelevanceVec)))
+        eRelevanceVec <- eRelevanceVec[finiteIndex]
       }
 
       eValueVec <- eValueVec[finiteIndex]
@@ -1134,10 +1133,16 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     maxEValue <- max(eValueVec, na.rm=TRUE)
     minEValue <- min(eValueVec, na.rm=TRUE)
 
-    if (minEffiTest) {
-      maxEValue <- max(eValueFutVec, maxEValue, na.rm=TRUE)
-      minEValue <- min(eValueFutVec, minEValue, na.rm=TRUE)
+    if (relevanceTest) {
+      maxEValue <- max(eRelevanceVec, maxEValue, na.rm=TRUE)
+      minEValue <- min(eRelevanceVec, minEValue, na.rm=TRUE)
     }
+
+    if (minEValue <= .Machine[["double.xmin"]])
+      minEValue <- 1e-300
+
+    if (maxEValue >= .Machine[["double.xmax"]])
+      maxEValue <- 1e300
 
     if (!isTRUE(add)) {
       rangeEValue <- maxEValue-minEValue
@@ -1157,8 +1162,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
       minY <- minEValue
 
-      if (minEffiTest)
-        minY <- min(minY, betaMinEffi)
+      if (relevanceTest)
+        minY <- min(minY, alphaRelevance)
 
       if (isFALSE(logScale))
         minY <- 0
@@ -1184,9 +1189,9 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       if (maxY/threshLine[1] < 10)
         lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
 
-      if (minEffiTest)
-        lines(c(1, maxX), c(betaMinEffi, betaMinEffi),
-              lwd=lwd, lty=2, col=underColourBorder)
+      if (relevanceTest)
+        lines(c(1, maxX), c(alphaRelevance, alphaRelevance),
+              lwd=lwd, lty=2, col="grey40")
 
       if (is.null(xaxt) || xaxt!="n") axis(1)
       if (is.null(yaxt) || yaxt!="n") axis(2)
@@ -1200,7 +1205,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
     lines(n1Vec, eValueVec, lwd=lwd, col=overColour)
 
-    if (minEffiTest)
-      lines(n1Vec, eValueFutVec, lwd=lwd, col=underColour)
+    if (relevanceTest)
+      lines(n1Vec, eRelevanceVec, lwd=lwd, col=underColour)
   }
 }

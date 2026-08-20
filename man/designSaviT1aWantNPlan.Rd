@@ -22,11 +22,11 @@ designSaviT1aWantNPlan(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
-  minEffiTest = FALSE,
-  minEffiSize = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
   sigmaTrue = 1,
   sigmaTrue2 = 1,
-  betaMinEffi = NULL,
+  alphaRelevance = NULL,
   ...
 )
 }

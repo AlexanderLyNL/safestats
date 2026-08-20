@@ -561,7 +561,7 @@ designSafeZ <- function(
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    minEffiTest=FALSE, growFutility=FALSE, ...) {
+    relevanceTest=FALSE, growFutility=FALSE, ...) {
 
   warning('The function designSafeZ is deprecated;',
           'Please use designSaviZ instead')
@@ -575,7 +575,7 @@ designSafeZ <- function(
     wantSamplePaths=wantSamplePaths,
     lowEsTrue=lowEsTrue, highEsTrue=highEsTrue,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    minEffiTest=futility, growFutility=growFutility, ...)
+    relevanceTest=futility, growFutility=growFutility, ...)
 }
 
 #' @describeIn designSaviZ1aWantNPlan Deprecated version of designSaviZ1aWantNPlan
@@ -590,7 +590,7 @@ designSafeZ1aWantNPlan <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    minEffiTest=FALSE, growFutility=FALSE, ...) {
+    relevanceTest=FALSE, growFutility=FALSE, ...) {
 
   warning('The function designSafeZ1aWantNPlan is deprecated;',
           'Please use designSaviZ1aWantNPlan instead')
@@ -603,7 +603,7 @@ designSafeZ1aWantNPlan <- function(
     eType=eType,
     wantSamplePaths=wantSamplePaths,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    minEffiTest=minEffiTest, growFutility=growFutility, ...)
+    relevanceTest=relevanceTest, growFutility=growFutility, ...)
 }
 
 #' @describeIn designSaviZ2WantPower Deprecated version of designSaviZ2WantBeta
@@ -758,7 +758,7 @@ sampleStoppingTimesSafeZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=FALSE,
-    pb=TRUE, seed=NULL, nSim=1e3L, minEffiTest=FALSE,
+    pb=TRUE, seed=NULL, nSim=1e3L, relevanceTest=FALSE,
     growFutility=FALSE, beta=NULL, ...) {
 
   warning('The function sampleStoppingTimesSafeZ is deprecated;',
@@ -773,7 +773,7 @@ sampleStoppingTimesSafeZ <- function(
     wantEValuesAtNMax=wantEValuesAtNMax,
     wantSamplePaths=wantSamplePaths,
     wantSimData=wantSimData,
-    pb=pb, seed=seed, nSim=nSim, minEffiTest=minEffiTest,
+    pb=pb, seed=seed, nSim=nSim, relevanceTest=relevanceTest,
     growFutility=growFutility, ...)
 }
 
@@ -816,7 +816,7 @@ computeNPlanSafeZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    minEffiTest=FALSE, growFutility=FALSE,
+    relevanceTest=FALSE, growFutility=FALSE,
     ...) {
 
   warning('The function computeNPlanSafeZ is deprecated;',
@@ -831,7 +831,7 @@ computeNPlanSafeZ <- function(
     nMax=nMax,
     wantSamplePaths=wantSamplePaths,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    minEffiTest=minEffiTest, growFutility=growFutility, ...)
+    relevanceTest=relevanceTest, growFutility=growFutility, ...)
 }
 
 # LOGRANK ------

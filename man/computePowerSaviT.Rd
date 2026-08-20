@@ -21,9 +21,9 @@ computePowerSaviT(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
-  minEffiTest = FALSE,
-  minEffiSize = NULL,
-  betaMinEffi = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  alphaRelevance = NULL,
   ...
 )
 }

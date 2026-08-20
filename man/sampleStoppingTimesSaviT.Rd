@@ -26,10 +26,10 @@ sampleStoppingTimesSaviT(
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
-  minEffiTest = FALSE,
-  minEffiSize = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
   beta = NULL,
-  betaMinEffi = NULL,
+  alphaRelevance = NULL,
   ...
 )
 }

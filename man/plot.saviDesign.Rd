@@ -12,22 +12,23 @@
   ylab = NULL,
   xlim = NULL,
   ylim = NULL,
-  maxNBins = 35,
+  maxNBins = 40,
   numSamplePaths = 100,
   wantStepLines = FALSE,
   wantQuantiles = NULL,
-  border = "#1F78B4E6",
   breaks = NULL,
   lwd = 2,
   pch = 15,
-  histInnerColour = col,
   colQuant = "#AA0000",
-  col = "#A6CEE380",
-  overColourBorder = border,
-  underColour = "#FFB90F86",
-  underColourBorder = "#FFB90FCC",
-  continueColour = "#556B2F4D",
-  continueColourBorder = "#556B2FCC",
+  overColour = "#8FC6E3",
+  overColourBorder = "#1F78B4E6",
+  underColour = "#E7A72199",
+  underColourBorder = "#BD8E17FF",
+  continueColour = "#8CA252E6",
+  continueColourBorder = "#637939E6",
+  histInnerColour = col,
+  col = overColour,
+  border = overColourBorder,
   cex = 1.3,
   yLabPAdj = -1,
   wantNotStoppedHist = FALSE,
@@ -36,8 +37,9 @@
   legendAdjFut = c(-0.1, 0.5, 1),
   legendAdj = c(0.2, 0.8),
   legendCexFactor = 0.85,
-  pchColourUnder = "#FFB90FCC",
-  pchColourOver = "#1F78B4E6",
+  histFewestAtTop = FALSE,
+  density = NULL,
+  wantTitle = TRUE,
   ...
 )
 }
@@ -84,6 +86,14 @@ The default is to use blue}
 \item{cex}{size of the labels and the quantile text}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{histFewestAtTop}{logical, if TRUE, then fewest counts
+(of against the null or against minimal efficacy) at the top
+of the histogram}
+
+\item{density}{the density of shading lines, in lines per inch.
+The default value of NULL means that no shading lines are drawn.
+Non-positive values of density also inhibit the drawing of shading lines.}
 }
 \value{
 Nothing it only plots
