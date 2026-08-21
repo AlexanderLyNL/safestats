@@ -41,9 +41,6 @@ designSaviZ(
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the savi test
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
@@ -104,9 +101,8 @@ for minimal efficiency if e < beta. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
-\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
-the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
-power <- 1-beta. This overrides the "beta" argument}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 
 \item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
@@ -134,7 +130,7 @@ if known.}
 \item{parameter}{the savi test defining parameter. Here phiS.}
 \item{esMin}{the minimally clinically relevant effect size provided by the user.}
 \item{alpha}{the tolerable type I error provided by the user.}
-\item{beta}{the tolerable type II error specified by the user.}
+\item{power}{the desired power specified by the user.}
 \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
 \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
@@ -150,8 +146,9 @@ ratio between the planned randomisation of condition 2 over condition 1.}
 A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
 phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
 phiS = meanDiffMin as the savi test defining parameter in accordance to the GROW criterion.
-If a tolerable type II error, i.e., beta, is provided then nPlan can be sampled. The sampled nPlan is then
-the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
+If a targetted power is provided then nPlan can be sampled. The sampled nPlan is then
+the smallest nPlan for which meanDiffMin can be found with probability at least the desired power
+under optional stopping.
 }
 \section{Functions}{
 \itemize{

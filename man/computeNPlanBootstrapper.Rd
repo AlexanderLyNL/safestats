@@ -18,9 +18,8 @@ computeNPlanBootstrapper(
 
 \item{parameter}{numeric > 0, the safe test defining parameter.}
 
-\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
-the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
-power <- 1-beta. This overrides the "beta" argument}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 
 \item{nPlanBatch}{integer, the sample size needed in a batch design
 to reach the targeted power=1-beta with tolerable type I error alpha}

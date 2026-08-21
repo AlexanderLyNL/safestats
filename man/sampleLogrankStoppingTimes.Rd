@@ -5,20 +5,29 @@
 \title{Simulate stopping times for the exact savi logrank test}
 \usage{
 sampleLogrankStoppingTimes(
-  hazardRatio,
+  hrTrue,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   m0 = 50000L,
   m1 = 50000L,
   nSim = 1000L,
   groupSizePerTimeFunction = returnOne,
+  seed = NULL,
+  power = NULL,
+  beta = NULL,
+  relevanceTest = NULL,
+  relevanceSize = NULL,
+  wantEValuesAtNMax = FALSE,
+  wantSamplePaths = TRUE,
+  wantSimData = TRUE,
   parameter = NULL,
   nMax = Inf,
-  pb = TRUE
+  pb = TRUE,
+  ...
 )
 }
 \arguments{
-\item{hazardRatio}{numeric that defines the data generating hazard ratio with which data are sampled.}
+\item{hrTrue}{numeric that defines the data generating hazard ratio with which data are sampled.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
@@ -43,6 +52,10 @@ savi logrank test under continuous monitoring}
 of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
 step.}
 
+\item{seed}{integer, seed number.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
 \item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
@@ -50,6 +63,8 @@ algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 crossing crossing already. Default set to Inf.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping

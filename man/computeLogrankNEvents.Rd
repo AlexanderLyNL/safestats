@@ -25,9 +25,6 @@ computeLogrankNEvents(
 \item{hrMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 detect.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.}
 
 \item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}

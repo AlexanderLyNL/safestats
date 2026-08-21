@@ -37,9 +37,6 @@ computeNPlanSaviT(
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
 This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
-
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
@@ -81,6 +78,9 @@ approximation of the power, the number of samples for the savi t test under cont
 or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
+
+\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
+the sample sizes and deltaS, which defines the test.}
 
 \item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 we would the experiment to be able to detect.}

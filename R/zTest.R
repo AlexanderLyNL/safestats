@@ -1139,11 +1139,11 @@ designSaviZ <- function(
 
   if (is.null(designScenario)) {
     stop("Can't design: Please provide this function with either: \n",
-         "(1.a) non-null meanDiffMin, non-null beta and NULL nPlan, or \n",
-         "(1.b) non-null meanDiffMin, NULL beta, and NULL nPlan, or \n",
-         "(2) non-null meanDiffMin, NULL beta and non-null nPlan, or \n",
-         "(3) NULL meanDiffMin, non-null beta, and non-null nPlan, or \n",
-         "(3.b) NULL meanDiffMin, NULL beta, non-null nPlan, or \n")
+         "(1.a) non-null meanDiffMin, non-null power and NULL nPlan, or \n",
+         "(1.b) non-null meanDiffMin, NULL power, and NULL nPlan, or \n",
+         "(2) non-null meanDiffMin, NULL power and non-null nPlan, or \n",
+         "(3) NULL meanDiffMin, non-null power, and non-null nPlan, or \n",
+         "(3.b) NULL meanDiffMin, NULL power, non-null nPlan, or \n")
   }
 
   ## Fill and name ----

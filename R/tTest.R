@@ -1491,11 +1491,11 @@ designSaviT <- function(
 
   if (is.null(designScenario)) {
     stop("Can't design: Please provide this function with either: \n",
-         "(1.a) non-null deltaMin, non-null beta and NULL nPlan, or \n",
-         "(1.b) non-null deltaMin, NULL beta, and NULL nPlan, or \n",
-         "(1.c) NULL deltaMin, NULL beta, non-null nPlan, or \n",
-         "(2) non-null deltaMin, NULL beta and non-null nPlan, or \n",
-         "(3) NULL deltaMin, non-null beta, and non-null nPlan.")
+         "(1.a) non-null deltaMin, non-null power and NULL nPlan, or \n",
+         "(1.b) non-null deltaMin, NULL power, and NULL nPlan, or \n",
+         "(1.c) NULL deltaMin, NULL power, non-null nPlan, or \n",
+         "(2) non-null deltaMin, NULL power and non-null nPlan, or \n",
+         "(3) NULL deltaMin, non-null power, and non-null nPlan.")
   }
 
   # Fill and name ----

@@ -645,11 +645,11 @@ designSaviLogrank <- function(
 
     if (is.null(designScenario)) {
       stop("Can't design: Please provide this function with either: \n",
-           "(1.a) non-null hrMin, non-null beta and NULL nEvents, or \n",
-           "(1.b) non-null hrMin, NULL beta, and NULL nEvents, or \n",
-           # "(1.c) NULL hrMin, NULL beta, non-null nEvents, or \n",
-           "(2) non-null hrMin, NULL beta and non-null nEvents.")
-      # "(3) NULL hrMin, non-null beta, and non-null nEvents.")
+           "(1.a) non-null hrMin, non-null power and NULL nEvents, or \n",
+           "(1.b) non-null hrMin, NULL power, and NULL nEvents, or \n",
+           # "(1.c) NULL hrMin, NULL power, non-null nEvents, or \n",
+           "(2) non-null hrMin, NULL power and non-null nEvents.")
+      # "(3) NULL hrMin, non-null power, and non-null nEvents.")
     }
 
     if (is.na(hrMin))

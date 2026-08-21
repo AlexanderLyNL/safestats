@@ -19,9 +19,8 @@ computeBootObj(
 \item{values}{numeric vector. If objType equals "nPlan" or "beta" then values should be stopping times,
 if objType equals "logImpliedTarget" then values should be eValues.}
 
-\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
-the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
-power <- 1-beta. This overrides the "beta" argument}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 
 \item{nPlan}{numeric vector of length at most 2 representing the planned sample size(s).}
 
@@ -30,9 +29,6 @@ to estimate the uncertainty of various estimates.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
-
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
 
 \item{objType}{character string either "nPlan", "nMean", "beta", "betaFromEValues", "expectedStopTime" or "logImpliedTarget".}
 }

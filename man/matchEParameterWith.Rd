@@ -6,7 +6,7 @@
 \usage{
 matchEParameterWith(
   esMin,
-  analysisType = c("z", "t"),
+  analysisType = c("z", "t", "logRank"),
   sigma = 1,
   alternative = c("twoSided", "greater", "less"),
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),

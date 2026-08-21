@@ -3,7 +3,7 @@
 \name{computeBetaSafeT}
 \alias{computeBetaSafeT}
 \alias{computePowerSaviT}
-\title{Helper function: Computes the type II error of the saviTTest based on the minimal clinically relevant
+\title{Helper function: Computes the power of the saviTTest based on the minimal clinically relevant
 standardised mean difference and nPlan.}
 \usage{
 computePowerSaviT(
@@ -77,7 +77,7 @@ a list which contains at least beta and an adapted bootObject of class
 \code{\link[boot]{boot}()}.
 }
 \description{
-Helper function: Computes the type II error of the saviTTest based on the minimal clinically relevant
+Helper function: Computes the power of the saviTTest based on the minimal clinically relevant
 standardised mean difference and nPlan.
 }
 \section{Functions}{

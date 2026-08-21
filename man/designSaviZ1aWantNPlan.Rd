@@ -35,9 +35,6 @@ designSaviZ1aWantNPlan(
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
@@ -84,9 +81,8 @@ for minimal efficiency if e < beta. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
-\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
-the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
-power <- 1-beta. This overrides the "beta" argument}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 
 \item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 

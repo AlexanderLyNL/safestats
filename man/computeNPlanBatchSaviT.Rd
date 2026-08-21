@@ -28,6 +28,9 @@ This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
+\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
+the sample sizes and deltaS, which defines the test.}
+
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
 
@@ -48,9 +51,6 @@ non-central t-distributions with in the denominator the likelihood with non-cent
 parameter set to 0, and in the numerator an average likelihood defined by the likelihood
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
-
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}

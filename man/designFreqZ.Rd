@@ -8,7 +8,7 @@ designFreqZ(
   meanDiffMin,
   alternative = c("twoSided", "greater", "less"),
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   sigma = 1,
@@ -29,8 +29,8 @@ that we would like to detect.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
@@ -54,8 +54,8 @@ largest n that we are able to fund.}
 returns a 'freqZDesign' object.
 }
 \description{
-Computes the number of samples necessary to reach a tolerable type I and type II error for the
-frequentist Z-test.
+Computes the number of samples necessary to reach a tolerable type I and desired power
+for the frequentist Z-test.
 }
 \examples{
 freqDesign <- designFreqZ(meanDiffMin = 0.5, highN = 100)

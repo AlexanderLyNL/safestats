@@ -47,9 +47,6 @@ designSaviT(
 \item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 we would the experiment to be able to detect.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
-
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
@@ -101,6 +98,9 @@ approximation of the power, the number of samples for the savi t test under cont
 or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
+
+\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
+the sample sizes and deltaS, which defines the test.}
 }
 \value{
 Returns an object of class 'saviDesign'. An object of class 'saviDesign' is a list containing at least the
@@ -111,7 +111,7 @@ following components:
 \item{parameter}{the savi test defining parameter. Here deltaS.}
 \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 \item{alpha}{the tolerable type I error provided by the user.}
-\item{beta}{the tolerable type II error provided by the user.}
+\item{power}{the desired power provided by the user.}
 \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
@@ -127,7 +127,7 @@ ratio between the planned randomisation of condition 2 over condition 1.}
 A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
 deltaS. If nPlan is provided, then only the savi test defining parameter deltaS needs to determined. That resulting
 deltaS leads to an (approximately) most powerful savi test. Typically, nPlan is unknown and the user has to specify
-(i) a tolerable type II error beta, and (ii) a clinically relevant minimal population standardised effect size
+(i) a desired power, and (ii) a clinically relevant minimal population standardised effect size
 deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
 }
 \section{Functions}{
@@ -149,13 +149,13 @@ deltaMin. The procedure finds the smallest nPlan for which deltaMin is found wit
 designObj <- designSaviT(deltaMin=0.8, alpha=0.03, alternative="greater")
 designObj
 
-# "Scenario 1.a": Minimal clinically relevant standarised mean difference and tolerable type
-# II error also known. Goal: find nPlan.
+# "Scenario 1.a": Minimal clinically relevant standarised mean difference and
+desired power also known. Goal: find nPlan.
 designObj <- designSaviT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
 designObj
 
 # "Scenario 2": Minimal clinically relevant standarised mean difference and nPlan known.
-# Goal: find the power, hence, the type II error of the procedure under optional stopping.
+# Goal: find the power of the procedure under optional stopping.
 
 designObj <- designSaviT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
 designObj

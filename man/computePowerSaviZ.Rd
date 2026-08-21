@@ -3,7 +3,7 @@
 \name{computeBetaSafeZ}
 \alias{computeBetaSafeZ}
 \alias{computePowerSaviZ}
-\title{Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan}
+\title{Helper function: Computes the power based on the minimal clinically relevant mean difference and nPlan}
 \usage{
 computePowerSaviZ(
   meanDiffTrue,
@@ -91,7 +91,7 @@ Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
 }
 \description{
-Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
+Helper function: Computes the power based on the minimal clinically relevant mean difference and nPlan
 }
 \section{Functions}{
 \itemize{

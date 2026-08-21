@@ -22,9 +22,6 @@ designSaviZ3WantEsMin(
 )
 }
 \arguments{
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the savi test
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
@@ -64,9 +61,8 @@ Design scenario 3: nPlan and beta given, goal find meanDiffMin}
 
 \item{...}{further arguments to be passed to or from methods.}
 
-\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
-the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
-power <- 1-beta. This overrides the "beta" argument}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 }
 \value{
 A list with the parameter and the targeted esMin amongst other items

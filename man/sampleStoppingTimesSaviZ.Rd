@@ -80,17 +80,13 @@ for the savi z test under continuous monitoring.}
 \item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
 for minimal efficiency if e < beta. Default \code{FALSE}.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{...}{further arguments to be passed to or from methods.}
 
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
-\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
-the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
-power <- 1-beta. This overrides the "beta" argument}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 
 \item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.

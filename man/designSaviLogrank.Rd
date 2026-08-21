@@ -32,9 +32,6 @@ designSaviLogrank(
 \item{hrMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 detect.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{nEvents}{numeric > 0, targetted number of events.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the

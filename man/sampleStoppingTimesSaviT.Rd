@@ -84,10 +84,10 @@ for the savi t test under continuous monitoring.}
 \item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 we would the experiment to be able to detect.}
 
-\item{sigmaTrue}{numeric > 0, population standard deviation}
+\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
+the sample sizes and deltaS, which defines the test.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{sigmaTrue}{numeric > 0, population standard deviation}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping

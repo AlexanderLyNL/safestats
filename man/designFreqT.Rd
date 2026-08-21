@@ -7,7 +7,7 @@
 designFreqT(
   deltaMin,
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   alternative = c("twoSided", "greater", "less"),
   h0 = 0,
   testType = c("oneSample", "paired", "twoSample"),
@@ -21,8 +21,8 @@ we would the experiment to be able to detect.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
+the sample sizes and deltaS, which defines the test.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 "greater" or "less".}
@@ -40,7 +40,7 @@ following components:
 \item{nPlan}{the planned sample size(s).}
 \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 \item{alpha}{the tolerable type I error provided by the user.}
-\item{beta}{the tolerable type II error provided by the user.}
+\item{power}{the desired power provided by the user.}
 \item{lowN}{the smallest n of the search space for n provided by the user.}
 \item{highN}{the largest n of the search space for n provided by the user.}
 \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
@@ -48,7 +48,7 @@ following components:
 }
 }
 \description{
-Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist T-test.
+Computes the number of samples necessary to reach a tolerable type I and desired power for the frequentist T-test.
 }
 \examples{
 designFreqT(0.5)

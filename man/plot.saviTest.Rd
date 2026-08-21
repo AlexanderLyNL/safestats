@@ -105,7 +105,7 @@ intersection of the confidence sequence.}
 
 \item{wantFutility}{logical, if \code{FALSE}, then don't show the
 e-values for relevanceTest. Default \code{wantFutility==NULL}, if
-\code{designObj[["relevanceTest"]]==TRUE} then minimal efficacy e-values are shown
+\code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
 automatically.}
 }
 \value{

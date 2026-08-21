@@ -30,9 +30,6 @@ and beta should be set to NULL.}
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
-
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
@@ -65,9 +62,8 @@ Design scenario 3: nPlan and beta given, goal find meanDiffMin}
 
 \item{...}{further arguments to be passed to or from methods.}
 
-\item{power}{numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
-the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
-power <- 1-beta. This overrides the "beta" argument}
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
 }
 \value{
 numeric > 0 that represents the minimal detectable mean difference
