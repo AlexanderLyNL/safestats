@@ -222,8 +222,9 @@ saviLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     nEvents <- sum(survTimeMatrix[, "status"]==1)
 
     if (is.null(designObj)) {
-      designObj <- designSaviLogrank("hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
-                                     "alternative"=alternative, "h0"=h0, "exact"=FALSE)
+      designObj <- designSaviLogrank(
+        "hrMin"=NULL, "beta"=NULL, "nEvents"=nEvents, "alpha"=alpha,
+        "alternative"=alternative, "h0"=h0, "exact"=FALSE)
       designObj[["pilot"]] <- TRUE
     } else {
       warning("The pilot flag is ignored, since a designObj is given",
@@ -416,7 +417,7 @@ saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
 #' ignores m1 and m0.
 #' @param parameter numeric > 0 representing the test defining thetaS. Default is NULL, then GROW the choice is used,
-#' that is, parameter equals the data generating hazardRatio.
+#' that is, parameter equals the data generating hrTrue.
 #' @param alternative a character string specifying the alternative hypothesis, which must be one of
 #' "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
 #' of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
@@ -621,10 +622,11 @@ designSaviLogrank <- function(
     } else if (!is.null(hrMin) && is.null(beta) && !is.null(nEvents)) {
       designScenario <- "2"
 
-      tempResult <- computeLogrankBetaFrom("hrMin"=hrMin, "nEvents"=nEvents, "m0"=m0, "m1"=m1, "alpha"=alpha,
-                                           "alternative"=alternative, "nSim"=nSim, "nBoot"=nBoot,
-                                           "groupSizePerTimeFunction"=groupSizePerTimeFunction,
-                                           "parameter"=thetaS, "pb"=pb)
+      tempResult <- computeLogrankBetaFrom(
+        "hrMin"=hrMin, "nEvents"=nEvents, "m0"=m0, "m1"=m1, "alpha"=alpha,
+        "alternative"=alternative, "nSim"=nSim, "nBoot"=nBoot,
+        "groupSizePerTimeFunction"=groupSizePerTimeFunction,
+        "parameter"=thetaS, "pb"=pb)
 
       beta <- tempResult[["beta"]]
       bootObjBeta <- tempResult[["bootObjBeta"]]
@@ -1228,7 +1230,7 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 #'
 #' @inheritParams designSaviLogrank
 #'
-#' @param hazardRatio numeric that defines the data generating hazard ratio with which data are sampled.
+#' @param hrTrue numeric that defines the data generating hazard ratio with which data are sampled.
 #' @param nMax An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
 #' crossing crossing already. Default set to Inf.
 #' @author Muriel Felipe Perez-Ortiz and Alexander Ly
@@ -1247,11 +1249,28 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 #' @examples
 #' sampleLogrankStoppingTimes(0.7, nSim=10)
 sampleLogrankStoppingTimes <- function(
-    hazardRatio, alpha=0.05, alternative = c("twoSided", "less", "greater"),
+    hrTrue, alpha=0.05, alternative = c("twoSided", "less", "greater"),
     m0=5e4L, m1=5e4L, nSim=1e3L, groupSizePerTimeFunction = returnOne,
-    parameter=NULL, nMax=Inf, pb=TRUE) {
+    seed=NULL, power=NULL, beta=NULL,
+    relevanceTest=NULL, relevanceSize=NULL,
+    wantEValuesAtNMax=FALSE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
+    parameter=NULL, nMax=Inf, pb=TRUE, ...) {
 
   stopifnot(is.null(parameter) || parameter > 0, alpha > 0, alpha <= 1)
+
+  if (relevanceTest) {
+    relevanceSize <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize, "esMin"=parameter,
+      "esTrue"=hrTrue
+    )
+
+    alphaRelevance <- matchAlphaRelevanceWith(
+      "alphaRelevance"=alphaRelevance, "alpha"=alpha, "beta"=1-power
+    )
+
+    stopifnot(alphaRelevance > 0, alphaRelevance < 1)
+  }
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1263,14 +1282,33 @@ sampleLogrankStoppingTimes <- function(
 
   alternative <- match.arg(alternative)
 
+  result <- constructSampleStoppingTimesList(
+    "nSim"=nSim, "nMax"=nMax,
+    "wantEValuesAtNMax"=wantEValuesAtNMax,
+    "wantSamplePaths"=wantSamplePaths)
+
+  relevanceTestSim <- NULL
+
+  if (relevanceTest) {
+    relevanceParameter <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize,
+      "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
+
+    relevanceTestSim <-
+      list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "samplePaths"=result[["samplePaths"]],
+           "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "parameter"=relevanceParameter, "alpha"=alphaRelevance)
+  }
+
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="logRank",
+    "esMin"=hrTrue, "alternative"=alternative
+  )
+
   ## Object that will be returned. A sample of stopping times
   stoppingTimes <- breakVector <- integer(nSim)
   eValuesStopped <- numeric(nSim)
-
-  if (is.null(parameter))
-    thetaS <- if (hazardRatio > 1) 1/hazardRatio else hazardRatio
-  else
-    thetaS <- parameter
 
   if (pb)
     pbSavi <- utils::txtProgressBar(style=3, title="Safe test threshold crossing")
@@ -1292,8 +1330,10 @@ sampleLogrankStoppingTimes <- function(
       groupSize <- min(groupSizePerTimeFunction(),
                        y1 + y0) ## cannot sample more subjects than there are
 
+      # TODO(Alexander): Here compare hrTrue to hrMin
+      #     Check sampleStoppingTimesSaviZ first argument is true data generating
       obs1 <- rLogrank(n=1, y0=y0, y1=y1, obsTotal=groupSize,
-                       theta=hazardRatio)
+                       theta=hrTrue)
 
       obs0 <- groupSize - obs1
 
@@ -1303,7 +1343,7 @@ sampleLogrankStoppingTimes <- function(
         break()
       }
 
-      tempResults <- logrankSingleEExact(obs0, obs1, y0, y1, thetaS)
+      tempResults <- logrankSingleEExact(obs0, obs1, y0, y1, parameter)
 
       logEValueGreater <- logEValueGreater + tempResults[["logEValueGreater"]]
       logEValueLess <- logEValueLess + tempResults[["logEValueLess"]]
@@ -1320,6 +1360,8 @@ sampleLogrankStoppingTimes <- function(
                               1/2*exp(logEValueLess))
 
       # Note(Alexander): If exceeds 1/alpha threshold then reject normally
+      #
+      # TODO(Alexander): Continue(?) e-values at end?
       #
       if (evidenceNow >= 1/alpha) {
         eValuesStopped[sim] <- evidenceNow
@@ -1505,10 +1547,24 @@ computeLogrankBetaFrom <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  tempResult <- sampleLogrankStoppingTimes("hazardRatio"=hrMin, "alternative"=alternative, "alpha"=alpha,
+  samplingResult <- sampleLogrankStoppingTimes(
+    "hrTrue"=hrMin, "alternative"=alternative, "alpha"=alpha,
+    "m0"=m0, "m1"=m1, "nSim"=nSim,
+    "groupSizePerTimeFunction"=groupSizePerTimeFunction,
+    "nMax"=nEvents, "parameter"=parameter)
+
+  result <- computePowerBootstrapper("samplingResult"=samplingResult,
+                                     "parameter"=parameter, "nPlan"=nEvents,
+                                     "nBoot"=nBoot)
+
+  return(result)
+
+  tempResult <- sampleLogrankStoppingTimes("hrTrue"=hrMin, "alternative"=alternative, "alpha"=alpha,
                                            "m0"=m0, "m1"=m1, "nSim"=nSim,
                                            "groupSizePerTimeFunction"=groupSizePerTimeFunction,
                                            "nMax"=nEvents, "parameter"=parameter)
+
+
 
   times <- tempResult[["stoppingTimes"]]
 
@@ -1592,7 +1648,7 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
     nBatch <- nMax
   }
 
-  tempResult <- sampleLogrankStoppingTimes(hazardRatio=hrMin, alternative=alternative, alpha=alpha,
+  tempResult <- sampleLogrankStoppingTimes(hrTrue=hrMin, alternative=alternative, alpha=alpha,
                                            m0=m0, m1=m1, nSim=nSim, groupSizePerTimeFunction=groupSizePerTimeFunction,
                                            nMax=nBatch)
 

@@ -596,7 +596,7 @@ matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power, beta=NULL
 #'
 #' @examples
 #' matchParameterZFrom(0.4)
-matchEParameterWith <- function(esMin, analysisType=c("z", "t"),
+matchEParameterWith <- function(esMin, analysisType=c("z", "t", "logRank"),
                                 sigma=1,
                                 alternative=c("twoSided", "greater", "less"),
                                 eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
@@ -609,28 +609,31 @@ matchEParameterWith <- function(esMin, analysisType=c("z", "t"),
   if (!is.null(parameter))
     return(parameter)
 
-  if (analysisType=="z") {
-    parameter <- switch(eType,
-                        "mom"=1/2*(esMin/sigma)^2,
-                        "eGauss"=(esMin/sigma)^2,
-                        "imom"=(esMin/sigma)^2,
-                        "eCauchy"=abs(esMin/sigma),
-                        "grow"=abs(esMin))
+  if (analysisType %in% c("z", "t")) {
+    if (analysisType=="z") {
+      parameter <- switch(eType,
+                          "mom"=1/2*(esMin/sigma)^2,
+                          "eGauss"=(esMin/sigma)^2,
+                          "imom"=(esMin/sigma)^2,
+                          "eCauchy"=abs(esMin/sigma),
+                          "grow"=abs(esMin))
+    } else if (analysisType=="t") {
+      parameter <- switch(eType,
+                          "mom"=1/2*esMin^2,
+                          "eGauss"=esMin^2,
+                          "imom"=abs(esMin),
+                          "eCauchy"=abs(esMin),
+                          "grow"=abs(esMin))
+    }
+
+    if (eType=="grow") {
+      if (alternative=="less")
+        parameter <- -parameter
+    }
+  } else if (analysisType=="logRank") {
+    parameter <- if (esMin > 1) 1/esMin else esMin
   }
 
-  if (analysisType=="t") {
-    parameter <- switch(eType,
-                        "mom"=1/2*esMin^2,
-                        "eGauss"=esMin^2,
-                        "imom"=abs(esMin),
-                        "eCauchy"=abs(esMin),
-                        "grow"=abs(esMin))
-  }
-
-  if (eType=="grow") {
-    if (alternative=="less")
-      parameter <- -parameter
-  }
   return(parameter)
 }
 

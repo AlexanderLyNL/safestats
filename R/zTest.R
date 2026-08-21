@@ -793,8 +793,8 @@ computeConfidenceIntervalZ <- function(
 
 #' Design a Frequentist Z-Test
 #'
-#' Computes the number of samples necessary to reach a tolerable type I and type II error for the
-#' frequentist Z-test.
+#' Computes the number of samples necessary to reach a tolerable type I and desired power
+#' for the frequentist Z-test.
 #'
 #' @inheritParams designSaviZ
 #' @param lowN integer that defines the smallest n of our search space for n.
@@ -811,10 +811,12 @@ computeConfidenceIntervalZ <- function(
 #' freqDesign2$nPlan
 designFreqZ <- function(
     meanDiffMin, alternative=c("twoSided", "greater", "less"),
-    alpha=0.05, beta=0.2, testType=c("oneSample", "paired", "twoSample"),
+    alpha=0.05, power=0.8, testType=c("oneSample", "paired", "twoSample"),
     ratio=1, sigma=1, h0=0, kappa=sigma, lowN=3L, highN=100L, ...) {
 
-  stopifnot(lowN >= 1, highN > lowN, alpha > 0, beta >0)
+  beta <- 1-power
+
+  stopifnot(lowN >= 1, highN > lowN, alpha > 0, power >0, power < 1)
 
   testType <- match.arg(testType)
 
@@ -828,7 +830,7 @@ designFreqZ <- function(
 
   alternative <- match.arg(alternative)
 
-  result <- list("nPlan"=NA, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
+  result <- list("nPlan"=NA, "esMin"=meanDiffMin, "alpha"=alpha, "power"=power,
                  "lowN"=lowN, "highN"=highN, "testType"=testType, "alternative"=alternative,
                  "h0"=h0)
   class(result) <- "freqZDesign"
@@ -884,12 +886,13 @@ designFreqZ <- function(
 #' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
 #' phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
 #' phiS = meanDiffMin as the savi test defining parameter in accordance to the GROW criterion.
-#' If a tolerable type II error, i.e., beta, is provided then nPlan can be sampled. The sampled nPlan is then
-#' the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
+#' If a targetted power is provided then nPlan can be sampled. The sampled nPlan is then
+#' the smallest nPlan for which meanDiffMin can be found with probability at least the desired power
+#' under optional stopping.
 #'
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
-#' @param power numeric in (0, 1) that specifies the targeted power, that is, the desired chance to stop for
+#' @param power numeric in (0, 1) that specifies the desired power, that is, the desired chance to stop for
 #' the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
 #' power <- 1-beta. This overrides the "beta" argument
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
@@ -925,8 +928,8 @@ designFreqZ <- function(
 #' a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 #' two point masses at the minimal clinically relevant effect size.
 #' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
-#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-#' and "phiS". Note that 1-beta defines the power.
+#' @param power numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+#' and "phiS".
 #' @param lowEsTrue numeric, lower bound for the candidate set of the
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
@@ -957,7 +960,7 @@ designFreqZ <- function(
 #'   \item{parameter}{the savi test defining parameter. Here phiS.}
 #'   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
-#'   \item{beta}{the tolerable type II error specified by the user.}
+#'   \item{power}{the desired power specified by the user.}
 #'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
 #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
@@ -1011,12 +1014,16 @@ designSaviZ <- function(
 
   result <- constructSaviDesignObj("Z-Test")
 
+  # TODO(Alexander): Check this:
+  #
+  #     checkAndReturnEsMinParameterSide("paramToCheck"=0.4, "esMinName"="kappaG", alternative="greater")
+  #
   if (!is.null(parameter)) {
     if (eType=="grow") {
       parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="phiS",
         "alternative"=alternative)
-    } else if (eType %in% "eGauss") {
+    } else if (eType=="eGauss") {
       parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="g",
         "alternative"=alternative)
@@ -2072,7 +2079,7 @@ sampleStoppingTimesSaviZ <- function(
   return(result)
 }
 
-#' Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
+#' Helper function: Computes the power based on the minimal clinically relevant mean difference and nPlan
 #'
 #' @inheritParams designSaviZ
 #' @inheritParams sampleStoppingTimesSaviZ

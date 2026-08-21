@@ -1167,7 +1167,7 @@ computeConfidenceIntervalT <- function(
 
 #' Design a Frequentist T-Test
 #'
-#' Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist T-test.
+#' Computes the number of samples necessary to reach a tolerable type I and desired power for the frequentist T-test.
 #'
 #' @inheritParams designSaviT
 #'
@@ -1177,7 +1177,7 @@ computeConfidenceIntervalT <- function(
 #'   \item{nPlan}{the planned sample size(s).}
 #'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
-#'   \item{beta}{the tolerable type II error provided by the user.}
+#'   \item{power}{the desired power provided by the user.}
 #'   \item{lowN}{the smallest n of the search space for n provided by the user.}
 #'   \item{highN}{the largest n of the search space for n provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
@@ -1187,10 +1187,12 @@ computeConfidenceIntervalT <- function(
 #'
 #' @examples
 #' designFreqT(0.5)
-designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
+designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
                         alternative=c("twoSided", "greater", "less"),
                         h0=0, testType=c("oneSample", "paired", "twoSample"), ...) {
-  stopifnot(alpha > 0, beta > 0, alpha < 1, beta < 1)
+  stopifnot(alpha > 0, power > 0, power < 1, alpha < 1, beta < 1)
+
+  beta <- 1-power
 
   testType <- match.arg(testType)
 
@@ -1241,15 +1243,15 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
 #' deltaS. If nPlan is provided, then only the savi test defining parameter deltaS needs to determined. That resulting
 #' deltaS leads to an (approximately) most powerful savi test. Typically, nPlan is unknown and the user has to specify
-#' (i) a tolerable type II error beta, and (ii) a clinically relevant minimal population standardised effect size
+#' (i) a desired power, and (ii) a clinically relevant minimal population standardised effect size
 #' deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
 #'
 #' @param deltaMin numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 #' we would the experiment to be able to detect.
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
-#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-#' the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.
+#' @param power numeric in (0, 1) that specifies the desired power necessary to calculate both
+#' the sample sizes and deltaS, which defines the test.
 #' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 #' "greater" or "less".
 #' @param nPlan vector of max length 2 representing the planned sample sizes.
@@ -1293,7 +1295,7 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #'   \item{parameter}{the savi test defining parameter. Here deltaS.}
 #'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
-#'   \item{beta}{the tolerable type II error provided by the user.}
+#'   \item{power}{the desired power provided by the user.}
 #'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
 #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
@@ -1315,13 +1317,13 @@ designFreqT <- function(deltaMin, alpha=0.05, beta=0.2,
 #' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, alternative="greater")
 #' designObj
 #'
-#' # "Scenario 1.a": Minimal clinically relevant standarised mean difference and tolerable type
-#' # II error also known. Goal: find nPlan.
+#' # "Scenario 1.a": Minimal clinically relevant standarised mean difference and
+#' desired power also known. Goal: find nPlan.
 #' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
 #' designObj
 #'
 #' # "Scenario 2": Minimal clinically relevant standarised mean difference and nPlan known.
-#' # Goal: find the power, hence, the type II error of the procedure under optional stopping.
+#' # Goal: find the power of the procedure under optional stopping.
 #'
 #' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
 #' designObj
@@ -2349,7 +2351,7 @@ sampleStoppingTimesSaviT <- function(
 }
 
 
-#' Helper function: Computes the type II error of the saviTTest based on the minimal clinically relevant
+#' Helper function: Computes the power of the saviTTest based on the minimal clinically relevant
 #' standardised mean difference and nPlan.
 #'
 #' @inheritParams designSaviT

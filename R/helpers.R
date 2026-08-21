@@ -183,10 +183,19 @@ checkAndReturnEsMinParameterSide <- function(
 
     error <- if (paramToCheck < 0) "The parameter g must be positive"
   } else if (paramName=="kappaG") {
+    # TODO(Alexander):
+    #
+    #   Perhaps fix with hypParam name
+    #
     hypParamName <- "kappaG"
     paramDomain <- "positiveNumbers"
 
     error <- if (paramToCheck < 0) "The parameter kappaG must be positive"
+  } else if (paramName=="gMom") {
+    hypParamName <- "gMom"
+    paramDomain <- "positiveNumbers"
+
+    error <- if (paramToCheck < 0) "The parameter gMom must be positive"
   } else {
     hypParamName <- "testRelevantParameter"
   }
