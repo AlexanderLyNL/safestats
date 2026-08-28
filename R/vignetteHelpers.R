@@ -41,7 +41,7 @@ selectivelyContinueZOrTTestData <- function(
     c(n1New, n1New), muGlobal=muGlobal,
     nSim=nSim, seed=seed,
     meanDiffTrue=meanDiffTrue, deltaTrue=deltaTrue,
-    sigmaTrue=sigma)
+    sigma=sigma)
 
   statMatrix <- matrix(nrow=nSim, ncol=n1New)
 

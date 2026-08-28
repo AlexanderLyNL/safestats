@@ -43,6 +43,8 @@ parameter set to 0, and in the numerator an average likelihood defined by the li
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
 
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
 a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 two point masses at the minimal clinically relevant standardised effect size.}

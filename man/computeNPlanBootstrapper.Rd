@@ -18,8 +18,8 @@ computeNPlanBootstrapper(
 
 \item{parameter}{numeric > 0, the safe test defining parameter.}
 
-\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
-and "phiS".}
+\item{power}{numeric in (0, 1) that specifies the desirable power necessary to calculate both "n"
+and the minimum detectable effect size.}
 
 \item{nPlanBatch}{integer, the sample size needed in a batch design
 to reach the targeted power=1-beta with tolerable type I error alpha}
@@ -27,8 +27,7 @@ to reach the targeted power=1-beta with tolerable type I error alpha}
 \item{nBoot}{integer > 0 representing the number of bootstrap samples
 to estimate the uncertainty of various estimates.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 }
 \value{
 list with bootstrap objects

@@ -25,8 +25,8 @@ computeNPlanSaviT(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
-  sigmaTrue = 1,
-  sigmaTrue2 = 1,
+  sigma = 1,
+  sigma2 = 1,
   relevanceTest = FALSE,
   relevanceSize = NULL,
   alphaRelevance = NULL,
@@ -36,6 +36,8 @@ computeNPlanSaviT(
 \arguments{
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
 This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
+
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
@@ -87,7 +89,7 @@ we would the experiment to be able to detect.}
 
 \item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
 
-\item{sigmaTrue}{numeric > 0, population standard deviation}
+\item{sigma}{numeric > 0, population standard deviation}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.

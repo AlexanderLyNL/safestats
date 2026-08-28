@@ -29,6 +29,8 @@ computeNPlanBatchSaviZ(
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}

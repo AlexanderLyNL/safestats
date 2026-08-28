@@ -36,6 +36,8 @@ computeNPlanSaviZ(
 \arguments{
 \item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 

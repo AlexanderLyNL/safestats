@@ -3,8 +3,8 @@
 #' @param samplingResult output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT
 #' @param esMin numeric that defines the minimal clinically relevant effect size,
 #' e.g. meanDiffMin for the z-test, or deltaMin for the t-test.
-#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-#' and "phiS". Note that 1-beta defines the power.
+#' @param power numeric in (0, 1) that specifies the desirable power necessary to calculate both "n"
+#' and the minimum detectable effect size.
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 #' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
 #' @param testType either one of "oneSample", "paired", "twoSample".

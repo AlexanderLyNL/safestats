@@ -128,8 +128,10 @@ ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
 \examples{
 saviTTestStat(t=1, n1=100, parameter=0.4)
 saviTTestStat(t=3, n1=100, parameter=0.3)
-saviRelevanceTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over minimal efficacy
-saviRelevanceTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for minimal efficacy over the alternative
+# evidence for the alternative over minimal efficacy
+saviRelevanceTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4)
+# evidence for minimal efficacy over the alternative
+saviRelevanceTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4)
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

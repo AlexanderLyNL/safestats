@@ -74,8 +74,10 @@ ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
 saviZTestStat(z=3, n1=100, parameter=0.4, eType="grow")
 saviZTestStat(z=3, n1=100, parameter=0.4^2, eType="eGauss")
 saviZTestStat(z=3, n1=100, parameter=0.4, eType="eCauchy")
-saviRelevanceZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over minimal efficacy
-saviRelevanceZStat(z=0.35, n1=100, parameter=0.4) # evidence for minimal efficacy over the alternative
+# evidence for the alternative over minimal efficacy
+saviRelevanceZStat(z=3, n1=100, parameter=0.4)
+# evidence for minimal efficacy over the alternative
+saviRelevanceZStat(z=0.35, n1=100, parameter=0.4)
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

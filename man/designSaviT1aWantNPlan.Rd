@@ -24,8 +24,8 @@ designSaviT1aWantNPlan(
   nBoot = nSim,
   relevanceTest = FALSE,
   relevanceSize = NULL,
-  sigmaTrue = 1,
-  sigmaTrue2 = 1,
+  sigma = 1,
+  sigma2 = 1,
   alphaRelevance = NULL,
   ...
 )
@@ -33,6 +33,8 @@ designSaviT1aWantNPlan(
 \arguments{
 \item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 we would the experiment to be able to detect.}
+
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
@@ -89,7 +91,7 @@ Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 
 }}
 \examples{
-designSaviT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+designSaviT1aWantNPlan(deltaMin=0.9, power=0.7, nSim=10)
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

@@ -1,6 +1,8 @@
 #' Add a savi reference
 #'
 #' @param key character string. firstAuthorYearFirstWord
+#' @param breakLine logical, default TRUE to break up the references
+#' @param ... further arguments to be passed to or from methods.
 #'
 #' @return a character string
 #' @export
@@ -45,9 +47,9 @@ addCite <- function(..., breakLine=TRUE) {
 .onAttach <-
   function(libname, pkgname) {
     packageCitation <- "Ly, A., Turner, R. J., Wang, Y., P\u00e9rez-Ortiz, M. F., Boehm, U., ter Schure, J., & Gr\u00fcnwald, P. D. (2024). safestats: Safe anytime-valid inference [Computer software manual]."
-    message("Thank you for using safestats! We really appreciate your interest in our work.")
-    message("To acknowledge our work, please feel free to cite the package as follows:")
-    message(packageCitation)
+    packageStartupMessage("Thank you for using safestats! We really appreciate your interest in our work.")
+    packageStartupMessage("To acknowledge our work, please feel free to cite the package as follows:")
+    packageStartupMessage(packageCitation)
   }
 
 # Try helper functions -----

@@ -32,6 +32,8 @@ designSaviLogrank(
 \item{hrMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 detect.}
 
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{nEvents}{numeric > 0, targetted number of events.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the

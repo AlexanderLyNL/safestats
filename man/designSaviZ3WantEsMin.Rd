@@ -22,6 +22,8 @@ designSaviZ3WantEsMin(
 )
 }
 \arguments{
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the savi test
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}

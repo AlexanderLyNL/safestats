@@ -25,8 +25,8 @@ designSaviT(
   wantSamplePaths = TRUE,
   wantSimData = TRUE,
   deltaTrue = NULL,
-  sigmaTrue = 1,
-  sigmaTrue2 = 1,
+  sigma = 1,
+  sigma2 = 1,
   lowEsTrue = 0.01,
   highEsTrue = 3,
   varEqual = TRUE,
@@ -46,6 +46,8 @@ designSaviT(
 \arguments{
 \item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
 we would the experiment to be able to detect.}
+
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
@@ -150,7 +152,7 @@ designObj <- designSaviT(deltaMin=0.8, alpha=0.03, alternative="greater")
 designObj
 
 # "Scenario 1.a": Minimal clinically relevant standarised mean difference and
-desired power also known. Goal: find nPlan.
+# desired power also known. Goal: find nPlan.
 designObj <- designSaviT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
 designObj
 

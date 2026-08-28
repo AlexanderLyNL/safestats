@@ -23,6 +23,7 @@ sampleLogrankStoppingTimes(
   parameter = NULL,
   nMax = Inf,
   pb = TRUE,
+  hrMin = NULL,
   ...
 )
 }
@@ -54,6 +55,8 @@ step.}
 
 \item{seed}{integer, seed number.}
 
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
@@ -63,6 +66,9 @@ algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 crossing crossing already. Default set to Inf.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{hrMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
+detect.}
 
 \item{...}{further arguments to be passed to or from methods.}
 }

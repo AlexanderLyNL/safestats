@@ -165,8 +165,10 @@ saviZTestStat <- function(
 #' @export
 #'
 #' @examples
-#' saviRelevanceZStat(z=3, n1=100, parameter=0.4) # evidence for the alternative over minimal efficacy
-#' saviRelevanceZStat(z=0.35, n1=100, parameter=0.4) # evidence for minimal efficacy over the alternative
+#' # evidence for the alternative over minimal efficacy
+#' saviRelevanceZStat(z=3, n1=100, parameter=0.4)
+#' # evidence for minimal efficacy over the alternative
+#' saviRelevanceZStat(z=0.35, n1=100, parameter=0.4)
 saviRelevanceZStat <- function(
     z, n1, n2=NULL, parameter=NULL,
     alternative=c("twoSided", "less", "greater"),
@@ -233,6 +235,8 @@ saviRelevanceZStat <- function(
 #' getOption("na.action").
 #' @param sequential a logical indicating whether a sequential
 #' analysis should be performed.
+#' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For
+#' the moment, this is always \code{TRUE}.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class 'saviTest'. An object of class 'saviTest' is a list containing at least the
@@ -371,6 +375,9 @@ saviZTest.default <- function(
     "x"=x, "y"=y, "sequential"=sequential,
     "varEqual"=varEqual, "paired"=paired,
     "testType"=testType)
+
+  nEff <- meanObs <- n1 <- n2 <- nEffVec <- meanObsVec <- estimate <-
+    n <- sdObsVec <- nuVec <- NULL
 
   list2env(sumStats, envir=environment())
 
@@ -793,8 +800,8 @@ computeConfidenceIntervalZ <- function(
 
 #' Design a Frequentist Z-Test
 #'
-#' Computes the number of samples necessary to reach a tolerable type I and desired power
-#' for the frequentist Z-test.
+#' Computes the number of samples necessary to reach a tolerable type I
+#' and desired power for the frequentist Z-test.
 #'
 #' @inheritParams designSaviZ
 #' @param lowN integer that defines the smallest n of our search space for n.
@@ -887,12 +894,12 @@ designFreqZ <- function(
 #' phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
 #' phiS = meanDiffMin as the savi test defining parameter in accordance to the GROW criterion.
 #' If a targetted power is provided then nPlan can be sampled. The sampled nPlan is then
-#' the smallest nPlan for which meanDiffMin can be found with probability at least the desired power
-#' under optional stopping.
+#' the smallest nPlan for which meanDiffMin can be found with probability at least
+#' the desired power under optional stopping.
 #'
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
 #' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
-#' @param power numeric in (0, 1) that specifies the desired power, that is, the desired chance to stop for
+#' @param power numeric in (0, 1) that specifies the desired power, that is, the targetted chance to stop for
 #' the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
 #' power <- 1-beta. This overrides the "beta" argument
 #' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
@@ -930,6 +937,7 @@ designFreqZ <- function(
 #' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
 #' @param power numeric in (0, 1) specifies the desired power necessary to calculate both "n"
 #' and "phiS".
+#' @param beta numerical in (0,1). Old parameter now replaced by the power parameter
 #' @param lowEsTrue numeric, lower bound for the candidate set of the
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
@@ -950,6 +958,9 @@ designFreqZ <- function(
 #' For instance, if meanDiffMin, beta, are given, then nPlan
 #' (scenario 1a) is derived by sampling. Set this to FALSE, whenever we
 #' want to run a minimal efficacy test without needing to know nPlan
+#' @param wantSimData logical, if \code{TRUE} then also output the simulated data
+#' @param alphaRelevance numeric, the threshold for relevance test.
+#' @param betaDefault numeric, defaulting value for 1-power and alphaRelevance
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns a saviDesign object that includes:
@@ -1652,7 +1663,7 @@ computeBetaBatchSaviZ <- function(
 
   parameter <- matchEParameterWith(
     "parameter"=parameter, "analysisType"="z",
-    "esMin"=meanDiffMin, "sigma"=sigma,
+    "esMin"=meanDiffTrue, "sigma"=sigma,
     "alternative"=alternative, "eType"=eType
   )
 
@@ -1954,7 +1965,7 @@ sampleStoppingTimesSaviZ <- function(
   nEffVector <- tempN[["nEff"]]
 
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=meanDiffTrue/kappa,
-                                "sigmaTrue"=kappa, "paired"=FALSE, "seed"=seed)
+                                "sigma"=kappa, "paired"=FALSE, "seed"=seed)
 
   for (sim in seq_along(result[["stoppingTimes"]])) {
     if (testType %in% c("oneSample", "paired")) {

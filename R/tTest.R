@@ -67,6 +67,7 @@ saviTTestStat <- function(
 #'
 #' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
 #' @param nu numeric > 0, the degrees of freedom.
+#' @param nuMin numeric > 0, the minimum degrees of freedom under which the results are trivial
 #'
 #' @references
 #'   `r addCite(grunwald2024safe)`
@@ -730,6 +731,11 @@ saviTTest.default <- function(
     "varEqual"=varEqual, "paired"=paired,
     "testType"=testType)
 
+  # Dummies that get filled by list2env
+  nu <- sdObs <- nEff <- meanObs <- nEffVec <- meanObsVec <-
+    sdObsVec <- nuVec <- estimate <- n <- nEff <- meanObs <- n1 <-
+    n2 <- nEffVec <- meanObsVec <- estimate <- n <- sdObsVec <- nuVec <- NULL
+
   list2env(sumStats, envir=environment())
 
   alpha <- designObj[["alpha"]]
@@ -746,9 +752,6 @@ saviTTest.default <- function(
     tStat <- 0
   } else {
     tStat <- try(sqrt(nEff)*(meanObs - h0)/sdObs)
-
-    if (isTryError(tStat))
-      browser()
   }
 
   # tStat <- if (nu <= nuMin) 0 else tryOrFailWithNA(sqrt(nEff)*(meanObs - h0)/sdObs)
@@ -780,9 +783,9 @@ saviTTest.default <- function(
   if (designObj[["relevanceTest"]]) {
     relevanceRes <- suppressWarnings(
       saviRelevanceTStatNEffNu("t"=tStat, "nEff"=nEff, "nu"=nu,
-        "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
-        "alternative"=designObj[["alternative"]], "paired"=paired,
-        "nuMin"=nuMin)
+                               "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
+                               "alternative"=designObj[["alternative"]], "paired"=paired,
+                               "nuMin"=nuMin)
     )
     eRelevance <- unname(relevanceRes[["eValue"]])
   }
@@ -824,10 +827,10 @@ saviTTest.default <- function(
       if (designObj[["relevanceTest"]]) {
         relevanceRes <- suppressWarnings(
           saviRelevanceTStatNEffNu("t"=tStatVec[i],
-            "nEff"=nEffVec[i], "nu"=nuVec[i],
-            "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
-            "alternative"=designObj[["alternative"]], "paired"=paired,
-            "nuMin"=nuMin)
+                                   "nEff"=nEffVec[i], "nu"=nuVec[i],
+                                   "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
+                                   "alternative"=designObj[["alternative"]], "paired"=paired,
+                                   "nuMin"=nuMin)
         )
         eRelevanceVec[i] <- unname(relevanceRes[["eValue"]])
       }
@@ -998,8 +1001,10 @@ savi.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
 #' @export
 #'
 #' @examples
-#' saviRelevanceTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4) # evidence for the alternative over minimal efficacy
-#' saviRelevanceTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4) # evidence for minimal efficacy over the alternative
+#' # evidence for the alternative over minimal efficacy
+#' saviRelevanceTStatNEffNu(t=3, nEff=100, nu=60, parameter=0.4)
+#' # evidence for minimal efficacy over the alternative
+#' saviRelevanceTStatNEffNu(t=0.35, nEff=100, nu=60, parameter=0.4)
 saviRelevanceTStatNEffNu <- function(
     t, nEff, nu, parameter=NULL,
     alternative = c("twoSided", "less", "greater"), eType="grow",
@@ -1252,6 +1257,7 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
 #' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
 #' @param power numeric in (0, 1) that specifies the desired power necessary to calculate both
 #' the sample sizes and deltaS, which defines the test.
+#' @param beta numerical in (0,1). Old parameter now replaced by the power parameter
 #' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
 #' "greater" or "less".
 #' @param nPlan vector of max length 2 representing the planned sample sizes.
@@ -1283,8 +1289,26 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
 #' a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 #' two point masses at the minimal clinically relevant standardised effect size.
 #' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
+#' @param sigma numeric > 0 representing the population standard deviation used for the test.
+#' @param sigma2 numeric > 0 representing the population standard deviation used for the test,
+#' for the second group in a two-sample t-test
 #' @param seed integer, seed number.
 #' @param pb logical, if \code{TRUE}, then show progress bar.
+#' @param wantSimData logical, if \code{TRUE} then also output the simulated data
+#' @param deltaTrue numeric, to true delta to sample data from. Default deltaTrue=deltaMin
+#' @param varEqual logical, default \code{TRUE} for standard two-sample t-test
+#' @param relevanceTest logical, if \code{TRUE} then impose rule to stop
+#' for minimal efficiency if e < beta. Default \code{FALSE}.
+#' @param relevanceSize numeric, the minimal clinical relevant mean
+#' difference that we do not want to miss under the alternative.
+#' Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)
+#' @param alphaRelevance numeric, the threshold for relevance test.
+#' @param betaDefault numeric, defaulting value for 1-power and alphaRelevance
+#' @param highN integer, largest possible sampling horizon. This might be the
+#' largest n that we are able to fund, which by default is set to 1e4L.
+#' Typically, highN is not used, as the function
+#' @param wantSampling logical, default \code{TRUE} so the procedure samples
+#' to derive nPlan and power
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
 #'
 #' @return Returns an object of class 'saviDesign'. An object of class 'saviDesign' is a list containing at least the
@@ -1318,7 +1342,7 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
 #' designObj
 #'
 #' # "Scenario 1.a": Minimal clinically relevant standarised mean difference and
-#' desired power also known. Goal: find nPlan.
+#' # desired power also known. Goal: find nPlan.
 #' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
 #' designObj
 #'
@@ -1334,7 +1358,7 @@ designSaviT <- function(
     ratio=1, parameter=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    deltaTrue=NULL, sigmaTrue=1, sigmaTrue2=1,
+    deltaTrue=NULL, sigma=1, sigma2=sigma,
     lowEsTrue=0.01, highEsTrue=3, varEqual=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     relevanceTest=FALSE, relevanceSize=NULL,
@@ -1420,7 +1444,7 @@ designSaviT <- function(
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
       "wantSimData"=wantSimData, "pb"=pb, "seed"=seed, "nSim"=nSim,
       "nBoot"=nBoot, "relevanceTest"=relevanceTest,
-      "sigmaTrue"=sigmaTrue, "sigmaTrue2"=sigmaTrue2,
+      "sigma"=sigma, "sigma2"=sigma2,
       "relevanceSize"=relevanceSize, "alphaRelevance"=alphaRelevance, ...)
 
   } else if (!is.null(deltaMin) && !is.null(power) && is.null(nPlan) && isFALSE(wantSampling) ||
@@ -1456,7 +1480,7 @@ designSaviT <- function(
       #   TODO(Alexander): Check if necessary
       #
       #
-      "sigmaTrue"=sigmaTrue, "sigmaTrue2"=sigmaTrue2,
+      "sigma"=sigma, "sigma2"=sigma2,
       "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
       "alphaRelevance"=alphaRelevance, ...)
   } else if (is.null(deltaMin) && !is.null(power) && !is.null(nPlan)) {
@@ -1580,7 +1604,7 @@ designSaviT <- function(
 #' @export
 #'
 #' @examples
-#' designSaviT1aWantNPlan(deltaMin=0.9, beta=0.7, nSim=10)
+#' designSaviT1aWantNPlan(deltaMin=0.9, power=0.7, nSim=10)
 designSaviT1aWantNPlan <- function(
     deltaMin, power, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
@@ -1590,7 +1614,7 @@ designSaviT1aWantNPlan <- function(
     wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     relevanceTest=FALSE, relevanceSize=NULL,
-    sigmaTrue=1, sigmaTrue2=1,
+    sigma=1, sigma2=1,
     alphaRelevance=NULL, ...) {
 
   alternative <- match.arg(alternative)
@@ -1608,9 +1632,9 @@ designSaviT1aWantNPlan <- function(
     "wantSamplePaths"=wantSamplePaths,
     "deltaMin"=deltaMin, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-    "sigmaTrue"=sigmaTrue, "sigmaTrue2"=sigmaTrue2,
+    "sigma"=sigma, "sigma2"=sigma2,
     "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
-    "highN"=highN, "alphaRelevance"=alphaRelevance)
+    "highN"=NULL, "alphaRelevance"=alphaRelevance)
 
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
@@ -1794,9 +1818,10 @@ designSaviT3bWantParameter <- function(
 
   someTargetFunction <- Vectorize(someTargetFunction)
 
-  tempResult <- uniroot(someTargetFunction,
-                        c(minG, max(exp(-log(alpha))*minG, 1e6)),
-                        tol=min(.Machine$double.eps^0.25, 1/nEff))
+  tempResult <- stats::uniroot(
+    someTargetFunction,
+    c(minG, max(exp(-log(alpha))*minG, 1e6)),
+    tol=min(.Machine$double.eps^0.25, 1/nEff))
 
   gCandidate <- tempResult[["root"]]
   deltaMinCandidate <- sqrt(gCandidate)
@@ -1866,7 +1891,7 @@ computeNPlanBatchSaviT <- function(
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
-    sigmaTrue=1, sigmaTrue2=1,
+    sigma=1, sigma2=1,
     parameter=NULL, beta=NULL, ratio=1, deltaMin=NULL, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2126,7 +2151,7 @@ sampleStoppingTimesSaviT <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantEValuesAtNMax=FALSE, nuMin=2, power=NULL,
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    sigmaTrue=1, sigmaTrue2=1,
+    sigma=1, sigma2=1,
     pb=TRUE, seed=NULL, nSim=1e3L, relevanceTest=FALSE,
     relevanceSize=NULL, beta=NULL, alphaRelevance=NULL, ...) {
 
@@ -2217,7 +2242,7 @@ sampleStoppingTimesSaviT <- function(
   #
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim,
                                 "deltaTrue"=deltaTrue,
-                                "sigmaTrue"=sigmaTrue, "sigmaTrue2"=sigmaTrue,
+                                "sigma"=sigma, "sigma2"=sigma,
                                 "paired"=FALSE, "seed"=seed)
 
   for (sim in seq_along(result[["stoppingTimes"]])) {
@@ -2287,7 +2312,8 @@ sampleStoppingTimesSaviT <- function(
           "t"=tValues[j], "nEff"=nEffVector[j], "nu"=nuVector[j],
           "parameter"=relevanceParameter,
           "alternative"=alternative,
-          "tDensity"=FALSE, "paired"=paired,
+          "tDensity"=FALSE,
+          "paired"=ifelse(testType=="paired", TRUE, FALSE),
           "nuMin"=nuMin)
 
         relevanceEValue <- relevanceRes[["eValue"]]
@@ -2412,7 +2438,7 @@ computePowerSaviT <- function(
   }
 
   samplingResult <- sampleStoppingTimesSaviT(
-    "deltaTrue"=deltaTrue, "alpha"=alpha, "power"=power,
+    "deltaTrue"=deltaTrue, "alpha"=alpha, "power"=NULL,
     "alternative" = alternative, "testType"=testType,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
     "eType"=eType, "nuMin"=nuMin, "wantSimData"=wantSimData,
@@ -2455,7 +2481,7 @@ computeNPlanSaviT <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantSamplePaths=TRUE, wantSimData=TRUE, nuMin=2,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    sigmaTrue=1, sigmaTrue2=1,
+    sigma=1, sigma2=1,
     relevanceTest=FALSE, relevanceSize=NULL,
     alphaRelevance=NULL, ...) {
 
@@ -2490,7 +2516,7 @@ computeNPlanSaviT <- function(
     "alternative"=alternative, "testType"=testType,
     "parameter"=parameter, "ratio"=ratio, "eType"=eType,
     "deltaMin"=deltaMin, #"highN"=highN,
-    "sigmaTrue"=sigmaTrue, "sigmaTrue2"=sigmaTrue2,
+    "sigma"=sigma, "sigma2"=sigma2,
     "wantSimData"=wantSimData, ...)
 
   nPlanBatch <- tempObj[["nPlan"]]
@@ -2505,7 +2531,7 @@ computeNPlanSaviT <- function(
     "eType"=eType, "deltaMin"=deltaMin, "nuMin"=nuMin,
     "wantSamplePaths"=wantSamplePaths, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "beta"=NULL,
-    "sigmaTrue"=sigmaTrue, "sigmaTrue2"=sigmaTrue2,
+    "sigma"=sigma, "sigma2"=sigma2,
     "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
     "alphaRelevance"=alphaRelevance, ...)
 
@@ -2598,7 +2624,7 @@ computeZTSumStats <- function(x, y=NULL, sequential=NULL,
     sequential <- if (n1 <= 200) TRUE else FALSE
 
   if (sequential) {
-    tempN <- safestats:::defineTTestN("lowN"=1, "highN"=n1, "ratio"=n2/n1, "testType"=testType)
+    tempN <- defineTTestN("lowN"=1, "highN"=n1, "ratio"=n2/n1, "testType"=testType)
   } else {
     tempN <- list("meanObsVec"=NULL, "sdObsVec"=NULL, "nEffVec"=NULL,
                   "n1Vec"=NULL, "n2Vec"=NULL, "nuVec"=NULL)
@@ -2802,7 +2828,7 @@ compute1F1AllVersions <- function(U, L, z, tol=0, maxiter=2000) {
 #' @param meanDiffTrue numeric representing the true mean for simulations with a Z-test.
 #' Default \code{NULL}
 #' @param muGlobal numeric, population grand mean
-#' @param sigmaTrue numeric > 0, population standard deviation
+#' @param sigma numeric > 0, population standard deviation
 #' @param meanDiffTrue numeric, data governing parameter value
 #' @param deltaTrue numeric, the value of the true standardised effect size (test-relevant parameter).
 #' This argument is used by `designSaviT()` with `deltaTrue <- deltaMin`
@@ -2818,8 +2844,8 @@ compute1F1AllVersions <- function(U, L, z, tol=0, maxiter=2000) {
 #' @examples
 #' generateNormalData(20, 15, deltaTrue=0.3)
 generateNormalData <- function(nPlan, nSim=1000L,
-                               deltaTrue=NULL, muGlobal=0, sigmaTrue=1,
-                               sigmaTrue2=1, paired=FALSE,
+                               deltaTrue=NULL, muGlobal=0, sigma=1,
+                               sigma2=1, paired=FALSE,
                                seed=NULL, meanDiffTrue=NULL) {
   stopifnot(all(nPlan > 0))
 
@@ -2836,24 +2862,24 @@ generateNormalData <- function(nPlan, nSim=1000L,
   # TODO(Alexander): Figure out here
   #
   if (is.null(meanDiffTrue))
-    meanDiffTrue <- deltaTrue*sigmaTrue
+    meanDiffTrue <- deltaTrue*sigma
 
   if (length(nPlan)==1) {
-    dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=meanDiffTrue, "sd"=sigmaTrue)
+    dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=meanDiffTrue, "sd"=sigma)
     dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nSim)
     dataGroup2 <- NULL
   } else {
     n2Plan <- nPlan[2]
 
     if (paired) {
-      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + meanDiffTrue/sqrt(2), "sd"=sigmaTrue)
+      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + meanDiffTrue/sqrt(2), "sd"=sigma)
       dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nSim)
-      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - meanDiffTrue/sqrt(2), "sd"=sigmaTrue)
+      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - meanDiffTrue/sqrt(2), "sd"=sigma)
       dataGroup2 <- matrix(dataGroup2, "ncol"=n2Plan, "nrow"=nSim)
     } else {
-      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + meanDiffTrue/2, "sd"=sigmaTrue)
+      dataGroup1 <- stats::rnorm("n"=n1Plan*nSim, "mean"=muGlobal + meanDiffTrue/2, "sd"=sigma)
       dataGroup1 <- matrix(dataGroup1, "ncol"=n1Plan, "nrow"=nSim)
-      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - meanDiffTrue/2, "sd"=sigmaTrue)
+      dataGroup2 <- stats::rnorm("n"=n2Plan*nSim, "mean"=muGlobal - meanDiffTrue/2, "sd"=sigma)
       dataGroup2 <- matrix(dataGroup2, "ncol"=n2Plan, "nrow"=nSim)
     }
   }
@@ -3076,7 +3102,8 @@ computeConjugateCredibleIntervalTwoSampleT <- function(
     (g1+g2+g1*g2*nP)/((1+g1*n1)*(1+g2*n2))*
     (2*bGamma+(n1-1)*sdObs1^2+(n2-1)*sdObs2^2)/(nP+2*aGamma))
 
-  rightQuantile <- abs(qt((1-ciValue)/2, df=nP+2*aGamma, ncp=0, lower.tail=TRUE))
+  rightQuantile <- abs(
+    stats::qt((1-ciValue)/2, df=nP+2*aGamma, ncp=0, lower.tail=TRUE))
 
   lowerCS <- u-w*rightQuantile
   upperCS <- u+w*rightQuantile
@@ -3087,6 +3114,7 @@ computeConjugateCredibleIntervalTwoSampleT <- function(
 
 #' Internal function to solve the smallest width of an eGauss t-test
 #'
+#' @inheritParams designSaviT
 #' @inheritParams saviTTestStat
 #' @param g prior variance of the eGauss t-test
 #'

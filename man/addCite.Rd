@@ -7,6 +7,10 @@
 addCite(..., breakLine = TRUE)
 }
 \arguments{
+\item{...}{further arguments to be passed to or from methods.}
+
+\item{breakLine}{logical, default TRUE to break up the references}
+
 \item{key}{character string. firstAuthorYearFirstWord}
 }
 \value{

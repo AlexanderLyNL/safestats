@@ -21,8 +21,8 @@ sampleStoppingTimesSaviT(
   power = NULL,
   wantSamplePaths = TRUE,
   wantSimData = TRUE,
-  sigmaTrue = 1,
-  sigmaTrue2 = 1,
+  sigma = 1,
+  sigma2 = 1,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
@@ -87,7 +87,9 @@ we would the experiment to be able to detect.}
 \item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
 the sample sizes and deltaS, which defines the test.}
 
-\item{sigmaTrue}{numeric > 0, population standard deviation}
+\item{sigma}{numeric > 0, population standard deviation}
+
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping

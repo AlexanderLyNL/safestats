@@ -1255,7 +1255,7 @@ sampleLogrankStoppingTimes <- function(
     relevanceTest=NULL, relevanceSize=NULL,
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=TRUE,
-    parameter=NULL, nMax=Inf, pb=TRUE, ...) {
+    parameter=NULL, nMax=Inf, pb=TRUE, hrMin=NULL, ...) {
 
   stopifnot(is.null(parameter) || parameter > 0, alpha > 0, alpha <= 1)
 
@@ -1292,7 +1292,7 @@ sampleLogrankStoppingTimes <- function(
   if (relevanceTest) {
     relevanceParameter <- matchRelevanceParameterWith(
       "relevanceSize"=relevanceSize,
-      "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
+      "esMin"=hrMin, "esTrue"=hrTrue)
 
     relevanceTestSim <-
       list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),

@@ -68,22 +68,22 @@ eColoursAlt <- c("#B15928E6", "#FFFF9980")
 ```
 
 # 1. <a name = "designT">Designing savi t-test experiments</a>
-## Type I error and type II errors 
+## Type I error and power
 To avoid bringing an ineffective medicine to the market, experiments need to be conducted in which the null hypothesis of no effect is tested. Here we show how flexible experiments based on savi tests can be designed. 
 
 As the problem is statistical in nature, due to variability between patients, we cannot guarantee that all of the medicine that pass the test will indeed be effective. <!--This can only be accomplished by tests that never reject the null. -->
 Instead, the target is to bound the type I error rate by a tolerable $\alpha$, typically, $\alpha = 0.05$. In other words, at most 5 out of the 100 ineffective drugs are allowed to pass the test. 
 
-At the same time, we would like to avoid a type II error, that is, missing out on finding an effect, when there truly is one. Typically, the tolerable type II error rate is $\beta = 0.20$, which implies that whenever there truly is an effect, an experiment needs to be designed in such a way that the effect is detected with $1 - \beta =$ 80% chance. <!-- In other words, whenever there is an effect, then 80 out of a 100 experiment should reject the null hypothesis of no effect. -->
+At the same time, we would like to detect an effect with high chance, say, 80% power, if it is present.  <!-- In other words, whenever there is an effect, then 80 out of a 100 experiment should reject the null hypothesis of no effect. -->
 
 ## Case (I): Designing experiments where the minimal clinically relevant effect size and the targeted power are known. Target: The sample size to plan for
 Not all effect sizes are equally important, especially, when a minimal clinically relevant effect size can be formulated. For instance, suppose that a population of interest has a population average systolic blood pressure of $\mu = 120$ mmHg (milimetre of mercury) and that the population standard deviation is $\sigma = 15$. Suppose further that all approved blood pressure drugs change the blood pressure by at least 9 mmHg, then a minimal clinically relevant mean difference is $\psi_{\min}=\mu_{\text{pre}} - \mu_{\text{post}} = 12$, and the minimal clinically relevant standard effect size is $\delta_{\min} = (\mu_{\text{pre}} - \mu_{\text{post}}) / (\sqrt{2} \sigma) = 12 / (15 \sqrt{2} ) = 0.57$, where $\mu_{\text{pre}}$ represents the average blood pressure before treatment and $\mu_{\text{post}}$ the average blood pressure after treatment of the population of interest. <!--The $\sqrt{2}$-term in the denominator is a result of the measurements being paired. -->
 
-With an acceptable type I error rate set at $\alpha=0.05$, a permissible type II error rate of $\beta=0.2$, and a minimal clinically relevant effect size of $\delta_{\min}=0.57$, our objective is to design an experiment with a planned sample size that is able to detect $\delta_{\min}=0.57$. As we will see below, this planned sample size (nPlan) is non-strict, which makes the experiment flexible. To obtain the planned sample size we run the following code: 
+With an acceptable type I error rate set at $\alpha=0.05$, a desired power of 80%, and a minimal clinically relevant effect size of $\delta_{\min}=0.57$, our objective is to design an experiment with a planned sample size that is able to detect $\delta_{\min}=0.57$. As we will see below, this planned sample size (nPlan) is non-strict, which makes the experiment flexible. To obtain the planned sample size we run the following code: 
 
 ```{r}
 alpha <- 0.05
-beta <- 0.2
+power <- 0.8
 deltaMin <- 12/(sqrt(2)*15)
 sigma <- 15
 ```
@@ -92,7 +92,7 @@ load("safeVignetteData/saviTDesignObj.RData")
 ```
 ```{r, eval=FALSE}
 designObj <- designSaviT(deltaMin=deltaMin, alpha=alpha,
-                         beta=beta, sigma=sigma,
+                         power=power, sigma=sigma,
                          alternative="greater", 
                          testType="paired", seed=1, pb=FALSE)
 ```
@@ -101,7 +101,7 @@ designObj
 ```
 The design object defines both the parameter gMom that will be used to compute the e-value, e.g. `r designObj$parameter`, and the planned sample size(s) under optional stopping, e.g. `r designObj$nPlan`. Hence, in this case we need the pre- and post-measurements of about `r designObj$nPlan[1]` patients to detect a true standarised effect size of $\delta_{\min} = 0.57$. This nPlan of `r designObj$nPlan[1]` is based on continuously monitoring the e-value and stopping the experiment as soon as it exceeds $1/\alpha = 20$. The first time/sample size that the E-variable hits the threshold $1/\alpha = 20$ is data dependent, thus, random. This randomness is expressed with nPlan being reported with two (bootstrap) standard error of the mean. When it is only possible to conduct the test once, when the data are treated as a single batch, then `r designObj$nPlanBatch[1]` patients (thus `r designObj$nPlanBatch[1]-designObj$nPlan[1]` more) are needed to detect $\delta_{\min} = 0.57 $ with 80% chance. <!-- in a population with $\sigma=15$. --><!--The batch planned sample size, e.g. `designObj$nPlanBatch[1]`, is non-random and serves as an upper bound for the nPlan reported above, see the [section on optional stopping](#optStopT) for further details.-->
 
-## Case (II): Minimal clinically relevant effect size and a budget constrained number of samples known. Target: Power/Type II error
+## Case (II): Minimal clinically relevant effect size and a budget constrained number of samples known. Target: Power
 
 The following scenario involves a known minimal clinically relevant effect size, and a budget constraint such that we can at most invite, say, 30 participants for our study. The power of the test can then be explored with the following code:
 
@@ -117,21 +117,21 @@ load("safeVignetteData/saviTDesignObj2.RData")
 ```{r}
 designObj2
 ```
-This reveals that due to budget constraints the experiment only has about `r round((1-designObj2$beta)*100, 1)`% chance to detect the minimal clinical relevant effect size. If these chances are viewed as too slim, then we can either request more funds to invite more participants in the study, or prospectively decide that it is futile to conduct this experiment and spend our time and efforts on different endeavours instead. 
+This reveals that due to budget constraints the experiment only has about `r round((designObj2$power)*100, 1)`% chance to detect the minimal clinical relevant effect size. If these chances are viewed as too slim, then we can either request more funds to invite more participants in the study, or prospectively decide that it is futile to conduct this experiment and spend our time and efforts on different endeavours instead. 
 
 ## Case (III): A desirable power and a budget constrained number of samples known. Target: Detectable effect size. 
 
-It is not always clear what the minimal clinically relevant effect size is, and provided with a budget for say, nMax=50, participants and a tolerable type I and type II error, we might be interested in finding the smallest detectable effect size. To do so, we run the following code: 
+It is not always clear what the minimal clinically relevant effect size is, and provided with a budget for say, nMax=50, participants and a tolerable type I and desired power, we might be interested in finding the smallest detectable effect size. To do so, we run the following code: 
 
 <!-- Suppose that the tolerable type I and type II error rates are given, and that due to budget constraints we have a maximum sample size nMax of, say, 50. A prospective futility analysis can then be done by calling the design function with the provided quantities as follows: -->
 
 ```{r, eval = TRUE}
 # Recall:
 # alpha <- 0.05
-# beta <- 0.2
+# power <- 0.8
 designObj3 <- designSaviT(nPlan=c(50, 50), 
-                          alpha=alpha, beta=beta,
-                          sigma=sigma, alternative="greater", 
+                          alpha=alpha, power=power,
+                          sigma=sigma, alternative="greater",
                           testType="paired")
 designObj3
 ```
@@ -187,8 +187,8 @@ eValues <- replicate(n=nSim, expr={
 )
 ```
 ```{r}
-mean(eValues > 20)
-mean(eValues > 20) < alpha
+mean(eValues >= 20)
+mean(eValues >= 20) <= alpha
 ```
 
 Hence, in this simulation with the null hypothesis holding true and if the savi test is only conducted once at the planned sample size, then in `r sum(eValues > 20)` out of `r nSim` experiments the null hypothesis was falsely rejected. 
@@ -212,7 +212,7 @@ n1 <- designObj$nPlan[1]
 nullData <- generateNormalData(
   designObj$nPlan, muGlobal=muGlobal,
   nSim=nSim, deltaTrue=0, seed=1,
-  sigmaTrue=sigma)
+  sigma=sigma)
 
 # Used to vectorise the computations of the t-statistic
 n1Vector <- 1:n1
@@ -387,9 +387,6 @@ simDeltaTrueIsDeltaMin <-
 mean(
   simDeltaTrueIsDeltaMin$eValuesStopped >=
     20)
-
-# Or equivalently the type II error is 
-mean(simDeltaTrueIsDeltaMin$breakVector)
 ```
 The simulations confirm that there is an 80% chance of detecting the minimal clinically relevant effect if we run the test until the planned sample size. Typically, there is a discrepancy due to sampling error, which vanishes as the number of simulations increases. 
 
@@ -411,7 +408,7 @@ The histogram shows the full distribution of the times at which the experiment i
 ```{r}
 firstPassageTimeAltEqual <- stoppingTimes
 firstPassageTimeAltEqual[
-  which(simDeltaTrueIsDeltaMin$breakVector==1)] <- Inf
+  which(as.integer(simDeltaTrueIsDeltaMin$breakVector)==1)] <- Inf
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
 hist(firstPassageTimeAltEqual, 
@@ -457,9 +454,6 @@ simDeltaTrueLargerDeltaMin <-
 mean(
   simDeltaTrueLargerDeltaMin$eValuesStopped >=
     20)
-
-# Or equivalently the type II error is 
-mean(simDeltaTrueLargerDeltaMin$breakVector)
 ```
 With a larger true effect size, the power increased to `r (1-mean(simDeltaTrueLargerDeltaMin$breakVector))*100`%. More importantly, this increase is picked up earlier by the designed savi test, and optional stopping allows us to act on this. Note that the average stopping time is now decreased, from `r mean(simDeltaTrueIsDeltaMin$stoppingTimes)` to `r mean(simDeltaTrueLargerDeltaMin$stoppingTimes)`. This is apparent from the fact that the histogram of stopping times is now shifted to the left:
 
@@ -479,7 +473,7 @@ Hence, this means that if the true effect is larger than what was planned for, t
 firstPassageTimeAltLarger <- 
   simDeltaTrueLargerDeltaMin$stoppingTimes
 firstPassageTimeAltLarger[
-  which(simDeltaTrueLargerDeltaMin$breakVector==1)] <- Inf
+  which(as.integer(simDeltaTrueLargerDeltaMin$breakVector)==1)] <- Inf
 
 trackCrossingAltLarger <- integer(n1)
 
@@ -549,7 +543,7 @@ The following code continues only the non-significant `r round(mean(pValuesBatch
 nullData2 <- generateNormalData(
   designObj$nPlan, muGlobal=muGlobal,
   nSim=nSim, deltaTrue=0, seed=2,
-  sigmaTrue=sigma)
+  sigma=sigma)
 
 tAtN2 <- numeric(nSim)
 
@@ -602,7 +596,7 @@ In this section we provide more insight to what it means for e-variables to be a
 nullData3 <- generateNormalData(
   9*designObj$nPlan, muGlobal=muGlobal,
   nSim=nSim, deltaTrue=0, seed=3,
-  sigmaTrue=sigma)
+  sigma=sigma)
 
 # All the z statistics across the 
 # number of simulations (nSim) and time (10*n1)
@@ -722,7 +716,7 @@ The slow drift of the sampling distribution of e-values to smaller values is rep
 altData <- generateNormalData(
   10*designObj$nPlan, muGlobal=muGlobal,
   nSim=nSim, deltaTrue=0.5, seed=2,
-  sigmaTrue=sigma)
+  sigma=sigma)
 
 # All the z statistics across the 
 # number of simulations (nSim) and time (10*n1)
@@ -1082,7 +1076,7 @@ As with the t-test, we might know the minimal clinically relevant effect size up
 
 ```{r }
 # safeDesignProportions <- designSaviTwoProportions(deltaMin=0.3, alpha=0.05,
-#                                                   beta=0.20, lowN=100,
+#                                                   power=0.80, lowN=100,
 #                                                   numberForSeed = 5227)
 ```
 For detecting this difference with a power of at least 80%, while testing at significance level 0.05, we would need:
@@ -1114,7 +1108,7 @@ We might not have enough resources to fund our study to detect the minimal diffe
 
 ```{r }
 # plotResult <- plotSaviTwoProportionsSampleSizeProfile(alpha=0.05,
-#                                                       beta=0.20,
+#                                                       power=0.80,
 #                                                       highN=200, 
 #                                                       maxN=100,
 #                                                       numberForSeed=5222)
@@ -1324,7 +1318,7 @@ When a balanced design is not possible, a safe test of two proportions for unequ
 
 ```{r }
 # safeDesignProportionsImbalanced <- 
-#   designSaviTwoProportions(deltaMin=0.3, alpha=0.05, beta=0.20, lowN=120,
+#   designSaviTwoProportions(deltaMin=0.3, alpha=0.05, power=0.80, lowN=120,
 #                            sampleSizeRatio=2)
 # safeDesignProportionsImbalanced
 ```

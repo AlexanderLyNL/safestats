@@ -80,6 +80,8 @@ for the savi z test under continuous monitoring.}
 \item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
 for minimal efficiency if e < beta. Default \code{FALSE}.}
 
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{...}{further arguments to be passed to or from methods.}
 
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean

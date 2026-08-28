@@ -12,8 +12,8 @@ computeNPlanBatchSaviT(
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
-  sigmaTrue = 1,
-  sigmaTrue2 = 1,
+  sigma = 1,
+  sigma2 = 1,
   parameter = NULL,
   beta = NULL,
   ratio = 1,
@@ -40,7 +40,7 @@ the sample sizes and deltaS, which defines the test.}
 a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 two point masses at the minimal clinically relevant standardised effect size.}
 
-\item{sigmaTrue}{numeric > 0, population standard deviation}
+\item{sigma}{numeric > 0, population standard deviation}
 
 \item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
 For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
@@ -51,6 +51,8 @@ non-central t-distributions with in the denominator the likelihood with non-cent
 parameter set to 0, and in the numerator an average likelihood defined by the likelihood
 at the non-centrality parameter value deltaS. For the two sided
 case 1/2 at -deltaS and 1/2 deltaS.}
+
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}

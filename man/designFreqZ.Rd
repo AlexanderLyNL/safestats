@@ -54,8 +54,8 @@ largest n that we are able to fund.}
 returns a 'freqZDesign' object.
 }
 \description{
-Computes the number of samples necessary to reach a tolerable type I and desired power
-for the frequentist Z-test.
+Computes the number of samples necessary to reach a tolerable type I
+and desired power for the frequentist Z-test.
 }
 \examples{
 freqDesign <- designFreqZ(meanDiffMin = 0.5, highN = 100)

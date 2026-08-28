@@ -131,6 +131,8 @@ safeTTestStat <- function(
 }
 
 #' @describeIn saviTTest Deprecated version of saviTTestStatNEffNu
+#' #nu >0 degrees of freedom
+#'
 #' @usage NULL
 #' @export
 safeTTestStatNEffNu <- function(
@@ -297,9 +299,9 @@ designSafeT2WantBeta <- function(
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   warning('The function designSafeT2WantBeta is deprecated;',
-          'Please use designSaviT2WantBeta instead')
+          'Please use designSaviT2WantPower instead')
 
-  designSaviT2WantBeta(
+  designSaviT2WantPower(
     deltaMin=deltaMin, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     testType=testType, ratio=ratio, parameter=parameter,
@@ -380,7 +382,7 @@ computeMinEsBatchSafeT <- function(
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    lowEsTrue=0.01, highEsTrue=3, ...) {
+    lowEsTrue=0.01, highEsTrue=3, ratio=1, ...) {
 
   warning('The function computeMinEsBatchSafeT is deprecated;',
           'Please use computeMinEsBatchSaviT instead')
@@ -575,7 +577,7 @@ designSafeZ <- function(
     wantSamplePaths=wantSamplePaths,
     lowEsTrue=lowEsTrue, highEsTrue=highEsTrue,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    relevanceTest=futility, growFutility=growFutility, ...)
+    relevanceTest=NULL, growFutility=growFutility, ...)
 }
 
 #' @describeIn designSaviZ1aWantNPlan Deprecated version of designSaviZ1aWantNPlan

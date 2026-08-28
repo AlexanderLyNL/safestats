@@ -48,16 +48,16 @@ X_{i} \overset{\text{iid}}{\sim} \mathcal{N}(\mu, \sigma^{2}).
 
 For all three examples we use the `computeConfidenceIntervalZ` function from the safestats package, which produces (1) classical confidence intervals if `eType="freq"`, (2) credible intervals if `eType="credibleInterval"`, and (3) an anytime-valid confidence sequence if `eType="mom"`. 
 
-To assess the quality of these intervals across time, we fix a true data generating mean, say, muTrue=8, and we set sigmaTrue=1. For simplicity we take n=100 and the following code generates a single data set that we use to highlight the difference between (1) the standard confidence intervals, (2) the Bayesian intervals, and (3) the anytime-valid confidence sequence. 
+To assess the quality of these intervals across time, we fix a true data generating mean, say, muTrue=8, and we set sigma=1. For simplicity we take n=100 and the following code generates a single data set that we use to highlight the difference between (1) the standard confidence intervals, (2) the Bayesian intervals, and (3) the anytime-valid confidence sequence. 
 
 ```{r, eval=FALSE}
 n <- 100
 muTrue <- 8
-sigmaTrue <- 1
+sigma <- 1
   
 set.seed(4)
 someDataSingle <- rnorm(n, mean=muTrue,
-                        sd=sigmaTrue)
+                        sd=sigma)
 ```
 
 
@@ -337,7 +337,7 @@ The anytime-valid confidence sequence **inverts** the e-variable based on a so-c
 ```{r, eval=FALSE}
 designObj <- designSaviZ(meanDiffMin=0.5,
                          testType="twoSample",
-                         sigma=sigmaTrue)
+                         sigma=sigma)
 designObj
 ```
 

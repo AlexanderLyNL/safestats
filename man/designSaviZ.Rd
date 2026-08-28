@@ -41,6 +41,8 @@ designSaviZ(
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
+
 \item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the savi test
 defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
 and beta should be set to NULL.}
@@ -147,8 +149,8 @@ A designed experiment requires (1) a sample size nPlan to plan for, and (2) the 
 phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
 phiS = meanDiffMin as the savi test defining parameter in accordance to the GROW criterion.
 If a targetted power is provided then nPlan can be sampled. The sampled nPlan is then
-the smallest nPlan for which meanDiffMin can be found with probability at least the desired power
-under optional stopping.
+the smallest nPlan for which meanDiffMin can be found with probability at least
+the desired power under optional stopping.
 }
 \section{Functions}{
 \itemize{

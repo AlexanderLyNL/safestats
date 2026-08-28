@@ -112,6 +112,7 @@ A savi T-test adapted from \code{\link[stats]{t.test}()} to perform one and two 
 \item \code{safeTTestStat()}: Deprecated version of saviTTestStat
 
 \item \code{safeTTestStatNEffNu()}: Deprecated version of saviTTestStatNEffNu
+#nu >0 degrees of freedom
 
 \item \code{safeTTestStatNEffNuMom()}: Deprecated version of saviTTestStatNEffNuMom
 

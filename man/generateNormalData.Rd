@@ -9,8 +9,8 @@ generateNormalData(
   nSim = 1000L,
   deltaTrue = NULL,
   muGlobal = 0,
-  sigmaTrue = 1,
-  sigmaTrue2 = 1,
+  sigma = 1,
+  sigma2 = 1,
   paired = FALSE,
   seed = NULL,
   meanDiffTrue = NULL
@@ -27,7 +27,7 @@ This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{muGlobal}{numeric, population grand mean}
 
-\item{sigmaTrue}{numeric > 0, population standard deviation}
+\item{sigma}{numeric > 0, population standard deviation}
 
 \item{paired}{a logical indicating whether you want a paired T-test.}
 
