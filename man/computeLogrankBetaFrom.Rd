@@ -22,6 +22,7 @@ computeLogrankBetaFrom(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  relevanceTest = FALSE,
   ...
 )
 }
@@ -76,6 +77,9 @@ savi logrank test under continuous monitoring}
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
 power or nEvents for the exact savi logrank test under continuous monitoring}
 
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
 \item{...}{further arguments to be passed to or from methods.}
 }
 \value{
@@ -89,7 +93,7 @@ ratio and the maximum number of nEvents.
 computeLogrankBetaFrom(hrMin=0.7, 300, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }
 \author{

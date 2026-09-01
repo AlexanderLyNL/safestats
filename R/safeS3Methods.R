@@ -474,6 +474,32 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' @param density the density of shading lines, in lines per inch.
 #' The default value of NULL means that no shading lines are drawn.
 #' Non-positive values of density also inhibit the drawing of shading lines.
+#' @param overColour colour of an e-value sequence that cross the
+#' upper boundary of 1/alpha
+#' @param overColourBorder colour for the border of a rectangle in the histogram
+#' corresponding to e-values that cross the upper boundary of 1/alpha
+#' @param continueColour colour for lines of e-values that did not (yet) cross
+#' a threshold
+#' @param continueColourBorder colour for the border of a rectangle in the histogram
+#' corresponding to e-values that did not (yet) cross a threshold
+#' @param underColour colour of an e-value sequence that cross the
+#' lower boundary of alphaRelevance
+#' @param underColourBorder colour for the border of a rectangle in the histogram
+#' corresponding to e-values that cross the lower boundary of alphaRelevance
+#' @param wantNotStoppedHist logical, if \code{TRUE} then show histogram
+#' of not stopped paths
+#' @param wantNotStoppedSamplePaths logical, if \code{TRUE} then show stopped
+#' sample paths of e-values
+#' @param wantLegend logical, if \code{TRUE} then show information of the
+#' percentage of stopped sample paths
+#' @param legendAdjRelevance vector of 3 numerics that allow for the adjustment of
+#' the percentages shown at the bottom of the plot, when relevance testing is on
+#' @param legendAdj vector of 2 numerics that allow for the adjustment of
+#' the percentages shown at the bottom of the plot
+#' @param legendCexFactor numeric, additional factor to control the text size of
+#' the additional information such as the percentages at the bottom of the plot
+#' @param wantTitle logical, if \code{TRUE} then add title
+#' @param yLabPAdj numeric to adjust the position of the y-axis label
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Nothing it only plots
@@ -499,7 +525,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                             wantNotStoppedHist=FALSE,
                             wantNotStoppedSamplePaths=TRUE,
                             wantLegend=TRUE,
-                            legendAdjFut=c(-0.1, 0.5, 1),
+                            legendAdjRelevance=c(-0.1, 0.5, 1),
                             legendAdj=c(0.2, 0.8),
                             legendCexFactor=0.85,
                             histFewestAtTop=FALSE,
@@ -902,17 +928,17 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
         graphics::mtext(paste0("Alternative: ",
                                round(nAlt/nAll*100, 1), "%"),
               col=border, side=1, line = 4, las = 1,
-              cex = cex*legendCexFactor, adj=legendAdjFut[1])
+              cex = cex*legendCexFactor, adj=legendAdjRelevance[1])
 
         graphics::mtext(paste0("Inferior effect: ",
                                round(nFut/nAll*100, 1), "%"),
               col=underColourBorder, side=1, line = 4, las = 1,
-              cex = cex*legendCexFactor, adj=legendAdjFut[2])
+              cex = cex*legendCexFactor, adj=legendAdjRelevance[2])
 
         graphics::mtext(paste0("No decision: ",
                                round(nNotStopped/nAll*100, 1), "%"),
               col=continueColourBorder, side=1, line = 4, las = 1,
-              cex = cex*legendCexFactor, adj=legendAdjFut[3])
+              cex = cex*legendCexFactor, adj=legendAdjRelevance[3])
       } else {
         graphics::mtext(paste0("Alternative: ",
                                round(nAlt/nAll*100, 1), "%"),
@@ -943,6 +969,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' Plots the saviTest object for sequential analyses
 #'
 #' @inheritParams plot.saviDesign
+#'
 #' @param fillPlot logical, if TRUE then plot the confidence
 #' sequence with a background colour
 #' @param switchNFill integer, if \code{is.null(fillPlot)}, then
@@ -958,7 +985,6 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' progression line to an existing plot. If TRUE and
 #' \code{wantConfSeqPlot==TRUE} then adds another anytime-valid confidence
 #' sequence.
-#' @param lineColour The colour to be used for the e-value progression.
 #' @param h0Colour Colour to indicate the null hypothesis.
 #' @param col The colour for filling the anytime-valid confidence interval.
 #' @param border The colour to draw the border.
@@ -972,10 +998,14 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' \code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.
 #' @param runInt logical, if \code{TRUE} (default), then shows the running
 #' intersection of the confidence sequence.
-#' @param wantFutility logical, if \code{FALSE}, then don't show the
-#' e-values for relevanceTest. Default \code{wantFutility==NULL}, if
+#' @param wantRelevance logical, if \code{FALSE}, then don't show the
+#' e-values for relevanceTest. Default \code{wantRelevance==NULL}, if
 #' \code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
 #' automatically.
+#' @param xaxt default NULL. If "n" then suppresses plotting of the x-axis.
+#' @param yaxt default NULL. If "n" then suppresses plotting of the y-axis.
+#'
+#'
 #' @return Returns nothing just plots
 #' @export
 #'
@@ -996,7 +1026,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           density=NULL, angle=45,
                           xaxt=NULL, yaxt=NULL,
                           fillOddEven=FALSE, runInt=TRUE,
-                          wantFutility=NULL,
+                          wantRelevance=NULL,
                           ...) {
   eValueVec <- x[["eValueVec"]]
   eRelevanceVec <- x[["eRelevanceVec"]]
@@ -1007,7 +1037,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   relevanceTest <- FALSE
 
-  if ((is.null(wantFutility) || isTRUE(wantFutility)) && designObj[["relevanceTest"]] && !is.null(eRelevanceVec)) {
+  if ((is.null(wantRelevance) || isTRUE(wantRelevance)) && designObj[["relevanceTest"]] && !is.null(eRelevanceVec)) {
     relevanceTest <- TRUE
     alphaRelevance <- designObj[["relevanceTestSim"]][["alpha"]]
   }

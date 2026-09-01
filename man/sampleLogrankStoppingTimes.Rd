@@ -15,7 +15,7 @@ sampleLogrankStoppingTimes(
   seed = NULL,
   power = NULL,
   beta = NULL,
-  relevanceTest = NULL,
+  relevanceTest = FALSE,
   relevanceSize = NULL,
   wantEValuesAtNMax = FALSE,
   wantSamplePaths = TRUE,
@@ -55,9 +55,24 @@ step.}
 
 \item{seed}{integer, seed number.}
 
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
+
 \item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{wantEValuesAtNMax}{logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.}
+
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
+
+\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
 
 \item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
@@ -81,10 +96,10 @@ that the corresponding stopping time is Inf.
 Simulate stopping times for the exact savi logrank test
 }
 \examples{
-sampleLogrankStoppingTimes(0.7, nSim=10)
+sampleLogrankStoppingTimes(0.7, nSim=10, nMax=30)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }
 \author{

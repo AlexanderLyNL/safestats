@@ -34,7 +34,7 @@
   wantNotStoppedHist = FALSE,
   wantNotStoppedSamplePaths = TRUE,
   wantLegend = TRUE,
-  legendAdjFut = c(-0.1, 0.5, 1),
+  legendAdjRelevance = c(-0.1, 0.5, 1),
   legendAdj = c(0.2, 0.8),
   legendCexFactor = 0.85,
   histFewestAtTop = FALSE,
@@ -87,6 +87,44 @@ The default is to use blue}
 
 \item{...}{further arguments to be passed to or from methods.}
 
+\item{overColour}{colour of an e-value sequence that cross the
+upper boundary of 1/alpha}
+
+\item{overColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that cross the upper boundary of 1/alpha}
+
+\item{underColour}{colour of an e-value sequence that cross the
+lower boundary of alphaRelevance}
+
+\item{underColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that cross the lower boundary of alphaRelevance}
+
+\item{continueColour}{colour for lines of e-values that did not (yet) cross
+a threshold}
+
+\item{continueColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that did not (yet) cross a threshold}
+
+\item{yLabPAdj}{numeric to adjust the position of the y-axis label}
+
+\item{wantNotStoppedHist}{logical, if \code{TRUE} then show histogram
+of not stopped paths}
+
+\item{wantNotStoppedSamplePaths}{logical, if \code{TRUE} then show stopped
+sample paths of e-values}
+
+\item{wantLegend}{logical, if \code{TRUE} then show information of the
+percentage of stopped sample paths}
+
+\item{legendAdjRelevance}{vector of 3 numerics that allow for the adjustment of
+the percentages shown at the bottom of the plot, when relevance testing is on}
+
+\item{legendAdj}{vector of 2 numerics that allow for the adjustment of
+the percentages shown at the bottom of the plot}
+
+\item{legendCexFactor}{numeric, additional factor to control the text size of
+the additional information such as the percentages at the bottom of the plot}
+
 \item{histFewestAtTop}{logical, if TRUE, then fewest counts
 (of against the null or against minimal efficacy) at the top
 of the histogram}
@@ -94,6 +132,8 @@ of the histogram}
 \item{density}{the density of shading lines, in lines per inch.
 The default value of NULL means that no shading lines are drawn.
 Non-positive values of density also inhibit the drawing of shading lines.}
+
+\item{wantTitle}{logical, if \code{TRUE} then add title}
 }
 \value{
 Nothing it only plots

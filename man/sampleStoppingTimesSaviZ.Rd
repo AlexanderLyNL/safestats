@@ -78,7 +78,7 @@ two point masses at the minimal clinically relevant effect size.}
 for the savi z test under continuous monitoring.}
 
 \item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
-for minimal efficiency if e < beta. Default \code{FALSE}.}
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 
 \item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
@@ -93,6 +93,8 @@ and "phiS".}
 \item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
 Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test.}
 }
 \value{
 a list with stoppingTimes and breakVector. Entries of breakVector are 0, 1. A 1 represents stopping
@@ -111,6 +113,6 @@ Simulate stopping times for the savi Z-test
 sampleStoppingTimesSaviZ(0.7, nSim=10, nMax=20)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

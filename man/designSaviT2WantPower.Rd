@@ -9,7 +9,7 @@ designSaviT2WantPower(
   nPlan,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
-  deltaMin = NULL,
+  deltaMin = deltaTrue,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
@@ -23,10 +23,13 @@ designSaviT2WantPower(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  nuMin = 2,
   ...
 )
 }
 \arguments{
+\item{deltaTrue}{numeric, to true delta to sample data from. Default deltaTrue=deltaMin}
+
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
@@ -59,6 +62,17 @@ two point masses at the minimal clinically relevant standardised effect size.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test.}
+
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{seed}{integer, seed number.}
@@ -70,6 +84,9 @@ for the savi t test under continuous monitoring.}
 approximation of the power, the number of samples for the savi t test under continuous monitoring,
 or for the computation of the logarithm of the implied target.}
 
+\item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
+are trivial, thus, 1.}
+
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
@@ -79,9 +96,9 @@ A list with the parameter and beta amongst other items
 Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 }
 \examples{
-designSaviT2WantPower(deltaMin=0.9, nPlan=7, nSim=10)
+designSaviT2WantPower(deltaTrue=0.9, nPlan=7, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

@@ -29,6 +29,9 @@ This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{sigma}{numeric > 0, population standard deviation}
 
+\item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
+for the second group in a two-sample t-test}
+
 \item{paired}{a logical indicating whether you want a paired T-test.}
 
 \item{seed}{integer, seed number.}

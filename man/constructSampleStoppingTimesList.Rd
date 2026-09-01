@@ -13,7 +13,7 @@ constructSampleStoppingTimesList(
 }
 \arguments{
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the safe z test under continuous monitoring.}
+for the savi z test under continuous monitoring.}
 
 \item{nMax}{integer > 0, maximum sample size of the (first) sample in each sample path.}
 

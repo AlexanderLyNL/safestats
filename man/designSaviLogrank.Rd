@@ -7,7 +7,7 @@
 \usage{
 designSaviLogrank(
   hrMin = NULL,
-  beta = NULL,
+  power = NULL,
   nEvents = NULL,
   alpha = 0.05,
   h0 = 1,
@@ -25,6 +25,11 @@ designSaviLogrank(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  beta = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  wantEValuesAtNMax = NULL,
+  wantSimData = FALSE,
   ...
 )
 }
@@ -87,6 +92,21 @@ savi logrank test under continuous monitoring}
 power or nEvents for the exact savi logrank test under continuous monitoring}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{wantEValuesAtNMax}{logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.}
+
+\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
 }
 \value{
 Returns a saviDesign object that includes:
@@ -122,7 +142,7 @@ designSaviLogrank(hrMin=0.7, beta=0.3, nSim=10)
 designSaviLogrank(hrMin=0.7, nEvents=190, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Schoenfeld, D. (1981). The asymptotic properties of nonparametric tests for comparing survival distributions. \emph{Biometrika}, \strong{68}(\emph{1}), 316-319, https://doi.org/10.2307/2335833. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

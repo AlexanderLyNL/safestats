@@ -1,6 +1,7 @@
 #' Add a savi reference
 #'
-#' @param key character string. firstAuthorYearFirstWord
+#' Keys are of the form firstAuthorYearFirstWord
+#'
 #' @param breakLine logical, default TRUE to break up the references
 #' @param ... further arguments to be passed to or from methods.
 #'
@@ -12,11 +13,9 @@
 addCite <- function(..., breakLine=TRUE) {
   keys <- as.character(rlang::ensyms(...))
 
-  # TODO(ALEXANDER) CHECK: utils::cite
-
   refList <- list(
-    "grunwald2024safe"="Gr\u00fcnwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \\emph{Journal of the Royal Statistical Society. Series B (Methodological),} \\strong{86}(\\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011.",
-    "grunwald2024authors"="Gr\u00fcnwald, P. D., de Heide, R., & Koolen, W. (2024). Authors’ reply to the discussion of ‘Safe testing’. \\emph{Journal of the Royal Statistical Society. Series B (Methodological),} \\strong{86}(\\emph{5}), 1091–1128, https://doi.org/10.1093/jrsssb/qkae069.",
+    "grunwald2024safe"="Gr\u00fcnwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \\emph{Journal of the Royal Statistical Society. Series B (Methodological),} \\strong{86}(\\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011.",
+    "grunwald2024authors"="Gr\u00fcnwald, P. D., de Heide, R., & Koolen, W. (2024). Authors' reply to the discussion of 'Safe testing'. \\emph{Journal of the Royal Statistical Society. Series B (Methodological),} \\strong{86}(\\emph{5}), 1091-1128, https://doi.org/10.1093/jrsssb/qkae069.",
     "ly2024safe"="Ly, A, Boehm, Gr\u00fcnwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \\emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae.",
     "schure2024safe"="ter Schure, J., P\u00e9rez-Ortiz, M. F., Ly, A., & Gr\u00fcnwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \\emph{The New England Journal of Statistics in Data Science}, \\strong{2}(\\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65.",
     "perez2024estatistics"="P\u00e9rez-Ortiz, M. F., Lardy, T., de Heide, R., & Gr\u00fcnwald, P. D. (2024). E-statistics, group invariance and anytime valid testing. \\emph{The Annals of Statistics}, \\strong{52}(\\emph{4}), 1410-1432, http://dx.doi.org/10.1214/24-AOS2394.",

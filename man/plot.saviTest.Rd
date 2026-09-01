@@ -35,7 +35,7 @@
   yaxt = NULL,
   fillOddEven = FALSE,
   runInt = TRUE,
-  wantFutility = NULL,
+  wantRelevance = NULL,
   ...
 )
 }
@@ -72,8 +72,6 @@ than switchNLog}
 
 \item{h0Colour}{Colour to indicate the null hypothesis.}
 
-\item{lineColour}{The colour to be used for the e-value progression.}
-
 \item{col}{The colour for filling the anytime-valid confidence interval.}
 
 \item{border}{The colour to draw the border.}
@@ -100,11 +98,33 @@ negative values and \code{NA} suppress shading (and so allow colour filling).}
 
 \item{...}{further arguments to be passed to or from methods.}
 
+\item{overColour}{colour of an e-value sequence that cross the
+upper boundary of 1/alpha}
+
+\item{overColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that cross the upper boundary of 1/alpha}
+
+\item{underColour}{colour of an e-value sequence that cross the
+lower boundary of alphaRelevance}
+
+\item{underColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that cross the lower boundary of alphaRelevance}
+
+\item{continueColour}{colour for lines of e-values that did not (yet) cross
+a threshold}
+
+\item{continueColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that did not (yet) cross a threshold}
+
+\item{xaxt}{default NULL. If "n" then suppresses plotting of the x-axis.}
+
+\item{yaxt}{default NULL. If "n" then suppresses plotting of the y-axis.}
+
 \item{runInt}{logical, if \code{TRUE} (default), then shows the running
 intersection of the confidence sequence.}
 
-\item{wantFutility}{logical, if \code{FALSE}, then don't show the
-e-values for relevanceTest. Default \code{wantFutility==NULL}, if
+\item{wantRelevance}{logical, if \code{FALSE}, then don't show the
+e-values for relevanceTest. Default \code{wantRelevance==NULL}, if
 \code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
 automatically.}
 }

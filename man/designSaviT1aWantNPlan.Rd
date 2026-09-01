@@ -27,6 +27,7 @@ designSaviT1aWantNPlan(
   sigma = 1,
   sigma2 = 1,
   alphaRelevance = NULL,
+  nuMin = 2,
   ...
 )
 }
@@ -78,6 +79,27 @@ or for the computation of the logarithm of the implied target.}
 
 \item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
 the sample sizes and deltaS, which defines the test.}
+
+\item{deltaTrue}{numeric, to true delta to sample data from. Default deltaTrue=deltaMin}
+
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)}
+
+\item{sigma}{numeric > 0 representing the population standard deviation used for the test.}
+
+\item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
+for the second group in a two-sample t-test}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test.}
+
+\item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
+are trivial, thus, 1.}
 }
 \value{
 A list with the parameter and the targeted nPlan amongst other items
@@ -94,6 +116,6 @@ Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 designSaviT1aWantNPlan(deltaMin=0.9, power=0.7, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

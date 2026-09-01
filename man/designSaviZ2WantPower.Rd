@@ -12,7 +12,7 @@ designSaviZ2WantPower(
   alternative = c("twoSided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
-  meanDiffMin = NULL,
+  meanDiffMin = meanDiffTrue,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
@@ -82,12 +82,16 @@ or for the computation of the logarithm of the implied target.}
 
 \item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
 
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
 \item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
-for minimal efficiency if e < beta. Default \code{FALSE}.}
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 
 \item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
 Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test.}
 }
 \value{
 A list with the parameter and beta amongst other items
@@ -101,9 +105,9 @@ Finds the parameter and beta when provided with only alpha, esMin, and nPlan
 
 }}
 \examples{
-designSaviZ2WantPower(meanDiffMin=0.9, nPlan=7, nSim=10)
+designSaviZ2WantPower(meanDiffTrue=0.9, nPlan=7, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

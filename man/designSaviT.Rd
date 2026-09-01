@@ -26,7 +26,7 @@ designSaviT(
   wantSimData = TRUE,
   deltaTrue = NULL,
   sigma = 1,
-  sigma2 = 1,
+  sigma2 = sigma,
   lowEsTrue = 0.01,
   highEsTrue = 3,
   varEqual = TRUE,
@@ -40,6 +40,7 @@ designSaviT(
   betaDefault = 0.2,
   highN = 10000L,
   wantSampling = TRUE,
+  nuMin = 2,
   ...
 )
 }
@@ -101,8 +102,40 @@ or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 
+\item{deltaTrue}{numeric, to true delta to sample data from. Default deltaTrue=deltaMin}
+
 \item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
 the sample sizes and deltaS, which defines the test.}
+
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
+\item{sigma}{numeric > 0 representing the population standard deviation used for the test.}
+
+\item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
+for the second group in a two-sample t-test}
+
+\item{varEqual}{logical, default \code{TRUE} for standard two-sample t-test}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test.}
+
+\item{betaDefault}{numeric, defaulting value for 1-power and alphaRelevance}
+
+\item{highN}{integer, largest possible sampling horizon. This might be the
+largest n that we are able to fund, which by default is set to 1e4L.
+Typically, highN is not used, as the function}
+
+\item{wantSampling}{logical, default \code{TRUE} so the procedure samples
+to derive nPlan and power}
+
+\item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
+are trivial, thus, 1.}
 }
 \value{
 Returns an object of class 'saviDesign'. An object of class 'saviDesign' is a list containing at least the
@@ -163,6 +196,6 @@ designObj <- designSaviT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternativ
 designObj
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

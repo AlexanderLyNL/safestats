@@ -1,10 +1,11 @@
 #' Helper function that extract the results for the design scenario 1a: Target nPlan
 #'
-#' @param samplingResult output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT
+#' @param samplingResult output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT
 #' @param esMin numeric that defines the minimal clinically relevant effect size,
 #' e.g. meanDiffMin for the z-test, or deltaMin for the t-test.
 #' @param power numeric in (0, 1) that specifies the desirable power necessary to calculate both "n"
 #' and the minimum detectable effect size.
+#' @param beta numerical in (0,1). Old parameter now replaced by the power parameter
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 #' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
 #' @param testType either one of "oneSample", "paired", "twoSample".
@@ -14,8 +15,8 @@
 #'
 #' @examples
 #'
-#' samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
-#' result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
+#' samplingResult <- computeNPlanSaviZ(0.7, nSim=10, nMax=20)
+#' result <- designSavi1aHelper(samplingResult, 0.7, 0.2, 1)
 designSavi1aHelper <- function(
     samplingResult, esMin, power, ratio, beta=NULL,
     testType=c("oneSample", "paired","twoSample")) {
@@ -102,7 +103,7 @@ designSavi1aHelper <- function(
 
 #' Helper function that extract the results for the design scenario 1a: Target nPlan
 #'
-#' @param samplingResult output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT
+#' @param samplingResult output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT
 #' @param esMin numeric that defines the minimal clinically relevant effect size,
 #' e.g. meanDiffMin for the z-test, or deltaMin for the t-test.
 #' @param nPlan vector of max length 2 representing the planned sample sizes.
@@ -115,8 +116,8 @@ designSavi1aHelper <- function(
 #'
 #' @examples
 #'
-#' samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
-#' result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
+#' samplingResult <- computeNPlanSaviZ(0.7, nSim=10, nMax=20)
+#' result <- designSavi1aHelper(samplingResult, 0.7, 0.2, 1)
 designSavi2Helper <- function(
     samplingResult, esMin, nPlan, ratio,
     testType=c("oneSample", "paired","twoSample")) {
@@ -173,7 +174,7 @@ designSavi2Helper <- function(
 
 #' Computes the bootObj for sequential sampling procedures regarding nPlan, beta, the implied target
 #'
-#' @inheritParams designSafeZ
+#' @inheritParams designSaviZ
 #' @param values numeric vector. If objType equals "nPlan" or "beta" then values should be stopping times,
 #' if objType equals "logImpliedTarget" then values should be eValues.
 #' @param nBoot integer > 0 representing the number of bootstrap samples
@@ -364,10 +365,10 @@ computeBootObj <- function(
 
 #' Helper function to compute uncertainty regarding nPlan estimates
 #'
-#' @inheritParams designSafe1aHelper
+#' @inheritParams designSavi1aHelper
 #' @inheritParams computeBootObj
 #'
-#' @param parameter numeric > 0, the safe test defining parameter.
+#' @param parameter numeric > 0, the savi test defining parameter.
 #' @param nPlanBatch integer, the sample size needed in a batch design
 #' to reach the targeted power=1-beta with tolerable type I error alpha
 #'
@@ -375,7 +376,7 @@ computeBootObj <- function(
 #' @export
 #'
 #' @examples
-#' samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+#' samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
 #' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 computeNPlanBootstrapper <- function(
     samplingResult, parameter,
@@ -417,7 +418,7 @@ computeNPlanBootstrapper <- function(
 
 #' Helper function to compute uncertainty regarding nPlan estimates
 #'
-#' @inheritParams designSafe2Helper
+#' @inheritParams designSavi2Helper
 #' @inheritParams computeBootObj
 #' @inheritParams computeNPlanBootstrapper
 #'
@@ -425,7 +426,7 @@ computeNPlanBootstrapper <- function(
 #' @export
 #'
 #' @examples
-#' samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+#' samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
 #' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 computeBetaBootstrapper <- function(
     samplingResult, parameter,
@@ -463,7 +464,7 @@ computeBetaBootstrapper <- function(
 
 #' Helper function to compute uncertainty regarding nPlan estimates
 #'
-#' @inheritParams designSafe2Helper
+#' @inheritParams designSavi2Helper
 #' @inheritParams computeBootObj
 #' @inheritParams computeNPlanBootstrapper
 #'
@@ -471,7 +472,7 @@ computeBetaBootstrapper <- function(
 #' @export
 #'
 #' @examples
-#' samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+#' samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
 #' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 computePowerBootstrapper <- function(
     samplingResult, parameter,
@@ -509,7 +510,7 @@ computePowerBootstrapper <- function(
 
 #' Construct a list to be set in the sampleStoppingTimes... function
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
-#' for the safe z test under continuous monitoring.
+#' for the savi z test under continuous monitoring.
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE}, then compute eValues at nMax. Default \code{FALSE}.
 #' @param wantSamplePaths logical. If \code{TRUE}, then output the (stopped) sample paths. Default \code{TRUE}.
@@ -543,6 +544,7 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 
 #' Checks and outputs a threshold for a minimal efficacy analysis
 #'
+#' @inheritParams designSaviZ
 #' @param alphaRelevance numeric > 0 and < 1, used to set the threshold of
 #' a minimal efficacy procedure
 #' @param beta numeric > 0 and < 1, a tolerable type II error, used to set
@@ -587,15 +589,15 @@ matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power, beta=NULL
 #' Based on the minimal clinically relevant effect size esMin,
 #' sigma (for z-tests), alternative and eType
 #'
-#' @inherit designSaviZ
+#' @inheritParams designSaviZ
 #' @param esMin numeric: meanDiffMin for z-tests, or deltaMin for t-tests
-#' @param type character representing analysis type "z" or "t"
+#' @param analysisType character. Either "z", "t", or "logRank", currently.
 #'
 #' @returns the parameter, a numeric value
 #' @export
 #'
 #' @examples
-#' matchParameterZFrom(0.4)
+#' matchEParameterWith(0.4)
 matchEParameterWith <- function(esMin, analysisType=c("z", "t", "logRank"),
                                 sigma=1,
                                 alternative=c("twoSided", "greater", "less"),
@@ -603,6 +605,7 @@ matchEParameterWith <- function(esMin, analysisType=c("z", "t", "logRank"),
                                 parameter=NULL) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
+  analysisType <- match.arg(analysisType)
 
   # TODO(Alexander):
   #
@@ -641,14 +644,14 @@ matchEParameterWith <- function(esMin, analysisType=c("z", "t", "logRank"),
 #'
 #' Based on the parameter, sigma, alternative and eType
 #'
-#' @inherit designSaviZ
+#' @inheritParams designSaviZ
+#' @inheritParams matchEParameterWith
 #'
 #' @returns the parameter, a numeric value
 #' @export
 #'
 #' @examples
-#' matchMeanDiffMinZFrom(parameter=0.4)
-#'
+#' matchEsMinWith(parameter=0.4)
 matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
                            sigma=1,
                            alternative=c("twoSided", "greater", "less"),
@@ -656,6 +659,7 @@ matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
+  analysisType <- match.arg(analysisType)
 
   parameter <- abs(parameter)
 
@@ -687,7 +691,10 @@ matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
 #'
 #' Based on the relevanceSize, meanDiffMin, alternative and eType
 #'
-#' @inherit designSaviZ
+#' @inheritParams designSaviZ
+#' @inheritParams matchEParameterWith
+#'
+#' @param esTrue numeric. meanDiffTrue for z-tests, or deltaTrue for t-tests
 #'
 #' @returns the parameter, a numeric value
 #' @export
@@ -707,7 +714,16 @@ matchRelevanceParameterWith <- function(relevanceSize, esMin, esTrue) {
 
 }
 
-matchPowerWith <- function(power, beta) {
+#' Helper function to check whether the power or beta (redundant now) argument is given
+#'
+#' @inheritParams designSaviZ
+#'
+#' @returns numeric representing power
+#' @export
+#'
+#' @examples
+#' matchPowerWith(0.8)
+matchPowerWith <- function(power, beta=NULL) {
   if (!is.null(power)) {
     if (!is.null(beta))
       warning("Both power and beta specified. Preference given to power")

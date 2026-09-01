@@ -945,7 +945,7 @@ designFreqZ <- function(
 #' targeted minimal clinically relevant effect size.
 #' Design scenario 3: nPlan and beta given, goal find meanDiffMin
 #' @param relevanceTest logical, if \code{TRUE} then impose rule to stop
-#' for minimal efficiency if e < beta. Default \code{FALSE}.
+#' for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.
 #' @param relevanceSize numeric, the minimal clinical relevant mean
 #' difference that we do not want to miss under the alternative.
 #' Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)
@@ -1237,7 +1237,7 @@ designSaviZ <- function(
 #' @export
 #'
 #' @examples
-#' designSaviZ1aWantNPlan(meanDiffMin=0.9, beta=0.7, nSim=10)
+#' designSaviZ1aWantNPlan(meanDiffMin=0.9, power=0.7, nSim=10)
 designSaviZ1aWantNPlan <- function(
     meanDiffMin, power, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
@@ -1289,12 +1289,12 @@ designSaviZ1aWantNPlan <- function(
 #' @export
 #'
 #' @examples
-#' designSaviZ2WantPower(meanDiffMin=0.9, nPlan=7, nSim=10)
+#' designSaviZ2WantPower(meanDiffTrue=0.9, nPlan=7, nSim=10)
 designSaviZ2WantPower <- function(
     meanDiffTrue, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
-    meanDiffMin=NULL,
+    meanDiffMin=meanDiffTrue,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
@@ -1321,7 +1321,7 @@ designSaviZ2WantPower <- function(
 
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=meanDiffMin, "nPlan"=nPlan, "ratio"=ratio,
-                              "testType"=c("oneSample", "paired","twoSample"))
+                              "testType"=testType)
   return(result)
 }
 
@@ -1340,7 +1340,7 @@ designSaviZ2WantPower <- function(
 #' @export
 #'
 #' @examples
-#' designSaviZ3WantEsMin(beta=0.7, nPlan=10)
+#' designSaviZ3WantEsMin(power=0.7, nPlan=10)
 designSaviZ3WantEsMin <- function(
     power, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
@@ -1887,8 +1887,6 @@ sampleStoppingTimesSaviZ <- function(
 
   power <- matchPowerWith("power"=power, "beta"=beta)
 
-  # browser()
-
   if (relevanceTest) {
     relevanceSize <- matchRelevanceParameterWith(
       "relevanceSize"=relevanceSize, "esMin"=meanDiffMin,
@@ -2109,7 +2107,7 @@ computePowerSaviZ <- function(
     meanDiffTrue, nPlan, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
-    meanDiffMin=NULL,
+    meanDiffMin=meanDiffTrue,
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
@@ -2137,8 +2135,10 @@ computePowerSaviZ <- function(
             'times nPlan[1] = ', nPlan[2])
   }
 
-  meanDiffTrue <- checkAndReturnEsMinParameterSide(
-    "paramToCheck"=meanDiffTrue, "alternative"=alternative,
+  # TODO(Alexander): Revise logic on meanDiffTrue and meanDiffMin
+  #
+  meanDiffMin <- checkAndReturnEsMinParameterSide(
+    "paramToCheck"=meanDiffMin, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
   parameter <- matchEParameterWith(
@@ -2149,7 +2149,7 @@ computePowerSaviZ <- function(
 
   samplingResult <- sampleStoppingTimesSaviZ(
     "meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
-    "alternative" = alternative, "testType"=testType,
+    "alternative"=alternative, "testType"=testType,
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
     "eType"=eType, "wantSimData"=wantSimData,

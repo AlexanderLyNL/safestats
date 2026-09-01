@@ -38,6 +38,9 @@ of the pooled variance.}
 and ciValue = 1 - alpha}
 
 \item{maxRoot}{Used to bound the candidate set of width of the confidence interval.}
+
+\item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
+are trivial, thus, 1.}
 }
 \value{
 numeric vector that contains the upper and lower bound of the savi confidence sequence

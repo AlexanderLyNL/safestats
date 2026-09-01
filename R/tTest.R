@@ -6,15 +6,14 @@
 #' design object by deltaS.
 #'
 #' @inheritParams designSaviT
+#' @inheritParams saviTTest
 #' @param t numeric that represents the observed t-statistic.
 #' @param parameter numeric > 0, the savi test defining parameter.
 #' @param n1 integer that represents the size in a one-sample T-test, (n2=\code{NULL}). When n2 is not \code{NULL},
 #' this specifies the size of the first sample for a two-sample test.
 #' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
 #' \code{NULL} it implies that the t-statistic is based on one-sample.
-#' @param tDensity Uses the the representation of the savi T-test as the likelihood ratio of t densities.
 #' @param eType character, type of e-value: "eCauchy" (default), "eGauss", or "grow"
-#' @inherit saviTTest
 #'
 #' @return Returns a numeric that represent the e10, that is, the e-value in favour of the alternative over the null
 #'
@@ -67,7 +66,6 @@ saviTTestStat <- function(
 #'
 #' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
 #' @param nu numeric > 0, the degrees of freedom.
-#' @param nuMin numeric > 0, the minimum degrees of freedom under which the results are trivial
 #'
 #' @references
 #'   `r addCite(grunwald2024safe)`
@@ -569,7 +567,6 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
 #'
 #' A savi T-test adapted from \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
 #'
-#' @rdname saviTTest
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
 #' @param designObj an object obtained from \code{\link{designSaviT}()}, or \code{NULL}, when pilot
@@ -596,6 +593,8 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' getOption("na.action")..
 #' @param sequential a logical indicating whether a sequential
 #' analysis should be performed.
+#' @param tDensity Uses the the representation of the savi T-test as the likelihood ratio of t densities.
+#' @param wantCi default TRUE
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an object of class "saviTest". An object of class "saviTest" is a list containing at least the
@@ -667,12 +666,14 @@ saviTTest <- function(x, ...) {
   UseMethod("saviTTest")
 }
 
+
 #' @rdname saviTTest
-#' @aliases saviTTest
+#' @param nuMin numeric > 0, the minimum degrees of freedom under which the results
+#' are trivial, thus, 1.
 #' @export
 saviTTest.default <- function(
     x, y=NULL, designObj=NULL, paired=FALSE,
-    varEqual=NULL, ciValue=NULL,
+    varEqual=TRUE, ciValue=NULL,
     maxRoot=10, sequential=NULL,
     tDensity=FALSE, nuMin=2, wantCi=TRUE, ...) {
 
@@ -1195,7 +1196,7 @@ computeConfidenceIntervalT <- function(
 designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
                         alternative=c("twoSided", "greater", "less"),
                         h0=0, testType=c("oneSample", "paired", "twoSample"), ...) {
-  stopifnot(alpha > 0, power > 0, power < 1, alpha < 1, beta < 1)
+  stopifnot(alpha > 0, power > 0, power < 1, alpha < 1, power < 1)
 
   beta <- 1-power
 
@@ -1298,10 +1299,10 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
 #' @param deltaTrue numeric, to true delta to sample data from. Default deltaTrue=deltaMin
 #' @param varEqual logical, default \code{TRUE} for standard two-sample t-test
 #' @param relevanceTest logical, if \code{TRUE} then impose rule to stop
-#' for minimal efficiency if e < beta. Default \code{FALSE}.
-#' @param relevanceSize numeric, the minimal clinical relevant mean
+#' for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.
+#' @param relevanceSize numeric, the minimal clinical relevant standardised mean
 #' difference that we do not want to miss under the alternative.
-#' Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)
+#' Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)
 #' @param alphaRelevance numeric, the threshold for relevance test.
 #' @param betaDefault numeric, defaulting value for 1-power and alphaRelevance
 #' @param highN integer, largest possible sampling horizon. This might be the
@@ -1309,6 +1310,8 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
 #' Typically, highN is not used, as the function
 #' @param wantSampling logical, default \code{TRUE} so the procedure samples
 #' to derive nPlan and power
+#' @param nuMin numeric > 0, the minimum degrees of freedom under which the results
+#' are trivial, thus, 1.
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
 #'
 #' @return Returns an object of class 'saviDesign'. An object of class 'saviDesign' is a list containing at least the
@@ -1363,7 +1366,7 @@ designSaviT <- function(
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     relevanceTest=FALSE, relevanceSize=NULL,
     alphaRelevance=NULL, betaDefault=0.2,
-    highN=1e4L, wantSampling=TRUE, ...) {
+    highN=1e4L, wantSampling=TRUE, nuMin=2, ...) {
 
   stopifnot(alpha > 0, alpha < 1)
 
@@ -1445,7 +1448,8 @@ designSaviT <- function(
       "wantSimData"=wantSimData, "pb"=pb, "seed"=seed, "nSim"=nSim,
       "nBoot"=nBoot, "relevanceTest"=relevanceTest,
       "sigma"=sigma, "sigma2"=sigma2,
-      "relevanceSize"=relevanceSize, "alphaRelevance"=alphaRelevance, ...)
+      "relevanceSize"=relevanceSize, "alphaRelevance"=alphaRelevance,
+      "nuMin"=nuMin, ...)
 
   } else if (!is.null(deltaMin) && !is.null(power) && is.null(nPlan) && isFALSE(wantSampling) ||
              !is.null(deltaMin) && is.null(power) && is.null(nPlan)) {
@@ -1482,7 +1486,7 @@ designSaviT <- function(
       #
       "sigma"=sigma, "sigma2"=sigma2,
       "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
-      "alphaRelevance"=alphaRelevance, ...)
+      "alphaRelevance"=alphaRelevance, "nuMin"=nuMin, ...)
   } else if (is.null(deltaMin) && !is.null(power) && !is.null(nPlan)) {
     designScenario <- "3"
 
@@ -1495,7 +1499,8 @@ designSaviT <- function(
       #   TODO(Alexander): Check if necessary
       #
       #
-      "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue)
+      "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue,
+      ...)
   } else if (is.null(deltaMin) && is.null(power) && !is.null(nPlan)) {
     #scenario 3b: only nPlan known, find the parameter at which the confidence interval
     # is the most narrow at nPlan
@@ -1510,7 +1515,7 @@ designSaviT <- function(
       #   TODO(Alexander): Check if necessary
       #
       #
-      "parameter"=parameter, "eType"=eType)
+      "parameter"=parameter, "eType"=eType, ...)
   }
 
   if (is.null(designScenario)) {
@@ -1615,7 +1620,7 @@ designSaviT1aWantNPlan <- function(
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
     relevanceTest=FALSE, relevanceSize=NULL,
     sigma=1, sigma2=1,
-    alphaRelevance=NULL, ...) {
+    alphaRelevance=NULL, nuMin=2, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1634,7 +1639,8 @@ designSaviT1aWantNPlan <- function(
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
     "sigma"=sigma, "sigma2"=sigma2,
     "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
-    "highN"=NULL, "alphaRelevance"=alphaRelevance)
+    "highN"=NULL, "alphaRelevance"=alphaRelevance,
+    "nuMin"=nuMin, ...)
 
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
@@ -1658,18 +1664,19 @@ designSaviT1aWantNPlan <- function(
 #' @export
 #'
 #' @examples
-#' designSaviT2WantPower(deltaMin=0.9, nPlan=7, nSim=10)
+#' designSaviT2WantPower(deltaTrue=0.9, nPlan=7, nSim=10)
 designSaviT2WantPower <- function(
     deltaTrue, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
-    deltaMin=NULL,
+    deltaMin=deltaTrue,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantSamplePaths=TRUE, wantSimData=TRUE,
     relevanceTest=FALSE, relevanceSize=NULL,
     alphaRelevance=NULL,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    nuMin=2, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -1687,7 +1694,7 @@ designSaviT2WantPower <- function(
     "wantSimData"=wantSimData, "deltaMin"=deltaMin,
     "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb,
     "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
-    "alphaRelevance"=alphaRelevance, ...)
+    "alphaRelevance"=alphaRelevance, "nuMin"=nuMin, ...)
 
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=deltaMin, "nPlan"=nPlan, "ratio"=ratio,
@@ -1710,7 +1717,7 @@ designSaviT2WantPower <- function(
 #' @export
 #'
 #' @examples
-#' designSaviT3WantEsMin(beta=0.7, nPlan=10)
+#' designSaviT3WantEsMin(power=0.7, nPlan=10)
 designSaviT3WantEsMin <- function(
     power, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
@@ -2280,7 +2287,8 @@ sampleStoppingTimesSaviT <- function(
       tempResult <- saviTTestStat("t"=tValues[length(tValues)],
                                   "parameter"=parameter,
                                   "n1"=nMax[1], n2=nMax[2],
-                                  "alternative"=alternative, "eType"=eType)
+                                  "alternative"=alternative, "eType"=eType,
+                                  "nuMin"=nuMin)
       result[["eValuesAtNMax"]][sim] <- tempResult[["eValue"]]
     }
 
@@ -2381,6 +2389,7 @@ sampleStoppingTimesSaviT <- function(
 #' standardised mean difference and nPlan.
 #'
 #' @inheritParams designSaviT
+#' @inheritParams saviTTestStat
 #' @inheritParams sampleStoppingTimesSaviT
 #'
 #' @return a list which contains at least beta and an adapted bootObject of class
@@ -2397,7 +2406,7 @@ computePowerSaviT <- function(
     deltaTrue, nPlan, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
+    parameter=NULL, deltaMin=deltaTrue,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
     wantSamplePaths=TRUE, nuMin=2, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
@@ -2428,14 +2437,11 @@ computePowerSaviT <- function(
     "paramToCheck"=deltaTrue, "alternative"=alternative,
     "esMinName"="deltaTrue")
 
-  if (is.null(parameter)) {
-    parameter <- switch(eType,
-                        "mom"=deltaTrue^2/2,
-                        "eGauss"=deltaTrue^2,
-                        "imom"=abs(deltaTrue),
-                        "eCauchy"=abs(deltaTrue),
-                        "grow"=deltaTrue)
-  }
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="t",
+    "esMin"=deltaMin,
+    "alternative"=alternative, "eType"=eType
+  )
 
   samplingResult <- sampleStoppingTimesSaviT(
     "deltaTrue"=deltaTrue, "alpha"=alpha, "power"=NULL,
@@ -2578,7 +2584,8 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 
 #' Helper function to compute the relevant summary statistics in z and t-tests
 #'
-#' @inheritParams saviTTest.default
+#' @inheritParams saviTTest
+#' @inheritParams designSaviT
 #'
 #' @returns a list of summary statistics
 #' @export

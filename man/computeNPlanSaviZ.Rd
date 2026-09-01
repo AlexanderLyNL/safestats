@@ -82,7 +82,7 @@ approximation of the power, the number of samples for the savi z test under cont
 or for the computation of the logarithm of the implied target.}
 
 \item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
-for minimal efficiency if e < beta. Default \code{FALSE}.}
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
@@ -92,11 +92,13 @@ and "phiS".}
 \item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
 that we would like to detect.}
 
-\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
 
 \item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
 Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test.}
 
 \item{highN}{integer, largest possible sampling horizon. This might be the
 largest n that we are able to fund, which by default is set to 1e4L.
@@ -120,6 +122,6 @@ difference, alpha and beta
 computeNPlanSaviZ(0.7, 0.2, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

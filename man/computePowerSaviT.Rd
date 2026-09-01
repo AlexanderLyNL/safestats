@@ -13,6 +13,7 @@ computePowerSaviT(
   alternative = c("twoSided", "greater", "less"),
   testType = c("oneSample", "paired", "twoSample"),
   parameter = NULL,
+  deltaMin = deltaTrue,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   wantSamplePaths = TRUE,
   nuMin = 2,
@@ -28,8 +29,7 @@ computePowerSaviT(
 )
 }
 \arguments{
-\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
+\item{deltaTrue}{numeric, to true delta to sample data from. Default deltaTrue=deltaMin}
 
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
@@ -70,7 +70,22 @@ or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 
-\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
+\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
+we would the experiment to be able to detect.}
+
+\item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
+are trivial, thus, 1.}
+
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test.}
 }
 \value{
 a list which contains at least beta and an adapted bootObject of class
@@ -89,6 +104,6 @@ standardised mean difference and nPlan.
 computePowerSaviT(deltaTrue=0.7, 27, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

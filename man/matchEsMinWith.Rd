@@ -22,6 +22,8 @@ denominator the likelihood with mean difference 0 and in the numerator an averag
 likelihood defined by the likelihood at the parameter value phiS. For the two sided
 case 1/2 at -phiS and 1/2 phiS.}
 
+\item{analysisType}{character. Either "z", "t", or "logRank", currently.}
+
 \item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
 
 \item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
@@ -38,10 +40,5 @@ the parameter, a numeric value
 Based on the parameter, sigma, alternative and eType
 }
 \examples{
-matchMeanDiffMinZFrom(parameter=0.4)
-
-}
-\references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
-Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+matchEsMinWith(parameter=0.4)
 }

@@ -10,14 +10,12 @@ addCite(..., breakLine = TRUE)
 \item{...}{further arguments to be passed to or from methods.}
 
 \item{breakLine}{logical, default TRUE to break up the references}
-
-\item{key}{character string. firstAuthorYearFirstWord}
 }
 \value{
 a character string
 }
 \description{
-Add a savi reference
+Keys are of the form firstAuthorYearFirstWord
 }
 \examples{
 addCite(grunwald2024safe)

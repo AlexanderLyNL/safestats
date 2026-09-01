@@ -25,6 +25,8 @@ analysis should be performed.}
 
 \item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
 the moment, this is always \code{TRUE}.}
+
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
 }
 \value{
 a list of summary statistics

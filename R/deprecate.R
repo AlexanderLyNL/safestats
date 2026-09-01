@@ -146,9 +146,9 @@ safeTTestStatNEffNu <- function(
   warning('The function safeTTestStatNEffNu is deprecated;',
           'Please use saviTTestStatNEffNu instead')
 
-  saviTTestStat(t=t, nEff=nEff, nu=nu, parameter=parameter,
-                alternative=alternative, tDensity=tDensity,
-                paired=paired, eType=eType, ...)
+  saviTTestStatNEffNu(t=t, nEff=nEff, nu=nu, parameter=parameter,
+                      alternative=alternative, tDensity=tDensity,
+                      paired=paired, eType=eType, ...)
 }
 
 #' @describeIn saviTTest Deprecated version of saviTTestStatNEffNuMom
@@ -412,7 +412,7 @@ sampleStoppingTimesSafeT <- function(
           'Please use sampleStoppingTimesSaviT instead')
 
   sampleStoppingTimesSaviT(
-    deltaTrue=deltaTrue, beta=beta,
+    deltaTrue=deltaTrue, power=1-beta,
     alpha=alpha, alternative=alternative,
     testType=testType,
     ratio=ratio, parameter=parameter, lowN=lowN, nMax=nMax,

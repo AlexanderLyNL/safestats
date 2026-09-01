@@ -65,6 +65,9 @@ observations to be used.}
 \item{na.action}{a function which indicates what should
 happen when the data contain \code{NA}s. Defaults to
 getOption("na.action").}
+
+\item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
+the moment, this is always \code{TRUE}.}
 }
 \value{
 Returns an object of class 'saviTest'. An object of class 'saviTest' is a list containing at least the
@@ -151,6 +154,6 @@ saviZTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
           designObj=designObjPaired)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

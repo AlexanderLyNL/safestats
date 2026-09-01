@@ -416,8 +416,9 @@ saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 (Treatment) over condition 1 (Placebo),
 #' thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
 #' ignores m1 and m0.
-#' @param parameter numeric > 0 representing the test defining thetaS. Default is NULL, then GROW the choice is used,
-#' that is, parameter equals the data generating hrTrue.
+#' @param power numeric in (0, 1) that specifies the desired power, that is, the targetted chance to stop for
+#' the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+#' power <- 1-beta. This overrides the "beta" argument
 #' @param alternative a character string specifying the alternative hypothesis, which must be one of
 #' "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
 #' of the survival distributions. More specifically, let lambda1 be the hazard rate of group 1 (i.e., placebo), and
@@ -438,6 +439,13 @@ saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
 #' power or nEvents for the exact savi logrank test under continuous monitoring
 #' @param pb logical, if \code{TRUE}, then show progress bar.
+#' @param relevanceTest logical, if \code{TRUE} then impose rule to stop
+#' for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.
+#' @param relevanceSize numeric, the minimal clinical relevant standardised mean
+#' difference that we do not want to miss under the alternative.
+#' Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)
+#' @param wantEValuesAtNMax logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.
+#' @param wantSimData logical. If \code{TRUE}, then output the simulated data.
 #'
 #' @return Returns a saviDesign object that includes:
 #'
@@ -469,7 +477,7 @@ saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 #' designSaviLogrank(hrMin=0.7, beta=0.3, nSim=10)
 #' designSaviLogrank(hrMin=0.7, nEvents=190, nSim=10)
 designSaviLogrank <- function(
-    hrMin=NULL, beta=NULL, nEvents=NULL,
+    hrMin=NULL, power=NULL, nEvents=NULL,
     alpha=0.05, h0=1, alternative=c("twoSided", "greater", "less"),
     m0=50000L, m1=50000L,
     testType=c("exactLogrank", "gaussianLogrank"),
@@ -477,7 +485,9 @@ designSaviLogrank <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    beta=NULL, relevanceTest=FALSE, relevanceSize=NULL,
+    wantEValuesAtNMax=NULL, wantSimData=FALSE, ...) {
   stopifnot(0 < alpha, alpha < 1)
 
   result <- list()
@@ -1233,6 +1243,7 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 #' @param hrTrue numeric that defines the data generating hazard ratio with which data are sampled.
 #' @param nMax An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
 #' crossing crossing already. Default set to Inf.
+#'
 #' @author Muriel Felipe Perez-Ortiz and Alexander Ly
 #'
 #'
@@ -1247,12 +1258,12 @@ generateSurvData <- function(nP, nT, alpha=1, lambdaP, lambdaT, seed=NULL, nDigi
 #' @export
 #'
 #' @examples
-#' sampleLogrankStoppingTimes(0.7, nSim=10)
+#' sampleLogrankStoppingTimes(0.7, nSim=10, nMax=30)
 sampleLogrankStoppingTimes <- function(
     hrTrue, alpha=0.05, alternative = c("twoSided", "less", "greater"),
     m0=5e4L, m1=5e4L, nSim=1e3L, groupSizePerTimeFunction = returnOne,
     seed=NULL, power=NULL, beta=NULL,
-    relevanceTest=NULL, relevanceSize=NULL,
+    relevanceTest=FALSE, relevanceSize=NULL,
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=TRUE,
     parameter=NULL, nMax=Inf, pb=TRUE, hrMin=NULL, ...) {
@@ -1389,124 +1400,6 @@ sampleLogrankStoppingTimes <- function(
   return(result)
 }
 
-# bsampleLogrankStoppingTimes <- function(
-#     hrTrue, alpha=0.05,
-#     alternative = c("twoSided", "less", "greater"),
-#     testType=c("exactLogrank", "gaussianLogrank"),
-#     m0=5e4L, m1=5e4L,
-#     parameter=NULL, groupSizePerTimeFunction = returnOne,
-#     eType=c("eCauchy", "eGauss", "grow"),
-#     wantEValuesAtNMax=FALSE, nMax=1e3L,
-#     wantSamplePaths=TRUE, wantSimData=FALSE,
-#     pb=TRUE, seed=NULL, nSim=1e3L, ...) {
-#
-#   stopifnot(
-#     is.null(parameter) || parameter > 0,
-#     alpha > 0, alpha <= 1,
-#     is.finite(nMax),
-#     hrTrue > 0, is.finite(hrTrue))
-#
-#   # TODO(Alexander): Remove in v0.9.0
-#   #
-#   if (length(alternative)==1 && alternative=="two.sided") {
-#     warning('The option alternative="two.sided" is deprecated;',
-#             'Please use alternative="twoSided" instead')
-#     alternative <- "twoSided"
-#   }
-#
-#   alternative <- match.arg(alternative)
-#   testType <- match.arg(testType)
-#   eType <- match.arg(eType)
-#
-#   result <- constructSampleStoppingTimesObj(
-#     "nSim"=nSim, "nMax"=nMax,
-#     "wantEValuesAtNMax"=wantEValuesAtNMax,
-#     "wantSamplePaths"=wantSamplePaths)
-#
-#   ## Object that will be returned. A sample of stopping times
-#
-#   if (is.null(parameter))
-#     thetaS <- if (hrTrue > 1) 1/hrTrue else hrTrue
-#   else
-#     thetaS <- parameter
-#
-#   if (pb)
-#     pbSavi <- utils::txtProgressBar(
-#       style=3, title="Savi test threshold crossing")
-#
-#   ## Cycle through simulations
-#   #
-#   for (sim in seq_along(stoppingTimes)) {
-#     ## Reset number of individuals in each group
-#     # to the original group sizes
-#     y0 <- m0
-#     y1 <- m1
-#
-#     nEvents <- 0
-#
-#     logEValueGreater <- 0
-#     logEValueLess <- 0
-#
-#     ## Make events happen in each simulation
-#     for (group in 1:(y0 + y1)) { ## End point
-#       groupSize <- min(groupSizePerTimeFunction(),
-#                        y1 + y0) ## cannot sample more subjects than there are
-#
-#       obs1 <- rLogrank(n=1, y0=y0, y1=y1, obsTotal=groupSize,
-#                        theta=hrTrue)
-#
-#       obs0 <- groupSize - obs1
-#
-#       ## If we run out of subjects, we never stopped
-#       if (y1 - obs1 <= 0 || y0 - obs0 <= 0) {
-#         result[["stoppingTimes"]][sim] <- Inf
-#         break()
-#       }
-#
-#       tempResults <- logrankSingleEExact(obs0, obs1, y0, y1, thetaS)
-#
-#       logEValueGreater <- logEValueGreater + tempResults[["logEValueGreater"]]
-#       logEValueLess <- logEValueLess + tempResults[["logEValueLess"]]
-#
-#       y0 <- y0 - obs0
-#       y1 <- y1 - obs1
-#       nEvents <- nEvents + groupSize
-#
-#       evidenceNow <- switch(alternative,
-#                             "less" = exp(logEValueLess),
-#                             "greater" = exp(logEValueGreater),
-#                             "twoSided" = 1/2*exp(logEValueGreater) +
-#                               1/2*exp(logEValueLess))
-#
-#       # Note(Alexander): If exceeds 1/alpha threshold then reject normally
-#       #
-#       if (evidenceNow >= 1/alpha) {
-#         result[["eValuesStopped"]][sim] <- evidenceNow
-#         result[["stoppingTimes"]][sim] <- nEvents
-#         break()
-#       }
-#
-#       # Note(Alexander): If passed maximum number of events stop.
-#       #   For power calculations if beyond nEvents, then set to Inf, doesn't matter for the quantile
-#       #
-#       if (nEvents >= nMax) {
-#         result[["eValuesStopped"]][sim] <- evidenceNow
-#         result[["stoppingTimes"]][sim] <- nEvents
-#         result[["breakVector"]][sim] <- 1
-#         break()
-#       }
-#     }
-#
-#     if (pb)
-#       utils::setTxtProgressBar(pbSavi, value=sim/nSim, title="Trials")
-#   }
-#
-#   result <- list("stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
-#                  "eValuesStopped"=eValuesStopped)
-#   return(result)
-# }
-
-
 #' Helper function: Computes the type II error under optional stopping based on the minimal clinically relevant hazard
 #' ratio and the maximum number of nEvents.
 #'
@@ -1533,7 +1426,8 @@ computeLogrankBetaFrom <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     groupSizePerTimeFunction=returnOne,
-    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
+    pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
+    relevanceTest=FALSE, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1553,23 +1447,17 @@ computeLogrankBetaFrom <- function(
     "groupSizePerTimeFunction"=groupSizePerTimeFunction,
     "nMax"=nEvents, "parameter"=parameter)
 
-  result <- computePowerBootstrapper("samplingResult"=samplingResult,
-                                     "parameter"=parameter, "nPlan"=nEvents,
-                                     "nBoot"=nBoot)
-
-  return(result)
-
-  tempResult <- sampleLogrankStoppingTimes("hrTrue"=hrMin, "alternative"=alternative, "alpha"=alpha,
-                                           "m0"=m0, "m1"=m1, "nSim"=nSim,
-                                           "groupSizePerTimeFunction"=groupSizePerTimeFunction,
-                                           "nMax"=nEvents, "parameter"=parameter)
+  # result <- computePowerBootstrapper("samplingResult"=samplingResult,
+  #                                    "parameter"=parameter, "nPlan"=nEvents,
+  #                                    "nBoot"=nBoot)
+  #
+  # return(result)
 
 
-
-  times <- tempResult[["stoppingTimes"]]
+  times <- samplingResult[["stoppingTimes"]]
 
   # Note(Alexander): Break vector is 1 whenever the sample path did not stop
-  breakVector <- tempResult[["breakVector"]]
+  breakVector <- samplingResult[["breakVector"]]
 
   # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
   times[as.logical(breakVector)] <- Inf
@@ -1581,7 +1469,7 @@ computeLogrankBetaFrom <- function(
 
   # TODO(Alexander): Batch version here
   #
-  eValuesStopped <- tempResult[["eValuesStopped"]]
+  eValuesStopped <- samplingResult[["eValuesStopped"]]
 
   bootObjLogImpliedTarget <- computeBootObj("values"=eValuesStopped, "objType"="logImpliedTarget",
                                             "nBoot"=nBoot)
@@ -1648,9 +1536,11 @@ computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
     nBatch <- nMax
   }
 
-  tempResult <- sampleLogrankStoppingTimes(hrTrue=hrMin, alternative=alternative, alpha=alpha,
-                                           m0=m0, m1=m1, nSim=nSim, groupSizePerTimeFunction=groupSizePerTimeFunction,
-                                           nMax=nBatch)
+  tempResult <- sampleLogrankStoppingTimes(
+    "hrTrue"=hrMin, "alternative"=alternative, "alpha"=alpha,
+    "m0"=m0, "m1"=m1, "nSim"=nSim,
+    "groupSizePerTimeFunction"=groupSizePerTimeFunction,
+    "nMax"=nBatch)
 
   times <- tempResult[["stoppingTimes"]]
 

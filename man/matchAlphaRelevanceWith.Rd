@@ -16,6 +16,12 @@ matchAlphaRelevanceWith(
 \item{alphaRelevance}{numeric > 0 and < 1, used to set the threshold of
 a minimal efficacy procedure}
 
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+
+\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
+and "phiS".}
+
 \item{beta}{numeric > 0 and < 1, a tolerable type II error, used to set
 the threshold if alphaRelevance is not given}
 

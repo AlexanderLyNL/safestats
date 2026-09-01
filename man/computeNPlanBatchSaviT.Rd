@@ -22,8 +22,7 @@ computeNPlanBatchSaviT(
 )
 }
 \arguments{
-\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
+\item{deltaTrue}{numeric, to true delta to sample data from. Default deltaTrue=deltaMin}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
 designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
@@ -40,7 +39,10 @@ the sample sizes and deltaS, which defines the test.}
 a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
 two point masses at the minimal clinically relevant standardised effect size.}
 
-\item{sigma}{numeric > 0, population standard deviation}
+\item{sigma}{numeric > 0 representing the population standard deviation used for the test.}
+
+\item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
+for the second group in a two-sample t-test}
 
 \item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
 For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
@@ -70,6 +72,6 @@ Helper function: Computes the planned sample size for the savi T-test based on t
 relevant standardised effect size, alpha and beta.
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

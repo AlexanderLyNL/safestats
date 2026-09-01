@@ -14,9 +14,9 @@ computeNPlanBootstrapper(
 )
 }
 \arguments{
-\item{samplingResult}{output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT}
+\item{samplingResult}{output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT}
 
-\item{parameter}{numeric > 0, the safe test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter.}
 
 \item{power}{numeric in (0, 1) that specifies the desirable power necessary to calculate both "n"
 and the minimum detectable effect size.}
@@ -36,6 +36,6 @@ list with bootstrap objects
 Helper function to compute uncertainty regarding nPlan estimates
 }
 \examples{
-samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
 result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 }
