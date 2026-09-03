@@ -4,23 +4,37 @@
 #'
 #' Helper function that outputs the name of the analysis.
 #'
+#' @inheritParams designSaviZ
 #' @param testType A character string. For the t-tests: "oneSample", "paired", "twoSample".
 #' @param testName The name of the analysis that is performed such as "Z-Test",
 #' and "Test of Two Proportions".
 #'
 #' @return Returns a character string with the name of the analysis.
-getNameTestType <- function(testType, testName) {
+getNameTestType <- function(testType, testName, relevanceTest=FALSE) {
 
-  testTypeChar <- switch(testType,
-                     "oneSample"="One Sample",
-                     "paired"="Paired Sample",
-                     "twoSample"="Two Sample",
-                     "gLogrank"="Gaussian",
-                     "eLogrank"="Exact",
-                     "logrank"="",
-                     "2x2" = "Test of ")
-  analysisName <- paste("Savi", testTypeChar, testName)
-  return(analysisName)
+  if (isFALSE(relevanceTest)) {
+    testTypeChar <- switch(testType,
+                           "oneSample"="One Sample",
+                           "paired"="Paired Sample",
+                           "twoSample"="Two Sample",
+                           "gLogrank"="Gaussian",
+                           "eLogrank"="Exact",
+                           "logrank"="",
+                           "2x2" = "Test of ")
+    analysisName <- paste("Savi", testTypeChar, testName)
+    return(analysisName)
+  } else if (relevanceTest) {
+    testTypeChar <- switch(testType,
+                           "oneSample"="One Sample",
+                           "paired"="Paired Sample",
+                           "twoSample"="Two Sample",
+                           "gLogrank"="Gaussian",
+                           "eLogrank"="Exact",
+                           "logrank"="",
+                           "2x2" = "Test of ")
+    analysisName <- paste("Savi", testTypeChar, "e-Relevance", testName)
+    return(analysisName)
+  }
 
   # return(paste(nameChar, testName))
 }
@@ -310,15 +324,13 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   testName <- designObj[["testName"]]
   testType <- designObj[["testType"]]
 
-  relevanceTest <- if (!is.null(x[["relevanceTestSim"]])) TRUE else FALSE
-
   note <- designObj[["note"]]
 
   tempName <- getNameTestType("testType"=testType, "testName"=testName)
 
-  extraChar <- if (relevanceTest) " + e-Relevance Test" else ""
+  # extraChar <- if (relevanceTest) " + e-Relevance Test" else ""
 
-  analysisName <- paste0(tempName, extraChar, " Design")
+  analysisName <- paste0(tempName, " Design")
 
   cat("\n")
   cat(strwrap(analysisName, prefix = prefix), sep = "\n")
@@ -326,20 +338,13 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   displayList <- list()
 
-  if (relevanceTest) {
-    designObj[["relevanceTitle"]] <- "\n"
-    designObj[["decision rule 1"]] <- 1/designObj[["alpha"]]
-    designObj[["decision rule 2"]] <- designObj[["relevanceTestSim"]][["alpha"]]
-  } else {
-    designObj[["decision rule"]] <- 1/designObj[["alpha"]]
-  }
+  designObj[["decision rule"]] <- 1/designObj[["alpha"]]
 
   for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
                  "alternativeRestriction", "power", "beta",
                  "eType", "parameter", "alpha",
-                 "decision rule", "decision rule 1",
-                 "logImpliedTarget",
-                 "relevanceTitle", "decision rule 2")) {
+                 "decision rule",
+                 "logImpliedTarget")) {
     itemValue <- designObj[[item]]
     itemValueString <- format(itemValue, digits=digits)
 
@@ -392,13 +397,9 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
       } else if (item=="parameter") {
         displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValueString
       } else if (item=="decision rule") {
-        displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
-      } else if (item=="decision rule 1") {
-        displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
+        displayList[["Reject H_0: e-value >= 1/alpha"]] <- itemValueString
       } else if (item == "eType") {
         displayList[["e-variable type"]] <- itemValueString
-      } else if (item=="decision rule 2") {
-        displayList[["decision rule: e-relevance <= alphaRelevance"]] <- itemValueString
       } else if (item=="logImpliedTarget") {
         tempNeem <- "log(implied target)"
         logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
@@ -422,6 +423,43 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   cat(paste(format(names(displayList), width = 20L, justify = "right"),
             format(displayList, digits = digits), sep = " = "), sep = "\n")
+
+  # Here done with standard
+  relevanceTest <- if (!is.null(x[["relevanceTestSim"]])) TRUE else FALSE
+
+  if (relevanceTest){
+    tempName <- getNameTestType("testType"=testType, "testName"=testName, "relevanceTest"=relevanceTest)
+    analysisName <- paste0(tempName, " Design")
+
+    cat("\n")
+    cat(strwrap(analysisName, prefix = prefix), sep = "\n")
+    cat("\n")
+
+    displayList <- list()
+
+    relevanceObj <- designObj[["relevanceTestSim"]]
+
+    relevanceObj[["Reject H_R"]] <- relevanceObj[["alpha"]]
+
+    for (item in c("parameter", "alpha",
+                   "Reject H_R")) {
+      itemValue <- relevanceObj[[item]]
+      itemValueString <- format(itemValue, digits=digits)
+
+      if (!is.null(itemValue)) {
+        if (item=="parameter") {
+          displayList[[paste("parameter:")]] <- itemValueString
+        } else if (item=="alpha") {
+          displayList[["alphaR"]] <- itemValueString
+        } else if (item=="Reject H_R") {
+          displayList[["Reject H_R: e-relevance <= 1/alphaR"]] <- itemValueString
+        }
+      }
+    }
+
+    cat(paste(format(names(displayList), width = 20L, justify = "right"),
+              format(displayList, digits = digits), sep = " = "), sep = "\n")
+  }
 
   someTime <- designObj[["timeStamp"]]
 

@@ -557,7 +557,16 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
 #'
 #' @examples
 #' matchAlphaRelevanceWith(0.3)
-matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power, beta=NULL, betaDefault=0.2) {
+matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power=NULL, beta=NULL, betaDefault=0.2) {
+  if (is.null(alphaRelevance) && !is.null(power) && !is.null(alpha))
+    alphaRelevance <- min(alpha, 1-power)
+
+  if (!is.null(alphaRelevance) && !is.null(power))
+    alphaRelevance <- min(alphaRelevance, 1-power)
+
+  if (!is.null(alphaRelevance) && !is.null(alpha))
+    alphaRelevance <- min(alphaRelevance, alpha)
+
   if (!is.null(alphaRelevance)) {
     stopifnot(alphaRelevance > 0, alphaRelevance < 1)
     return(alphaRelevance)

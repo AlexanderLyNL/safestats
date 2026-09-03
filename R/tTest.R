@@ -738,6 +738,9 @@ saviTTest.default <- function(
   n1Vec <- NULL
   n2Vec <- NULL
 
+  fpt <- NULL
+  fptRelevance <- NULL
+
   ## Def: test type -------
 
   if (is.null(y)) {
@@ -892,6 +895,24 @@ saviTTest.default <- function(
 
         confSeqMatrix[i, ] <- kaas
       }
+
+      tempConfSeq <- c(max(confSeqMatrix[, 1]), min(confSeqMatrix[, 2]))
+
+      if (tempConfSeq[1] >= tempConfSeq[2]) {
+        warning("Possible high degree of heterogeneity",
+                "leading to an empty running intersection confidence sequence")
+      } else if (tempConfSeq[1] < tempConfSeq[2]) {
+        result[["confSeq"]] <- tempConfSeq
+      }
+
+      fpt <- suppressWarnings(
+        min(which(eValueVec >= 1/designObj[["alpha"]]))
+      )
+
+      if (designObj[["relevanceTest"]])
+        fptRelevance <- suppressWarnings(
+          min(which(eRelevanceVec <= designObj[["relevanceTestSim"]][["alpha"]]))
+        )
     }
   }
 
@@ -924,6 +945,8 @@ saviTTest.default <- function(
   result[["sdObsVec"]] <- sdObsVec
   result[["nEffVec"]] <- nEffVec
   result[["nuVec"]] <- nuVec
+  result[["fpt"]] <- fpt
+  result[["fptRelevance"]] <- fptRelevance
 
   return(result)
 }
@@ -2677,9 +2700,10 @@ defineTTestN <- function(lowN=3, highN=100, ratio=1,
 #'
 #' computeZTSumStats(x=x, y=y)
 #'
-computeZTSumStats <- function(x, y=NULL, sequential=NULL,
-                              paired=FALSE, varEqual=TRUE,
-                              testType=NULL) {
+computeZTSumStats <- function(
+    x, y=NULL, sequential=NULL,
+    paired=FALSE, varEqual=TRUE,
+    testType=NULL) {
 
   # check data
   x <- x[!is.na(x)]
