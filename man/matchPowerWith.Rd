@@ -7,8 +7,10 @@
 matchPowerWith(power, beta = NULL)
 }
 \arguments{
-\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
-and "phiS".}
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
 
 \item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 }

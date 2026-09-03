@@ -11,12 +11,10 @@ checkAndReturnNPlan(
 )
 }
 \arguments{
-\item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the savi test
-defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
-and beta should be set to NULL.}
+\item{nPlan}{optional numeric vector of length at most 2, see scenario 2 and 3 above.}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 }

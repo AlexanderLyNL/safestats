@@ -2,18 +2,18 @@
 
 #' Computes E-Values Based on the T-Statistic
 #'
-#' A summary stats version of \code{\link{saviTTest}()} with the data replaced by t, n1 and n2, and the
-#' design object by deltaS.
+#' A summary stats version of \code{\link{saviTTest}()} with
+#' the data replaced by t, n1 and n2, and the design object by parameter
 #'
 #' @inheritParams designSaviT
 #' @inheritParams saviTTest
 #' @param t numeric that represents the observed t-statistic.
-#' @param parameter numeric > 0, the savi test defining parameter.
-#' @param n1 integer that represents the size in a one-sample T-test, (n2=\code{NULL}). When n2 is not \code{NULL},
-#' this specifies the size of the first sample for a two-sample test.
-#' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
-#' \code{NULL} it implies that the t-statistic is based on one-sample.
-#' @param eType character, type of e-value: "eCauchy" (default), "eGauss", or "grow"
+#' @param parameter numeric > 0, the savi test defining parameter,
+#' see \code{\link{matchEParameterWith}} for details.
+#' @param n1 integer that represents the size of the (first) sample.
+#' Default n2=\code{NULL} implies a one-sample T-test.
+#' @param n2 an optional integer that represents the size of the second sample,
+#' which implies a two-sample t-statistic
 #'
 #' @return Returns a numeric that represent the e10, that is, the e-value in favour of the alternative over the null
 #'
@@ -64,7 +64,8 @@ saviTTestStat <- function(
 #' @rdname saviTTestStat
 #' @inheritParams computeConfidenceIntervalT
 #'
-#' @param nEff numeric > 0, the effective sample size. For one sample test this is just n.
+#' @param nEff numeric > 0, the effective sample size. For one sample tests,
+#' this is just n.
 #' @param nu numeric > 0, the degrees of freedom.
 #'
 #' @references
@@ -563,20 +564,22 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
 }
 
 
-#' Safe Anytime-valid Student's T-Test.
+#' Safe Anytime-Valid Student's T-Test.
 #'
-#' A savi T-test adapted from \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
+#' Savi one- and two-sample T-tests. Takes as input vector(s) of data and a designObj from
+#' \code{\link{designSaviT}}. The function is modelled after \code{\link[stats]{t.test}()}.
 #'
+#' @aliases savi.t.test
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
-#' @param designObj an object obtained from \code{\link{designSaviT}()}, or \code{NULL}, when pilot
-#' equals  \code{TRUE}.
-#' @param paired a logical indicating whether you want a paired T-test.
-#' @param varEqual a logical variable indicating whether to treat the two variances as being equal. For
-#' the moment, this is always \code{TRUE}.
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
-#' and ciValue = 1 - alpha
-#' @param maxRoot Used to bound the candidate set of width of the confidence interval.
+#' @param designObj an object obtained from \code{\link{designSaviT}}.
+#' @param paired a logical, if \code{TRUE} then pair the data.
+#' @param ciValue numeric representing the confidence level.
+#' Default ciValue=NULL yields ciValue = 1 - alpha
+#' @param varEqual a logical variable indicating whether to treat
+#' the two variances as being equal. Default varEqual=TRUE.
+#' @param maxRoot Used to bound the candidate set of width of the
+#' confidence interval/
 #' @param formula a formula of the form lhs ~ rhs where lhs
 #' is a numeric variable giving the data values and rhs
 #' either 1 for a one-sample or paired test or a factor
@@ -597,21 +600,20 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' @param wantCi default TRUE
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class "saviTest". An object of class "saviTest" is a list containing at least the
-#' following components:
+#' @return Returns an object of class 'saviTest'. An object of class 'saviTest'
+#' is a list containing at least the following components:
 #'
 #' \describe{
 #'   \item{statistic}{the value of the t-statistic.}
 #'   \item{n}{The realised sample size(s).}
 #'   \item{eValue}{the realised e-value from the savi test.}
-#'   \item{confSeq}{A savi confidence interval for the mean appropriate to the specific alternative
-#'   hypothesis.}
-#'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it a one-
-#'   sample test or a two-sample test was conducted.}
-#'   \item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
-#'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+#'   \item{confSeq}{A savi confidence interval for the mean (difference)}
+#'   \item{estimate}{the estimated means or mean (difference) depending on
+#'   whether it was a one-sample test or a two-sample test.}
+#'   \item{stderr}{the standard error of the mean (difference), used as
+#'   denominator in the t-statistic formula.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
-#'   \item{designObj}{an object of class "saviTDesign" obtained from \code{\link{designSaviT}()}.}
+#'   \item{designObj}{an object of class "saviDesign" obtained from \code{\link{designSaviT}()}.}
 #'   \item{call}{the expression with which this function is called.}
 #' }
 #'
@@ -625,24 +627,65 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' @export
 #'
 #' @examples
-#' # Examples taken from stats::t.test
+#' ## Examples with simulated data ----
+#' set.seed(1)
+#' x <- rnorm(30, mean=0)
+#' y <- rnorm(40, mean=0)
 #'
-#' # Test without a designObj is not ideal
-#' saviTTest(1:10, y = c(7:20))      # e = 70.454 > 20
+#' # Because no designObj is specified, a default
+#' # designObj is used with deltaMin = 1/2,
+#' # which can be thought of as a medium effect size
+#' # according to Cohen.
+#'
+#' res <- saviTTest(x=x, y=y)
+#'
+#' # By default sequential=TRUE, because length(x) <= 200.
+#' # This allows us to visualise the e-value as a function of
+#' # the n1 and associated n2, where the ratio of sample sizes,
+#' # ratio=n2/n1 is maintained. Here the e-value at n1=6 uses data
+#' # x[1:6] and y[1:ceil(ratio*6)]
+#' plot(res)
+#'
+#' # Plots the confidence sequence
+#' plot(res, wantConfSeqPlot=TRUE)
 #'
 #' # See ?designSaviT for more info
-#' designObj <- designSaviT(deltaMin=0.6, alpha=0.05,
+#' # This designObj also allows for
+#' # evidence quantification that the
+#' # mean difference is minimal clinically
+#' # relevant, here, larger than
+#' # relevanceSize=meanDiffMin
+#' designObj <- designSaviT(deltaMin=0.7, alpha=0.05,
 #'                          alternative="twoSided",
-#'                          testType="twoSample")
+#'                          testType="twoSample",
+#'                          relevanceTest=TRUE)
 #'
-#' saviTTest(1:10, y = c(7:20), designObj=designObj)
+#' res <- saviTTest(x=x, y=y, designObj=designObj)
 #'
-#' # Mimicking the stats::t.test interface.
-#' # Standard calls use the camelCased version though
-#' savi.t.test(1:10, y = c(7:20), designObj=designObj)
+#' plot(res)
 #'
-#' ## Classical example: Student's sleep data
+#' # Note that the e-value against relevance falls below alphaRelevance
+#' # We can reject the hypothesis that the effect is relevantly large,
+#' # larger than designObj$relevanceTestSim$parameter, after a sample size of
+#' min(which(res$eRelevanceVec <= designObj$relevanceTestSim$alpha))
+#'
+#' set.seed(2)
+#' x <- rnorm(30, mean=0.6)
+#' y <- rnorm(40, mean=0)
+#'
+#' res <- saviTTest(x, y, designObj=designObj)
+#'
+#' plot(res)
+#' # We could have stopped sampling after
+#' min(which(res$eValueVec >= 1/designObj$alpha))
+#' # the yellow curve crosses 1/alpha sooner,
+#' # but we do **not** compare eRelevance >= 1/alpha, only eRelevance <= alphaRelevance.
+#'
+#' ## Classical example: Student's sleep data -----
 #' plot(extra ~ group, data = sleep)
+#'
+#' designObj <- designSaviT(deltaMin=0.6, testType="twoSample")
+#'
 #' ## Traditional interface
 #' with(sleep, saviTTest(extra[group == 1], extra[group == 2],
 #'                       designObj=designObj))
@@ -651,13 +694,17 @@ saviTTestStatTDensity <- function(t, parameter, nu, nEff,
 #' saviTTest(extra ~ group, data = sleep, designObj=designObj)
 #'
 #' ## Formula interface to one-sample test
-#' designObj1 <- designSaviT(deltaMin=0.6, testType="oneSample")
+#' designObj1 <- designSaviT(deltaMin=0.6,
+#'                           testType="oneSample",
+#'                           sigma=2)
 #'
 #' saviTTest(extra ~ 1, data = sleep, designObj=designObj1)
 #'
 #' ## Formula interface to paired test
 #' ## The sleep data are actually paired, so could have been in wide format:
-#' designObjPaired <- designSaviT(deltaMin=0.6, testType="paired")
+#' designObjPaired <- designSaviT(deltaMin=0.6,
+#'                                testType="paired",
+#'                                sigma=1.4)
 #' sleep2 <- reshape(sleep, direction = "wide",
 #'                   idvar = "ID", timevar = "group")
 #' saviTTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
@@ -990,15 +1037,17 @@ savi.t.test <- function(x, y=NULL, paired=FALSE, designObj=NULL, varEqual=TRUE,
 }
 
 
-#' Computes Minimal Efficacy E-Values Based on the Z-Statistic in favour of the alternative over minimal efficacy
+#' Computes E-Relevance Values Based on the T-Statistic in favour of the alternative over practical equivalence
 #'
-#' Evidence for minimal efficacy requires the e-value to be small, i.e. smaller than alphaRelevance threshold.
-#' If the alternative holds true, i.e. meanDiffTrue >= relevanceSize, then
-#' the e-value in favour of the alternative over minimal efficacy, e1Mf, then the probability of
-#' ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
+#' Evidence for practical equivalence requires the e-value to be small, i.e.
+#' smaller than alphaRelevance.
+#' If the alternative holds true, i.e. deltaTrue >= relevanceSize, then
+#' there is no more than alphaRelevance probability of ever seeing
+#' eRelevance <= alphaRelevance.
 #'
 #' @rdname saviTTestStat
 #' @inheritParams designSaviT
+#'
 #' @export
 #'
 #' @examples
@@ -1063,9 +1112,10 @@ saviRelevanceTStatNEffNu <- function(
 #' @inheritParams saviTTest
 #' @inheritParams designSaviT
 #'
-#' @param meanObs numeric, the observed mean. For two sample tests this is difference of the means.
-#' @param sdObs numeric, the observed standard deviation. For a two-sample test this is the root
-#' of the pooled variance.
+#' @param meanObs numeric, the observed mean. For two sample tests this
+#' is difference of the means.
+#' @param sdObs numeric, the observed standard deviation. For a two-sample
+#' test this is the root of the pooled variance.
 #'
 #' @return numeric vector that contains the upper and lower bound of the savi confidence sequence
 #' @export
@@ -1173,12 +1223,13 @@ computeConfidenceIntervalT <- function(
 
 #' Design a Frequentist T-Test
 #'
-#' Computes the number of samples necessary to reach a tolerable type I and desired power for the frequentist T-test.
+#' Computes the number of samples necessary to reach a tolerable type I and
+#' desired power for the frequentist T-test.
 #'
 #' @inheritParams designSaviT
 #'
-#' @return Returns an object of class 'freqTDesign'. An object of class 'freqTDesign' is a list containing at least the
-#' following components:
+#' @return Returns an object of class 'freqTDesign'. An object of class
+#' 'freqTDesign' is a list containing at least the following components:
 #' \describe{
 #'   \item{nPlan}{the planned sample size(s).}
 #'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
@@ -1238,78 +1289,94 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
     names(nPlan) <- c("n1Plan", "n2Plan")
   }
 
-  result <- list(nPlan=nPlan, "esMin"=deltaMin, "alpha"=alpha, "beta"=beta,
+  result <- list(nPlan=nPlan, "esMin"=deltaMin, "alpha"=alpha, "power"=1-beta,
                  "testType"=testType, "alternative"=alternative, "ratio"=1, "h0"=h0)
   class(result) <- "freqTDesign"
   return(result)
 }
 
-#' Designs a Safe Anytime-Valid Experiment to Test Means with a T Test
+#' Design a Safe Anytime-Valid Experiment to Test Means with a Z Test
 #'
-#' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
-#' deltaS. If nPlan is provided, then only the savi test defining parameter deltaS needs to determined. That resulting
-#' deltaS leads to an (approximately) most powerful savi test. Typically, nPlan is unknown and the user has to specify
-#' (i) a desired power, and (ii) a clinically relevant minimal population standardised effect size
-#' deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
+#' A designed experiment requires (1) a sample size nPlan to plan for, and
+#' (2) a savi test defining parameter. The design involves alpha and the
+#' three quantities: (1) nPlan, (2) power, and (3) a minimal
+#' clinically relevant standarised mean difference deltaMin.
+#' \describe{
+#'   \item{Scenario 1.a}{Goal: "nPlan" and optimal E-variable. Given: deltaMin and power.}
+#'   \item{Scenario 1.b}{Goal: an optimal E-variable. Given: deltaMin only.}
+#'   \item{Scenario 2}{Goal: "power" and optimal E-variable. Given: deltaMin and nPlan.}
+#'   \item{Scenario 3.a}{Goal: "deltaMin" and optimal E-variable. Given: power and nPlan.}
+#'   \item{Scenario 3.b}{Goal: an optimal E-variable. Given: nPlan only.}
+#'}
 #'
-#' @param deltaMin numeric that defines the minimal relevant standardised effect size, the smallest effect size that
-#' we would the experiment to be able to detect.
-#' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
-#' @param power numeric in (0, 1) that specifies the desired power necessary to calculate both
-#' the sample sizes and deltaS, which defines the test.
-#' @param beta numerical in (0,1). Old parameter now replaced by the power parameter
-#' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-#' "greater" or "less".
-#' @param nPlan vector of max length 2 representing the planned sample sizes.
-#' @param h0 a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.
-#' @param testType either one of "oneSample", "paired", "twoSample".
-#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-#' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
-#' @param parameter optional numeric test defining parameter. Default set to \code{NULL}.
-#' For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-#' over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-#' the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-#' zero and variance g. For eType=="grow" the savi test is a likelihood ratio of the
-#' non-central t-distributions with in the denominator the likelihood with non-centrality
-#' parameter set to 0, and in the numerator an average likelihood defined by the likelihood
-#' at the non-centrality parameter value deltaS. For the two sided
-#' case 1/2 at -deltaS and 1/2 deltaS.
-#' @param lowEsTrue numeric, lower bound for the candidate set of the
-#' targeted minimal clinically relevant effect size.
-#' Design scenario 3: nPlan and beta given, goal find deltaMin.
-#' @param highEsTrue numeric, upper bound for the candidate set of the
-#' targeted minimal clinically relevant effect size.
-#' Design scenario 3: nPlan and beta given, goal find deltaMin.
-#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
-#' for the savi t test under continuous monitoring.
-#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
-#' approximation of the power, the number of samples for the savi t test under continuous monitoring,
-#' or for the computation of the logarithm of the implied target.
-#' @param eType character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-#' a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-#' two point masses at the minimal clinically relevant standardised effect size.
-#' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
+#' Every scenario returns an E-variable adapted to the input. Scenario 1.a,
+#' for instance, outputs the parameter of the provided eType (default mom)
+#' savi test, see \code{\link{matchEParameterWith}} for details, and nPlan.
+#' The nPlan is based on samples paths drawn under deltaTrue (if not specified,
+#' then deltaTrue=deltaMin by default). The resulting nPlan corresponds to the
+#' power (say 80%) quantile of the first-passage time distribution associated
+#' with E crossing threshold 1/alpha.
+#'
+#' @param deltaMin numeric that defines the minimal relevant standardised mean difference,
+#' the smallest population effect size that we would like to detect (with sufficient power).
+#' @param power numeric in (0, 1) that specifies the desired power, that is, the targetted
+#' chance to stop in favour of the alternative over the null hypothesis, when the alternative
+#' holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+#' need to be specified anymore.
+#' @param nPlan optional numeric vector of length at most 2, see scenario 2 and 3 above.
+#' @param alpha numeric in (0, 1) that specifies the tolerable type I error and the null
+#' rejection rule e >= 1/alpha.
+#' @param h0 numeric, representing the null value, default h0=0.
+#' @param alternative a character string specifying the alternative hypothesis. Must be one
+#' of "twoSided" (default), "greater" or "less".
 #' @param sigma numeric > 0 representing the population standard deviation used for the test.
 #' @param sigma2 numeric > 0 representing the population standard deviation used for the test,
 #' for the second group in a two-sample t-test
-#' @param seed integer, seed number.
-#' @param pb logical, if \code{TRUE}, then show progress bar.
+#' @param deltaTrue numeric, data governing effect size used for simulations. Default
+#' deltaTrue=deltaMin.
+#' @param beta numerical in (0,1). Old parameter now replaced by the power parameter
+#' @param testType either one of "oneSample", "paired", "twoSample".
+#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+#' If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
+#' @param parameter numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+#' and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.
+#' @param eType character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+#' and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+#' meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.
+#' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
 #' @param wantSimData logical, if \code{TRUE} then also output the simulated data
-#' @param deltaTrue numeric, to true delta to sample data from. Default deltaTrue=deltaMin
-#' @param varEqual logical, default \code{TRUE} for standard two-sample t-test
+#' @param lowEsTrue numeric, lower bound for the candidate set of the
+#' targeted minimal clinically relevant effect size for scenario 3.a.
+#' @param highEsTrue numeric, upper bound for the candidate set of the
+#' targeted minimal clinically relevant effect size for scenario 3.a.
+#' @param pb logical, if \code{TRUE}, then show progress bar.
+#' @param seed integer, seed number.
+#' @param nSim integer > 0, the number of simulations needed to compute power or the number of
+#' samples paths for the savi t test under continuous monitoring.
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy
+#' of the approximations of the power, the number of samples for the savi t test under continuous
+#' monitoring,or for the computation of the logarithm of the implied target.
+#' @param varEqual a logical variable indicating whether to treat
+#' the two variances as being equal. Default varEqual=TRUE.
 #' @param relevanceTest logical, if \code{TRUE} then impose rule to stop
 #' for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.
-#' @param relevanceSize numeric, the minimal clinical relevant standardised mean
+#' @param relevanceTest logical, if \code{TRUE} then impose a rule to stop
+#' for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.
+#' @param relevanceSize numeric, the minimal clinical relevant mean
 #' difference that we do not want to miss under the alternative.
-#' Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)
-#' @param alphaRelevance numeric, the threshold for relevance test.
+#' Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)
+#' @param alphaRelevance numeric, the threshold for relevance test. Taken to be minimum of
+#' alpha and 1-power.
 #' @param betaDefault numeric, defaulting value for 1-power and alphaRelevance
 #' @param highN integer, largest possible sampling horizon. This might be the
 #' largest n that we are able to fund, which by default is set to 1e4L.
 #' Typically, highN is not used, as the function
-#' @param wantSampling logical, default \code{TRUE} so the procedure samples
-#' to derive nPlan and power
+#' `computeNPlanBatchSaviT()` tries to find the sampling horizon.
+#' If all fails, then use highN as the sampling horizon.
+#' @param wantSampling logical, default TRUE so sampling paths are drawn.
+#' For instance, if meanDiffMin and power, are given, then nPlan
+#' (scenario 1a) is derived by sampling. Set this to FALSE, whenever we
+#' want to run a minimal efficacy test without needing to know nPlan
 #' @param nuMin numeric > 0, the minimum degrees of freedom under which the results
 #' are trivial, thus, 1.
 #' @param ... further arguments to be passed to or from methods, but mainly to perform do.calls.
@@ -1318,19 +1385,21 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
 #' following components:
 #'
 #' \describe{
-#'   \item{nPlan}{the planned sample size(s).}
-#'   \item{parameter}{the savi test defining parameter. Here deltaS.}
-#'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+# #'   \item{nPlan}{the planned sample size(s).}
+#'   \item{parameter}{the savi test defining parameter, see \code{\link{matchEParameterWith}}.}
+# #'   \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
-#'   \item{power}{the desired power provided by the user.}
-#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-#'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-#'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
-#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
-#'   whether it was a one-sample or a two-sample test.}
-#'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
-#'   ratio between the planned randomisation of condition 2 over condition 1.}
-#'   \item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
+# #'   \item{power}{the desired power provided by the user.}
+# #'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
+# #'   \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+# #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
+# #'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on
+# #'   whether it was a one-sample or a two-sample test.}
+# #'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+# #'   ratio between the planned randomisation of condition 2 over condition 1.}
+#'   \item{pilot}{logical, specifying whether it's a pilot design, which occurs
+#'   when saviTTest is called without a designObj.}
+#'   \item{testName}{"T-Test".}
 #'   \item{call}{the expression with which this function is called.}
 #' }
 #'
@@ -1341,19 +1410,31 @@ designFreqT <- function(deltaMin, alpha=0.05, power=0.8,
 #' @export
 #'
 #' @examples
-#' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, alternative="greater")
-#' designObj
+#' # Scenario 1.b: Goal: an E-variable
+#' designObj <- designSaviT(deltaMin=0.8)
 #'
-#' # "Scenario 1.a": Minimal clinically relevant standarised mean difference and
-#' # desired power also known. Goal: find nPlan.
-#' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
-#' designObj
+#' # Scenario 1.a: Goal: "nPlan" and optimal E-variable.
+#' designObj <- designSaviT(deltaMin=0.8, power=0.6, alpha=0.2,
+#'                          alternative="greater", nSim=100)
 #'
-#' # "Scenario 2": Minimal clinically relevant standarised mean difference and nPlan known.
-#' # Goal: find the power of the procedure under optional stopping.
+#' plot(designObj)
 #'
-#' designObj <- designSaviT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
-#' designObj
+#' # Scenario 1a. with relevance testing, also stopping for practically null
+#' designObj <- designSaviT(deltaMin=0.8, power=0.6, alpha=0.2,
+#'                          alternative="greater", nSim=100,
+#'                          relevanceTest=TRUE)
+#'
+#' plot(designObj)
+#'
+#' # Scenario 2: Goal: "power" and optimal E-variable
+#' designObj <- designSaviT(deltaMin=0.8, nPlan=16, nSim=100)
+#'
+#' # Scenario 3.a: Goal: "meanDiffMin" and optimal E-variable
+#' designObj <- designSaviT(power=0.7, nPlan=16)
+#'
+#' # Scenario 3.b: Goal: an optimal E-variable. Given: nPlan only.
+#' designObj <- designSaviT(nPlan=16)
+#'
 designSaviT <- function(
     deltaMin=NULL, power=NULL, nPlan=NULL,
     alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
@@ -1594,9 +1675,9 @@ designSaviT <- function(
 }
 
 
-#' Helper function to designing a T-test (output nPlan)
+#' Helper function to designing a savi T-test (output nPlan)
 #'
-#' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
+#' Finds the parameter and power when provided with only alpha, esMin, and nPlan
 #'
 #' @inheritParams designSaviT
 #'
@@ -1644,14 +1725,14 @@ designSaviT1aWantNPlan <- function(
 
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
-                               "esMin"=deltaMin, power=power,
+                               "esMin"=deltaMin, "power"=power,
                                "beta"=NULL, "ratio"=ratio, "testType"=testType)
   return(result)
 }
 
-#' Helper function to designing a T-test (output beta)
+#' Helper function to designing a savi T-test (output power)
 #'
-#' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
+#' Finds the parameter and power when provided with only alpha, esMin, and nPlan
 #'
 #' @inheritParams designSaviT
 #'
@@ -1702,9 +1783,9 @@ designSaviT2WantPower <- function(
   return(result)
 }
 
-#' Helper function to designing a T-test (output esMin)
+#' Helper function to designing a Savi T-test (output esMin)
 #'
-#' Finds the parameter and esMin when provided with only alpha, beta, and nPlan
+#' Finds the parameter and esMin when provided with only alpha, power, and nPlan
 #'
 #' @inheritParams designSaviT
 #'
@@ -1767,9 +1848,9 @@ designSaviT3WantEsMin <- function(
   return(result)
 }
 
-#' Helper function to designing a T-test (output deltaMin based on the shortest interval at nPlan)
+#' Helper function to designing a savi T-test (output deltaMin based on the shortest interval at nPlan)
 #'
-#' Finds the parameter and deltaMin when provided with only alpha, nPlan
+#' Finds the parameter and deltaMin when provided with only alpha and nPlan
 #'
 #' @inheritParams designSaviT
 #'
@@ -1881,13 +1962,13 @@ designSaviT3bWantParameter <- function(
 
 # Batch design fnts ------
 
-#' Helper function: Computes the planned sample size for the savi T-test based on the minimal clinically
-#' relevant standardised effect size, alpha and beta.
+#' Helper function: Computes the planned sample size for the savi T-test
+#' based deltaMin, alpha and power
 #'
 #' @inheritParams designSaviT
 #' @inheritParams sampleStoppingTimesSaviT
 #'
-#' @return a list which contains at least nPlan and the deltaS the parameter that defines the savi test
+#' @return a list which contains at least nPlan and the savi test defining parameter
 #'
 #' @references
 #'   `r addCite(grunwald2024safe)`
@@ -2032,12 +2113,12 @@ computeNPlanBatchSaviT <- function(
   return(result)
 }
 
-#' Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
+#' Computes the smallest detectable deltaMin with power probability, for the provided
 #' sample size
 #'
 #' @inheritParams  designSaviT
 #'
-#' @return numeric > 0 that represents the minimal detectable mean difference
+#' @return numeric > 0 that represents the minimal detectable effect size
 #' @export
 #'
 #' @references
@@ -2385,14 +2466,13 @@ sampleStoppingTimesSaviT <- function(
 }
 
 
-#' Helper function: Computes the power of the saviTTest based on the minimal clinically relevant
-#' standardised mean difference and nPlan.
+#' Helper function: Computes the power of the saviTTest based on deltaMin and nPlan
 #'
 #' @inheritParams designSaviT
 #' @inheritParams saviTTestStat
 #' @inheritParams sampleStoppingTimesSaviT
 #'
-#' @return a list which contains at least beta and an adapted bootObject of class
+#' @return a list which contains at least power and an adapted bootObject of class
 #' \code{\link[boot]{boot}()}.
 #' @export
 #'
@@ -2461,8 +2541,7 @@ computePowerSaviT <- function(
 }
 
 
-#' Helper function: Computes the planned sample size of the savi T-test based on the
-#' minimal clinical relevant standardised mean difference.
+#' Helper function: Computes nPlan based on deltaMin and power
 #'
 #'
 #' @inheritParams designSaviT
@@ -2551,11 +2630,10 @@ computeNPlanSaviT <- function(
 
 # Helper fnts ------
 
-#' Computes a Sequence of (Effective) Sample Sizes
+#' Computes a Sequence of (Effective) Sample Sizes of Z- and T-Tests
 #'
 #' Helper function that outputs a sequence of sample sizes, effective sample sizes,
 #' and the degrees of freedom depending on the type of T-test. Also used for Z-tests.
-#'
 #'
 #' @inheritParams designSaviT
 #'
@@ -2832,8 +2910,8 @@ compute1F1AllVersions <- function(U, L, z, tol=0, maxiter=2000) {
 #' @inheritParams designSaviT
 #' @inheritParams saviTTest
 #'
-#' @param meanDiffTrue numeric representing the true mean for simulations with a Z-test.
-#' Default \code{NULL}
+#' @param meanDiffTrue numeric representing the true mean for
+#' simulations with a Z-test. Default \code{NULL}
 #' @param muGlobal numeric, population grand mean
 #' @param sigma numeric > 0, population standard deviation
 #' @param meanDiffTrue numeric, data governing parameter value

@@ -10,10 +10,10 @@
 \alias{safeTTest.formula}
 \alias{safe.t.test}
 \alias{saviTTest}
+\alias{savi.t.test}
 \alias{saviTTest.default}
 \alias{saviTTest.formula}
-\alias{savi.t.test}
-\title{Safe Anytime-valid Student's T-Test.}
+\title{Safe Anytime-Valid Student's T-Test.}
 \usage{
 saviTTest(x, ...)
 
@@ -47,7 +47,7 @@ savi.t.test(
 \arguments{
 \item{tDensity}{Uses the the representation of the savi T-test as the likelihood ratio of t densities.}
 
-\item{paired}{a logical indicating whether you want a paired T-test.}
+\item{paired}{a logical, if \code{TRUE} then pair the data.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
@@ -55,16 +55,16 @@ savi.t.test(
 
 \item{y}{an optional (non-empty) numeric vector of data values.}
 
-\item{designObj}{an object obtained from \code{\link{designSaviT}()}, or \code{NULL}, when pilot
-equals  \code{TRUE}.}
+\item{designObj}{an object obtained from \code{\link{designSaviT}}.}
 
-\item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
-the moment, this is always \code{TRUE}.}
+\item{varEqual}{a logical variable indicating whether to treat
+the two variances as being equal. Default varEqual=TRUE.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
-and ciValue = 1 - alpha}
+\item{ciValue}{numeric representing the confidence level.
+Default ciValue=NULL yields ciValue = 1 - alpha}
 
-\item{maxRoot}{Used to bound the candidate set of width of the confidence interval.}
+\item{maxRoot}{Used to bound the candidate set of width of the
+confidence interval/}
 
 \item{sequential}{a logical indicating whether a sequential
 analysis should be performed.}
@@ -93,26 +93,26 @@ are trivial, thus, 1.}
 \item{wantCi}{default TRUE}
 }
 \value{
-Returns an object of class "saviTest". An object of class "saviTest" is a list containing at least the
-following components:
+Returns an object of class 'saviTest'. An object of class 'saviTest'
+is a list containing at least the following components:
 
 \describe{
 \item{statistic}{the value of the t-statistic.}
 \item{n}{The realised sample size(s).}
 \item{eValue}{the realised e-value from the savi test.}
-\item{confSeq}{A savi confidence interval for the mean appropriate to the specific alternative
-hypothesis.}
-\item{estimate}{the estimated mean or difference in means or mean difference depending on whether it a one-
-sample test or a two-sample test was conducted.}
-\item{stderr}{the standard error of the mean (difference), used as denominator in the t-statistic formula.}
-\item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
+\item{confSeq}{A savi confidence interval for the mean (difference)}
+\item{estimate}{the estimated means or mean (difference) depending on
+whether it was a one-sample test or a two-sample test.}
+\item{stderr}{the standard error of the mean (difference), used as
+denominator in the t-statistic formula.}
 \item{dataName}{a character string giving the name(s) of the data.}
-\item{designObj}{an object of class "saviTDesign" obtained from \code{\link{designSaviT}()}.}
+\item{designObj}{an object of class "saviDesign" obtained from \code{\link{designSaviT}()}.}
 \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-A savi T-test adapted from \code{\link[stats]{t.test}()} to perform one and two sample T-tests on vectors of data.
+Savi one- and two-sample T-tests. Takes as input vector(s) of data and a designObj from
+\code{\link{designSaviT}}. The function is modelled after \code{\link[stats]{t.test}()}.
 }
 \section{Functions}{
 \itemize{
@@ -135,24 +135,65 @@ A savi T-test adapted from \code{\link[stats]{t.test}()} to perform one and two 
 
 }}
 \examples{
-# Examples taken from stats::t.test
+## Examples with simulated data ----
+set.seed(1)
+x <- rnorm(30, mean=0)
+y <- rnorm(40, mean=0)
 
-# Test without a designObj is not ideal
-saviTTest(1:10, y = c(7:20))      # e = 70.454 > 20
+# Because no designObj is specified, a default
+# designObj is used with deltaMin = 1/2,
+# which can be thought of as a medium effect size
+# according to Cohen.
+
+res <- saviTTest(x=x, y=y)
+
+# By default sequential=TRUE, because length(x) <= 200.
+# This allows us to visualise the e-value as a function of
+# the n1 and associated n2, where the ratio of sample sizes,
+# ratio=n2/n1 is maintained. Here the e-value at n1=6 uses data
+# x[1:6] and y[1:ceil(ratio*6)]
+plot(res)
+
+# Plots the confidence sequence
+plot(res, wantConfSeqPlot=TRUE)
 
 # See ?designSaviT for more info
-designObj <- designSaviT(deltaMin=0.6, alpha=0.05,
+# This designObj also allows for
+# evidence quantification that the
+# mean difference is minimal clinically
+# relevant, here, larger than
+# relevanceSize=meanDiffMin
+designObj <- designSaviT(deltaMin=0.7, alpha=0.05,
                          alternative="twoSided",
-                         testType="twoSample")
+                         testType="twoSample",
+                         relevanceTest=TRUE)
 
-saviTTest(1:10, y = c(7:20), designObj=designObj)
+res <- saviTTest(x=x, y=y, designObj=designObj)
 
-# Mimicking the stats::t.test interface.
-# Standard calls use the camelCased version though
-savi.t.test(1:10, y = c(7:20), designObj=designObj)
+plot(res)
 
-## Classical example: Student's sleep data
+# Note that the e-value against relevance falls below alphaRelevance
+# We can reject the hypothesis that the effect is relevantly large,
+# larger than designObj$relevanceTestSim$parameter, after a sample size of
+min(which(res$eRelevanceVec <= designObj$relevanceTestSim$alpha))
+
+set.seed(2)
+x <- rnorm(30, mean=0.6)
+y <- rnorm(40, mean=0)
+
+res <- saviTTest(x, y, designObj=designObj)
+
+plot(res)
+# We could have stopped sampling after
+min(which(res$eValueVec >= 1/designObj$alpha))
+# the yellow curve crosses 1/alpha sooner,
+# but we do **not** compare eRelevance >= 1/alpha, only eRelevance <= alphaRelevance.
+
+## Classical example: Student's sleep data -----
 plot(extra ~ group, data = sleep)
+
+designObj <- designSaviT(deltaMin=0.6, testType="twoSample")
+
 ## Traditional interface
 with(sleep, saviTTest(extra[group == 1], extra[group == 2],
                       designObj=designObj))
@@ -161,13 +202,17 @@ with(sleep, saviTTest(extra[group == 1], extra[group == 2],
 saviTTest(extra ~ group, data = sleep, designObj=designObj)
 
 ## Formula interface to one-sample test
-designObj1 <- designSaviT(deltaMin=0.6, testType="oneSample")
+designObj1 <- designSaviT(deltaMin=0.6,
+                          testType="oneSample",
+                          sigma=2)
 
 saviTTest(extra ~ 1, data = sleep, designObj=designObj1)
 
 ## Formula interface to paired test
 ## The sleep data are actually paired, so could have been in wide format:
-designObjPaired <- designSaviT(deltaMin=0.6, testType="paired")
+designObjPaired <- designSaviT(deltaMin=0.6,
+                               testType="paired",
+                               sigma=1.4)
 sleep2 <- reshape(sleep, direction = "wide",
                   idvar = "ID", timevar = "group")
 saviTTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,

@@ -22,14 +22,17 @@ computeConfidenceIntervalZ(
 
 \item{meanObs}{numeric, the observed mean. For two sample tests this is difference of the means.}
 
-\item{parameter}{numeric > 0, the savi test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter,
+see \code{\link{matchEParameterWith}} for details.}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
+\item{ciValue}{numeric representing the confidence level.
+Default ciValue=NULL yields ciValue = 1 - alpha}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{a}{numeric, only used for eType="credibleInterval". a specifies the centre of the Gaussian
 prior on population mean.}
@@ -47,8 +50,8 @@ does not shrink as the sample size tends to infinity. "freq" yields the standard
 confidence interval, which is not safe. "credibleInterval" yields the Bayesian credible interval
 based on a conjugate prior as is usual in Bayesian analysis. This interval is also not safe.}
 
-\item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
-whenever eType="eCauchy"}
+\item{maxRoot}{Used to bound the candidate set of width of the
+confidence interval, whenever eType="eCauchy"}
 }
 \value{
 numeric vector that contains the upper and lower bound of the savi confidence sequence

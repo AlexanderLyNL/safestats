@@ -327,6 +327,7 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   displayList <- list()
 
   if (relevanceTest) {
+    designObj[["relevanceTitle"]] <- "\n"
     designObj[["decision rule 1"]] <- 1/designObj[["alpha"]]
     designObj[["decision rule 2"]] <- designObj[["relevanceTestSim"]][["alpha"]]
   } else {
@@ -335,9 +336,10 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
                  "alternativeRestriction", "power", "beta",
-                 "parameter", "alpha",
-                 "decision rule", "decision rule 1", "decision rule 2",
-                 "logImpliedTarget", "eType")) {
+                 "eType", "parameter", "alpha",
+                 "decision rule", "decision rule 1",
+                 "logImpliedTarget",
+                 "relevanceTitle", "decision rule 2")) {
     itemValue <- designObj[[item]]
     itemValueString <- format(itemValue, digits=digits)
 

@@ -85,52 +85,57 @@ saviRelevanceTStatNEffNu(
 \arguments{
 \item{t}{numeric that represents the observed t-statistic.}
 
-\item{n1}{integer that represents the size in a one-sample T-test, (n2=\code{NULL}). When n2 is not \code{NULL},
-this specifies the size of the first sample for a two-sample test.}
+\item{n1}{integer that represents the size of the (first) sample.
+Default n2=\code{NULL} implies a one-sample T-test.}
 
-\item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
-\code{NULL} it implies that the t-statistic is based on one-sample.}
+\item{n2}{an optional integer that represents the size of the second sample,
+which implies a two-sample t-statistic}
 
-\item{parameter}{numeric > 0, the savi test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter,
+see \code{\link{matchEParameterWith}} for details.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{tDensity}{Uses the the representation of the savi T-test as the likelihood ratio of t densities.}
 
-\item{paired}{a logical indicating whether you want a paired T-test.}
+\item{paired}{a logical, if \code{TRUE} then pair the data.}
 
 \item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
 are trivial, thus, 1.}
 
-\item{eType}{character, type of e-value: "eCauchy" (default), "eGauss", or "grow"}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 
-\item{nEff}{numeric > 0, the effective sample size. For one sample test this is just n.}
+\item{nEff}{numeric > 0, the effective sample size. For one sample tests,
+this is just n.}
 
 \item{nu}{numeric > 0, the degrees of freedom.}
 
 \item{k}{the moment used for the non-local moment prior. Default 1}
 
-\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)}
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 }
 \value{
 Returns a numeric that represent the e10, that is, the e-value in favour of the alternative over the null
 }
 \description{
-A summary stats version of \code{\link{saviTTest}()} with the data replaced by t, n1 and n2, and the
-design object by deltaS.
+A summary stats version of \code{\link{saviTTest}()} with
+the data replaced by t, n1 and n2, and the design object by parameter
 
 This is \code{\link{saviTTestStat}()} based on t-densities instead of
 hypergeometric functions.
 
-Evidence for minimal efficacy requires the e-value to be small, i.e. smaller than alphaRelevance threshold.
-If the alternative holds true, i.e. meanDiffTrue >= relevanceSize, then
-the e-value in favour of the alternative over minimal efficacy, e1Mf, then the probability of
-ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
+Evidence for practical equivalence requires the e-value to be small, i.e.
+smaller than alphaRelevance.
+If the alternative holds true, i.e. deltaTrue >= relevanceSize, then
+there is no more than alphaRelevance probability of ever seeing
+eRelevance <= alphaRelevance.
 }
 \examples{
 saviTTestStat(t=1, n1=100, parameter=0.4)

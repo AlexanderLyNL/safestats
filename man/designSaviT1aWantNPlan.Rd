@@ -3,7 +3,7 @@
 \name{designSafeT1aWantNPlan}
 \alias{designSafeT1aWantNPlan}
 \alias{designSaviT1aWantNPlan}
-\title{Helper function to designing a T-test (output nPlan)}
+\title{Helper function to designing a savi T-test (output nPlan)}
 \usage{
 designSaviT1aWantNPlan(
   deltaMin,
@@ -32,35 +32,28 @@ designSaviT1aWantNPlan(
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
-we would the experiment to be able to detect.}
+\item{deltaMin}{numeric that defines the minimal relevant standardised mean difference,
+the smallest population effect size that we would like to detect (with sufficient power).}
 
 \item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of the
-non-central t-distributions with in the denominator the likelihood with non-centrality
-parameter set to 0, and in the numerator an average likelihood defined by the likelihood
-at the non-centrality parameter value deltaS. For the two sided
-case 1/2 at -deltaS and 1/2 deltaS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant standardised effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
@@ -68,35 +61,39 @@ two point masses at the minimal clinically relevant standardised effect size.}
 
 \item{seed}{integer, seed number.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the savi t test under continuous monitoring.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi t test under continuous monitoring.}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
-approximation of the power, the number of samples for the savi t test under continuous monitoring,
-or for the computation of the logarithm of the implied target.}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy
+of the approximations of the power, the number of samples for the savi t test under continuous
+monitoring,or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 
-\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
-the sample sizes and deltaS, which defines the test.}
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
 
-\item{deltaTrue}{numeric, to true delta to sample data from. Default deltaTrue=deltaMin}
+\item{deltaTrue}{numeric, data governing effect size used for simulations. Default
+deltaTrue=deltaMin.}
 
 \item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
 
-\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+\item{relevanceTest}{logical, if \code{TRUE} then impose a rule to stop
 for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 
-\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)}
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 
 \item{sigma}{numeric > 0 representing the population standard deviation used for the test.}
 
 \item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
 for the second group in a two-sample t-test}
 
-\item{alphaRelevance}{numeric, the threshold for relevance test.}
+\item{alphaRelevance}{numeric, the threshold for relevance test. Taken to be minimum of
+alpha and 1-power.}
 
 \item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
 are trivial, thus, 1.}
@@ -105,7 +102,7 @@ are trivial, thus, 1.}
 A list with the parameter and the targeted nPlan amongst other items
 }
 \description{
-Finds the parameter and beta when provided with only alpha, esMin, and nPlan
+Finds the parameter and power when provided with only alpha, esMin, and nPlan
 }
 \section{Functions}{
 \itemize{

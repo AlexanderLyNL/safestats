@@ -3,8 +3,7 @@
 \name{computeNPlanBatchSafeZ}
 \alias{computeNPlanBatchSafeZ}
 \alias{computeNPlanBatchSaviZ}
-\title{Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta.}
+\title{Helper function: Computes nPlan based on meanDiffTrue, alpha and power.}
 \usage{
 computeNPlanBatchSaviZ(
   meanDiffTrue,
@@ -24,34 +23,30 @@ computeNPlanBatchSaviZ(
 )
 }
 \arguments{
-\item{meanDiffTrue}{numeric, data governing mean difference used for simulation under the alternative}
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulations. Default
+meanDiffTrue=meanDiffMin.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
 \item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average
-likelihood defined by the likelihood at the parameter value phiS. For the two sided
-case 1/2 at -phiS and 1/2 phiS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
 \item{highN}{integer, largest possible sampling horizon. This might be the
 largest n that we are able to fund, which by default is set to 1e4L.
@@ -59,24 +54,24 @@ Typically, highN is not used, as the function
 \code{computeNPlanBatchSaviZ()} tries to find the sampling horizon.
 If all fails, then use highN as the sampling horizon.}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
-\item{power}{numeric in (0, 1) specifies the desired power necessary to calculate both "n"
-and "phiS".}
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
 
-\item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
-that we would like to detect.}
+\item{meanDiffMin}{numeric that defines the minimal relevant mean difference,
+the smallest population mean difference that we would like to detect (with sufficient power).}
 }
 \value{
-a list which contains at least nPlan and the phiS, that is, the parameter that defines
-the savi test.
+a list which contains at least nPlan and the savi test defining parameter.
 }
 \description{
-Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta.
+Helper function: Computes nPlan based on meanDiffTrue, alpha and power.
 }
 \section{Functions}{
 \itemize{

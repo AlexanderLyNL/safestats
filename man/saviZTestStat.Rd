@@ -38,20 +38,22 @@ saviRelevanceZStat(
 \code{NULL}, this specifies the size of the first sample for a two-sample test.}
 
 \item{n2}{an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
-\code{NULL} it implies that the z-statistic is based on one-sample.}
+\code{NULL} then the z-statistic is assumed to be one-sample.}
 
-\item{parameter}{numeric > 0, the savi test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter,
+see \code{\link{matchEParameterWith}} for details.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{paired}{a logical indicating whether you want the paired Z-test.}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{...}{further arguments to be passed to or from methods.}
 
@@ -63,12 +65,13 @@ Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 Returns an e-value.
 }
 \description{
-Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
+Computes e-values using the z-statistic and the sample sizes  based on the test defining parameter phiS.
 
-Evidence for practical equivalence requires the e-value to be small, i.e. smaller than alphaRelevance threshold.
+Evidence for practical equivalence requires the e-value to be small, i.e.
+smaller than alphaRelevance.
 If the alternative holds true, i.e. meanDiffTrue >= relevanceSize, then
-the e-value in favour of the alternative over minimal efficiency, e1f, then the probability of
-ever seeing e1f <= alphaRelevance is not more than alphaRelevance.
+there is no more than alphaRelevance probability of ever seeing
+eRelevance <= alphaRelevance.
 }
 \examples{
 saviZTestStat(z=3, n1=100, parameter=0.4, eType="grow")

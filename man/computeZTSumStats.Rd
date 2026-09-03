@@ -21,10 +21,10 @@ computeZTSumStats(
 \item{sequential}{a logical indicating whether a sequential
 analysis should be performed.}
 
-\item{paired}{a logical indicating whether you want a paired T-test.}
+\item{paired}{a logical, if \code{TRUE} then pair the data.}
 
-\item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
-the moment, this is always \code{TRUE}.}
+\item{varEqual}{a logical variable indicating whether to treat
+the two variances as being equal. Default varEqual=TRUE.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 }

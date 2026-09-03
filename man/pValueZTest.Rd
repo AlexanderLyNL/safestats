@@ -22,8 +22,8 @@ pValueZTest(
 \arguments{
 \item{z}{numeric that represents the observed z-statistic.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{...}{further arguments to be passed to or from methods.}
 
@@ -33,14 +33,16 @@ pValueZTest(
 
 \item{paired}{a logical indicating whether you want the paired Z-test.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
+\item{ciValue}{numeric representing the confidence level.
+Default ciValue=NULL yields ciValue = 1 - alpha}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
-\item{h0}{numeric, represents the null hypothesis, default h0=0.}
+\item{h0}{numeric, representing the null value, default h0=0.}
 }
 \value{
 pValueTest object

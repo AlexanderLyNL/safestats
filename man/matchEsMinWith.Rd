@@ -13,25 +13,20 @@ matchEsMinWith(
 )
 }
 \arguments{
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average
-likelihood defined by the likelihood at the parameter value phiS. For the two sided
-case 1/2 at -phiS and 1/2 phiS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
 \item{analysisType}{character. Either "z", "t", or "logRank", currently.}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 }
 \value{
 the parameter, a numeric value

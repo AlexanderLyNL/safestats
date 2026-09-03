@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{computeMinEsBatchSaviT}
 \alias{computeMinEsBatchSaviT}
-\title{Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
+\title{Computes the smallest detectable deltaMin with power probability, for the provided
 sample size}
 \usage{
 computeMinEsBatchSaviT(
@@ -20,50 +20,43 @@ computeMinEsBatchSaviT(
 )
 }
 \arguments{
-\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+\item{nPlan}{optional numeric vector of length at most 2, see scenario 2 and 3 above.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
-the sample sizes and deltaS, which defines the test.}
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of the
-non-central t-distributions with in the denominator the likelihood with non-centrality
-parameter set to 0, and in the numerator an average likelihood defined by the likelihood
-at the non-centrality parameter value deltaS. For the two sided
-case 1/2 at -deltaS and 1/2 deltaS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
 \item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant standardised effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{lowEsTrue}{numeric, lower bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find deltaMin.}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 
 \item{highEsTrue}{numeric, upper bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find deltaMin.}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
-numeric > 0 that represents the minimal detectable mean difference
+numeric > 0 that represents the minimal detectable effect size
 }
 \description{
-Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
+Computes the smallest detectable deltaMin with power probability, for the provided
 sample size
 }
 \examples{

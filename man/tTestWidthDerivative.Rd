@@ -9,12 +9,13 @@ tTestWidthDerivative(g, nEff, nu, alpha = 0.05)
 \arguments{
 \item{g}{prior variance of the eGauss t-test}
 
-\item{nEff}{numeric > 0, the effective sample size. For one sample test this is just n.}
+\item{nEff}{numeric > 0, the effective sample size. For one sample tests,
+this is just n.}
 
 \item{nu}{numeric > 0, the degrees of freedom.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 }
 \value{
 a number that should be zero when g is optimal

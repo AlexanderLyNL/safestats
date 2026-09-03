@@ -32,8 +32,8 @@ detect.}
 
 \item{nEvents}{numeric > 0, targetted number of events.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis, which must be one of
 "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
@@ -57,9 +57,9 @@ ignores m1 and m0.}
 \item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 

@@ -8,7 +8,7 @@
 \alias{computeNPlanBatchSafeT}
 \alias{computeMinEsBatchSafeT}
 \alias{designSaviT}
-\title{Designs a Safe Anytime-Valid Experiment to Test Means with a T Test}
+\title{Design a Safe Anytime-Valid Experiment to Test Means with a Z Test}
 \usage{
 designSaviT(
   deltaMin = NULL,
@@ -45,67 +45,61 @@ designSaviT(
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
-we would the experiment to be able to detect.}
+\item{deltaMin}{numeric that defines the minimal relevant standardised mean difference,
+the smallest population effect size that we would like to detect (with sufficient power).}
 
 \item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+\item{nPlan}{optional numeric vector of length at most 2, see scenario 2 and 3 above.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
+\item{h0}{numeric, representing the null value, default h0=0.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of the
-non-central t-distributions with in the denominator the likelihood with non-centrality
-parameter set to 0, and in the numerator an average likelihood defined by the likelihood
-at the non-centrality parameter value deltaS. For the two sided
-case 1/2 at -deltaS and 1/2 deltaS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant standardised effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{lowEsTrue}{numeric, lower bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find deltaMin.}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 
 \item{highEsTrue}{numeric, upper bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find deltaMin.}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{seed}{integer, seed number.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the savi t test under continuous monitoring.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi t test under continuous monitoring.}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
-approximation of the power, the number of samples for the savi t test under continuous monitoring,
-or for the computation of the logarithm of the implied target.}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy
+of the approximations of the power, the number of samples for the savi t test under continuous
+monitoring,or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 
-\item{deltaTrue}{numeric, to true delta to sample data from. Default deltaTrue=deltaMin}
+\item{deltaTrue}{numeric, data governing effect size used for simulations. Default
+deltaTrue=deltaMin.}
 
-\item{power}{numeric in (0, 1) that specifies the desired power necessary to calculate both
-the sample sizes and deltaS, which defines the test.}
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
 
 \item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
 
@@ -114,25 +108,31 @@ the sample sizes and deltaS, which defines the test.}
 \item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
 for the second group in a two-sample t-test}
 
-\item{varEqual}{logical, default \code{TRUE} for standard two-sample t-test}
+\item{varEqual}{a logical variable indicating whether to treat
+the two variances as being equal. Default varEqual=TRUE.}
 
-\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+\item{relevanceTest}{logical, if \code{TRUE} then impose a rule to stop
 for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 
-\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
 difference that we do not want to miss under the alternative.
-Default relevanceSize=NULL implies relevanceSize=abs(deltaMin)}
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
 
-\item{alphaRelevance}{numeric, the threshold for relevance test.}
+\item{alphaRelevance}{numeric, the threshold for relevance test. Taken to be minimum of
+alpha and 1-power.}
 
 \item{betaDefault}{numeric, defaulting value for 1-power and alphaRelevance}
 
 \item{highN}{integer, largest possible sampling horizon. This might be the
 largest n that we are able to fund, which by default is set to 1e4L.
-Typically, highN is not used, as the function}
+Typically, highN is not used, as the function
+\code{computeNPlanBatchSaviT()} tries to find the sampling horizon.
+If all fails, then use highN as the sampling horizon.}
 
-\item{wantSampling}{logical, default \code{TRUE} so the procedure samples
-to derive nPlan and power}
+\item{wantSampling}{logical, default TRUE so sampling paths are drawn.
+For instance, if meanDiffMin and power, are given, then nPlan
+(scenario 1a) is derived by sampling. Set this to FALSE, whenever we
+want to run a minimal efficacy test without needing to know nPlan}
 
 \item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
 are trivial, thus, 1.}
@@ -142,28 +142,35 @@ Returns an object of class 'saviDesign'. An object of class 'saviDesign' is a li
 following components:
 
 \describe{
-\item{nPlan}{the planned sample size(s).}
-\item{parameter}{the savi test defining parameter. Here deltaS.}
-\item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
+\item{parameter}{the savi test defining parameter, see \code{\link{matchEParameterWith}}.}
 \item{alpha}{the tolerable type I error provided by the user.}
-\item{power}{the desired power provided by the user.}
-\item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-\item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
-\item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
-\item{h0}{the specified hypothesised value of the mean or mean difference depending on
-whether it was a one-sample or a two-sample test.}
-\item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
-ratio between the planned randomisation of condition 2 over condition 1.}
-\item{pilot}{\code{FALSE} (default) specified by the user to indicate that the design is not a pilot study.}
+\item{pilot}{logical, specifying whether it's a pilot design, which occurs
+when saviTTest is called without a designObj.}
+\item{testName}{"T-Test".}
 \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
-deltaS. If nPlan is provided, then only the savi test defining parameter deltaS needs to determined. That resulting
-deltaS leads to an (approximately) most powerful savi test. Typically, nPlan is unknown and the user has to specify
-(i) a desired power, and (ii) a clinically relevant minimal population standardised effect size
-deltaMin. The procedure finds the smallest nPlan for which deltaMin is found with power of at least 1 - beta.
+A designed experiment requires (1) a sample size nPlan to plan for, and
+(2) a savi test defining parameter. The design involves alpha and the
+three quantities: (1) nPlan, (2) power, and (3) a minimal
+clinically relevant standarised mean difference deltaMin.
+\describe{
+\item{Scenario 1.a}{Goal: "nPlan" and optimal E-variable. Given: deltaMin and power.}
+\item{Scenario 1.b}{Goal: an optimal E-variable. Given: deltaMin only.}
+\item{Scenario 2}{Goal: "power" and optimal E-variable. Given: deltaMin and nPlan.}
+\item{Scenario 3.a}{Goal: "deltaMin" and optimal E-variable. Given: power and nPlan.}
+\item{Scenario 3.b}{Goal: an optimal E-variable. Given: nPlan only.}
+}
+}
+\details{
+Every scenario returns an E-variable adapted to the input. Scenario 1.a,
+for instance, outputs the parameter of the provided eType (default mom)
+savi test, see \code{\link{matchEParameterWith}} for details, and nPlan.
+The nPlan is based on samples paths drawn under deltaTrue (if not specified,
+then deltaTrue=deltaMin by default). The resulting nPlan corresponds to the
+power (say 80\%) quantile of the first-passage time distribution associated
+with E crossing threshold 1/alpha.
 }
 \section{Functions}{
 \itemize{
@@ -181,19 +188,31 @@ deltaMin. The procedure finds the smallest nPlan for which deltaMin is found wit
 
 }}
 \examples{
-designObj <- designSaviT(deltaMin=0.8, alpha=0.03, alternative="greater")
-designObj
+# Scenario 1.b: Goal: an E-variable
+designObj <- designSaviT(deltaMin=0.8)
 
-# "Scenario 1.a": Minimal clinically relevant standarised mean difference and
-# desired power also known. Goal: find nPlan.
-designObj <- designSaviT(deltaMin=0.8, alpha=0.03, beta=0.4, nSim=10, alternative="greater")
-designObj
+# Scenario 1.a: Goal: "nPlan" and optimal E-variable.
+designObj <- designSaviT(deltaMin=0.8, power=0.6, alpha=0.2,
+                         alternative="greater", nSim=100)
 
-# "Scenario 2": Minimal clinically relevant standarised mean difference and nPlan known.
-# Goal: find the power of the procedure under optional stopping.
+plot(designObj)
 
-designObj <- designSaviT(deltaMin=0.8, alpha=0.03, nPlan=16, nSim=10, alternative="greater")
-designObj
+# Scenario 1a. with relevance testing, also stopping for practically null
+designObj <- designSaviT(deltaMin=0.8, power=0.6, alpha=0.2,
+                         alternative="greater", nSim=100,
+                         relevanceTest=TRUE)
+
+plot(designObj)
+
+# Scenario 2: Goal: "power" and optimal E-variable
+designObj <- designSaviT(deltaMin=0.8, nPlan=16, nSim=100)
+
+# Scenario 3.a: Goal: "meanDiffMin" and optimal E-variable
+designObj <- designSaviT(power=0.7, nPlan=16)
+
+# Scenario 3.b: Goal: an optimal E-variable. Given: nPlan only.
+designObj <- designSaviT(nPlan=16)
+
 }
 \references{
 Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}

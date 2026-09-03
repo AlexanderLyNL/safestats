@@ -21,7 +21,6 @@ saviZTest(x, ...)
   ciValue = NULL,
   maxRoot = 10,
   sequential = NULL,
-  varEqual = TRUE,
   ...
 )
 
@@ -38,12 +37,13 @@ savi.z.test(x, y = NULL, paired = FALSE, designObj = NULL, ...)
 
 \item{paired}{a logical indicating whether you want the paired Z-test.}
 
-\item{designObj}{an object obtained from \code{\link{designSaviZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
+\item{designObj}{an object obtained from \code{\link{designSaviZ}()}.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha}
+\item{ciValue}{numeric representing the confidence level.
+Default ciValue=NULL yields ciValue = 1 - alpha}
 
-\item{maxRoot}{Used to bound the candidate set of width of the confidence interval,
-whenever eType="eCauchy"}
+\item{maxRoot}{Used to bound the candidate set of width of the
+confidence interval, whenever eType="eCauchy"}
 
 \item{sequential}{a logical indicating whether a sequential
 analysis should be performed.}
@@ -65,32 +65,26 @@ observations to be used.}
 \item{na.action}{a function which indicates what should
 happen when the data contain \code{NA}s. Defaults to
 getOption("na.action").}
-
-\item{varEqual}{a logical variable indicating whether to treat the two variances as being equal. For
-the moment, this is always \code{TRUE}.}
 }
 \value{
-Returns an object of class 'saviTest'. An object of class 'saviTest' is a list containing at least the
-following components:
+Returns an object of class 'saviTest'. An object of class 'saviTest'
+is a list containing at least the following components:
 
 \describe{
 \item{statistic}{the value of the test statistic. Here the z-statistic.}
 \item{n}{The realised sample size(s).}
 \item{eValue}{the e-value of the savi test.}
-\item{confInt}{To be implemented: a savi confidence interval for the mean appropriate to the specific alternative
-hypothesis.}
-\item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-sample test or a two-sample test.}
-\item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-or a two-sample test.}
-\item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
+\item{confSeq}{a savi confidence interval for the mean (difference).}
+\item{estimate}{the estimated means or mean (difference) depending on
+whether it was a one-sample test or a two-sample test.}
 \item{dataName}{a character string giving the name(s) of the data.}
 \item{designObj}{an object of class "saviDesign" described in \code{\link{designSaviZ}()}.}
 \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-Savi one and two sample Z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
+Savi one- and two-sample Z-tests. Takes as input vector(s) of data and a designObj from
+\code{\link{designSaviZ}}. The function is modelled after \code{\link[stats]{t.test}()}.
 }
 \section{Functions}{
 \itemize{
@@ -103,36 +97,70 @@ Savi one and two sample Z-tests on vectors of data. The function is modelled aft
 }}
 \examples{
 
-# Examples taken from stats::t.test
+## Examples with simulated data ----
+set.seed(1)
+x <- rnorm(30, mean=0)
+y <- rnorm(40, mean=0)
 
-# Test without a designObj is not ideal
-# Especially now sigma is totally off,
-# because this is a z-test instead of a
-# t-test.
-saviZTest(1:10, y = c(7:20))      # e = 70.454 > 20
+# Because no designObj is specified, a default
+# designObj is used with meanDiffMin = 1/2 and sigma=1,
+# which can be thought of as a medium effect size
+# according to Cohen.
 
+res <- saviZTest(x=x, y=y)
+
+# By default sequential=TRUE, because length(x) <= 200.
+# This allows us to visualise the e-value as a function of
+# the n1 and associated n2, where the ratio of sample sizes,
+# ratio=n2/n1 is maintained. Here the e-value at n1=6 uses data
+# x[1:6] and y[1:ceil(ratio*6)]
+plot(res)
+
+# Plots the confidence sequence
+plot(res, wantConfSeqPlot=TRUE)
 
 # See ?designSaviZ for more info
-designObj <- designSaviZ(meanDiffMin=0.6, alpha=0.05,
+# This designObj also allows for
+# evidence quantification that the
+# mean difference is minimal clinically
+# relevant, here, larger than
+# relevanceSize=meanDiffMin
+designObj <- designSaviZ(meanDiffMin=0.7, alpha=0.05,
                          alternative="twoSided",
-                         testType="twoSample", sigma=3)
+                         testType="twoSample",
+                         relevanceTest=TRUE)
 
-saviZTest(1:10, y = c(7:20), designObj=designObj)
+res <- saviZTest(x=x, y=y, designObj=designObj)
 
-# Mimicking the stats::t.test interface.
-# Standard calls use the camelCased version though
-savi.z.test(1:10, y = c(7:20), designObj=designObj)
+plot(res)
 
-# Formulas versions
-#
-## Classical example: Student's sleep data
+# Note that the e-value against relevance falls below alphaRelevance
+# We can reject the hypothesis that the effect is relevantly larger,
+# larger than designObj$relevanceTestSim$parameter after a sample size of
+min(which(res$eRelevanceVec <= designObj$relevanceTestSim$alpha))
+
+set.seed(2)
+x <- rnorm(30, mean=0.6)
+y <- rnorm(40, mean=0)
+
+res <- saviZTest(x, y, designObj=designObj)
+
+plot(res)
+# We could have stopped sampling after
+min(which(res$eValueVec >= 1/designObj$alpha))
+# the yellow curve crosses 1/alpha sooner,
+# but we do **not** compare eRelevance >= 1/alpha, only eRelevance <= alphaRelevance
+
+## Classical example: Student's sleep data -----
 plot(extra ~ group, data = sleep)
+
+designObj <- designSaviZ(meanDiffMin=0.6, sigma=2,
+                         testType="twoSample")
+
 ## Traditional interface
 with(sleep, saviZTest(extra[group == 1], extra[group == 2],
                       designObj=designObj))
 
-designObj <- designSaviZ(meanDiffMin=0.6, sigma=2,
-                         testType="twoSample")
 ## Formula interface
 saviZTest(extra ~ group, data = sleep, designObj=designObj)
 

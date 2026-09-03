@@ -2,7 +2,7 @@ Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
 Version: 0.8.8
-Date: 2025-01-12
+Date: 2026-09-01
 Authors@R: c(
   person("Alexander", "Ly", email = "a.ly@cwi.nl",
   role = c("cre", "aut")),
