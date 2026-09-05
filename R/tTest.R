@@ -856,6 +856,7 @@ saviTTest.default <- function(
   # TODO(Alexander):
   #
   if (sequential) {
+
     tStatVec <- sqrt(nEffVec)*(meanObsVec-h0)/sdObsVec
 
     mIter <- length(n1Vec)
@@ -895,25 +896,25 @@ saviTTest.default <- function(
 
         confSeqMatrix[i, ] <- kaas
       }
-
-      tempConfSeq <- c(max(confSeqMatrix[, 1]), min(confSeqMatrix[, 2]))
-
-      if (tempConfSeq[1] >= tempConfSeq[2]) {
-        warning("Possible high degree of heterogeneity",
-                "leading to an empty running intersection confidence sequence")
-      } else if (tempConfSeq[1] < tempConfSeq[2]) {
-        result[["confSeq"]] <- tempConfSeq
-      }
-
-      fpt <- suppressWarnings(
-        min(which(eValueVec >= 1/designObj[["alpha"]]))
-      )
-
-      if (designObj[["relevanceTest"]])
-        fptRelevance <- suppressWarnings(
-          min(which(eRelevanceVec <= designObj[["relevanceTestSim"]][["alpha"]]))
-        )
     }
+
+    tempConfSeq <- c(max(confSeqMatrix[, 1]), min(confSeqMatrix[, 2]))
+
+    if (tempConfSeq[1] >= tempConfSeq[2]) {
+      warning("Possible high degree of heterogeneity",
+              "leading to an empty running intersection confidence sequence")
+    } else if (tempConfSeq[1] < tempConfSeq[2]) {
+      result[["confSeq"]] <- tempConfSeq
+    }
+
+    fpt <- suppressWarnings(
+      min(which(eValueVec >= 1/designObj[["alpha"]]))
+    )
+
+    if (designObj[["relevanceTest"]])
+      fptRelevance <- suppressWarnings(
+        min(which(eRelevanceVec <= designObj[["relevanceTestSim"]][["alpha"]]))
+      )
   }
 
   ### Fill: Result -----

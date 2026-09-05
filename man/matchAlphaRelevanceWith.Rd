@@ -7,7 +7,7 @@
 matchAlphaRelevanceWith(
   alphaRelevance,
   alpha = NULL,
-  power,
+  power = NULL,
   beta = NULL,
   betaDefault = 0.2
 )
