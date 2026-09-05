@@ -134,7 +134,8 @@ It is not always clear what the minimal clinically relevant effect size is, and 
 # power <- 0.8
 designObj3 <- designSaviT(nPlan=c(50, 50), 
                           alpha=alpha, power=power,
-                          sigma=sigma, alternative="greater",
+                          sigma=sigma,
+                          alternative="greater",
                           testType="paired")
 designObj3
 ```
@@ -202,7 +203,7 @@ What makes the savi tests in this package particularly interesting is that they 
 
 > Note that <a name = "martingale">not all E-variables necessarily allow for optional stopping</a>: this only holds for some special E-variables, that are also _test martingales_. More information can be found, for example, in Rosanne's [master thesis](https://www.universiteitleiden.nl/binaries/content/assets/science/mi/scripties/statscience/2019-2020/thesis_rjturner_for_publication.pdf), Chapter 5.
 
-## <a href="optionalStopPValues">Optional stopping is problematic for p-values</a>
+## <a name="optionalStopPValues">Optional stopping is problematic for p-values</a>
 Optionally stopping will *never* cause the savi test to over-reject the null hypothesis, whereas tracking the classical p-value tests and rejecting the null whenever it dips below, say, $\alpha=0.05$ will lead to an over-inflation of the type I error. In other words, optional stopping with these p-value tests leads to an increased risk of falsely claiming that a medicine is effective, while in reality it is not. 
 
 The following code replicates `r nSim` experiments and each data set is generated with a true effect size set to zero. We first collect the t-statistics across the `r nSim` data sets, and time/sample size `r designObj$nPlan[1]`
@@ -250,7 +251,7 @@ tMatrix[, 1] <- 0
 
 For each data set a sequential analysis is run. We will see that we quickly exceed the tolerable type I error if we monitor the p-value as the data come in, and reject the null as soon as the p-value dips below $\alpha=0.05$. 
 
-```{r}
+```{r, label=pValuesFprCalculation}
 # Here we store all the p-values across the 
 # number of simulations (nSim) and time (n1)
 allPValues <- matrix(nrow=nSim, ncol=n1)
@@ -287,17 +288,19 @@ for (i in 1:n1) {
 }
 
 pValueFalseRejects <- numberOfDippingExperimentsAtTimeN/nSim 
-
+```
+```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n",
      ylab="Type I error (%)", ylim=c(0, 25),
      lwd=2, col=freqColours[1])
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
-After the second evaluation a total of `r pValueFalseRejects[3]*nSim` out of nSim=`r nSim` experiments yielded a significant p-value after the first or second observation, that is, `pValueFalseRejects[3]*100`, which is already larger than the tolerable 5%. This emphasises the point that the significant test $p < 0.05$ should be conducted once, and only once. 
+![](safeVignetteData/fprPValues.png)
+After the second evaluation a total of `r pValueFalseRejects[3]*nSim` out of nSim=`r nSim` experiments yielded a significant p-value after the first or second observation, that is, `r pValueFalseRejects[3]*100`, which is already larger than the tolerable 5%. This emphasises the point that the significant test $p < 0.05$ should be conducted once, and only once. 
 
 ### Optional stopping does not cause savi tests to over-reject the null
-We repeat the simulation, but now with e-values instead. With e-values we can reject the null and stop the experiment as soon as the e-value exceeds $1 / \alpha = 20$. Importantly, this procedure will not yield more than the tolerable 5% false positive errors up to nPlan, but also beyond, that is, if we add more participants, see the [sections concerned with optional continuation](optionalContinuationTypeIa). 
+We repeat the simulation, but now with e-values instead. With e-values we can reject the null and stop the experiment as soon as the e-value exceeds $1 / \alpha = 20$. Importantly, this procedure will not yield more than the tolerable 5% false positive errors up to nPlan, but also beyond, that is, if we add more participants, see the [sections concerned with optional continuation](#optionalContinuationTypeIa). 
 
 eValueFalseRejects
 ```{r, echo=FALSE}
@@ -352,16 +355,18 @@ for (i in 1:n1) {
 
 eValueFalseRejects <- trackCrossing/nSim 
 ```
-```{r}
+```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:n1, 100*eValueFalseRejects, type="l", 
      xlab="n", ylab="Type I error (%)", lwd=2,
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
+![](safeVignetteData/fprEValues.png)
+
 Note that optional stopping always increases the chance of observing a false detection. For the savi test this increased to `r eValueFalseRejects[n1]*100`%, which is still below the tolerable 5%. On the other hand, tracking the p-value and rejecting the null as soon it falls below $\alpha$ leads to `r pValueFalseRejects[n1]*100`%, which is well above 5%. 
 
-```{r}
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n",
      ylab="Type I error (%)",
@@ -370,6 +375,7 @@ lines(1:n1, 100*eValueFalseRejects, lwd=2,
      col=eColours[1])
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
+![](safeVignetteData/fprAll.png)
 
 ## Savi tests detect the effect early if it is present: deltaTrue equal to deltaMin
 <!--#### Optional stopping: True effect size equals minimal clinically relevant effect size-->
@@ -395,7 +401,7 @@ The simulations confirm that there is an 80% chance of detecting the minimal cli
 
 To compute the mean and plot the distributions of the stopping times, we run the following code:
 
-```{r}
+```{r eval=FALSE}
 stoppingTimes <- simDeltaTrueIsDeltaMin$stoppingTimes
 
 mean(stoppingTimes)
@@ -406,6 +412,7 @@ hist(stoppingTimes,
      xlim=c(0, designObj$nPlanBatch[1]),col=eColours[2],
      border=eColours[1], lwd=2, main="")
 ```
+![](safeVignetteData/histDeltaTrueIsDeltaMin.png)
 The histogram shows the full distribution of the times at which the experiment is stopped. For instance, `r mean(stoppingTimes < n1/2)*nSim` out of the `r nSim` experiments stopped before half the planned sample size. In these cases we were lucky and the effect was detected early. The last bar collects all experiments that ran until the planned sample sizes, thus, also those that did not lead to a null rejection at n=`r designObj$nPlan[1]`. To see the distributions of stopping times of only the experiments where the null is rejected, we run the following code:
 
 ```{r}
@@ -421,7 +428,7 @@ hist(firstPassageTimeAltEqual,
 ```
 This can also be visualised as follows:
 
-```{r}
+```{r eval=FALSE}
 trackCrossingAltEqual <- integer(n1)
 
 for (i in 1:n1) {
@@ -436,6 +443,9 @@ plot(1:n1, 100*eReject, type="l",
      col=eColoursAlt[1], ylim=c(0, 80))
 lines(c(1, n1), c(80, 80), lwd=2, lty=2)
 ```
+![](safeVignetteData/tpr80Power.png)
+
+
 Here the horizontal line represents the 80% targeted power, which is indeed reached at n=`r designObj$nPlan[1]` under optional stopping. 
 
 ## Savi tests detect the effect even earlier if deltaTrue is larger than deltaMin
@@ -460,7 +470,7 @@ mean(
 ```
 With a larger true effect size, the power increased to `r (1-mean(simDeltaTrueLargerDeltaMin$breakVector))*100`%. More importantly, this increase is picked up earlier by the designed savi test, and optional stopping allows us to act on this. Note that the average stopping time is now decreased, from `r mean(simDeltaTrueIsDeltaMin$stoppingTimes)` to `r mean(simDeltaTrueLargerDeltaMin$stoppingTimes)`. This is apparent from the fact that the histogram of stopping times is now shifted to the left:
 
-```{r}
+```{r eval=FALSE}
 stoppingTimes <- 
   simDeltaTrueLargerDeltaMin$stoppingTimes
 
@@ -470,9 +480,11 @@ hist(stoppingTimes,
      xlim=c(0, designObj$nPlanBatch[1]),col=eColours[2],
      border=eColours[1], lwd=2, main="")
 ```
+![](safeVignetteData/histDeltaTrueLargerThanDeltaMin.png)
+
 Hence, this means that if the true effect is larger than what was planned for, the savi test will detect this larger effect earlier on, which results in a further increase of efficiency, as shown by the following plot. 
 
-```{r}
+```{r eval=FALSE}
 firstPassageTimeAltLarger <- 
   simDeltaTrueLargerDeltaMin$stoppingTimes
 firstPassageTimeAltLarger[
@@ -492,6 +504,7 @@ plot(1:n1, 100*eReject, type="l",
      col=eColoursAlt[1], ylim=c(0, 90))
 lines(c(1, n1), c(80, 80), lwd=2, lty=2)
 ```
+![](safeVignetteData/tprLarger.png)
 The plot visualises the increase in power for a true effect size larger than the minimal clinically relevant one. 
 
 The last scenario with deltaTrue smaller than the minimally clinically relevant effect size is discussed in the context of optional continuation. 
@@ -580,15 +593,19 @@ By selectively extending the non-significant results of the first batch with a s
 
 The reason why p-values over-reject the null under optional stopping and optional continuation is due to p-values being uniformly distributed under the null. 
 
-```{r}
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 hist(pValuesBatch1, col=freqColours[1])
 abline(v=0.05)
-
+```
+![](safeVignetteData/pValueHist1.png)
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 hist(pValuesBatch2[notRejectedIndeces], col=freqColours[2])
 abline(v=0.05)
 ```
+![](safeVignetteData/pValueHist2.png)
+
 As such, if the null holds true and the number of samples increases, then the p-value meanders between 0 and 1, thus, eventually crossing any fixed $\alpha$-level. This simulation reiterates the point that classical p-value tests only retain their type I error control if they are used once, and only once. 
 
 ## <a name="optionalContinuationTypeIa">i. Optional continuation by extending the experiment does not result in savi tests exceeding the tolerable $\alpha$-level</a>
@@ -672,20 +689,21 @@ load("safeVignetteData/eValueFalseRejects2T.RData")
 load("safeVignetteData/allEValuesTLarge.RData")
 ```
 
-```{r}
+```{r FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:(10*n1), 100*eValueFalseRejects2, type="l", 
      xlab="n", ylab="Type I error (%)", lwd=2,
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, 10*n1), c(5, 5), lwd=2, lty=2)
 ```
+![](safeVignetteData/continueE1.png)
 The original paper on e-values by [Grunwald, de Heide and Koolen](https://arxiv.org/abs/1906.07801) and [Howard, Ramdas, McAuliffe, and Sekhon]( https://doi.org/10.1214/20-AOS1991) provide mathematical proofs showing that the type I error will __never__ exceed the tolerable type I error rate. 
 
 The simulations show that the sample size computed by the design function is indeed a non-rigid **planned** sample size. The planned sample size is actually only concerned with the alternative and does not involve the null. This is in contrast to certain alpha-spending procedures that only provide type I error up to a __maximum__ sample size, as all alpha is spent at that point. 
 
 Under the null, the behaviour of e-variables is very different to that of p-values, which meander between zero and one. In contrast, e-variables slowly drift to zero under the null. This is equivalent to drifting towards -infinity on the logarithmic scale. The following plot illustrates this slow drift to zero. 
 
-```{r}
+```{r eval=FALSE}
 lowerQuartileLogEValueNull <- numeric(10*n1)
 medianLogEValueNull <- numeric(10*n1)
 upperQuartileLogEValueNull <- numeric(10*n1)
@@ -709,6 +727,8 @@ lines(nDomain, upperQuartileLogEValueNull, col=eColours[1],
       lwd=2, lty=1)
 lines(c(0, 10*n1), c(log(20), log(20)), lwd=2, col="grey", lty=2)
 ```
+![](safeVignetteData/eDrifDownwardsAsNGrows.png)
+
 The black curve depicts the median of the e-variable and the blue curves represent the 25% and 75% percentile of the e-variable distribution under the null. The horizontal grey line depicts $\log(1/\alpha) \approx 3$ for $\alpha=0.05$. The plot shows that under the null it gets increasingly hard for e-variables to cross the threshold of $\log(1/\alpha)$ as the sample size increase. This also illustrates why the e-variable's marginal increase in type I error slowly diminishes. 
 
 ## When the effect is present optional continuation results in savi tests correctly rejecting the null
@@ -788,22 +808,24 @@ eValueCorrectRejects <-
 ```
 
 ```{r, echo = FALSE}
-load("safeVignetteData/allEValuesAltT.RData")
+# load("safeVignetteData/allEValuesAltT.RData")
 load("safeVignetteData/eValueCorrectRejectsT.RData")
 ```
 
-```{r}
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:(10*n1), 100*eValueCorrectRejects, type="l", 
      xlab="n", ylab="Correct rejections (%)", lwd=2,
      col=eColoursAlt[1])#, #ylim=c(0, 5))
 lines(c(1, 10*n1), c(5, 5), lwd=2, lty=2)
 ```
-The plot illustrates that for the smaller deltaTrue, there is only `r eValueCorrectRejects[designObj$nPlan[1]]*100`% power to correctly reject the null at the planned sample size of nPlan=`r designObj$nPlan[1]`. Since it is not possible to over-reject the null with an e-variable under optional continuation, we can simply continue the study whenever the evidence seems convincing. Doing so thus allows effects to be detected even if they are smaller than anticipated. 
+![](safeVignetteData/correctReject2.png)
+
+The plot illustrates that for the smaller deltaTrue, there is only about 30.6% power to correctly reject the null at the planned sample size of nPlan=`r designObj$nPlan[1]`. Since it is not possible to over-reject the null with an e-variable under optional continuation, we can simply continue the study whenever the evidence seems convincing. Doing so thus allows effects to be detected even if they are smaller than anticipated. 
 
 The mentioned fast drift towards higher values is illustrated by the following plot:
 
-```{r}
+```{r eval=FALSE}
 lowerQuartileLogEValueAlt <- numeric(10*n1)
 medianLogEValueAlt <- numeric(10*n1)
 upperQuartileLogEValueAlt <- numeric(10*n1)
@@ -833,6 +855,8 @@ lines(nDomain, lowerQuartileLogEValueNull, col=eColours[1],
 lines(nDomain, upperQuartileLogEValueNull, col=eColours[1],
       lwd=2, lty=1)
 ```
+![](safeVignetteData/driftsOfAlternativeAndNull.png)
+
 The red curve depicts the median of the e-variable and the brown curves represent the 25% and 75% percentile of the e-variable distribution under the alternative. The horizontal grey line depicts $\log(1/\alpha) \approx 3$ for $\alpha=0.05$. The plot shows that under the alternative it gets  increasingly easier for e-variables to cross the threshold of $\log(1/\alpha)$ as the sample size increases. 
 
 # 4. Optional contination and <a name="optionalContinuationTypeIb">meta-analysis</a>: Extending the research endeavours through replication studies
