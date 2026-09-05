@@ -240,7 +240,7 @@ polygon(c(1:n, n:1), c(bayesCi[, 2], rev(bayesCi[, 1])),
         density = NULL, angle = 20)
 lines(c(1, n), c(muTrue, muTrue), lwd=2)
 ```
-Similar to the frequentist confidence intervals, the true mean falls outside the credible intervals between the 21st and the 45th observations, but also at the 11th and 17th obsrevations. 
+Similar to the frequentist confidence intervals, the true mean falls outside the credible intervals between the 21st and the 45th observations, but also at the 11th and 17th observations. 
 
 ```{r, eval = FALSE}
 # The indices where the lower bound is above muTrue
