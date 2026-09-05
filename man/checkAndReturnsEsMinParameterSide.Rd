@@ -17,8 +17,8 @@ checkAndReturnsEsMinParameterSide(
 \item{paramToCheck}{numeric. Either a named safe test defining parameter such as phiS, or thetaS, or a
 minimal clinically relevant effect size called with a non-null esMinName name}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{esMinName}{provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for
 the t-test, or "hrMin" for the logrank test}

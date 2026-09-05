@@ -15,8 +15,8 @@ logrankSingleEExact(obs0, obs1, y0, y1, thetaS, theta0 = 1, ...)
 
 \item{y1}{integer, total number of participants in the treatment group.}
 
-\item{thetaS}{numeric > 0 represents the safe test defining (GROW) alternative
-hypothesis obtained from \code{designSafeLogrank()}.}
+\item{thetaS}{numeric > 0 represents the savi test defining (GROW) alternative
+hypothesis obtained from \code{designSaviLogrank()}.}
 
 \item{theta0}{numeric > 0 represents the null hypothesis. Default theta0=1.}
 
@@ -25,9 +25,9 @@ hypothesis obtained from \code{designSafeLogrank()}.}
 \value{
 Returns a list containing at least the following components:
 \describe{
-  \item{logP0}{Log likelihood of Fisher's hypergeometric at the null}
-  \item{logEValueLess}{Log likelihood of Fisher's hypergeometric at the alternative}
-  \item{logEValueGreater}{Log likelihood of Fisher's hypergeometric at 1/alternative}
+\item{logP0}{Log likelihood of Fisher's hypergeometric at the null}
+\item{logEValueLess}{Log likelihood of Fisher's hypergeometric at the alternative}
+\item{logEValueGreater}{Log likelihood of Fisher's hypergeometric at 1/alternative}
 }
 }
 \description{
@@ -57,4 +57,8 @@ eValueGreater # 0.7665818
 eValue <- 1/2*eValueLess + 1/2*eValueGreater
 eValue # 0.9413714
 
+}
+\references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

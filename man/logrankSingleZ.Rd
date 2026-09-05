@@ -20,8 +20,8 @@ logrankSingleZ(obs0, obs1, y0, y1, ...)
 \value{
 Returns a list containing at least the following components:
 \describe{
-  \item{oMinE}{observed minus expected.}
-  \item{v}{hypergeometric variance.}
+\item{oMinE}{observed minus expected.}
+\item{v}{hypergeometric variance.}
 }
 }
 \description{
@@ -44,4 +44,8 @@ for (i in seq_along(y0Vector)) {
 
 sum(oMinEVector)/sqrt(sum(varVector))
 
+}
+\references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

@@ -8,7 +8,7 @@ designFreqZ(
   meanDiffMin,
   alternative = c("twoSided", "greater", "less"),
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   sigma = 1,
@@ -20,26 +20,29 @@ designFreqZ(
 )
 }
 \arguments{
-\item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
-that we would like to detect.}
+\item{meanDiffMin}{numeric that defines the minimal relevant mean difference,
+the smallest population mean difference that we would like to detect (with sufficient power).}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
-\item{h0}{numeric, represents the null hypothesis, default h0=0.}
+\item{h0}{numeric, representing the null value, default h0=0.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
@@ -54,8 +57,8 @@ largest n that we are able to fund.}
 returns a 'freqZDesign' object.
 }
 \description{
-Computes the number of samples necessary to reach a tolerable type I and type II error for the
-frequentist z-test.
+Computes the number of samples necessary to reach a tolerable type I
+and desired power for the frequentist Z-test.
 }
 \examples{
 freqDesign <- designFreqZ(meanDiffMin = 0.5, highN = 100)

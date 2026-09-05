@@ -8,15 +8,22 @@ ratio and the maximum number of nEvents.}
 computeLogrankBetaFrom(
   hrMin,
   nEvents,
-  m0 = 50000L,
-  m1 = 50000L,
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
-  nSim = 1000L,
-  nBoot = 10000L,
-  groupSizePerTimeFunction = returnOne,
+  m0 = 50000L,
+  m1 = 50000L,
+  testType = c("oneSample", "paired", "twoSample"),
+  ratio = 1,
   parameter = NULL,
-  pb = TRUE
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
+  wantSamplePaths = TRUE,
+  groupSizePerTimeFunction = returnOne,
+  pb = TRUE,
+  seed = NULL,
+  nSim = 1000L,
+  nBoot = nSim,
+  relevanceTest = FALSE,
+  ...
 )
 }
 \arguments{
@@ -25,12 +32,8 @@ detect.}
 
 \item{nEvents}{numeric > 0, targetted number of events.}
 
-\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
-
-\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
-
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis, which must be one of
 "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
@@ -41,20 +44,43 @@ lambda2 < lambda1, that is, the hazard of group 2 (i.e., treatment) is less than
 hence, the treatment is beneficial. If alternative = "greater", then the null hypothesis is compared to theta > 1,
 thus, lambda2 > lambda1, hence, harm.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
-safe logrank test under continuous monitoring}
+\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
-power or nEvents for the exact safe logrank test under continuous monitoring}
+\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}
+
+\item{testType}{either one of "oneSample", "paired", "twoSample".}
+
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 (Treatment) over condition 1 (Placebo),
+thus, m1/m0. Note that m1 and m0 are not used to specify ratio. Ratio is only used when \code{zApprox=TRUE}, which
+ignores m1 and m0.}
+
+\item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
+algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
+
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
+
+\item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
 of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
 step.}
 
-\item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
-algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
-
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{seed}{integer, seed number.}
+
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
+savi logrank test under continuous monitoring}
+
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
+power or nEvents for the exact savi logrank test under continuous monitoring}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
@@ -65,6 +91,10 @@ ratio and the maximum number of nEvents.
 }
 \examples{
 computeLogrankBetaFrom(hrMin=0.7, 300, nSim=10)
+}
+\references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }
 \author{
 Muriel Felipe Perez-Ortiz and Alexander Ly

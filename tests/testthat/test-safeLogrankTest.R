@@ -2,7 +2,7 @@ test_that("Computation logrank z statistic left truncation works", {
   handResult <- c(-0.81649658093, -1.48820571771, -0.77208803219, -0.75021409365)
 
   # Example with left trunctation due to Judith ter Schure
-  designObj <- designSafeLogrank(hrMin=1/2)
+  designObj <- designSaviLogrank(hrMin=1/2)
 
   enrollment <- 10     # 5 treatment, 5 placebo
   lambdaC <- 0.03943723
@@ -50,7 +50,7 @@ test_that("Computation logrank z statistic left truncation works", {
                               event = dataSoFar$status,
                               type = "counting")
 
-    interimResult <- safeLogrankTest(survObj ~ dataSoFar$group,
+    interimResult <- saviLogrankTest(survObj ~ dataSoFar$group,
                                      designObj = designObj, exact=FALSE)
 
     result[i] <- interimResult$statistic
@@ -59,7 +59,7 @@ test_that("Computation logrank z statistic left truncation works", {
   expect_equal("object"=result, "expected"=handResult)
 
   # Test that Gaussian confidence interval (based on summary statistics) are the same as the sequential one
-  sumStatResult <- safeLogrankTestStat(z=interimResult$sumStats$z,
+  sumStatResult <- saviLogrankTestStat(z=interimResult$sumStats$z,
                                        nEvents=interimResult$sumStats$nEvents,
                                        designObj=designObj)
 
@@ -71,8 +71,8 @@ test_that("Test that theta = lambda2/lambda1 and that less implies lambda2 < lam
   dat$group <- dplyr::recode_factor(dat$group, "P"=1, "T"=2)
   dat$survTime <- survival::Surv(dat$time, event=dat$status)
 
-  designObj <- designSafeLogrank(1/3, alternative="less")
-  result <- safeLogrankTest(survTime~group, designObj, data=dat)
+  designObj <- designSaviLogrank(1/3, alternative="less")
+  result <- saviLogrankTest(survTime~group, designObj, data=dat)
 
   referenceResult <- 17.1761195
   names(referenceResult) <- "e"

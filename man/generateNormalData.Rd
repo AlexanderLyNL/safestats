@@ -9,38 +9,41 @@ generateNormalData(
   nSim = 1000L,
   deltaTrue = NULL,
   muGlobal = 0,
-  sigmaTrue = 1,
+  sigma = 1,
+  sigma2 = 1,
   paired = FALSE,
   seed = NULL,
-  muTrue = NULL
+  meanDiffTrue = NULL
 )
 }
 \arguments{
-\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+\item{nPlan}{optional numeric vector of length at most 2, see scenario 2 and 3 above.}
 
-\item{nSim}{the number of replications, that is, experiments with max samples nPlan.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi t test under continuous monitoring.}
 
-\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).}
+\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
+This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
-\item{muGlobal}{numeric, the true global mean of a paired or two-sample t-test. Its value should not
-matter for the test. This parameter is treated as a nuisance.}
+\item{muGlobal}{numeric, population grand mean}
 
-\item{sigmaTrue}{numeric > 0,the true standard deviation of the data. Its value should not  matter
-for the test.This parameter treated is treated as a nuisance.}
+\item{sigma}{numeric > 0, population standard deviation}
 
-\item{paired}{logical, if \code{TRUE} then paired t-test.}
+\item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
+for the second group in a two-sample t-test}
 
-\item{seed}{To set the seed for the simulated data.}
+\item{paired}{a logical, if \code{TRUE} then pair the data.}
 
-\item{muTrue}{numeric representing the true mean for simulations with a z-test.
-Default \code{NULL}}
+\item{seed}{integer, seed number.}
+
+\item{meanDiffTrue}{numeric, data governing parameter value}
 }
 \value{
 Returns a list of two data matrices contains at least the following components:
 
 \describe{
-  \item{dataGroup1}{a matrix of data dimension nSim by \code{nPlan[1]}.}
-  \item{dataGroup2}{a matrix of data dimension nSim by \code{nPlan[2]}.}
+\item{dataGroup1}{a matrix of data dimension nSim by \code{nPlan[1]}.}
+\item{dataGroup2}{a matrix of data dimension nSim by \code{nPlan[2]}.}
 }
 }
 \description{

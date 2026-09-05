@@ -13,9 +13,9 @@ computeLogrankNEvents(
   alpha = 0.05,
   alternative = c("twoSided", "greater", "less"),
   nSim = 1000L,
-  nBoot = 1000L,
+  nBoot = nSim,
   groupSizePerTimeFunction = returnOne,
-  nMax = Inf,
+  nMax = 1000L,
   parameter = NULL,
   digits = getOption("digits"),
   pb = TRUE
@@ -25,15 +25,14 @@ computeLogrankNEvents(
 \item{hrMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 detect.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., nPlan[1].}
+\item{m0}{Number of subjects in the control group 0/1 at the beginning of the trial, i.e., \code{nPlan[1]}.}
 
-\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., nPlan[2].}
+\item{m1}{Number of subjects in the treatment group 1/2 at the beginning of the trial, i.e., \code{nPlan[2]}.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
 \item{alternative}{a character string specifying the alternative hypothesis, which must be one of
 "twoSided" (default),"greater" or "less". The alternative is pitted against the null hypothesis of equality
@@ -45,10 +44,10 @@ hence, the treatment is beneficial. If alternative = "greater", then the null hy
 thus, lambda2 > lambda1, hence, harm.}
 
 \item{nSim}{integer > 0, the number of simulations needed to compute power or the number of events for the exact
-safe logrank test under continuous monitoring}
+savi logrank test under continuous monitoring}
 
 \item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of the approximation of
-power or nEvents for the exact safe logrank test under continuous monitoring}
+power or nEvents for the exact savi logrank test under continuous monitoring}
 
 \item{groupSizePerTimeFunction}{A function without parameters and integer output. This function provides the number
 of events at each time step. For instance, if \code{rpois(1, 7)} leads to a random number of events at each time
@@ -57,7 +56,7 @@ step.}
 \item{nMax}{An integer. Once nEvents hits nMax the experiment terminates, if it didn't stop due to threshold
 crossing crossing already. Default set to Inf.}
 
-\item{parameter}{Numeric > 0, represents the safe tests defining thetaS. Default NULL so it's decided by the
+\item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
 \item{digits}{number of significant digits to be used.}
@@ -73,6 +72,10 @@ alpha and beta under optional stopping.
 }
 \examples{
 computeLogrankNEvents(0.7, 0.2, nSim=10)
+}
+\references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }
 \author{
 Muriel Felipe Perez-Ortiz and Alexander Ly

@@ -2,17 +2,19 @@
 % Please edit documentation in R/zTest.R
 \name{computeConfidenceIntervalZ}
 \alias{computeConfidenceIntervalZ}
-\title{Helper function: Computes the safe confidence sequence for a z-test}
+\title{Helper function: Computes the savi confidence sequence for a Z-test}
 \usage{
 computeConfidenceIntervalZ(
   nEff,
   meanObs,
-  phiS,
+  parameter,
   sigma = 1,
   ciValue = 0.95,
   alternative = "twoSided",
   a = NULL,
-  g = NULL
+  g = NULL,
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "freq", "credibleInterval"),
+  maxRoot = 20
 )
 }
 \arguments{
@@ -20,27 +22,47 @@ computeConfidenceIntervalZ(
 
 \item{meanObs}{numeric, the observed mean. For two sample tests this is difference of the means.}
 
-\item{phiS}{numeric > 0, the safe test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter,
+see \code{\link{matchEParameterWith}} for details.}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=0.95.}
+\item{ciValue}{numeric representing the confidence level.
+Default ciValue=NULL yields ciValue = 1 - alpha}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
-\item{a}{numeric, the centre of the normal prior on population mean (of the normal data). Default
-is \code{NULL}, which implies the default choice of setting the centre equal to the null hypothesis.}
+\item{a}{numeric, only used for eType="credibleInterval". a specifies the centre of the Gaussian
+prior on population mean.}
 
-\item{g}{numeric > 0, used to define g sigma^2 as the variance of the normal prior on the population
-(of the normal data). Default is \code{NULL} in which case g=phiS^2/sigma^2.}
+\item{g}{numeric > 0, only used for eType="credibleInterval". g specifies the variance of
+the Gaussian prior on population mean.}
+
+\item{eType}{character string, one of "eCauchy", "eGauss", "grow", "freq", "credibleInterval".
+This is somewhat a misnomer as "freq" and "credibleInterval" do not correspond to e-value tests.
+"eCauchy" yields an anytime-valid confidence interval based on a Cauchy mixture,
+whereas "eGauss" yields an anytime-valid confidence interval based on a Gaussian mixture.
+"grow" yields an anytime-valid confidence interval based on a mixture of point masses
+at the minimal clinically relevant mean difference. This confidence interval unfortunately
+does not shrink as the sample size tends to infinity. "freq" yields the standard unsafe frequentist
+confidence interval, which is not safe. "credibleInterval" yields the Bayesian credible interval
+based on a conjugate prior as is usual in Bayesian analysis. This interval is also not safe.}
+
+\item{maxRoot}{Used to bound the candidate set of width of the
+confidence interval, whenever eType="eCauchy"}
 }
 \value{
-numeric vector that contains the upper and lower bound of the safe confidence sequence
+numeric vector that contains the upper and lower bound of the savi confidence sequence
 }
 \description{
-Helper function: Computes the safe confidence sequence for a z-test
+Helper function: Computes the savi confidence sequence for a Z-test
 }
 \examples{
-computeConfidenceIntervalZ(nEff=15, meanObs=0.3, phiS=0.2)
+computeConfidenceIntervalZ(nEff=15, meanObs=0.3, parameter=0.2)
+}
+\references{
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

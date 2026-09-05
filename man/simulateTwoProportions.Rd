@@ -2,7 +2,7 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{simulateTwoProportions}
 \alias{simulateTwoProportions}
-\title{Compare Different Hyperparameter Settings for Safe Tests of Two Proportions.}
+\title{Compare Different Hyperparameter Settings for Savi Tests of Two Proportions.}
 \usage{
 simulateTwoProportions(
   hyperparameterList,
@@ -21,7 +21,7 @@ simulateTwoProportions(
 )
 }
 \arguments{
-\item{hyperparameterList}{list object, its components hyperparameter lists with a format as described in \code{\link{designSafeTwoProportions}()}.}
+\item{hyperparameterList}{list object, its components hyperparameter lists with a format as described in \code{\link{designSaviTwoProportions}()}.}
 
 \item{alternativeRestriction}{a character string specifying an optional restriction on the alternative hypothesis; must be one of "none" (default),
 "difference" (difference group mean b minus group b) or "logOddsRatio" (the log odds ratio between group means b and a).}
@@ -30,7 +30,7 @@ simulateTwoProportions(
 Either a numeric between -1 and 1 for a restriction on difference, or a real for a restriction on the log odds ratio.}
 
 \item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 > 1/alpha.}
+designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
 
 \item{beta}{numeric in (0, 1) that specifies the tolerable type II error control in the study. Necessary to calculate the
 worst case stopping time.}
@@ -56,17 +56,17 @@ the maximal stream length is returned as the stopping time. Default \code{1e4}.}
 worst case sample size over.}
 }
 \value{
-Returns an object of class "safe2x2Sim". An object of class "safe2x2Sim" is a list containing at least the
+Returns an object of class "savi2x2Sim". An object of class "savi2x2Sim" is a list containing at least the
 following components:
 
 \describe{
-  \item{simData}{A data frame containing simulation results with worst case and expected stopping times for each
-  hyperparameter setting, for the specified or default range of effect sizes.}
-  \item{alpha}{the significance threshold used in the simulations}
-  \item{beta}{the type-II error control used in the simulations}
-  \item{deltaDesign}{the value of restriction on the alternative hypothesis parameter space used for the E variables in the simulations}
-  \item{restriction}{the type of restriction used for the E variables in the simulation}
-  \item{hyperparameters}{list of the hyperparameters tested in the simulation}
+\item{simData}{A data frame containing simulation results with worst case and expected stopping times for each
+hyperparameter setting, for the specified or default range of effect sizes.}
+\item{alpha}{the significance threshold used in the simulations}
+\item{beta}{the type-II error control used in the simulations}
+\item{deltaDesign}{the value of restriction on the alternative hypothesis parameter space used for the E variables in the simulations}
+\item{restriction}{the type of restriction used for the E variables in the simulation}
+\item{hyperparameters}{list of the hyperparameters tested in the simulation}
 }
 }
 \description{

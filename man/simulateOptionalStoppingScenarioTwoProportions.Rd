@@ -2,12 +2,12 @@
 % Please edit documentation in R/safe2x2Test.R
 \name{simulateOptionalStoppingScenarioTwoProportions}
 \alias{simulateOptionalStoppingScenarioTwoProportions}
-\title{Simulate an optional stopping scenario according to a safe design for two proportions}
+\title{Simulate an optional stopping scenario according to a savi design for two proportions}
 \usage{
-simulateOptionalStoppingScenarioTwoProportions(safeDesign, M, thetaA, thetaB)
+simulateOptionalStoppingScenarioTwoProportions(saviDesign, M, thetaA, thetaB)
 }
 \arguments{
-\item{safeDesign}{a 'safeDesign' object obtained through \code{\link{designSafeTwoProportions}()}.}
+\item{saviDesign}{a 'saviDesign' object obtained through \code{\link{designSaviTwoProportions}()}.}
 
 \item{M}{integer, the number of data streams to sample.}
 
@@ -16,29 +16,29 @@ simulateOptionalStoppingScenarioTwoProportions(safeDesign, M, thetaA, thetaB)
 \item{thetaB}{Bernoulli distribution parameter in group B}
 }
 \value{
-list with the simulation results of the safe test under optional stopping with the following
+list with the simulation results of the savi test under optional stopping with the following
 components:
 
 \describe{
-  \item{powerOptioStop}{Proportion of sequences where H0 was rejected}
-  \item{nMean}{Mean stopping time}
-  \item{probLessNDesign}{Proportion of experiments stopped before nBlocksPlan was reached}
-  \item{lowN}{Minimum stopping time}
-  \item{eValues}{All achieved E values}
-  \item{allN}{All stopping times}
-  \item{allSafeDecisions}{Decisions on rejecting H0 for each M}
-  \item{allRejectedN}{Stopping times of experiments where H0 was rejected}
+\item{powerOptioStop}{Proportion of sequences where H0 was rejected}
+\item{nMean}{Mean stopping time}
+\item{probLessNDesign}{Proportion of experiments stopped before nBlocksPlan was reached}
+\item{lowN}{Minimum stopping time}
+\item{eValues}{All achieved E values}
+\item{allN}{All stopping times}
+\item{allSaviDecisions}{Decisions on rejecting H0 for each M}
+\item{allRejectedN}{Stopping times of experiments where H0 was rejected}
 }
 }
 \description{
-Simulate an optional stopping scenario according to a safe design for two proportions
+Simulate an optional stopping scenario according to a savi design for two proportions
 }
 \examples{
-balancedSafeDesign <- designSafeTwoProportions(na = 1,
+balancedSaviDesign <- designSaviTwoProportions(na = 1,
                                                nb = 1,
                                                nBlocksPlan = 30)
 optionalStoppingSimulationResult <- simulateOptionalStoppingScenarioTwoProportions(
-  safeDesign = balancedSafeDesign,
+  saviDesign = balancedSaviDesign,
   M = 1e2,
   thetaA = 0.2,
   thetaB = 0.5
