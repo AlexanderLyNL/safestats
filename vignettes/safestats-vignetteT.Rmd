@@ -297,6 +297,7 @@ plot(1:n1, 100*pValueFalseRejects, type="l", xlab="n",
 lines(c(1, n1), c(5, 5), lwd=2, lty=2)
 ```
 ![](safeVignetteData/fprPValues.png)
+
 After the second evaluation a total of `r pValueFalseRejects[3]*nSim` out of nSim=`r nSim` experiments yielded a significant p-value after the first or second observation, that is, `r pValueFalseRejects[3]*100`, which is already larger than the tolerable 5%. This emphasises the point that the significant test $p < 0.05$ should be conducted once, and only once. 
 
 ### Optional stopping does not cause savi tests to over-reject the null
@@ -413,9 +414,10 @@ hist(stoppingTimes,
      border=eColours[1], lwd=2, main="")
 ```
 ![](safeVignetteData/histDeltaTrueIsDeltaMin.png)
-The histogram shows the full distribution of the times at which the experiment is stopped. For instance, `r mean(stoppingTimes < n1/2)*nSim` out of the `r nSim` experiments stopped before half the planned sample size. In these cases we were lucky and the effect was detected early. The last bar collects all experiments that ran until the planned sample sizes, thus, also those that did not lead to a null rejection at n=`r designObj$nPlan[1]`. To see the distributions of stopping times of only the experiments where the null is rejected, we run the following code:
 
-```{r}
+The histogram shows the full distribution of the times at which the experiment is stopped. For instance, `r mean(simDeltaTrueIsDeltaMin$stoppingTimes < n1/2)*nSim` out of the `r nSim` experiments stopped before half the planned sample size. In these cases we were lucky and the effect was detected early. The last bar collects all experiments that ran until the planned sample sizes, thus, also those that did not lead to a null rejection at n=`r designObj$nPlan[1]`. To see the distributions of stopping times of only the experiments where the null is rejected, we run the following code:
+
+```{r eval=FALSE}
 firstPassageTimeAltEqual <- stoppingTimes
 firstPassageTimeAltEqual[
   which(as.integer(simDeltaTrueIsDeltaMin$breakVector)==1)] <- Inf
@@ -426,6 +428,8 @@ hist(firstPassageTimeAltEqual,
      xlim=c(0, n1),col=eColours[2],
      border=eColours[1], lwd=2, main="")
 ```
+![](safeVignetteData/histDeltaTrueIsDeltaMin2.png)
+
 This can also be visualised as follows:
 
 ```{r eval=FALSE}
@@ -444,7 +448,6 @@ plot(1:n1, 100*eReject, type="l",
 lines(c(1, n1), c(80, 80), lwd=2, lty=2)
 ```
 ![](safeVignetteData/tpr80Power.png)
-
 
 Here the horizontal line represents the 80% targeted power, which is indeed reached at n=`r designObj$nPlan[1]` under optional stopping. 
 
@@ -505,6 +508,7 @@ plot(1:n1, 100*eReject, type="l",
 lines(c(1, n1), c(80, 80), lwd=2, lty=2)
 ```
 ![](safeVignetteData/tprLarger.png)
+
 The plot visualises the increase in power for a true effect size larger than the minimal clinically relevant one. 
 
 The last scenario with deltaTrue smaller than the minimally clinically relevant effect size is discussed in the context of optional continuation. 
@@ -686,10 +690,10 @@ eValueFalseRejects2 <-
 ```
 ```{r, echo = FALSE}
 load("safeVignetteData/eValueFalseRejects2T.RData")
-load("safeVignetteData/allEValuesTLarge.RData")
+# load("safeVignetteData/allEValuesTLarge.RData")
 ```
 
-```{r FALSE}
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:(10*n1), 100*eValueFalseRejects2, type="l", 
      xlab="n", ylab="Type I error (%)", lwd=2,
@@ -697,6 +701,7 @@ plot(1:(10*n1), 100*eValueFalseRejects2, type="l",
 lines(c(1, 10*n1), c(5, 5), lwd=2, lty=2)
 ```
 ![](safeVignetteData/continueE1.png)
+
 The original paper on e-values by [Grunwald, de Heide and Koolen](https://arxiv.org/abs/1906.07801) and [Howard, Ramdas, McAuliffe, and Sekhon]( https://doi.org/10.1214/20-AOS1991) provide mathematical proofs showing that the type I error will __never__ exceed the tolerable type I error rate. 
 
 The simulations show that the sample size computed by the design function is indeed a non-rigid **planned** sample size. The planned sample size is actually only concerned with the alternative and does not involve the null. This is in contrast to certain alpha-spending procedures that only provide type I error up to a __maximum__ sample size, as all alpha is spent at that point. 
@@ -877,22 +882,25 @@ rep2 <- selectivelyContinueZOrTTestData(
   eStoppedOld=eStopped, seed=2)
 ```
 ```{r, echo = FALSE}
-load("safeVignetteData/allEValuesAltT.RData")
+#load("safeVignetteData/allEValuesAltT.RData")
 load("safeVignetteData/eValueCorrectRejectsT.RData")
-load("safeVignetteData/rep2T.RData")
-load("safeVignetteData/rep3T.RData")
-load("safeVignetteData/rep4T.RData")
-load("safeVignetteData/repAltT.RData")
+load("safeVignetteData/rep2.RData")
+load("safeVignetteData/rep3.RData")
+load("safeVignetteData/rep4.RData")
+# load("safeVignetteData/repAlt.RData")
 ```
-```{r}
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:(3*n1), 100*rep2$trackCrossing/nSim, type="l", 
      xlab="n", ylab="Type I error (%)", lwd=2,
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, 3*n1), c(5, 5), lwd=2, lty=2)
-
+```
+![](safeVignetteData/rep2.png)
+```{r}
 rep2$extraRejections
 ```
+
 By selectively continuing the not rejected studies we now incurred an additional `r rep2$extraRejections` false discoveries (`r mean(rep2$eOver)*100`% error). 
 
 Let's consider another selective replication round with a planned sample size about half nPlan, but with the drug administered to yet another population. 
@@ -906,13 +914,15 @@ rep3 <- selectivelyContinueZOrTTestData(
   firstPassageTimeOld=rep2$firstPassageTime,
   eStoppedOld=rep2$eStopped, seed=3)
 ```
-```{r}
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:(length(rep3$trackCrossing)), 100*rep3$trackCrossing/nSim, type="l", 
      xlab="n", ylab="Type I error (%)", lwd=2,
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, length(rep3$trackCrossing)), c(5, 5), lwd=2, lty=2)
-
+```
+![](safeVignetteData/rep3.png)
+```{r}
 rep3$extraRejections
 ```
 By selectively continuing the not rejected studies we now incurred no additional `r rep3$extraRejections` false discoveries retaining the cumulative `r mean(rep3$eOver)*100`% type I error rate. 
@@ -928,18 +938,20 @@ rep4 <- selectivelyContinueZOrTTestData(
   firstPassageTimeOld=rep3$firstPassageTime,
   eStoppedOld=rep3$eStopped, seed=4)
 ```
-```{r}
+```{r eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:(length(rep4$trackCrossing)), 100*rep4$trackCrossing/nSim, type="l", 
      xlab="n", ylab="Type I error (%)", lwd=2,
      col=eColours[1], ylim=c(0, 5))
 lines(c(1, length(rep4$trackCrossing)), c(5, 5), lwd=2, lty=2)
-
+```
+![](safeVignetteData/rep4.png)
+```{r}
 rep4$extraRejections
 ```
 Again we did not incur additional false discoveries, and the process can be repeated ad nauseam and the type I error will always remain under the tolerable $\alpha=0.05$. The reason for this is again the slowly drift of e-variables towards 0 under the null, thus, -infinity on the logarithmic scale: 
 
-```{r}
+```{r eval=FALSE}
 totalN <- length(rep4$trackCrossing)
 
 lowerQuartileLogEValueMetaNull <- numeric(totalN)
@@ -969,6 +981,9 @@ lines(c(n1, n1), c(yMin, 3), lty=2, col="lightgrey")
 lines(c(3*n1, 3*n1), c(yMin, 3), lty=2, col="lightgrey")
 lines(c(3.5*n1, 3.5*n1), c(yMin, 3), lty=2, col="lightgrey")
 ```
+![](safeVignetteData/repEValuesDrift.png)
+
+
 The vertical lines indicate where a follow-up study was initiated. 
 
 ## Meta-analysis e-values under the alternative
@@ -984,7 +999,7 @@ repAlt <- selectivelyContinueZOrTTestData(
   firstPassageTimeOld=firstPassageTimeAltEqual,
   eStoppedOld=simDeltaTrueIsDeltaMin$eValuesStopped, seed=6)
 ```
-```{r}
+```{r, eval=FALSE}
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
 plot(1:(length(repAlt$trackCrossing)), 100*repAlt$trackCrossing/nSim, type="l", 
      xlab="n", ylab="Correct rejections (%)", lwd=2,
@@ -992,6 +1007,7 @@ plot(1:(length(repAlt$trackCrossing)), 100*repAlt$trackCrossing/nSim, type="l",
 lines(c(1, length(repAlt$trackCrossing)), c(80, 80), lwd=2, lty=2)
 lines(c(n1, n1), c(0, 100), lty=2, col="lightgrey")
 ```
+![](safeVignetteData/repAlt.png)
 The vertical grey line is drawn at the nPlan of the original study at which we correctly reject the null with `r mean(simDeltaTrueIsDeltaMin$eValuesStopped>1/alpha)*100`% power. On the right of this grey line we see that the number of correct rejections further increases by combining the original e-values with e-values from replication attempts with different nuisance parameters. 
 
 ## Conclusion

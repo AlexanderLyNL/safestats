@@ -9,6 +9,9 @@
 ## R CMD check results
 There were no ERRORs, or WARNINGs. There was 1 NOTE. Win-builder thinks that 
 there is a new maintainer due to email update. The email update is intentional. 
+I can't access my old email a.ly@jasp-stats.org, which is why I can't confirm 
+the upload as the old maintainer. Is there anything else I can do to bypass this 
+check? Thanks for your hard work Uwe. 
 
 ## Downstream dependencies
 * revdepcheck::revdep_check(num_workers = 4)
