@@ -28,19 +28,19 @@ Description: Functions to design and apply tests that are anytime valid. The
   two proportions. For details on the theory of safe tests, see Ly, A, Boehm, 
   Grunwald, Ramdas and van Ravenzwaaij (2024). "Safe Anytime-Valid Inference: 
   Practical maximally flexible sampling designs for experiments based on e-values" 
-  (https://doi.org/10.31234/osf.io/h5vae) and Grunwald, de Heide 
-  and Koolen (2024) "Safe Testing" (https://doi.org/10.1093/jrsssb/qkae011), for details 
+  (<doi:10.31234/osf.io/h5vae>) and Grunwald, de Heide 
+  and Koolen (2024) "Safe Testing" (<doi:10.1093/jrsssb/qkae011>), for details 
   on safe logrank tests see ter Schure, Perez-Ortiz, Ly and Grunwald (2024) 
   "The Anytime-Valid Logrank Test: Error Control under Continuous Monitoring with 
-  Unlimited Horizon" (https://doi.org/10.51387/24-NEJSDS65), and Turner, Ly and 
+  Unlimited Horizon" (<doi:10.51387/24-NEJSDS65>), and Turner, Ly and 
   Grunwald (2024) "Generic E-variables for exact sequential k-sample tests that 
-  allow for optional stopping" (https://doi.org/10.1016/j.jspi.2023.106116) for 
+  allow for optional stopping" (<doi:10.1016/j.jspi.2023.106116>) for 
   details on safe contingency table tests.
 License: LGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Depends:
-  R (>= 4.2)
+  R (>= 4.5)
 Imports:
   stats (>= 3.6),
   lamW (>= 2.2.1),

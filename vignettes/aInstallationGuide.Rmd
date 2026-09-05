@@ -23,7 +23,7 @@ The most recent version of the `safestats` package can be found on GitHub. Here 
 2. a first example on a design of experiments based on a safe anytime-valid test/e-variables. 
 
 # 1. Installing the development version of the safestats package
-Make sure that you have the most recent version of R (>= R 4.3). On Windows you also need to install RTools. Both can be found on the [cran website](https://cran.r-project.org/). A nice visual editor is [RStudio](https://posit.co/downloads/). 
+Make sure that you have the most recent version of R (>= R 4.3). On Windows you also need to install RTools. Both can be found on the [cran website](https://cran.r-project.org/). A nice visual editor is [RStudio](https://posit.co/downloads). 
 
 There are two ways to install the development version of the safestats package:
 
