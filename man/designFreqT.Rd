@@ -7,7 +7,7 @@
 designFreqT(
   deltaMin,
   alpha = 0.05,
-  beta = 0.2,
+  power = 0.8,
   alternative = c("twoSided", "greater", "less"),
   h0 = 0,
   testType = c("oneSample", "paired", "twoSample"),
@@ -15,32 +15,34 @@ designFreqT(
 )
 }
 \arguments{
-\item{deltaMin}{numeric that defines the minimal relevant standardised effect size, the smallest effect size that
-we would the experiment to be able to detect.}
+\item{deltaMin}{numeric that defines the minimal relevant standardised mean difference,
+the smallest population effect size that we would like to detect (with sufficient power).}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
-\item{h0}{a number indicating the hypothesised true value of the mean under the null. For the moment h0=0.}
+\item{h0}{numeric, representing the null value, default h0=0.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
 }
 \value{
-Returns an object of class 'freqTDesign'. An object of class 'freqTDesign' is a list containing at least the
-following components:
+Returns an object of class 'freqTDesign'. An object of class
+'freqTDesign' is a list containing at least the following components:
 \describe{
 \item{nPlan}{the planned sample size(s).}
 \item{esMin}{the minimal clinically relevant standardised effect size provided by the user.}
 \item{alpha}{the tolerable type I error provided by the user.}
-\item{beta}{the tolerable type II error provided by the user.}
+\item{power}{the desired power provided by the user.}
 \item{lowN}{the smallest n of the search space for n provided by the user.}
 \item{highN}{the largest n of the search space for n provided by the user.}
 \item{testType}{any of "oneSample", "paired", "twoSample" provided by the user.}
@@ -48,7 +50,8 @@ following components:
 }
 }
 \description{
-Computes the number of samples necessary to reach a tolerable type I and type II error for the frequentist T-test.
+Computes the number of samples necessary to reach a tolerable type I and
+desired power for the frequentist T-test.
 }
 \examples{
 designFreqT(0.5)

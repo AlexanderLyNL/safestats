@@ -22,7 +22,7 @@ selectivelyContinueZOrTTestData(
 )
 }
 \arguments{
-\item{designObj}{an object obtained from \code{\link{designSaviZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.}
+\item{designObj}{an object obtained from \code{\link{designSaviZ}()}.}
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
 This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
@@ -33,12 +33,14 @@ This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{muGlobal}{numeric, population grand mean}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
-\item{meanDiffTrue}{numeric, data governing parameter value}
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulations. Default
+meanDiffTrue=meanDiffMin.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the savi z test under continuous monitoring.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi z test under continuous monitoring.}
 
 \item{eValuesOld}{Matrix of eValues of the previous studies with nSim
 number of rows}

@@ -42,19 +42,19 @@ histBorderColour <- eColours[1]
 
 # 1. <a name = "designZ">Designing savi z-test experiments</a>
 ## One sample path
-Recall the example described in the installation guide with a minimal clinically relevant mean difference of 10 (IQ score increase) in a population with standard deviation sigmaTrue=12. In other words, a minimal clinically relevant (standardised) effect size of 10/12 = 0.83. 
+Recall the example described in the installation guide with a minimal clinically relevant mean difference of 10 (IQ score increase) in a population with standard deviation sigma=12. In other words, a minimal clinically relevant (standardised) effect size of 10/12 = 0.83. 
 
-To sequentially detect such a minimal clinically relevant mean difference with 80\% chance/power, thus, tolerable type II error beta=0.2, we have to __plan__ an experiment with about 36 participants in both the treatment and the control group: 
+To sequentially detect such a minimal clinically relevant mean difference with 80\% chance/power, we have to __plan__ an experiment with about 36 participants in both the treatment and the control group: 
 
 ```{r, eval=FALSE}
 alpha <- 0.05
-beta <- 0.2
+power <- 0.8
 meanDiffMin <- 10
-sigmaTrue <- 12
+sigma <- 12
 
-designObj <- designSaviZ(meanDiffMin=meanDiffMin, beta=beta,
+designObj <- designSaviZ(meanDiffMin=meanDiffMin, power=power,
                          testType="twoSample", 
-                         sigma=sigmaTrue, seed=1)
+                         sigma=sigma, seed=1)
 designObj
 ```
 To compute a z-test e-value the function `saviZTest` uses the parameter defined in the designObj, which for the e-value type "mom" is referred to as gMom. This gMom parameter specifies the locations of a so-called non-local moment prior mixture distribution introduced by Johnson and Rossell 2010 in a Bayesian context. Unlike the normal distribution with only one top, this non-local moment distribution is zero at 0, and it has "camel humps" or (two dromedary's humps) away from zero. By selecting gMom equal to 1/2*(meanDiffMin / sigma)^2, that is, `(10/12)^2/2=0.34722` these two humps are located at the minimally clinically relevant effect size `10/12`. 
@@ -81,8 +81,8 @@ In the installation guide we noticed that for a particular sample generated with
 
 ```{r, eval=FALSE}
 set.seed(2)
-treatmentGroup <- rnorm(designObj$nPlan[1], mean=122, sd=sigmaTrue)
-controlGroup <- rnorm(designObj$nPlan[2], mean=112, sd=sigmaTrue)
+treatmentGroup <- rnorm(designObj$nPlan[1], mean=122, sd=sigma)
+controlGroup <- rnorm(designObj$nPlan[2], mean=112, sd=sigma)
 
 resultObj <- saviZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)
@@ -121,7 +121,7 @@ When the true minimal clinically relevant effect size is larger than the minimal
 
 ```{r, eval=FALSE}
 designLarger <- designSaviZ(meanDiffMin=1.2*designObj$esMin,
-                            sigma=sigmaTrue, 
+                            sigma=sigma, 
                             parameter=designObj$parameter,
                             eType=designObj$eType, 
                             testType=designObj$testType, 
@@ -136,7 +136,7 @@ On the other hand, the 80\% quantile of the stopping time distribution shifts to
 
 ```{r, eval=FALSE}
 designSmaller <- designSaviZ(designObj$esMin/1.2,
-                             sigma=sigmaTrue, 
+                             sigma=sigma, 
                              parameter=designObj$parameter,
                              eType=designObj$eType, 
                              testType=designObj$testType, 
@@ -152,9 +152,9 @@ In this case, only 58% of the experiments stopped after the planned sample size 
 The advantage of e-variables is that we cannot artificially nudge the e-value above 1/alpha if the null is true by extending the trial, see the markdown document on testing. Hence, we are free to continue sampling to detect an effect. To derive the additional number of samples needed to reach the desired power, we can use the design function as follows: 
 
 ```{r, eval=FALSE}
-designSaviZ(meanDiffMin=designObj$esMin/1.2, beta=0.2,
+designSaviZ(meanDiffMin=designObj$esMin/1.2, power=0.2,
             parameter=designObj$parameter, 
-            sigma=sigmaTrue, testType="twoSample", seed=4)
+            sigma=sigma, testType="twoSample", seed=4)
 ```
 This shows that we should have planned for about 53 samples in each group instead. Thus, by extending our trial with an additional 17 samples from both groups and continuously monitoring the e-value, we expect to then reject the null with the desired 80% chance. 
 
@@ -176,10 +176,10 @@ nTotal <- designObj$nPlan[1]+nPlan2
 
 notRejectedIndex <- which(designSmaller$breakVector==1)
 
-firstPassageTimes <- designSmaller$bootObjBeta$data
+firstPassageTimes <- designSmaller$bootObjPower$data
 
 followUpStudy <- sampleStoppingTimesSaviZ(meanDiffTrue=designObj$esMin/1.2,
-                                          sigma=sigmaTrue, 
+                                          sigma=sigma, 
                                           parameter=designObj$parameter,
                                           eType=designObj$eType, 
                                           testType=designObj$testType, 

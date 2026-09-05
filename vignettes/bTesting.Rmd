@@ -57,15 +57,15 @@ For simplicity we take n1=n2=100. Data under the null hypothesis of no differenc
 
 ```{r, eval=FALSE}
 n1 <- n2 <- 100
-sigmaTrue <- 12
+sigma <- 12
 alpha <- 0.05
 
 muGlobal <- 112
   
 set.seed(2)
-dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigmaTrue)
+dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigma)
 set.seed(3)
-dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
+dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigma)
 ```
 
 Note that the data are indeed generated from the null as the difference between the two population means is zero. The variable muGlobal can take on any value under the null, and is referred to as a nuisance parameter. In this case both the null and the alternative hypothesis/model are composite. 
@@ -134,7 +134,7 @@ pValueVector <- vector("numeric", length=n1)
 for (i in 1:n1) {
   pValueVector[i] <- pValueZTest(x=dataGroup1[1:i],
                                  y=dataGroup2[1:i],
-                                 sigma=sigmaTrue)$pValue
+                                 sigma=sigma)$pValue
 }
 
 oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
@@ -161,7 +161,7 @@ mIter <- 1000
 allData <- generateNormalData(c(n1, n2), muGlobal=muGlobal,
                               nSim=mIter,
                               meanDiffTrue=0, seed=1,
-                              sigmaTrue=sigmaTrue)
+                              sigma=sigma)
 allPValues <- matrix(nrow=mIter, ncol=n1)
 
 # This indicates whether a simulation yielded a "significant" p-value
@@ -183,7 +183,7 @@ for (sim in 1:mIter) {
   
   x1BarVector <- 1/n1Vector*cumsum(dataGroup1)
   x2BarVector <- 1/n2Vector*cumsum(dataGroup2)
-  zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigmaTrue
+  zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
   
   for (i in 1:n1) {
     currentPValue <- pValueFromZStat(zVector[i])
@@ -279,9 +279,9 @@ We demonstrate this procedure for a single data set of n1=n2=100 samples, and we
 ```{r, eval=FALSE}
 # Single sample path data set as in the p-value example
 set.seed(2)
-dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigmaTrue)
+dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigma)
 set.seed(3)
-dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
+dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigma)
 
 bfVector <- vector("numeric", length=n1)
 
@@ -294,7 +294,7 @@ for (i in 1:n1) {
   
   bfVector[i] <- subjectiveBfZStat(x1=x1, s21=s21, n1=i, 
                                    x2=x2, s22=s22, n2=i, 
-                                   sigma=sigmaTrue,
+                                   sigma=sigma,
                                    a1=a1, b1=b1, 
                                    a2=a2, b2=b2, 
                                    a0=a0, b0=b0)
@@ -322,7 +322,7 @@ mIter <- 1000
 allData <- generateNormalData(c(n1, n2), muGlobal=muGlobal,
                               nSim=mIter,
                               meanDiffTrue=0, seed=1,
-                              sigmaTrue=sigmaTrue)
+                              sigma=sigma)
 allBfValues <- matrix(nrow=mIter, ncol=n1)
 
 # This indicates whether a simulation yielded a "significant" Bayes factor values
@@ -345,7 +345,7 @@ for (sim in 1:mIter) {
     
     currentBf10 <- subjectiveBfZStat(x1=x1, s21=s21, n1=i, 
                                      x2=x2, s22=s22, n2=i, 
-                                     sigma=sigmaTrue,
+                                     sigma=sigma,
                                      a1=a1, b1=b1, 
                                      a2=a2, b2=b2, 
                                      a0=a0, b0=b0)
@@ -416,7 +416,7 @@ To run `saviZTest` a design object needs to be created. For the problem at hand 
 ```{r, eval=FALSE}
 designObj <- designSaviZ(meanDiffMin=10,
                          testType="twoSample",
-                         sigma=sigmaTrue)
+                         sigma=sigma)
 designObj
 ```
 
@@ -452,9 +452,9 @@ We demonstrate this procedure for a single data set of n1=n2=100 samples, and we
 ```{r, eval=FALSE}
 # Single sample path data set as in the p-value example
 set.seed(2)
-dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigmaTrue)
+dataGroup1 <- rnorm(n1, mean=muGlobal, sd=sigma)
 set.seed(3)
-dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigmaTrue)
+dataGroup2 <- rnorm(n2, mean=muGlobal, sd=sigma)
 
 result <- saviZTest(dataGroup1, dataGroup2[1:i],
                     designObj=designObj)
@@ -475,7 +475,7 @@ mIter <- 1000
 allData <- generateNormalData(c(n1, n2),
                               muGlobal=muGlobal,
                               nSim=mIter,
-                              meanDiffTrue=0, seed=1, sigmaTrue=sigmaTrue)
+                              meanDiffTrue=0, seed=1, sigma=sigma)
 allEValues <- matrix(nrow=mIter, ncol=n1)
 
 # This indicates whether a simulation yielded e > 1/alpha
@@ -496,13 +496,13 @@ for (sim in 1:mIter) {
   
   x1BarVector <- 1/n1Vector*cumsum(dataGroup1)
   x2BarVector <- 1/n2Vector*cumsum(dataGroup2)
-  zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigmaTrue
+  zVector <- sqrt(nEffVector)*(x1BarVector - x2BarVector)/sigma
   
   for (i in 1:n1) {
     currentEValue <- saviZTestStat(zVector[i], 
                                    parameter=designObj$parameter, 
                                    n1=n1Vector[i], n2=n2Vector[i], 
-                                   sigma=sigmaTrue,
+                                   sigma=sigma,
                                    eType=designObj$eType)$eValue
     
     allEValues[sim, i] <- currentEValue

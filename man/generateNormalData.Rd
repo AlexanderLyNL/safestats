@@ -9,26 +9,30 @@ generateNormalData(
   nSim = 1000L,
   deltaTrue = NULL,
   muGlobal = 0,
-  sigmaTrue = 1,
+  sigma = 1,
+  sigma2 = 1,
   paired = FALSE,
   seed = NULL,
   meanDiffTrue = NULL
 )
 }
 \arguments{
-\item{nPlan}{vector of max length 2 representing the planned sample sizes.}
+\item{nPlan}{optional numeric vector of length at most 2, see scenario 2 and 3 above.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the savi t test under continuous monitoring.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi t test under continuous monitoring.}
 
 \item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
 This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
 
 \item{muGlobal}{numeric, population grand mean}
 
-\item{sigmaTrue}{numeric > 0, population standard deviation}
+\item{sigma}{numeric > 0, population standard deviation}
 
-\item{paired}{a logical indicating whether you want a paired T-test.}
+\item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
+for the second group in a two-sample t-test}
+
+\item{paired}{a logical, if \code{TRUE} then pair the data.}
 
 \item{seed}{integer, seed number.}
 

@@ -2,7 +2,7 @@
 
 #' Computes E-Values Based on the Z-Statistic
 #'
-#' Computes e-values using the z-statistic and the sample sizes only based on the test defining parameter phiS.
+#' Computes e-values using the z-statistic and the sample sizes  based on the test defining parameter phiS.
 #'
 #' @inheritParams  designSaviZ
 #' @inheritParams  saviZTest
@@ -10,8 +10,9 @@
 #' @param n1 integer that represents the size in a one-sample Z-test, (n2=\code{NULL}). When n2 is not
 #' \code{NULL}, this specifies the size of the first sample for a two-sample test.
 #' @param n2 an optional integer that specifies the size of the second sample. If it's left unspecified, thus,
-#' \code{NULL} it implies that the z-statistic is based on one-sample.
-#' @param parameter numeric > 0, the savi test defining parameter.
+#' \code{NULL} then the z-statistic is assumed to be one-sample.
+#' @param parameter numeric > 0, the savi test defining parameter,
+#' see \code{\link{matchEParameterWith}} for details.
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Returns an e-value.
@@ -45,12 +46,13 @@ saviZTestStat <- function(
   nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
 
   if (eType=="grow") {
-    phiS <- checkAndReturnsEsMinParameterSide(
+    phiS <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=parameter, "alternative"=alternative,
       "esMinName"="phiS")
 
     if (alternative=="twoSided") { # two-sided
-      result <- list("eValue"=exp(-nEff*phiS^2/(2*sigma^2))*cosh(sqrt(nEff)*phiS/sigma*z))
+      logEValue <- -nEff*phiS^2/(2*sigma^2)+lcosh(sqrt(nEff)*phiS/sigma*z)
+      result <- list("eValue"=exp(logEValue))
     } else { # one-sided
       result <- list("eValue"=exp(sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2)))
     }
@@ -152,18 +154,75 @@ saviZTestStat <- function(
   return(result)
 }
 
+#' Computes E-Relevance Values Based on the Z-Statistic in favour of the alternative over practical equivalence
+#'
+#' Evidence for practical equivalence requires the e-value to be small, i.e.
+#' smaller than alphaRelevance.
+#' If the alternative holds true, i.e. meanDiffTrue >= relevanceSize, then
+#' there is no more than alphaRelevance probability of ever seeing
+#' eRelevance <= alphaRelevance.
+#'
+#' @rdname saviZTestStat
+#' @inheritParams designSaviZ
+#' @export
+#'
+#' @examples
+#' # evidence for the alternative over minimal efficacy
+#' saviRelevanceZStat(z=3, n1=100, parameter=0.4)
+#' # evidence for minimal efficacy over the alternative
+#' saviRelevanceZStat(z=0.35, n1=100, parameter=0.4)
+saviRelevanceZStat <- function(
+    z, n1, n2=NULL, parameter=NULL,
+    alternative=c("twoSided", "less", "greater"),
+    paired=FALSE, sigma=1, eType="grow", relevanceSize=NULL, ...) {
+
+  if (is.null(parameter) && is.null(relevanceSize))
+    stop("No parameter, nor minimal mean difference given")
+
+  if (is.null(parameter) && !is.null(relevanceSize))
+    parameter <- abs(relevanceSize)
+
+  alternative <- match.arg(alternative)
+
+  phiS <- parameter
+
+  nEff <- if (is.null(n2) || is.na(n2) || paired==TRUE) n1 else (1/n1+1/n2)^(-1)
+
+  if (alternative %in% c("twoSided", "greater"))
+    sPlus0 <- exp(sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
+
+  if (alternative %in% c("twoSided", "less"))
+    sMin0 <- exp(-sqrt(nEff)*phiS/sigma*z-nEff*phiS^2/(2*sigma^2))
+
+  eValue <- switch(alternative,
+                   "twoSided"=max(sPlus0, sMin0),
+                   "greater"=sPlus0,
+                   "less"=sMin0)
+
+  if (eValue < 0) {
+    warning("Overflow: e-value smaller than 0")
+    eValue <- 2^(-15)
+  }
+
+  result <- list("eValue"=eValue)
+
+  return(result)
+}
+
 #' Safe Anytime-Valid Z-Test
 #'
-#' Savi one and two sample Z-tests on vectors of data. The function is modelled after \code{\link[stats]{t.test}()}.
+#' Savi one- and two-sample Z-tests. Takes as input vector(s) of data and a designObj from
+#' \code{\link{designSaviZ}}. The function is modelled after \code{\link[stats]{t.test}()}.
 #'
 #' @aliases savi.z.test
 #' @param x a (non-empty) numeric vector of data values.
 #' @param y an optional (non-empty) numeric vector of data values.
 #' @param paired a logical indicating whether you want the paired Z-test.
-#' @param designObj an object obtained from \code{\link{designSaviZ}()}, or \code{NULL}, when pilot is set to \code{TRUE}.
-#' @param ciValue numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL, and ciValue = 1 - alpha
-#' @param maxRoot Used to bound the candidate set of width of the confidence interval,
-#' whenever eType="eCauchy"
+#' @param designObj an object obtained from \code{\link{designSaviZ}()}.
+#' @param ciValue numeric representing the confidence level.
+#' Default ciValue=NULL yields ciValue = 1 - alpha
+#' @param maxRoot Used to bound the candidate set of width of the
+#' confidence interval, whenever eType="eCauchy"
 #' @param formula a formula of the form lhs ~ rhs where lhs
 #' is a numeric variable giving the data values and rhs
 #' either 1 for a one-sample or paired test or a factor
@@ -182,20 +241,16 @@ saviZTestStat <- function(
 #' analysis should be performed.
 #' @param ... further arguments to be passed to or from methods.
 #'
-#' @return Returns an object of class 'saviTest'. An object of class 'saviTest' is a list containing at least the
-#' following components:
+#' @return Returns an object of class 'saviTest'. An object of class 'saviTest'
+#' is a list containing at least the following components:
 #'
 #' \describe{
 #'   \item{statistic}{the value of the test statistic. Here the z-statistic.}
 #'   \item{n}{The realised sample size(s).}
 #'   \item{eValue}{the e-value of the savi test.}
-#'   \item{confInt}{To be implemented: a savi confidence interval for the mean appropriate to the specific alternative
-#'   hypothesis.}
-#'   \item{estimate}{the estimated mean or difference in means or mean difference depending on whether it was a one-
-#'   sample test or a two-sample test.}
-#'   \item{h0}{the specified hypothesised value of the mean or mean difference depending on whether it was a one-sample
-#'   or a two-sample test.}
-#'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
+#'   \item{confSeq}{a savi confidence interval for the mean (difference).}
+#'   \item{estimate}{the estimated means or mean (difference) depending on
+#'   whether it was a one-sample test or a two-sample test.}
 #'   \item{dataName}{a character string giving the name(s) of the data.}
 #'   \item{designObj}{an object of class "saviDesign" described in \code{\link{designSaviZ}()}.}
 #'   \item{call}{the expression with which this function is called.}
@@ -209,36 +264,70 @@ saviZTestStat <- function(
 #'
 #' @examples
 #'
-#' # Examples taken from stats::t.test
+#' ## Examples with simulated data ----
+#' set.seed(1)
+#' x <- rnorm(30, mean=0)
+#' y <- rnorm(40, mean=0)
 #'
-#' # Test without a designObj is not ideal
-#' # Especially now sigma is totally off,
-#' # because this is a z-test instead of a
-#' # t-test.
-#' saviZTest(1:10, y = c(7:20))      # e = 70.454 > 20
+#' # Because no designObj is specified, a default
+#' # designObj is used with meanDiffMin = 1/2 and sigma=1,
+#' # which can be thought of as a medium effect size
+#' # according to Cohen.
 #'
+#' res <- saviZTest(x=x, y=y)
+#'
+#' # By default sequential=TRUE, because length(x) <= 200.
+#' # This allows us to visualise the e-value as a function of
+#' # the n1 and associated n2, where the ratio of sample sizes,
+#' # ratio=n2/n1 is maintained. Here the e-value at n1=6 uses data
+#' # x[1:6] and y[1:ceil(ratio*6)]
+#' plot(res)
+#'
+#' # Plots the confidence sequence
+#' plot(res, wantConfSeqPlot=TRUE)
 #'
 #' # See ?designSaviZ for more info
-#' designObj <- designSaviZ(meanDiffMin=0.6, alpha=0.05,
+#' # This designObj also allows for
+#' # evidence quantification that the
+#' # mean difference is minimal clinically
+#' # relevant, here, larger than
+#' # relevanceSize=meanDiffMin
+#' designObj <- designSaviZ(meanDiffMin=0.7, alpha=0.05,
 #'                          alternative="twoSided",
-#'                          testType="twoSample", sigma=3)
+#'                          testType="twoSample",
+#'                          relevanceTest=TRUE)
 #'
-#' saviZTest(1:10, y = c(7:20), designObj=designObj)
+#' res <- saviZTest(x=x, y=y, designObj=designObj)
 #'
-#' # Mimicking the stats::t.test interface.
-#' # Standard calls use the camelCased version though
-#' savi.z.test(1:10, y = c(7:20), designObj=designObj)
+#' plot(res)
 #'
-#' # Formulas versions
-#' #
-#' ## Classical example: Student's sleep data
+#' # Note that the e-value against relevance falls below alphaRelevance
+#' # We can reject the hypothesis that the effect is relevantly larger,
+#' # larger than designObj$relevanceTestSim$parameter after a sample size of
+#' min(which(res$eRelevanceVec <= designObj$relevanceTestSim$alpha))
+#'
+#' set.seed(2)
+#' x <- rnorm(30, mean=0.6)
+#' y <- rnorm(40, mean=0)
+#'
+#' res <- saviZTest(x, y, designObj=designObj)
+#'
+#' plot(res)
+#' # We could have stopped sampling after
+#' min(which(res$eValueVec >= 1/designObj$alpha))
+#' # the yellow curve crosses 1/alpha sooner,
+#' # but we do **not** compare eRelevance >= 1/alpha, only eRelevance <= alphaRelevance
+#'
+#' ## Classical example: Student's sleep data -----
 #' plot(extra ~ group, data = sleep)
+#'
+#' designObj <- designSaviZ(meanDiffMin=0.6, sigma=2,
+#'                          testType="twoSample")
+#'
 #' ## Traditional interface
 #' with(sleep, saviZTest(extra[group == 1], extra[group == 2],
 #'                       designObj=designObj))
 #'
-#' designObj <- designSaviZ(meanDiffMin=0.6, sigma=2,
-#'                          testType="twoSample")
 #' ## Formula interface
 #' saviZTest(extra ~ group, data = sleep, designObj=designObj)
 #'
@@ -267,25 +356,34 @@ saviZTest <- function(x, ...) {
 #' @export
 saviZTest.default <- function(
     x, y=NULL, paired=FALSE, designObj=NULL,
-    ciValue=NULL, maxRoot=10, sequential=NULL, ...) {
+    ciValue=NULL, maxRoot=10, sequential=NULL,
+    ...) {
 
   result <- constructSaviTestObj("Z-Test")
 
+  eRelevance <- NULL
+
   # Vars for sequential analysis
   eValueVec <- NULL
+  eRelevanceVec <- NULL
   confSeqMatrix <- NULL
   n1Vec <- NULL
   n2Vec <- NULL
+  fpt <- NULL
+  fptRelevance <- NULL
 
   ### Def: test type -------
   if (is.null(y)) {
     testType <- "oneSample"
+
+    if (paired)
+      stop("Data error: Paired analysis requested without specifying the second variable")
+
+    dataName <- deparse1(substitute(x))
   } else {
-    if (paired) {
-      testType <- "paired"
-    } else {
-      testType <- "twoSample"
-    }
+    testType <- if (paired) "paired" else "twoSample"
+
+    dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
   }
 
   ### Check: designObj ----
@@ -307,126 +405,15 @@ saviZTest.default <- function(
     warning('The test type of designObj is "', designObj[["testType"]],
             '", whereas the data correspond to a testType "', testType, '"')
 
-  ### Check: Data -----
-  #
-  if (is.null(y)) {
-    #### One-sample -----
-    #
-    if (isTRUE(paired))
-      stop("Data error: Paired analysis requested without specifying the second variable")
+  sumStats <- computeZTSumStats(
+    "x"=x, "y"=y, "sequential"=sequential,
+    "varEqual"=TRUE, "paired"=paired,
+    "testType"=testType)
 
-    dataName <- deparse1(substitute(x))
-    x <- x[!is.na(x)]
+  nEff <- meanObs <- n1 <- n2 <- nEffVec <- meanObsVec <- estimate <-
+    n <- sdObsVec <- nuVec <- NULL
 
-    n <- nEff <- n1 <- length(x)
-    n2 <- NULL
-
-    meanObs <- estimate <- mean(x)
-
-
-    names(estimate) <- "mean of x"
-    names(n) <- "n1"
-
-    if (is.null(sequential))
-      sequential <- if (n1 <= 200) TRUE else FALSE
-
-    if (sequential) {
-      tempN <- defineTTestN("lowN"=1, "highN"=n1,
-                            "testType"="oneSample")
-
-      nEffVec <- tempN[["nEff"]]
-      n1Vec <- tempN[["n1"]]
-      n2Vec <- tempN[["n2"]]
-
-      meanObsVec <- 1/nEffVec*cumsum(x)
-    }
-  } else {
-    dataName <- paste(deparse1(substitute(x)), "and", deparse1(substitute(y)))
-
-    if (isTRUE(paired))
-      xGoodIndeces <- yGoodIndeces  <-
-        stats::complete.cases(x, y)
-    else {
-      yGoodIndeces <- !is.na(y)
-      xGoodIndeces <- !is.na(x)
-    }
-
-    x <- x[xGoodIndeces]
-    y <- y[yGoodIndeces]
-
-    n1 <- length(x)
-    n2 <- length(y)
-
-    #### Paired ----
-    #
-    if (isTRUE(paired)) {
-      if (n1 != n2)
-        stop("Data error: Error in complete.cases(x, y): Paired analysis requested, ",
-             "but the two samples are not of the same size.")
-      nEff <- n1
-      meanObs <- estimate <- mean(x-y)
-      names(estimate) <- "mean of the differences"
-
-      if (is.null(sequential))
-        sequential <- if (n1 <= 200) TRUE else FALSE
-
-      if (sequential) {
-        tempN <- defineTTestN("lowN"=1, "highN"=n1, testType="paired")
-
-        nEffVec <- tempN[["nEff"]]
-        n1Vec <- tempN[["n1"]]
-        n2Vec <- tempN[["n2"]]
-
-        meanObsVec <- 1/nEffVec*cumsum(x-y)
-      }
-    } else {
-      ### Two-sample ----
-      #
-      nEff <- (1/n1+1/n2)^(-1)
-      estimate <- c(mean(x), mean(y))
-      names(estimate) <- c("mean of x", "mean of y")
-      meanObs <- estimate[1]-estimate[2]
-
-      if (is.null(sequential))
-        sequential <- if (n1 <= 200) TRUE else FALSE
-
-      if (sequential) {
-        tempN <- defineTTestN(1, n1, n2/n1, testType="twoSample")
-
-        nEffVec <- tempN[["nEff"]]
-
-        # These now serve as an order
-        n1Vec <- tempN[["n1"]]
-        n2Vec <- tempN[["n2"]]
-
-        xMeanObsRaw <- 1/(1:n1)*cumsum(x)
-        yMeanObsRaw <- 1/(1:n2)*cumsum(y)
-
-        if (n2/n1==1) {
-          xMeanObsVec <- xMeanObsRaw
-          yMeanObsVec <- yMeanObsRaw
-        } else {
-          vecLength <- length(n1Vec)
-
-          xMeanObsVec <- yMeanObsVec <-
-            numeric(vecLength)
-
-          for (j in 1:vecLength) {
-            nowN1 <- n1Vec[j]
-            nowN2 <- n2Vec[j]
-
-            xMeanObsVec[j] <- xMeanObsRaw[nowN1]
-            yMeanObsVec[j] <- yMeanObsRaw[nowN2]
-          }
-        }
-
-        meanObsVec <- xMeanObsVec-yMeanObsVec
-      }
-    }
-
-    n <- c(n1, n2)
-    names(n) <- c("n1", "n2")
-  }
+  list2env(sumStats, envir=environment())
 
   alpha <- designObj[["alpha"]]
   sigma <- designObj[["sigma"]]
@@ -452,6 +439,15 @@ saviZTest.default <- function(
                               "alternative"=alternative, "paired"=paired,
                               "eType"=designObj[["eType"]])
 
+  if (designObj[["relevanceTest"]]) {
+    tempResultFut <- saviRelevanceZStat(
+      "z"=zStat, "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
+      "n1"=n1, "n2"=n2, "sigma"=sigma,
+      "alternative"=alternative, "paired"=paired,
+      "eType"="grow")
+    eRelevance <- unname(tempResultFut[["eValue"]])
+  }
+
   ### Compute: confSeq ----
   result[["confSeq"]] <- computeConfidenceIntervalZ(
     "nEff"=nEff, "meanObs"=meanObs, "parameter"=designObj[["parameter"]],
@@ -464,16 +460,24 @@ saviZTest.default <- function(
 
     mIter <- length(n1Vec)
 
-    eValueVec <- numeric(mIter)
+    eRelevanceVec <- eValueVec <- numeric(mIter)
     confSeqMatrix <- matrix(nrow=mIter, ncol=2)
 
     for (i in seq_along(n1Vec)) {
-      brie <- saviZTestStat("z"=zStatVec[i],
-                            "parameter"=designObj[["parameter"]],
-                            "n1"=n1Vec[i], "n2"=n2Vec[i], "sigma"=sigma,
-                            "alternative"=alternative, "paired"=paired,
-                            "eType"=designObj[["eType"]])
-      eValueVec[i] <- unname(brie[["eValue"]])
+      res <- saviZTestStat("z"=zStatVec[i],
+                           "parameter"=designObj[["parameter"]],
+                           "n1"=n1Vec[i], "n2"=n2Vec[i], "sigma"=sigma,
+                           "alternative"=alternative, "paired"=paired,
+                           "eType"=designObj[["eType"]])
+      eValueVec[i] <- unname(res[["eValue"]])
+
+      if (designObj[["relevanceTest"]]) {
+        relevanceRes <- saviRelevanceZStat("z"=zStatVec[i], "n1"=n1Vec[i], "n2"=n2Vec[i],
+                                    "parameter"=designObj[["relevanceTestSim"]][["parameter"]],
+                                    "sigma"=sigma, "alternative"=designObj[["alternative"]],
+                                    "paired"=paired, "eType"="grow")
+        eRelevanceVec[i] <- unname(relevanceRes[["eValue"]])
+      }
 
       kaas <- computeConfidenceIntervalZ(
         "nEff"=nEffVec[i], "meanObs"=meanObsVec[i], "parameter"=designObj[["parameter"]],
@@ -482,6 +486,24 @@ saviZTest.default <- function(
 
       confSeqMatrix[i, ] <- kaas
     }
+
+    tempConfSeq <- c(max(confSeqMatrix[, 1]), min(confSeqMatrix[, 2]))
+
+    if (tempConfSeq[1] >= tempConfSeq[2]) {
+      warning("Possible high degree of heterogeneity",
+              "leading to an empty running intersection confidence sequence")
+    } else if (tempConfSeq[1] < tempConfSeq[2]) {
+      result[["confSeq"]] <- tempConfSeq
+    }
+
+    fpt <- suppressWarnings(
+      min(which(eValueVec >= 1/designObj[["alpha"]]))
+    )
+
+    if (designObj[["relevanceTest"]])
+      fptRelevance <- suppressWarnings(
+        min(which(eRelevanceVec <= designObj[["relevanceTestSim"]][["alpha"]]))
+      )
   }
 
   ### Fill: Result -----
@@ -493,7 +515,10 @@ saviZTest.default <- function(
   result[["ciValue"]] <- ciValue
   result[["n"]] <- n
 
+  result[["eRelevance"]] <- eRelevance
+
   result[["eValueVec"]] <- eValueVec
+  result[["eRelevanceVec"]] <- eRelevanceVec
   result[["confSeqMatrix"]] <- confSeqMatrix
   result[["n1Vec"]] <- n1Vec
   result[["n2Vec"]] <- n2Vec
@@ -502,6 +527,16 @@ saviZTest.default <- function(
 
   result[["eValue"]] <- tempResult[["eValue"]]
   result[["eValueApproxError"]] <- tempResult[["eValueApproxError"]]
+
+  # Sumstats
+  result[["meanObs"]] <- meanObs
+  result[["sdObs"]] <- meanObs
+  result[["meanObsVec"]] <- meanObsVec
+  result[["sdObsVec"]] <- sdObsVec
+  result[["nEffVec"]] <- nEffVec
+  result[["nuVec"]] <- nuVec
+  result[["fpt"]] <- fpt
+  result[["fptRelevance"]] <- fptRelevance
 
   names(result[["statistic"]]) <- "z"
 
@@ -735,6 +770,10 @@ computeConfidenceIntervalZ <- function(
   }
 
   if (eType=="mom" && alternative=="twoSided") {
+    # TODO(Alexander): Perhaps add check for parameter then meanDiffMin
+    #
+    #   meanDiffMin easier to work with
+    #
     g <- parameter
 
     width <- sigma/sqrt(nEff)*
@@ -815,8 +854,8 @@ computeConfidenceIntervalZ <- function(
 
 #' Design a Frequentist Z-Test
 #'
-#' Computes the number of samples necessary to reach a tolerable type I and type II error for the
-#' frequentist Z-test.
+#' Computes the number of samples necessary to reach a tolerable type I
+#' and desired power for the frequentist Z-test.
 #'
 #' @inheritParams designSaviZ
 #' @param lowN integer that defines the smallest n of our search space for n.
@@ -833,10 +872,12 @@ computeConfidenceIntervalZ <- function(
 #' freqDesign2$nPlan
 designFreqZ <- function(
     meanDiffMin, alternative=c("twoSided", "greater", "less"),
-    alpha=0.05, beta=0.2, testType=c("oneSample", "paired", "twoSample"),
+    alpha=0.05, power=0.8, testType=c("oneSample", "paired", "twoSample"),
     ratio=1, sigma=1, h0=0, kappa=sigma, lowN=3L, highN=100L, ...) {
 
-  stopifnot(lowN >= 1, highN > lowN, alpha > 0, beta >0)
+  beta <- 1-power
+
+  stopifnot(lowN >= 1, highN > lowN, alpha > 0, power >0, power < 1)
 
   testType <- match.arg(testType)
 
@@ -850,12 +891,12 @@ designFreqZ <- function(
 
   alternative <- match.arg(alternative)
 
-  result <- list("nPlan"=NA, "esMin"=meanDiffMin, "alpha"=alpha, "beta"=beta,
+  result <- list("nPlan"=NA, "esMin"=meanDiffMin, "alpha"=alpha, "power"=power,
                  "lowN"=lowN, "highN"=highN, "testType"=testType, "alternative"=alternative,
                  "h0"=h0)
   class(result) <- "freqZDesign"
 
-  meanDiffMin <- checkAndReturnsEsMinParameterSide(
+  meanDiffMin <- checkAndReturnEsMinParameterSide(
     "paramToCheck"=meanDiffMin, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
@@ -901,79 +942,104 @@ designFreqZ <- function(
   return(result)
 }
 
-#' Designs a Safe Anytime-Valid Z Experiment
+#' Design a Safe Anytime-Valid Experiment to Test Means with a Z Test
 #'
-#' A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
-#' phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
-#' phiS = meanDiffMin as the savi test defining parameter in accordance to the GROW criterion.
-#' If a tolerable type II error, i.e., beta, is provided then nPlan can be sampled. The sampled nPlan is then
-#' the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
+#' A designed experiment requires (1) a sample size nPlan to plan for, and
+#' (2) a savi test defining parameter. The design involves alpha and the
+#' three quantities: (1) nPlan, (2) power, and (3) a minimal
+#' clinically relevant mean difference meanDiffMin.
+#' \describe{
+#'   \item{Scenario 1.a}{Goal: "nPlan" and optimal E-variable. Given: meanDiffMin and power.}
+#'   \item{Scenario 1.b}{Goal: an optimal E-variable. Given: meanDiffMin only.}
+#'   \item{Scenario 2}{Goal: "power" and optimal E-variable. Given: meanDiffMin and nPlan.}
+#'   \item{Scenario 3.a}{Goal: "meanDiffMin" and optimal E-variable. Given: power and nPlan.}
+#'   \item{Scenario 3.b}{Goal: an optimal E-variable. Given: nPlan only.}
+#'}
 #'
-#' @param alpha numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-#' designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.
-#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-#' and "phiS". Note that 1-beta defines the power.
-#' @param meanDiffMin numeric that defines the minimal relevant mean difference, the smallest population mean
-#' that we would like to detect.
-#' @param alternative a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-#' "greater" or "less".
-#' @param nPlan optional numeric vector of length at most 2. When provided, it is used to find the savi test
-#' defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
-#' and beta should be set to NULL.
-#' @param sigma numeric > 0 representing the assumed population standard deviation used for the test.
-#' @param h0 numeric, represents the null hypothesis, default h0=0.
+#' Every scenario returns an E-variable adapted to the input. Scenario 1.a,
+#' for instance, outputs the parameter of the provided eType (default mom)
+#' savi test, see \code{\link{matchEParameterWith}} for details, and nPlan.
+#' The nPlan is based on samples paths drawn under meanDiffTrue (if not specified,
+#' then meanDiffTrue=meanDiffMin by default). The resulting nPlan corresponds to the
+#' power (say 80%) quantile of the first-passage time distribution associated
+#' with E crossing threshold 1/alpha.
+#'
+#' @param meanDiffMin numeric that defines the minimal relevant mean difference,
+#' the smallest population mean difference that we would like to detect (with sufficient power).
+#' @param power numeric in (0, 1) that specifies the desired power, that is, the targetted
+#' chance to stop in favour of the alternative over the null hypothesis, when the alternative
+#' holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+#' need to be specified anymore.
+#' @param nPlan optional numeric vector of length at most 2, see scenario 2 and 3 above.
+#' @param alpha numeric in (0, 1) that specifies the tolerable type I error and the null
+#' rejection rule e >= 1/alpha.
+#' @param h0 numeric, representing the null value, default h0=0.
+#' @param alternative a character string specifying the alternative hypothesis. Must be one
+#' of "twoSided" (default), "greater" or "less".
+#' @param sigma numeric > 0 representing the assumed population standard deviation used to
+#' scale the data.
 #' @param kappa the true population standard deviation. Default kappa=sigma.
+#' @param meanDiffTrue numeric, data governing mean difference used for simulations. Default
+#' meanDiffTrue=meanDiffMin.
+#' @param beta numerical in (0,1). Old parameter now replaced by the power parameter
 #' @param testType either one of "oneSample", "paired", "twoSample".
-#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-#' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
-#' @param parameter optional numeric test defining parameter. Default set to \code{NULL}.
-#' For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-#' over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-#' the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-#' zero and variance g. For eType=="grow" the savi test is a likelihood ratio of z distributions with in the
-#' denominator the likelihood with mean difference 0 and in the numerator an average
-#' likelihood defined by the likelihood at the parameter value phiS. For the two sided
-#' case 1/2 at -phiS and 1/2 phiS.
-#' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
-#' for the savi z test under continuous monitoring.
-#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy of
-#' approximation of the power, the number of samples for the savi z test under continuous monitoring,
-#' or for the computation of the logarithm of the implied target.
+#' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+#' If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
+#' @param parameter numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+#' and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.
+#' @param eType character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+#' and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+#' meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.
+#' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
+#' @param wantSimData logical, if \code{TRUE} then also output the simulated data
+#' @param lowEsTrue numeric, lower bound for the candidate set of the
+#' targeted minimal clinically relevant effect size for scenario 3.a.
+#' @param highEsTrue numeric, upper bound for the candidate set of the
+#' targeted minimal clinically relevant effect size for scenario 3.a.
 #' @param pb logical, if \code{TRUE}, then show progress bar.
 #' @param seed integer, seed number.
-#' @param eType character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-#' a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-#' two point masses at the minimal clinically relevant effect size.
-#' @param wantSamplePaths logical, if \code{TRUE} then also outputs the sample paths.
-#' @param lowEsTrue numeric, lower bound for the candidate set of the
-#' targeted minimal clinically relevant effect size.
-#' Design scenario 3: nPlan and beta given, goal find meanDiffMin
-#' @param highEsTrue numeric, upper bound for the candidate set of the
-#' targeted minimal clinically relevant effect size.
-#' Design scenario 3: nPlan and beta given, goal find meanDiffMin
-#' @param futility logical, if \code{TRUE} then impose rule to stop
-#' for futility if e < beta. Default \code{FALSE}.
-#' @param growFutility logical, if \code{TRUE} then use the grow e-value
-#' to stop for futility (e < beta). Default \code{FALSE}.
+#' @param nSim integer > 0, the number of simulations needed to compute power or the number of
+#' samples paths for the savi z test under continuous monitoring.
+#' @param nBoot integer > 0 representing the number of bootstrap samples to assess the accuracy
+#' of the approximations of the power, the number of samples for the savi z test under continuous
+#' monitoring,or for the computation of the logarithm of the implied target.
+#' @param relevanceTest logical, if \code{TRUE} then impose a rule to stop
+#' for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.
+#' @param relevanceSize numeric, the minimal clinical relevant mean
+#' difference that we do not want to miss under the alternative.
+#' Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)
+#' @param alphaRelevance numeric, the threshold for relevance test. Taken to be minimum of
+#' alpha and 1-power.
+#' @param betaDefault numeric, defaulting value for 1-power and alphaRelevance
+#' @param highN integer, largest possible sampling horizon. This might be the
+#' largest n that we are able to fund, which by default is set to 1e4L.
+#' Typically, highN is not used, as the function
+#' `computeNPlanBatchSaviZ()` tries to find the sampling horizon.
+#' If all fails, then use highN as the sampling horizon.
+#' @param wantSampling logical, default TRUE so sampling paths are drawn.
+#' For instance, if meanDiffMin and power, are given, then nPlan
+#' (scenario 1a) is derived by sampling. Set this to FALSE, whenever we
+#' want to run a minimal efficacy test without needing to know nPlan
 #' @param ... further arguments to be passed to or from methods.
+#'
 #'
 #' @return Returns a saviDesign object that includes:
 #'
 #' \describe{
-#'   \item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
-#'   if known.}
-#'   \item{parameter}{the savi test defining parameter. Here phiS.}
-#'   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
+#'   \item{parameter}{the savi test defining parameter, see \code{\link{matchEParameterWith}}.}
+# #'   \item{esMin}{the minimally clinically relevant effect size provided by the user.}
 #'   \item{alpha}{the tolerable type I error provided by the user.}
-#'   \item{beta}{the tolerable type II error specified by the user.}
-#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-#'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
-#'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
-#'   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
-#'   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
-#'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
-#'   ratio between the planned randomisation of condition 2 over condition 1.}
-#'   \item{pilot}{logical, specifying whether it's a pilot design.}
+# #'   \item{power}{the desired power specified by the user.}
+# #'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
+# #'   \item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
+# #'   \item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
+# #'   \item{sigma}{the assumed population standard deviation used for the test provided by the user.}
+# #'   \item{kappa}{the true population standard deviation, typically, sigma=kappa.}
+# #'   \item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
+# #'   ratio between the planned randomisation of condition 2 over condition 1.}
+#'   \item{pilot}{logical, specifying whether it's a pilot design, which occurs
+#'   when saviZTest is called without a designObj.}
+#'   \item{testName}{"Z-Test".}
 #'   \item{call}{the expression with which this function is called.}
 #' }
 #' @export
@@ -983,22 +1049,45 @@ designFreqZ <- function(
 #'   `r addCite(ly2024safe)`
 #'
 #' @examples
-#' designObj <- designSaviZ(meanDiffMin=0.8, alpha=0.2, beta=0.2,
-#'                          alternative="greater", nSim=1e2)
+#' # Scenario 1.b: Goal: an E-variable
+#' designObj <- designSaviZ(meanDiffMin=0.8)
 #'
-#' # Detectable relevant mean difference
-#' designObj <- designSaviZ(nPlan = 100, beta=0.2)
+#' # Scenario 1.a: Goal: "nPlan" and optimal E-variable.
+#' designObj <- designSaviZ(meanDiffMin=0.8, power=0.6, alpha=0.2,
+#'                          alternative="greater", nSim=100)
+#'
+#' plot(designObj)
+#'
+#' # Scenario 1a. with relevance testing, also stopping for practically null
+#' designObj <- designSaviZ(meanDiffMin=0.8, power=0.6, alpha=0.2,
+#'                          alternative="greater", nSim=100,
+#'                          relevanceTest=TRUE)
+#'
+#' plot(designObj)
+#'
+#' # Scenario 2: Goal: "power" and optimal E-variable
+#' designObj <- designSaviZ(meanDiffMin=0.8, nPlan=16, nSim=100)
+#'
+#' # Scenario 3.a: Goal: "meanDiffMin" and optimal E-variable
+#' designObj <- designSaviZ(power=0.7, nPlan=16)
+#'
+#' # Scenario 3.b: Goal: an optimal E-variable. Given: nPlan only.
+#' designObj <- designSaviZ(nPlan=16)
+#'
 designSaviZ <- function(
-    meanDiffMin=NULL, beta=NULL, nPlan=NULL,
+    meanDiffMin=NULL, power=NULL, nPlan=NULL,
     alpha=0.05, h0=0, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
+    meanDiffTrue=NULL, beta=NULL,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE, ...) {
+    relevanceTest=FALSE, relevanceSize=NULL,
+    alphaRelevance=NULL, betaDefault=0.2,
+    highN=1e4L, wantSampling=TRUE, ...) {
 
   stopifnot(alpha > 0, alpha < 1, sigma > 0, kappa > 0)
 
@@ -1016,80 +1105,118 @@ designSaviZ <- function(
 
   result <- constructSaviDesignObj("Z-Test")
 
+  # TODO(Alexander): Check this:
+  #
+  #     checkAndReturnEsMinParameterSide("paramToCheck"=0.4, "esMinName"="kappaG", alternative="greater")
+  #
   if (!is.null(parameter)) {
     if (eType=="grow") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="phiS",
         "alternative"=alternative)
-    } else if (eType %in% "eGauss") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+    } else if (eType=="eGauss") {
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="g",
         "alternative"=alternative)
     } else if (eType=="eCauchy") {
-      parameter <- checkAndReturnsEsMinParameterSide(
+      parameter <- checkAndReturnEsMinParameterSide(
         "paramToCheck"=parameter, "esMinName"="kappaG",
         "alternative"=alternative)
     }
   }
 
   if (!is.null(meanDiffMin)) {
-    meanDiffMin <- checkAndReturnsEsMinParameterSide(
+    meanDiffMin <- checkAndReturnEsMinParameterSide(
       "paramToCheck"=meanDiffMin, "esMinName"="meanDiffMin",
       "alternative"=alternative)
+
+    if (is.null(meanDiffTrue))
+      meanDiffTrue <- meanDiffMin
+
+    parameter <- matchEParameterWith(
+      "parameter"=parameter, "analysisType"="z",
+      "esMin"=meanDiffMin, "sigma"=sigma,
+      "alternative"=alternative, "eType"=eType)
+  }
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
+  if (is.null(beta) && !is.null(power))
+    beta <- 1-power
+
+  if (relevanceTest) {
+    relevanceSize <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize, "esMin"=meanDiffMin,
+      "esTrue"=meanDiffTrue)
+
+    if (is.null(relevanceSize))
+      stop("Can't run a minimal efficacy analysis without relevanceSize or meanDiffMin")
+
+    alphaRelevance <- matchAlphaRelevanceWith(
+      "alphaRelevance"=alphaRelevance, "alpha"=alpha,
+      "power"=power, "betaDefault"=betaDefault)
   }
 
   designScenario <- NULL
 
   tempResult <- list()
 
-  if (!is.null(meanDiffMin) && !is.null(beta) && is.null(nPlan)) {
+  if (!is.null(meanDiffMin) && !is.null(power) && is.null(nPlan) && wantSampling) {
     designScenario <- "1a"
 
     tempResult <- designSaviZ1aWantNPlan(
-      "meanDiffMin"=meanDiffMin, "beta"=beta,
+      "meanDiffMin"=meanDiffMin, "power"=power,
       "alpha"=alpha, "alternative"=alternative,
+      "meanDiffTrue"=meanDiffTrue,
       "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
       "parameter"=parameter, "testType"=testType,
       "eType"=eType, "wantSamplePaths"=wantSamplePaths,
+      "wantSimData"=wantSimData,
       "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-      "futility"=futility, "growFutility"=growFutility, ...)
+      "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+      "highN"=highN, "alphaRelevance"=alphaRelevance, ...)
 
-    if (isTRUE(futility))
-      designScenario <- ifelse(growFutility, "1aCompeting", "1aWald")
-
-  } else if (!is.null(meanDiffMin) && is.null(beta) && is.null(nPlan)) {
+  } else if (!is.null(meanDiffMin) && !is.null(power) && is.null(nPlan) && isFALSE(wantSampling) ||
+             !is.null(meanDiffMin) && is.null(power) && is.null(nPlan)) {
     designScenario <- "1b"
 
-    if (is.null(parameter)) {
-      parameter <- switch(eType,
-                          "mom"=1/2*(meanDiffMin/sigma)^2,
-                          "eGauss"=(meanDiffMin/sigma)^2,
-                          "imom"=(meanDiffMin/sigma)^2,
-                          "eCauchy"=abs(meanDiffMin/sigma),
-                          "grow"=meanDiffMin)
+    tempResult <- list("parameter"=parameter,
+                       "esMin"=meanDiffMin, "relevanceTest"=relevanceTest)
+
+    if (relevanceTest) {
+      relevanceParameter <- matchRelevanceParameterWith(
+        "relevanceSize"=relevanceSize,
+        "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
+
+      relevanceTestSim <- list("parameter"=relevanceParameter,
+                             "alpha"=alphaRelevance)
+
+      tempResult[["relevanceTestSim"]] <- relevanceTestSim
     }
 
-    tempResult <- list("parameter"=parameter, "esMin"=meanDiffMin)
-  } else if (!is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
+  } else if (!is.null(meanDiffMin) && is.null(power) && !is.null(nPlan)) {
     designScenario <- "2"
 
-    tempResult <- designSaviZ2WantBeta(
-      "meanDiffMin"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha,
+    tempResult <- designSaviZ2WantPower(
+      "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
       "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
-      "testType"=testType, "parameter"=parameter,
-      "eType"=eType, "wantSamplePaths"=wantSamplePaths, "ratio"=ratio,
-      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot, ...)
-  } else if (is.null(meanDiffMin) && !is.null(beta) && !is.null(nPlan)) {
+      "testType"=testType, "parameter"=parameter, "meanDiffMin"=meanDiffMin,
+      "eType"=eType, "wantSamplePaths"=wantSamplePaths,
+      "ratio"=ratio, "wantSimData"=wantSimData,
+      "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
+      "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+      "alphaRelevance"=alphaRelevance, ...)
+  } else if (is.null(meanDiffMin) && !is.null(power) && !is.null(nPlan)) {
     designScenario <- "3"
 
     tempResult <- designSaviZ3WantEsMin(
-      "beta"=beta, "nPlan"=nPlan, "alpha"=alpha,
+      "power"=power, "nPlan"=nPlan, "alpha"=alpha,
       "alternative"=alternative,
       "sigma"=sigma, "kappa"=kappa,
       "testType"=testType,
       "parameter"=parameter, "eType"=eType,
       "lowEsTrue"=lowEsTrue, "highEsTrue"=highEsTrue, ...)
-  } else if (is.null(meanDiffMin) && is.null(beta) && !is.null(nPlan)) {
+  } else if (is.null(meanDiffMin) && is.null(power) && !is.null(nPlan)) {
     #scenario 3b: only nPlan known, find the parameter at which the confidence interval
     # is the most narrow at nPlan
 
@@ -1103,14 +1230,15 @@ designSaviZ <- function(
 
   if (is.null(designScenario)) {
     stop("Can't design: Please provide this function with either: \n",
-         "(1.a) non-null meanDiffMin, non-null beta and NULL nPlan, or \n",
-         "(1.b) non-null meanDiffMin, NULL beta, and NULL nPlan, or \n",
-         "(2) non-null meanDiffMin, NULL beta and non-null nPlan, or \n",
-         "(3) NULL meanDiffMin, non-null beta, and non-null nPlan, or \n",
-         "(3.b) NULL meanDiffMin, NULL beta, non-null nPlan, or \n")
+         "(1.a) non-null meanDiffMin, non-null power and NULL nPlan, or \n",
+         "(1.b) non-null meanDiffMin, NULL power, and NULL nPlan, or \n",
+         "(2) non-null meanDiffMin, NULL power and non-null nPlan, or \n",
+         "(3) NULL meanDiffMin, non-null power, and non-null nPlan, or \n",
+         "(3.b) NULL meanDiffMin, NULL power, non-null nPlan, or \n")
   }
 
   ## Fill and name ----
+
   result <- utils::modifyList(result, tempResult)
 
   result[["alpha"]] <- alpha
@@ -1124,6 +1252,9 @@ designSaviZ <- function(
 
   ## Name esMin ----
   esMin <- result[["esMin"]]
+
+  if (!is.null(meanDiffTrue))
+    result[["esTrue"]] <- meanDiffTrue
 
   if (is.na(esMin))
     esMin <- NULL
@@ -1163,6 +1294,7 @@ designSaviZ <- function(
   ## Name h0 -----
   names(h0) <- "mu"
   result[["h0"]] <- h0
+  result[["relevanceTest"]] <- relevanceTest
 
   result[["call"]] <- sys.call()
 
@@ -1172,9 +1304,9 @@ designSaviZ <- function(
   return(result)
 }
 
-#' Helper function to designing a Z-test (output nPlan)
+#' Helper function to designing a savi Z-test (output nPlan)
 #'
-#' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
+#' Finds the parameter and power when provided with only alpha, esMin, and nPlan
 #'
 #' @inheritParams designSaviZ
 #'
@@ -1185,43 +1317,50 @@ designSaviZ <- function(
 #' @export
 #'
 #' @examples
-#' designSaviZ1aWantNPlan(meanDiffMin=0.9, beta=0.7, nSim=10)
+#' designSaviZ1aWantNPlan(meanDiffMin=0.9, power=0.7, nSim=10)
 designSaviZ1aWantNPlan <- function(
-    meanDiffMin, beta, alpha=0.05,
+    meanDiffMin, power, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
-    sigma=1, kappa=sigma,
+    sigma=1, kappa=sigma, beta=NULL,
     testType=c("oneSample", "paired", "twoSample"),
-    ratio=1, parameter=NULL,
+    ratio=1, parameter=NULL, meanDiffTrue=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE, ...) {
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
+    highN=1e4L, ...) {
 
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
   testType <- match.arg(testType)
 
+  if (is.null(meanDiffTrue)) meanDiffTrue <- meanDiffMin
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   samplingResult <- computeNPlanSaviZ(
-    "meanDiffTrue"=meanDiffMin, "beta"=beta, "alpha"=alpha,
+    "meanDiffTrue"=meanDiffTrue, "power"=power, "alpha"=alpha,
     "alternative"=alternative, "sigma"=sigma, "kappa"=kappa, "ratio"=ratio,
     "parameter"=parameter, "testType"=testType, "eType"=eType,
     "wantSamplePaths"=wantSamplePaths,
+    "meanDiffMin"=meanDiffMin, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim, "nBoot"=nBoot,
-    "futility"=futility, "growFutility"=growFutility)
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "highN"=highN, "alphaRelevance"=alphaRelevance)
 
   result <- designSavi1aHelper("samplingResult"=samplingResult,
-                               "esMin"=meanDiffMin, "beta"=beta,
-                               "ratio"=ratio, "testType"=testType)
+                               "esMin"=meanDiffMin, "power"=power,
+                               "beta"=NULL, "ratio"=ratio, "testType"=testType)
   return(result)
 }
 
-#' Helper function to designing a Z-test (output beta)
+#' Helper function to designing a Z-test (output power)
 #'
-#' Finds the parameter and beta when provided with only alpha, esMin, and nPlan
+#' Finds the parameter and power when provided with only alpha, esMin, and nPlan
 #'
 #' @inheritParams designSaviZ
 #'
-#' @return A list with the parameter and beta amongst other items
+#' @return A list with the parameter and power amongst other items
 #'
 #' @references
 #'   `r addCite(grunwald2024safe)`
@@ -1230,15 +1369,17 @@ designSaviZ1aWantNPlan <- function(
 #' @export
 #'
 #' @examples
-#' designSaviZ2WantBeta(meanDiffMin=0.9, nPlan=7, nSim=10)
-designSaviZ2WantBeta <- function(
-    meanDiffMin, nPlan,
+#' designSaviZ2WantPower(meanDiffTrue=0.9, nPlan=7, nSim=10)
+designSaviZ2WantPower <- function(
+    meanDiffTrue, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
+    meanDiffMin=meanDiffTrue,
     testType=c("oneSample", "paired", "twoSample"),
     ratio=1, parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   alternative <- match.arg(alternative)
@@ -1246,24 +1387,27 @@ designSaviZ2WantBeta <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
-  samplingResult <- computeBetaSaviZ(
-    "meanDiffTrue"=meanDiffMin, "nPlan"=nPlan, "alpha"=alpha,
+  samplingResult <- computePowerSaviZ(
+    "meanDiffTrue"=meanDiffTrue, "nPlan"=nPlan, "alpha"=alpha,
     "sigma"=sigma, "kappa"=kappa, "alternative"=alternative,
-    "testType"=testType, "parameter"=parameter, "seed"=seed,
+    "testType"=testType, "parameter"=parameter,
+    "meanDiffMin"=meanDiffMin, "seed"=seed,
     "eType"=eType, "wantSamplePaths"=wantSamplePaths,
-    "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
+    "wantSimData"=wantSimData,
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "alphaRelevance"=alphaRelevance, "nSim"=nSim, "nBoot"=nBoot, "pb"=pb)
 
   result <- designSavi2Helper("samplingResult"=samplingResult,
                               "esMin"=meanDiffMin, "nPlan"=nPlan, "ratio"=ratio,
-                              "testType"=c("oneSample", "paired","twoSample"))
+                              "testType"=testType)
   return(result)
 }
 
 #' Helper function to designing a Z-test (output esMin)
 #'
-#' Finds the parameter and esMin when provided with only alpha, beta, and nPlan
+#' Finds the parameter and esMin when provided with only alpha, power, and nPlan
 #'
 #' @inheritParams designSaviZ
 #'
@@ -1276,13 +1420,13 @@ designSaviZ2WantBeta <- function(
 #' @export
 #'
 #' @examples
-#' designSaviZ3WantEsMin(beta=0.7, nPlan=10)
+#' designSaviZ3WantEsMin(power=0.7, nPlan=10)
 designSaviZ3WantEsMin <- function(
-    beta, nPlan,
+    power, nPlan,
     alpha=0.05, alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
+    parameter=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     lowEsTrue=0.01, highEsTrue=3, ...) {
 
@@ -1291,26 +1435,26 @@ designSaviZ3WantEsMin <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
   result <- list("parameter"=NULL, "esMin"=NULL,
-                 "nPlan"=nPlan, "beta"=beta, "ratio"=ratio,
+                 "nPlan"=nPlan, "power"=power, "ratio"=ratio,
                  "note"=NULL)
 
   meanDiffMin <- tryOrFailWithNA(
-    computeMinEsBatchSaviZ("nPlan"=nPlan, "alpha"=alpha, "beta"=beta, "sigma"=sigma,
-                           "kappa"=kappa, "alternative"=alternative, "testType"=testType,
-                           "parameter"=parameter, "eType"=eType)
+    computeMinEsBatchSaviZ(
+      "nPlan"=nPlan, "alpha"=alpha, "power"=power, "beta"=NULL, "sigma"=sigma,
+      "kappa"=kappa, "alternative"=alternative, "testType"=testType,
+      "parameter"=parameter, "eType"=eType)
   )
 
-  if (is.null(parameter)) {
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffMin/sigma)^2,
-                        "eGauss"=(meanDiffMin/sigma)^2,
-                        "imom"=(meanDiffMin/sigma)^2,
-                        "eCauchy"=abs(meanDiffMin/sigma),
-                        "grow"=meanDiffMin)
-  }
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   result[["parameter"]] <- parameter
   result[["esMin"]] <- meanDiffMin
@@ -1323,9 +1467,9 @@ designSaviZ3WantEsMin <- function(
   return(result)
 }
 
-#' Helper function to designing a T-test (output deltaMin based on the shortest interval at nPlan)
+#' Helper function to designing a Z-test (output meanDiffMin based on the shortest interval at nPlan)
 #'
-#' Finds the parameter and deltaMin when provided with only alpha, nPlan
+#' Finds the parameter and meanDiffMin when provided with only alpha, nPlan
 #'
 #' @inheritParams designSaviZ
 #'
@@ -1356,7 +1500,7 @@ designSaviZ3bWantParameter <- function(
   testType <- match.arg(testType)
 
   ratio <- if (length(nPlan)==2) nPlan[2]/nPlan[1] else 1
-  nPlan <- checkAndReturnsNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
+  nPlan <- checkAndReturnNPlan("nPlan"=nPlan, "ratio"=ratio, "testType"=testType)
 
   n1 <- nPlan[1]
   n2 <- nPlan[2]
@@ -1425,28 +1569,24 @@ designSaviZ3bWantParameter <- function(
 
 # Batch design fnts ------
 
-#' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-#' difference, alpha and beta.
+#' Helper function: Computes nPlan based on meanDiffTrue, alpha and power.
 #'
 #' @inheritParams designSaviZ
 #' @inheritParams sampleStoppingTimesSaviZ
-#' @param highN integer that defines the largest n of our search space for n. This might be the
-#' largest n that we are able to fund.
 #'
-#' @return a list which contains at least nPlan and the phiS, that is, the parameter that defines
-#' the savi test.
+#' @return a list which contains at least nPlan and the savi test defining parameter.
 #'
 #' @references
 #'   `r addCite(grunwald2024safe)`
 #'   `r addCite(ly2024safe)`
 #'
 computeNPlanBatchSaviZ <- function(
-    meanDiffTrue, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+    meanDiffTrue, alpha=0.05, power=0.8, sigma=1, kappa=sigma,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    parameter=NULL,
-    highN=1e6, ratio=1, ...) {
+    parameter=NULL, meanDiffMin=NULL, beta=NULL,
+    highN=1e4L, ratio=1, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1460,6 +1600,8 @@ computeNPlanBatchSaviZ <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   result <- list(nPlan=NULL, parameter=NULL)
 
   n1Plan <- NULL
@@ -1467,24 +1609,26 @@ computeNPlanBatchSaviZ <- function(
 
   n1OverNEffRatio <- if (testType=="twoSample") (1+ratio)/ratio else 1
 
-  if (is.null(parameter)) {
-    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-      "paramToCheck"=meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffMin")
+  if (is.null(meanDiffMin))
+    meanDiffMin <- meanDiffTrue
 
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=abs(meanDiffTrue))
-  }
+  meanDiffMin <- suppressWarnings(
+    checkAndReturnEsMinParameterSide(
+      "paramToCheck"=meanDiffMin, "alternative"=alternative,
+      "esMinName"="meanDiffMin")
+  )
+
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   meanDiffTrue <- abs(meanDiffTrue)
 
   # Note(Alexander): Computes one-sided grow sample size used
   # to bound the candidate set of nEff
-  qB <- stats::qnorm(beta)
+  qB <- stats::qnorm(1-power)
 
   nTemp <- exp(2*(log(kappa)-log(meanDiffTrue))) *
     (2*qB^2 - 2*qB*sqrt(qB^2+2*sigma^2/kappa^2*log(1/alpha))
@@ -1507,7 +1651,7 @@ computeNPlanBatchSaviZ <- function(
     }
 
     targetFunction <- function(nEff) {
-      saviZTestStat(stats::qnorm("p"=beta, "mean"=sqrt(nEff)*meanDiffTrue/sigma, "sd"=kappa/sigma),
+      saviZTestStat(stats::qnorm("p"=1-power, "mean"=sqrt(nEff)*meanDiffTrue/sigma, "sd"=kappa/sigma),
                     "n1"=n1Func(nEff), "n2"=n2Func(nEff),
                     "parameter"=parameter, "sigma"=sigma,
                     "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
@@ -1518,8 +1662,11 @@ computeNPlanBatchSaviZ <- function(
     if (isTryError(tempResult))
       tempResult <- try(stats::uniroot(targetFunction, interval=c(1, highN)))
 
-    if (isTryError(tempResult))
-      stop("Can't compute the batched planned sample size")
+    if (isTryError(tempResult)) {
+      warning("Can't compute the batched planned sample size.",
+              "Set sampling horizon to highN = ", highN)
+      tempResult <- list("root"=highN)
+    }
 
     nEff <- tempResult[["root"]]
   }
@@ -1557,7 +1704,7 @@ computeNPlanBatchSaviZ <- function(
 }
 
 
-#' Helper function: Computes the type II error based on the minimal clinically relevant effect size and sample size.
+#' Helper function: Computes 1-power based on meanDiffTrue and nPlan
 #'
 #' @inheritParams designSaviZ
 #' @inheritParams sampleStoppingTimesSaviZ
@@ -1588,18 +1735,15 @@ computeBetaBatchSaviZ <- function(
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
 
-  if (is.null(parameter)) {
-    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-      "paramToCheck"=meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffMin")
+  meanDiffTrue <- checkAndReturnEsMinParameterSide(
+    "paramToCheck"=meanDiffTrue, "alternative"=alternative,
+    "esMinName"="meanDiffMin")
 
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=abs(meanDiffTrue))
-  }
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffTrue, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   if (eType=="grow") {
     phiS <- parameter
@@ -1630,8 +1774,7 @@ computeBetaBatchSaviZ <- function(
   return(result)
 }
 
-#' Computes the smallest mean difference that is detectable with chance 1-beta, for the provided
-#' sample size
+#' Computes the meanDiffMin that is detectable with probability "power" for given nPlan
 #'
 #' @inheritParams designSaviZ
 #'
@@ -1645,10 +1788,10 @@ computeBetaBatchSaviZ <- function(
 #' @examples
 #' computeMinEsBatchSaviZ(27)
 computeMinEsBatchSaviZ <- function(
-    nPlan, alpha=0.05, beta=0.2, sigma=1, kappa=sigma,
+    nPlan, alpha=0.05, power=0.8, sigma=1, kappa=sigma,
     alternative=c("twoSided", "greater", "less"),
     testType=c("oneSample", "paired", "twoSample"),
-    parameter=NULL,
+    parameter=NULL, beta=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     lowEsTrue=0.01, highEsTrue=0.002, ...) {
 
@@ -1666,6 +1809,8 @@ computeMinEsBatchSaviZ <- function(
   testType <- match.arg(testType)
 
   nEff <- computeNEff("n"=nPlan, "testType" = testType)
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
   if (eType=="eCauchy" && nEff > 1e5 || eType=="imom" && nEff > 1e8 ||
       eType=="mom" && alternative %in% c("greater", "less") && nEff > 1e8) {
@@ -1703,7 +1848,7 @@ computeMinEsBatchSaviZ <- function(
   }
 
   targetFunction <- function(deltaTrue) {
-    saviZTestStat(stats::qnorm("p"=beta, "mean"=sqrt(nEff)*deltaTrue, "sd"=kappa/sigma),
+    saviZTestStat(stats::qnorm("p"=1-power, "mean"=sqrt(nEff)*deltaTrue, "sd"=kappa/sigma),
                   "n1"=n1Func(nEff), "n2"=n2Func(nEff),
                   "parameter"=paramFunc(deltaTrue), "sigma"=1,
                   "alternative"=tempAlternative, "eType"=eType)$eValue-1/alpha
@@ -1784,7 +1929,6 @@ setLowAndHighEsTrueZ <- function(nEff, eType="mom", alternative="twoSided",
 #' Simulate stopping times for the savi Z-test
 #'
 #' @inheritParams designSaviZ
-#' @param meanDiffTrue numeric, data governing parameter value
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE}, then compute eValues at nMax. Default \code{FALSE}.
 #' @param wantSamplePaths logical. If \code{TRUE}, then output the (stopped) sample paths. Default \code{TRUE}.
@@ -1807,19 +1951,31 @@ sampleStoppingTimesSaviZ <- function(
     alternative = c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
     sigma=1, kappa=sigma,
-    ratio=1, parameter=NULL, nMax=1e3L,
+    ratio=1, meanDiffMin=NULL, parameter=NULL, nMax=1e3L,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantEValuesAtNMax=FALSE,
-    wantSamplePaths=TRUE, wantSimData=FALSE,
-    pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
-    growFutility=FALSE, beta=NULL, ...) {
-
-  if (isTRUE(futility))
-    stopifnot(!is.null(beta), beta > 0, beta <= 1)
+    wantEValuesAtNMax=FALSE, power=NULL,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
+    pb=TRUE, seed=NULL, nSim=1e3L, relevanceTest=FALSE,
+    relevanceSize=NULL, beta=NULL, alphaRelevance=NULL, ...) {
 
   stopifnot(alpha > 0, alpha <= 1,
             is.finite(nMax),
             is.finite(meanDiffTrue))
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
+  if (relevanceTest) {
+    relevanceSize <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize, "esMin"=meanDiffMin,
+      "esTrue"=meanDiffTrue
+    )
+
+    alphaRelevance <- matchAlphaRelevanceWith(
+      "alphaRelevance"=alphaRelevance, "alpha"=alpha, "beta"=1-power
+    )
+
+    stopifnot(alphaRelevance > 0, alphaRelevance < 1)
+  }
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -1838,34 +1994,28 @@ sampleStoppingTimesSaviZ <- function(
     "wantEValuesAtNMax"=wantEValuesAtNMax,
     "wantSamplePaths"=wantSamplePaths)
 
-  if (is.null(parameter)) {
-    meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-      meanDiffTrue, "alternative"=alternative,
-      "esMinName"="meanDiffMin")
+  meanDiffTrue <- abs(meanDiffTrue)
 
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=meanDiffTrue)
+  meanDiffMin <- if (is.null(meanDiffMin)) abs(meanDiffTrue) else abs(meanDiffMin)
 
-    # Only used when futility=TRUE && growFutility=TRUE
-    if (isTRUE(growFutility))
-      growParameter <- meanDiffTrue
-  } else {
-    # Only used when futility=TRUE && growFutility=TRUE
-    if (isTRUE(growFutility)) {
-      growParameter <- switch(eType,
-                              "mom"=sigma*sqrt(2*abs(parameter)),
-                              "eGauss"=sigma*sqrt(abs(parameter)),
-                              "imom"=sigma*sqrt(abs(parameter)),
-                              "eCauchy"=sigma*parameter,
-                              "grow"=parameter)
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
-      if (alternative=="less")
-        growParameter <- -growParameter
-    }
+  relevanceTestSim <- NULL
+
+  if (relevanceTest) {
+    relevanceParameter <- matchRelevanceParameterWith(
+      "relevanceSize"=relevanceSize,
+      "esMin"=meanDiffMin, "esTrue"=meanDiffTrue)
+
+    relevanceTestSim <-
+      list("eValuesStopped"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "samplePaths"=result[["samplePaths"]],
+           "stoppingTimes"=Matrix::sparseVector(x=0, i=1, length=nSim),
+           "parameter"=relevanceParameter, "alpha"=alphaRelevance)
   }
 
   if (testType=="twoSample" && length(nMax)==1) {
@@ -1890,7 +2040,7 @@ sampleStoppingTimesSaviZ <- function(
   nEffVector <- tempN[["nEff"]]
 
   simData <- generateNormalData("nPlan"=nMax, "nSim"=nSim, "deltaTrue"=meanDiffTrue/kappa,
-                                "sigmaTrue"=kappa, "paired"=FALSE, "seed"=seed)
+                                "sigma"=kappa, "paired"=FALSE, "seed"=seed)
 
   for (sim in seq_along(result[["stoppingTimes"]])) {
     if (testType %in% c("oneSample", "paired")) {
@@ -1932,43 +2082,42 @@ sampleStoppingTimesSaviZ <- function(
       if (evidenceNow >= 1/alpha) {
         result[["stoppingTimes"]][sim] <- n1Vector[j]
         result[["eValuesStopped"]][sim] <- evidenceNow
-        result[["stoppedVector"]][sim] <- 1
-
-        if (wantSamplePaths) {
-          result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
-        }
 
         break()
       }
 
-      if (futility && !isTRUE(growFutility) && evidenceNow < beta) {
-        result[["stoppingTimes"]][sim] <- n1Vector[j]
-        result[["eValuesStopped"]][sim] <- evidenceNow
-        result[["stoppedVector"]][sim] <- -1
+      # TODO(Alexander): Here use reciprocal as evidence for the null
+      #
+      # if (relevanceTest && !isTRUE(growFutility) && evidenceNow < beta) {
+      #   result[["stoppingTimes"]][sim] <- n1Vector[j]
+      #   result[["eValuesStopped"]][sim] <- evidenceNow
+      #   result[["stoppedVector"]][sim] <- -1
+      #
+      #   if (wantSamplePaths) {
+      #     result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
+      #   }
+      #
+      #   break()
+      # }
 
-        if (wantSamplePaths) {
-          result[["samplePaths"]][sim, j:nMax[1]] <- evidenceNow
-        }
+      if (relevanceTest) {
+        relevanceRes <- saviRelevanceZStat(
+          "z"=zVector[j], "parameter"=relevanceParameter,
+          "n1"=n1Vector[j], "n2"=n2Vector[j],
+          "alternative"=alternative,
+          "sigma"=sigma, "eType"="grow")
 
-        break()
-      }
+        relevanceEValue <- relevanceRes[["eValue"]]
 
-      if (futility && growFutility) {
-        growRes <- saviZTestStat("z"=zVector[j], "parameter"=growParameter,
-                                 "n1"=n1Vector[j], "n2"=n2Vector[j],
-                                 "alternative"=alternative, "sigma"=sigma,
-                                 "eType"="grow")
+        if (wantSamplePaths)
+          relevanceTestSim[["samplePaths"]][sim, j] <- relevanceEValue
 
-        growEvidence <- growRes[["eValue"]]
+        if (relevanceEValue < alphaRelevance) {
+          result[["breakVector"]][sim] <- -1
+          result[["stoppingTimes"]][sim] <- nMax
 
-        if (growEvidence < beta) {
-          result[["stoppingTimes"]][sim] <- n1Vector[j]
-          result[["eValuesStopped"]][sim] <- growEvidence
-          result[["stoppedVector"]][sim] <- -2
-
-          if (wantSamplePaths) {
-            result[["samplePaths"]][sim, j:nMax[1]] <- growEvidence
-          }
+          relevanceTestSim[["stoppingTimes"]][sim] <- n1Vector[j]
+          relevanceTestSim[["eValuesStopped"]][sim] <- relevanceEValue
 
           break()
         }
@@ -1996,20 +2145,32 @@ sampleStoppingTimesSaviZ <- function(
   result[["n1Vector"]] <- n1Vector
   result[["ratio"]] <- ratio
 
-  if (isTRUE(wantSimData))
+  if (wantSimData)
     result[["simData"]] <- simData
+
+  if (wantSamplePaths) {
+    samplePaths <- result[["samplePaths"]]
+    samplePaths[is.na(samplePaths)] <- 0
+    result[["samplePaths"]] <- Matrix::Matrix(samplePaths, sparse=TRUE)
+
+    if (relevanceTest) {
+      relevanceSamplePaths <- relevanceTestSim[["samplePaths"]]
+      relevanceSamplePaths[is.na(relevanceSamplePaths)] <- 0
+      relevanceTestSim[["samplePaths"]] <- Matrix::Matrix(relevanceSamplePaths, sparse=TRUE)
+    }
+  }
+
+  result[["relevanceTestSim"]] <- relevanceTestSim
 
   return(result)
 }
 
-
-
-#' Helper function: Computes the type II error based on the minimal clinically relevant mean difference and nPlan
+#' Helper function: Computes the power based on meanDiffTrue and nPlan
 #'
 #' @inheritParams designSaviZ
 #' @inheritParams sampleStoppingTimesSaviZ
 #'
-#' @return a list which contains at least beta and an adapted bootObject of class  \code{\link[boot]{boot}}.
+#' @return a list which contains at least power and an adapted bootObject of class \code{\link[boot]{boot}}.
 #'
 #' @references
 #'   `r addCite(grunwald2024safe)`
@@ -2018,15 +2179,17 @@ sampleStoppingTimesSaviZ <- function(
 #' @export
 #'
 #' @examples
-#' computeBetaSaviZ(meanDiffTrue=0.7, 20, nSim=10)
-computeBetaSaviZ <- function(
+#' computePowerSaviZ(meanDiffTrue=0.7, 20, nSim=10)
+computePowerSaviZ <- function(
     meanDiffTrue, nPlan, alpha=0.05,
     alternative=c("twoSided", "greater", "less"),
     sigma=1, kappa=sigma,
+    meanDiffMin=meanDiffTrue,
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
@@ -2049,40 +2212,37 @@ computeBetaSaviZ <- function(
             'times nPlan[1] = ', nPlan[2])
   }
 
-  meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-    "paramToCheck"=meanDiffTrue, "alternative"=alternative,
+  # TODO(Alexander): Revise logic on meanDiffTrue and meanDiffMin
+  #
+  meanDiffMin <- checkAndReturnEsMinParameterSide(
+    "paramToCheck"=meanDiffMin, "alternative"=alternative,
     "esMinName"="meanDiffMin")
 
-  if (is.null(parameter)) {
-    parameter <- switch(eType,
-                        "mom"=1/2*(meanDiffTrue/sigma)^2,
-                        "eGauss"=(meanDiffTrue/sigma)^2,
-                        "imom"=(meanDiffTrue/sigma)^2,
-                        "eCauchy"=abs(meanDiffTrue/sigma),
-                        "grow"=meanDiffTrue)
-  }
+  parameter <- matchEParameterWith(
+    "parameter"=parameter, "analysisType"="z",
+    "esMin"=meanDiffMin, "sigma"=sigma,
+    "alternative"=alternative, "eType"=eType
+  )
 
   samplingResult <- sampleStoppingTimesSaviZ(
     "meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
-    "alternative" = alternative, "testType"=testType,
+    "alternative"=alternative, "testType"=testType,
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlan,
-    "eType"=eType,
+    "eType"=eType, "wantSimData"=wantSimData,
     "wantEValuesAtNMax"=TRUE, "wantSamplePaths"=wantSamplePaths,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=FALSE, "growFutility"=FALSE,
-    ...)
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "alphaRelevance"=alphaRelevance, ...)
 
-  result <- computeBetaBootstrapper(samplingResult=samplingResult,
-                                    parameter=parameter, nPlan=nPlan,
-                                    nBoot=nBoot)
-
+  result <- computePowerBootstrapper("samplingResult"=samplingResult,
+                                    "parameter"=parameter, "nPlan"=nPlan,
+                                    "nBoot"=nBoot)
   return(result)
 }
 
 
-#' Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-#' difference, alpha and beta
+#' Helper function: Computes nPlan based on meanDiffTrue, alpha and power
 #'
 #'
 #' @inheritParams designSaviZ
@@ -2099,16 +2259,17 @@ computeBetaSaviZ <- function(
 #' @examples
 #' computeNPlanSaviZ(0.7, 0.2, nSim=10)
 computeNPlanSaviZ <- function(
-    meanDiffTrue, beta=0.2, alpha=0.05,
+    meanDiffTrue, power=0.8, alpha=0.05,
     alternative=c("twoSided", "less", "greater"),
     testType=c("oneSample", "paired", "twoSample"),
     sigma=1, kappa=sigma,
+    meanDiffMin=NULL, beta=NULL,
     ratio=1, parameter=NULL, nMax=1e8,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-    wantSamplePaths=TRUE,
+    wantSamplePaths=TRUE, wantSimData=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE,
-    ...) {
+    relevanceTest=FALSE, relevanceSize=NULL, alphaRelevance=NULL,
+    highN=1e4L, ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -2122,32 +2283,50 @@ computeNPlanSaviZ <- function(
   testType <- match.arg(testType)
   eType <- match.arg(eType)
 
-  meanDiffTrue <- checkAndReturnsEsMinParameterSide(
-    "paramToCheck"=meanDiffTrue, "alternative"=alternative,
-    "esMinName"="meanDiffMin")
+  if (is.null(meanDiffMin)) {
+    meanDiffTrue <- checkAndReturnEsMinParameterSide(
+      "paramToCheck"=meanDiffTrue, "alternative"=alternative,
+      "esMinName"="meanDiffTrue")
 
+    meanDiffMin <- meanDiffTrue
+  } else {
+    meanDiffMin <- checkAndReturnEsMinParameterSide(
+      "paramToCheck"=meanDiffMin, "alternative"=alternative,
+      "esMinName"="meanDiffMin")
+  }
+
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
+  # TODO(Alexander)
+  #
   tempObj <- computeNPlanBatchSaviZ(
-    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha,
-    "beta"=beta, "sigma"=sigma, "kappa"=kappa,
+    "meanDiffTrue"=meanDiffMin, "alpha"=alpha,
+    "power"=power, "sigma"=sigma, "kappa"=kappa,
     "alternative"=alternative, "testType"=testType,
-    "parameter"=parameter, "ratio"=ratio, "eType"=eType, ...)
+    "parameter"=parameter, "ratio"=ratio, "eType"=eType,
+    "meanDiffMin"=meanDiffMin, "highN"=highN,
+    "wantSimData"=wantSimData, ...)
 
   nPlanBatch <- tempObj[["nPlan"]]
-  parameter <- tempObj[["parameter"]]
+
+  if (is.null(parameter))
+    parameter <- tempObj[["parameter"]]
 
   samplingResult <- sampleStoppingTimesSaviZ(
-    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha, "beta"=beta,
-    "alternative"=alternative, "testType"=testType,
+    "meanDiffTrue"=meanDiffTrue, "alpha"=alpha, "power"=power,
+    "beta"=NULL, "alternative"=alternative, "testType"=testType,
     "sigma"=sigma, "kappa"=kappa,
     "ratio"=ratio, "parameter"=parameter, "nMax"=nPlanBatch,
-    "eType"=eType,
-    "wantSamplePaths"=wantSamplePaths,
+    "eType"=eType, "meanDiffMin"=meanDiffMin,
+    "wantSamplePaths"=wantSamplePaths, "wantSimData"=wantSimData,
     "pb"=pb, "seed"=seed, "nSim"=nSim,
-    "futility"=futility, "growFutility"=growFutility, ...)
+    "relevanceTest"=relevanceTest, "relevanceSize"=relevanceSize,
+    "alphaRelevance"=alphaRelevance, ...)
 
-  result <- computeNPlanBootstrapper("samplingResult"=samplingResult,
-                                     "parameter"=parameter, "beta"=beta,
-                                     "nPlanBatch"=nPlanBatch, "nBoot"=nBoot)
+  result <- computeNPlanBootstrapper(
+    "samplingResult"=samplingResult, "parameter"=parameter,
+    "beta"=NULL, "power"=power, "nPlanBatch"=nPlanBatch, "nBoot"=nBoot
+  )
   return(result)
 }
 

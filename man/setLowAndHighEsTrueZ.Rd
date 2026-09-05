@@ -25,16 +25,14 @@ does not shrink as the sample size tends to infinity. "freq" yields the standard
 confidence interval, which is not safe. "credibleInterval" yields the Bayesian credible interval
 based on a conjugate prior as is usual in Bayesian analysis. This interval is also not safe.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{lowEsTrue}{numeric, lower bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find meanDiffMin}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 
 \item{highEsTrue}{numeric, upper bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find meanDiffMin}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 }
 \value{
 a list of low and high values for the parameter

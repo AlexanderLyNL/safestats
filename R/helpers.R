@@ -1,6 +1,9 @@
 #' Add a savi reference
 #'
-#' @param key character string. firstAuthorYearFirstWord
+#' Keys are of the form firstAuthorYearFirstWord
+#'
+#' @param breakLine logical, default TRUE to break up the references
+#' @param ... further arguments to be passed to or from methods.
 #'
 #' @return a character string
 #' @export
@@ -9,8 +12,6 @@
 #' addCite(grunwald2024safe)
 addCite <- function(..., breakLine=TRUE) {
   keys <- as.character(rlang::ensyms(...))
-
-  # TODO(ALEXANDER) CHECK: utils::cite
 
   refList <- list(
     "grunwald2024safe"="Gr\u00fcnwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \\emph{Journal of the Royal Statistical Society. Series B (Methodological),} \\strong{86}(\\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011.",
@@ -45,9 +46,9 @@ addCite <- function(..., breakLine=TRUE) {
 .onAttach <-
   function(libname, pkgname) {
     packageCitation <- "Ly, A., Turner, R. J., Wang, Y., P\u00e9rez-Ortiz, M. F., Boehm, U., ter Schure, J., & Gr\u00fcnwald, P. D. (2024). safestats: Safe anytime-valid inference [Computer software manual]."
-    message("Thank you for using safestats! We really appreciate your interest in our work.")
-    message("To acknowledge our work, please feel free to cite the package as follows:")
-    message(packageCitation)
+    packageStartupMessage("Thank you for using safestats! We really appreciate your interest in our work.")
+    packageStartupMessage("To acknowledge our work, please feel free to cite the package as follows:")
+    packageStartupMessage(packageCitation)
   }
 
 # Try helper functions -----
@@ -129,12 +130,152 @@ extractNameFromArgs <- function(list, name) {
 #' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
 #'
 #' @return paramToCheck after checking, perhaps with a change in sign
-checkAndReturnsEsMinParameterSide <- function(
+checkAndReturnEsMinParameterSide <- function(
     paramToCheck, alternative=c("twoSided", "greater", "less"),
-    esMinName=c("noName", "meanDiffMin", "phiS",
-                "deltaMin", "deltaS",
+    esMinName=c("noName", "meanDiffMin", "meanDiffTrue",
+                "phiS", "deltaMin", "deltaS",
                 "hrMin", "thetaS", "deltaTrue",
                 "g", "kappaG"), paramDomain=NULL) {
+
+  # TODO(Alexander): Remove in v0.9.0
+  #
+  if (length(alternative)==1 && alternative=="two.sided") {
+    warning('The option alternative="two.sided" is deprecated;',
+            'Please use alternative="twoSided" instead')
+    alternative <- "twoSided"
+  }
+
+  alternative <- match.arg(alternative)
+  paramDomain <- match.arg(paramDomain)
+  esMinName <- match.arg(esMinName)
+
+  if (alternative == "twoSided") {
+    if (esMinName %in% c("meanDiffMin", "meanDiffTrue", "deltaMin", "deltaTrue"))
+      return(abs(paramToCheck))
+
+    return(paramToCheck)
+  }
+
+  if (esMinName=="noName")
+    paramName <- NULL
+  else
+    paramName <- esMinName
+
+  error <- NULL
+
+  if (is.null(paramName)) {
+    paramName <- "the savi test defining parameter"
+    hypParamName <- "test relevant parameter"
+    paramDomain <- "unknown"
+  } else if (paramName=="phiS" || esMinName=="meanDiffMin" || esMinName=="meanDiffTrue") {
+    hypParamName <- "meanDiff"
+    paramDomain <- "realNumbers"
+  } else if (paramName=="deltaS" || esMinName=="deltaMin"  || esMinName=="deltaTrue") {
+    hypParamName <- "delta"
+    paramDomain <- "realNumbers"
+  } else if (paramName=="thetaS" || esMinName=="hrMin") {
+    hypParamName <- "theta"
+    paramDomain <- "positiveNumbers"
+
+    error <- if (paramToCheck < 0) "thetaS and hrMin must be positive"
+  } else if (paramName=="g") {
+    hypParamName <- "g"
+    paramDomain <- "positiveNumbers"
+
+    error <- if (paramToCheck < 0) "The parameter g must be positive"
+  } else if (paramName=="kappaG") {
+    # TODO(Alexander):
+    #
+    #   Perhaps fix with hypParam name
+    #
+    hypParamName <- "kappaG"
+    paramDomain <- "positiveNumbers"
+
+    error <- if (paramToCheck < 0) "The parameter kappaG must be positive"
+  } else if (paramName=="gMom") {
+    hypParamName <- "gMom"
+    paramDomain <- "positiveNumbers"
+
+    error <- if (paramToCheck < 0) "The parameter gMom must be positive"
+  } else {
+    hypParamName <- "testRelevantParameter"
+  }
+
+  if (!is.null(error))
+    stop(error)
+
+  if (paramDomain=="unknown") {
+    nullValue <- "nullValue"
+
+    if (alternative=="greater" && paramToCheck < 0) {
+      warning('The savi test defining parameter is incongruent with alternative "greater". ',
+              "This savi test parameter is made positive to compare H+: ",
+              "test-relevant parameter > 0 against H0 : test-relevant parameter = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 0) {
+      warning('The savi test defining parameter is incongruent with alternative "less". ',
+              "This savi test parameter is made positive to compare H-: ",
+              "test-relevant parameter < 0 against H0 : test-relevant parameter = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+  } else if (paramDomain=="realNumbers") {
+    nullValue <- 0
+
+    if (alternative=="greater" && paramToCheck < 0) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to -", paramName, " > 0 in order to compare H+: ",
+              hypParamName, " > 0 against H0 : ", hypParamName, " = 0")
+      paramToCheck <- -paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 0) {
+      warning(paramName, ' incongruent with alternative "less". ',
+              paramName, " set to -", paramName, " < 0 in order to compare H-: ",
+              hypParamName, " < 0 against H0 : ", hypParamName, " = 0")
+      paramToCheck <- -paramToCheck
+    }
+  } else if (paramDomain=="positiveNumbers") {
+    if (alternative=="greater" && paramToCheck < 1) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to 1/", paramName, " > 1 in order to compare H+: ",
+              hypParamName, " > 1 against H0 : ", hypParamName, " = 1")
+
+      paramToCheck <- 1/paramToCheck
+    }
+
+    if (alternative=="less" && paramToCheck > 1) {
+      warning(paramName, ' incongruent with alternative "greater". ',
+              paramName, " set to 1/", paramName, " < 1 in order to compare H-: ",
+              hypParamName, " < 1 against H0 : ", hypParamName, " = 1")
+
+      paramToCheck <- 1/paramToCheck
+    }
+  }
+
+  return(paramToCheck)
+}
+
+# Check Consistency function --------
+
+#' Checks consistency between the sided of the hypothesis and the  minimal clinically relevant effect size
+#' or safe test defining parameter. Throws an error if the one-sided hypothesis is incongruent with the
+#'
+#' @inheritParams designSafeZ
+#' @param paramToCheck numeric. Either a named safe test defining parameter such as phiS, or thetaS, or a
+#' minimal clinically relevant effect size called with a non-null esMinName name
+#' @param esMinName provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for
+#' the t-test, or "hrMin" for the logrank test
+#' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
+#'
+#' @return paramToCheck after checking, perhaps with a change in sign
+checkAndReturnsEsMinParameterSide <- function(paramToCheck, alternative=c("twoSided", "greater", "less"),
+                                              esMinName=c("noName", "meanDiffMin", "phiS",
+                                                          "deltaMin", "deltaS",
+                                                          "hrMin", "thetaS", "deltaTrue"),
+                                              paramDomain=NULL) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -160,10 +301,8 @@ checkAndReturnsEsMinParameterSide <- function(
   else
     paramName <- esMinName
 
-  error <- NULL
-
   if (is.null(paramName)) {
-    paramName <- "the savi test defining parameter"
+    paramName <- "the safe test defining parameter"
     hypParamName <- "test relevant parameter"
     paramDomain <- "unknown"
   } else if (paramName=="phiS" || esMinName=="meanDiffMin") {
@@ -175,38 +314,24 @@ checkAndReturnsEsMinParameterSide <- function(
   } else if (paramName=="thetaS" || esMinName=="hrMin") {
     hypParamName <- "theta"
     paramDomain <- "positiveNumbers"
-
-    error <- if (paramToCheck < 0) "thetaS and hrMin must be positive"
-  } else if (paramName=="g") {
-    hypParamName <- "g"
-    paramDomain <- "positiveNumbers"
-
-    error <- if (paramToCheck < 0) "The parameter g must be positive"
-  } else if (paramName=="kappaG") {
-    hypParamName <- "kappaG"
-    paramDomain <- "positiveNumbers"
-
-    error <- if (paramToCheck < 0) "The parameter kappaG must be positive"
   } else {
     hypParamName <- "testRelevantParameter"
   }
 
-  if (!is.null(error))
-    stop(error)
 
   if (paramDomain=="unknown") {
     nullValue <- "nullValue"
 
     if (alternative=="greater" && paramToCheck < 0) {
-      warning('The savi test defining parameter is incongruent with alternative "greater". ',
-              "This savi test parameter is made positive to compare H+: ",
+      warning('The safe test defining parameter is incongruent with alternative "greater". ',
+              "This safe test parameter is made positive to compare H+: ",
               "test-relevant parameter > 0 against H0 : test-relevant parameter = 0")
       paramToCheck <- -paramToCheck
     }
 
     if (alternative=="less" && paramToCheck > 0) {
-      warning('The savi test defining parameter is incongruent with alternative "less". ',
-              "This savi test parameter is made positive to compare H-: ",
+      warning('The safe test defining parameter is incongruent with alternative "less". ',
+              "This safe test parameter is made positive to compare H-: ",
               "test-relevant parameter < 0 against H0 : test-relevant parameter = 0")
       paramToCheck <- -paramToCheck
     }
@@ -254,7 +379,7 @@ checkAndReturnsEsMinParameterSide <- function(
 #'
 #' @return nPlan a vector of sample sizes of length 1 or 2
 #'
-checkAndReturnsNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired", "twoSample")) {
+checkAndReturnNPlan <- function(nPlan, ratio=1, testType=c("oneSample", "paired", "twoSample")) {
   if (testType=="twoSample" && length(nPlan)==1) {
     nPlan <- c(nPlan, ratio*nPlan)
     warning('testType=="twoSample" specified, but nPlan[2] not provided. nPlan[2] = ratio*nPlan[1], that is, ',
@@ -374,6 +499,31 @@ makeRunningIntersection <- function(x, upper=TRUE) {
     res[i] <- comparisonFunction(currentValue, x[i])
     currentValue <- res[i]
   }
+
+  return(res)
+}
+
+
+#' Logarithmic hyperbolic cosine
+#'
+#' @param x numeric
+#'
+#' @returns numeric value
+#' @export
+#'
+#' @examples
+#' lcosh(7)
+lcosh <- function(x) {
+  res <- log(cosh(x))
+
+  if (is.infinite(res))
+    res <- -log(2)+x+log(1+exp(-2*x))
+
+  if (is.infinite(res))
+    res <- -log(2)+x+exp(-2*x)
+
+  if (is.infinite(res))
+    stop("log cosh infinite")
 
   return(res)
 }

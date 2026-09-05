@@ -41,7 +41,7 @@ library("remotes")
 This then allows you to install and load the development version of `safestats` as follows: 
 
 ```{r eval=FALSE}
-remotes::install_github("AlexanderLyNL/safestats", ref = "088")
+remotes::install_github("AlexanderLyNL/safestats", ref = "futility88")
 library(safestats)
 ```
 
@@ -71,7 +71,7 @@ The design object "designObj" summarises which analysis, e.g. "designSaviZ" (z-t
 - which type of e-variables is going to be used "eType", and
 - which test defining parameter value is set.
 
-The design function can also be provide with a minimal clinically relevant effect size, and a targeted power, 1-beta, or equivalently a tolerable type II error, beta. In that case, the design object describes how many samples the experimenter should plan for. Due to optional stopping, the actual realised sample size will typically be smaller than what one should plan for, provided that there is a true effect equal or larger than the minimal clinical relevant effect size. 
+The design function can also be provide with a minimal clinically relevant effect size, and a desired power In that case, the design object describes how many samples the experimenter should plan for. Due to optional stopping, the actual realised sample size will typically be smaller than what one should plan for, provided that there is a true effect equal or larger than the minimal clinical relevant effect size. 
 
 <!-- Further details on optional stopping are provided in the next R Markdown document "I. Testing".  -->
 
@@ -115,9 +115,9 @@ For the test we are going to perform we use the following design object:
 
 ```{r, eval=FALSE}
 library(safestats)
-sigmaTrue <- 12
+sigma <- 12
 designObj <- designSaviZ(meanDiffMin=10,
-                         beta=0.2, sigma=sigmaTrue,
+                         power=0.8, sigma=sigma,
                          testType="twoSample", seed=1)
 designObj
 ```
@@ -127,8 +127,8 @@ One advantage of e-variables is that you can analyse the data as they come in. S
 
 ```{r, eval=FALSE}
 set.seed(2)
-treatmentGroup <- rnorm(36, mean=122, sd=sigmaTrue)
-controlGroup <- rnorm(36, mean=112, sd=sigmaTrue)
+treatmentGroup <- rnorm(36, mean=122, sd=sigma)
+controlGroup <- rnorm(36, mean=112, sd=sigma)
 
 resultObj <- saviZTest(x=treatmentGroup, y=controlGroup,
                        designObj=designObj)

@@ -4,13 +4,16 @@
 \alias{getNameTestType}
 \title{Gets the Label of the Test}
 \usage{
-getNameTestType(testType, testName)
+getNameTestType(testType, testName, relevanceTest = FALSE)
 }
 \arguments{
 \item{testType}{A character string. For the t-tests: "oneSample", "paired", "twoSample".}
 
 \item{testName}{The name of the analysis that is performed such as "Z-Test",
 and "Test of Two Proportions".}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose a rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 }
 \value{
 Returns a character string with the name of the analysis.

@@ -14,7 +14,7 @@ designSavi2Helper(
 )
 }
 \arguments{
-\item{samplingResult}{output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT}
+\item{samplingResult}{output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT}
 
 \item{esMin}{numeric that defines the minimal clinically relevant effect size,
 e.g. meanDiffMin for the z-test, or deltaMin for the t-test.}
@@ -39,6 +39,6 @@ Helper function that extract the results for the design scenario 1a: Target nPla
 }}
 \examples{
 
-samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
-result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
+samplingResult <- computeNPlanSaviZ(0.7, nSim=10, nMax=20)
+result <- designSavi1aHelper(samplingResult, 0.7, 0.2, 1)
 }

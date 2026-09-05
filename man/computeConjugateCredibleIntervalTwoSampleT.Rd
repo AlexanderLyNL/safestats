@@ -49,8 +49,8 @@ standard deviation sigma}
 \item{bGamma}{numeric > 0, rate parameter of the prior on the
 standard deviation sigma}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
-and ciValue = 1 - alpha}
+\item{ciValue}{numeric representing the confidence level.
+Default ciValue=NULL yields ciValue = 1 - alpha}
 }
 \value{
 a vector of length two representing the credible interval

@@ -7,9 +7,9 @@
 computeBetaBootstrapper(samplingResult, parameter, nPlan, nBoot)
 }
 \arguments{
-\item{samplingResult}{output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT}
+\item{samplingResult}{output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT}
 
-\item{parameter}{numeric > 0, the safe test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter.}
 
 \item{nPlan}{vector of max length 2 representing the planned sample sizes.}
 
@@ -23,6 +23,6 @@ list with bootstrap objects
 Helper function to compute uncertainty regarding nPlan estimates
 }
 \examples{
-samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
 result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 }

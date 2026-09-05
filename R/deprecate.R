@@ -131,6 +131,8 @@ safeTTestStat <- function(
 }
 
 #' @describeIn saviTTest Deprecated version of saviTTestStatNEffNu
+#' #nu >0 degrees of freedom
+#'
 #' @usage NULL
 #' @export
 safeTTestStatNEffNu <- function(
@@ -144,9 +146,9 @@ safeTTestStatNEffNu <- function(
   warning('The function safeTTestStatNEffNu is deprecated;',
           'Please use saviTTestStatNEffNu instead')
 
-  saviTTestStat(t=t, nEff=nEff, nu=nu, parameter=parameter,
-                alternative=alternative, tDensity=tDensity,
-                paired=paired, eType=eType, ...)
+  saviTTestStatNEffNu(t=t, nEff=nEff, nu=nu, parameter=parameter,
+                      alternative=alternative, tDensity=tDensity,
+                      paired=paired, eType=eType, ...)
 }
 
 #' @describeIn saviTTest Deprecated version of saviTTestStatNEffNuMom
@@ -297,9 +299,9 @@ designSafeT2WantBeta <- function(
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim, ...) {
 
   warning('The function designSafeT2WantBeta is deprecated;',
-          'Please use designSaviT2WantBeta instead')
+          'Please use designSaviT2WantPower instead')
 
-  designSaviT2WantBeta(
+  designSaviT2WantPower(
     deltaMin=deltaMin, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     testType=testType, ratio=ratio, parameter=parameter,
@@ -380,7 +382,7 @@ computeMinEsBatchSafeT <- function(
     testType=c("oneSample", "paired", "twoSample"),
     parameter=NULL,
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
-    lowEsTrue=0.01, highEsTrue=3, ...) {
+    lowEsTrue=0.01, highEsTrue=3, ratio=1, ...) {
 
   warning('The function computeMinEsBatchSafeT is deprecated;',
           'Please use computeMinEsBatchSaviT instead')
@@ -410,7 +412,7 @@ sampleStoppingTimesSafeT <- function(
           'Please use sampleStoppingTimesSaviT instead')
 
   sampleStoppingTimesSaviT(
-    deltaTrue=deltaTrue, beta=beta,
+    deltaTrue=deltaTrue, power=1-beta,
     alpha=alpha, alternative=alternative,
     testType=testType,
     ratio=ratio, parameter=parameter, lowN=lowN, nMax=nMax,
@@ -421,7 +423,7 @@ sampleStoppingTimesSafeT <- function(
 }
 
 
-#' @describeIn computeBetaSaviT Deprecated version of computeBetaSaviT
+#' @describeIn computePowerSaviT Deprecated version of computeBetaSaviT
 #' @usage NULL
 #' @export
 computeBetaSafeT <- function(
@@ -435,9 +437,9 @@ computeBetaSafeT <- function(
 
 
   warning('The function computeBetaSafeT is deprecated;',
-          'Please use computeBetaSaviT instead')
+          'Please use computePowerSaviT instead')
 
-  computeBetaSaviT(
+  computePowerSaviT(
     deltaTrue=deltaTrue, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     testType=testType,
@@ -561,7 +563,7 @@ designSafeZ <- function(
     wantSamplePaths=TRUE,
     lowEsTrue=0.01, highEsTrue=3,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE, ...) {
+    relevanceTest=FALSE, growFutility=FALSE, ...) {
 
   warning('The function designSafeZ is deprecated;',
           'Please use designSaviZ instead')
@@ -575,7 +577,7 @@ designSafeZ <- function(
     wantSamplePaths=wantSamplePaths,
     lowEsTrue=lowEsTrue, highEsTrue=highEsTrue,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    futility=futility, growFutility=growFutility, ...)
+    relevanceTest=NULL, growFutility=growFutility, ...)
 }
 
 #' @describeIn designSaviZ1aWantNPlan Deprecated version of designSaviZ1aWantNPlan
@@ -590,7 +592,7 @@ designSafeZ1aWantNPlan <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE, ...) {
+    relevanceTest=FALSE, growFutility=FALSE, ...) {
 
   warning('The function designSafeZ1aWantNPlan is deprecated;',
           'Please use designSaviZ1aWantNPlan instead')
@@ -603,10 +605,10 @@ designSafeZ1aWantNPlan <- function(
     eType=eType,
     wantSamplePaths=wantSamplePaths,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    futility=futility, growFutility=growFutility, ...)
+    relevanceTest=relevanceTest, growFutility=growFutility, ...)
 }
 
-#' @describeIn designSaviZ2WantBeta Deprecated version of designSaviZ2WantBeta
+#' @describeIn designSaviZ2WantPower Deprecated version of designSaviZ2WantBeta
 #' @usage NULL
 #' @export
 designSafeZ2WantBeta <- function(
@@ -622,7 +624,7 @@ designSafeZ2WantBeta <- function(
   warning('The function designSafeZ2WantBeta is deprecated;',
           'Please use designSaviZ2WantBeta instead')
 
-  designSaviZ2WantBeta(
+  designSaviZ2WantPower(
     meanDiffMin=meanDiffMin, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     sigma=sigma, kappa=kappa, testType=testType,
@@ -758,7 +760,7 @@ sampleStoppingTimesSafeZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantEValuesAtNMax=FALSE,
     wantSamplePaths=TRUE, wantSimData=FALSE,
-    pb=TRUE, seed=NULL, nSim=1e3L, futility=FALSE,
+    pb=TRUE, seed=NULL, nSim=1e3L, relevanceTest=FALSE,
     growFutility=FALSE, beta=NULL, ...) {
 
   warning('The function sampleStoppingTimesSafeZ is deprecated;',
@@ -773,11 +775,11 @@ sampleStoppingTimesSafeZ <- function(
     wantEValuesAtNMax=wantEValuesAtNMax,
     wantSamplePaths=wantSamplePaths,
     wantSimData=wantSimData,
-    pb=pb, seed=seed, nSim=nSim, futility=futility,
+    pb=pb, seed=seed, nSim=nSim, relevanceTest=relevanceTest,
     growFutility=growFutility, ...)
 }
 
-#' @describeIn computeBetaSaviZ Deprecated version of computeBetaSaviZ
+#' @describeIn computePowerSaviZ Deprecated version of computeBetaSaviZ
 #' @usage NULL
 #' @export
 computeBetaSafeZ <- function(
@@ -792,9 +794,9 @@ computeBetaSafeZ <- function(
 
 
   warning('The function computeBetaSafeZ is deprecated;',
-          'Please use computeBetaSaviZ instead')
+          'Please use computePowerSaviZ instead')
 
-  computeBetaSaviZ(
+  computePowerSaviZ(
     meanDiffTrue=meanDiffTrue, nPlan=nPlan,
     alpha=alpha, alternative=alternative,
     sigma=sigma, kappa=kappa,
@@ -816,7 +818,7 @@ computeNPlanSafeZ <- function(
     eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
     wantSamplePaths=TRUE,
     pb=TRUE, seed=NULL, nSim=1e3L, nBoot=nSim,
-    futility=FALSE, growFutility=FALSE,
+    relevanceTest=FALSE, growFutility=FALSE,
     ...) {
 
   warning('The function computeNPlanSafeZ is deprecated;',
@@ -831,7 +833,7 @@ computeNPlanSafeZ <- function(
     nMax=nMax,
     wantSamplePaths=wantSamplePaths,
     pb=pb, seed=seed, nSim=nSim, nBoot=nBoot,
-    futility=futility, growFutility=growFutility, ...)
+    relevanceTest=relevanceTest, growFutility=growFutility, ...)
 }
 
 # LOGRANK ------
@@ -927,6 +929,10 @@ designSafeLogrank2WantBeta <- function(
 
 
 # 2x2 ------
+#' @rdname designSaviTwoProportions
+#' @aliases designSaviTwoProportions
+#' @usage NULL
+#' @export
 designSafeTwoProportions <- function(na, nb,
                                      nBlocksPlan = NULL,
                                      beta = NULL,
@@ -951,7 +957,10 @@ designSafeTwoProportions <- function(na, nb,
     simThetaAMin=simThetaAMin, simThetaAMax=simThetaAMax)
 }
 
-
+#' @rdname saviTwoProportionsTest
+#' @aliases saviTwoProportionsTest
+#' @usage NULL
+#' @export
 safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
                                    confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
 
@@ -966,19 +975,27 @@ safeTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
     pilot=pilot)
 }
 
+#' @rdname saviTwoProportionsTest
+#' @aliases savi.prop.test
+#' @usage NULL
+#' @export
 safe.prop.test <- function(ya, yb, designObj = NULL, wantConfidenceSequence = FALSE, ciValue = NULL,
                            confidenceBoundGridPrecision = 20, logOddsConfidenceSearchBounds = c(0.01, 5), pilot = FALSE) {
 
   warning('The function safe.prop.test is deprecated;',
-          'Please use savi.prop.test instead')
+          'Please use saviTwoProportionsTest instead')
 
-  savi.prop.test(
+  saviTwoProportionsTest(
     ya=ya, yb=yb, designObj=designObj, wantConfidenceSequence=wantConfidenceSequence,
     ciValue=ciValue, confidenceBoundGridPrecision=confidenceBoundGridPrecision,
     logOddsConfidenceSearchBounds=logOddsConfidenceSearchBounds,
     pilot=pilot)
 }
 
+#' @rdname print.savi2x2Sim
+#' @aliases print.savi2x2Sim
+#' @usage NULL
+#' @export
 print.safe2x2Sim <- function(x, ...) {
 
   warning('The function print.safe2x2Sim is deprecated;',
@@ -988,6 +1005,10 @@ print.safe2x2Sim <- function(x, ...) {
 }
 
 
+#' @rdname plot.savi2x2Sim
+#' @aliases plot.savi2x2Sim
+#' @usage NULL
+#' @export
 plot.safe2x2Sim <- function(x, ...) {
 
   warning('The function print.safe2x2Sim is deprecated;',

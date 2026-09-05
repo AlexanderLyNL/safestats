@@ -8,24 +8,27 @@
 designSavi1aHelper(
   samplingResult,
   esMin,
-  beta,
+  power,
   ratio,
+  beta = NULL,
   testType = c("oneSample", "paired", "twoSample")
 )
 }
 \arguments{
-\item{samplingResult}{output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT}
+\item{samplingResult}{output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT}
 
 \item{esMin}{numeric that defines the minimal clinically relevant effect size,
 e.g. meanDiffMin for the z-test, or deltaMin for the t-test.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
 \item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
+
+\item{power}{numeric in (0, 1) that specifies the desirable power necessary to calculate both "n"
+and the minimum detectable effect size.}
 }
 \value{
 a list of partial results for the design scenario 1a
@@ -40,6 +43,6 @@ Helper function that extract the results for the design scenario 1a: Target nPla
 }}
 \examples{
 
-samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
-result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
+samplingResult <- computeNPlanSaviZ(0.7, nSim=10, nMax=20)
+result <- designSavi1aHelper(samplingResult, 0.7, 0.2, 1)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/tTest.R
 \name{defineTTestN}
 \alias{defineTTestN}
-\title{Computes a Sequence of (Effective) Sample Sizes}
+\title{Computes a Sequence of (Effective) Sample Sizes of Z- and T-Tests}
 \usage{
 defineTTestN(
   lowN = 3,
@@ -16,8 +16,8 @@ defineTTestN(
 
 \item{highN}{integer largest sample size of the (first) sample. Default set to 100.}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 }

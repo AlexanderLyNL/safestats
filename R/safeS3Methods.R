@@ -4,23 +4,37 @@
 #'
 #' Helper function that outputs the name of the analysis.
 #'
+#' @inheritParams designSaviZ
 #' @param testType A character string. For the t-tests: "oneSample", "paired", "twoSample".
 #' @param testName The name of the analysis that is performed such as "Z-Test",
 #' and "Test of Two Proportions".
 #'
 #' @return Returns a character string with the name of the analysis.
-getNameTestType <- function(testType, testName) {
+getNameTestType <- function(testType, testName, relevanceTest=FALSE) {
 
-  testTypeChar <- switch(testType,
-                     "oneSample"="One Sample",
-                     "paired"="Paired Sample",
-                     "twoSample"="Two Sample",
-                     "gLogrank"="Gaussian",
-                     "eLogrank"="Exact",
-                     "logrank"="",
-                     "2x2" = "Test of ")
-  analysisName <- paste("Savi", testTypeChar, testName)
-  return(analysisName)
+  if (isFALSE(relevanceTest)) {
+    testTypeChar <- switch(testType,
+                           "oneSample"="One Sample",
+                           "paired"="Paired Sample",
+                           "twoSample"="Two Sample",
+                           "gLogrank"="Gaussian",
+                           "eLogrank"="Exact",
+                           "logrank"="",
+                           "2x2" = "Test of ")
+    analysisName <- paste("Savi", testTypeChar, testName)
+    return(analysisName)
+  } else if (relevanceTest) {
+    testTypeChar <- switch(testType,
+                           "oneSample"="One Sample",
+                           "paired"="Paired Sample",
+                           "twoSample"="Two Sample",
+                           "gLogrank"="Gaussian",
+                           "eLogrank"="Exact",
+                           "logrank"="",
+                           "2x2" = "Test of ")
+    analysisName <- paste("Savi", testTypeChar, "e-Relevance", testName)
+    return(analysisName)
+  }
 
   # return(paste(nameChar, testName))
 }
@@ -39,12 +53,14 @@ constructSaviDesignObj <- function(testName) {
     "parameter"=NULL, "esMin"=NULL, "alpha"=NULL,
     "alternative"=NULL, "h0"=NULL, "pilot"=FALSE,
     "eType"=NULL, "testType"=NULL, "testName"=NULL,
-    "nPlanBatch"=NULL,
+    "nPlanBatch"=NULL, "esTrue"=NULL,
     "nPlan"=NULL, "nPlanTwoSe"=NULL, "bootObjN1Plan"=NULL,
     "nMean"=NULL, "nMeanTwoSe"=NULL, "bootObjN1Mean"=NULL,
-    "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
+    "power"=NULL, "powerTwoSe"=NULL, "bootObjBeta"=NULL,
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
     "bootObjLogImpliedTarget"=NULL,
+    "beta"=NULL, "betaTwoSe"=NULL,
+    "relevanceTestSim"=NULL, "varEqual"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL, "designScenario"=NULL,
     "call"=NULL, "timeStamp"=Sys.time(), "note"=NULL)
 
@@ -309,19 +325,26 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
   testType <- designObj[["testType"]]
 
   note <- designObj[["note"]]
-  analysisName <- paste(getNameTestType("testType"=testType, "testName"=testName), "Design")
+
+  tempName <- getNameTestType("testType"=testType, "testName"=testName)
+
+  # extraChar <- if (relevanceTest) " + e-Relevance Test" else ""
+
+  analysisName <- paste0(tempName, " Design")
 
   cat("\n")
   cat(strwrap(analysisName, prefix = prefix), sep = "\n")
   cat("\n")
 
-  designObj[["decision rule"]] <- 1/designObj[["alpha"]]
-
   displayList <- list()
 
+  designObj[["decision rule"]] <- 1/designObj[["alpha"]]
+
   for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
-                 "alternativeRestriction", "beta", "parameter",
-                 "alpha", "decision rule", "logImpliedTarget", "eType")) {
+                 "alternativeRestriction", "power", "beta",
+                 "eType", "parameter", "alpha",
+                 "decision rule",
+                 "logImpliedTarget")) {
     itemValue <- designObj[[item]]
     itemValueString <- format(itemValue, digits=digits)
 
@@ -351,6 +374,16 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
           tempNeem <- names(designObj[[item]])
           displayList[[paste(tempNeem, collapse=", ")]] <- itemValue
         }
+      } else if (item=="power") {
+        powerTwoSe <- designObj[["powerTwoSe"]]
+        itemValueString <- format(itemValue, digits=digits)
+
+        if (!is.null(powerTwoSe)) {
+          displayList[[paste0("power", "\U00B1", "2se")]] <-
+            paste0(itemValueString, "\U00B1",format(powerTwoSe, digits=digits))
+        } else {
+          displayList[["power"]] <- itemValueString
+        }
       } else if (item=="beta") {
         betaTwoSe <- designObj[["betaTwoSe"]]
         itemValueString <- format(1-itemValue, digits=digits)
@@ -364,7 +397,9 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
       } else if (item=="parameter") {
         displayList[[paste("parameter:", names(designObj[["parameter"]]))]] <- itemValueString
       } else if (item=="decision rule") {
-        displayList[["decision rule: e-value >= 1/alpha"]] <- itemValueString
+        displayList[["Reject H_0: e-value >= 1/alpha"]] <- itemValueString
+      } else if (item == "eType") {
+        displayList[["e-variable type"]] <- itemValueString
       } else if (item=="logImpliedTarget") {
         tempNeem <- "log(implied target)"
         logImpliedTargetTwoSe <- designObj[["logImpliedTargetTwoSe"]]
@@ -378,10 +413,8 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
         displayList[[tempNeem]] <- itemValueString
       } else if (item=="esMin") {
         displayList[[paste("minimal", names(itemValue))]] <- itemValueString
-      } else if (item == "alternativeRestriction"){
+      } else if (item == "alternativeRestriction") {
         displayList[["alternative restriction"]] <- itemValueString
-      } else if (item == "eType"){
-        displayList[["e-variable type"]] <- itemValueString
       } else {
         displayList[[item]] <- itemValueString
       }
@@ -390,6 +423,43 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   cat(paste(format(names(displayList), width = 20L, justify = "right"),
             format(displayList, digits = digits), sep = " = "), sep = "\n")
+
+  # Here done with standard
+  relevanceTest <- if (!is.null(x[["relevanceTestSim"]])) TRUE else FALSE
+
+  if (relevanceTest){
+    tempName <- getNameTestType("testType"=testType, "testName"=testName, "relevanceTest"=relevanceTest)
+    analysisName <- paste0(tempName, " Design")
+
+    cat("\n")
+    cat(strwrap(analysisName, prefix = prefix), sep = "\n")
+    cat("\n")
+
+    displayList <- list()
+
+    relevanceObj <- designObj[["relevanceTestSim"]]
+
+    relevanceObj[["Reject H_R"]] <- relevanceObj[["alpha"]]
+
+    for (item in c("parameter", "alpha",
+                   "Reject H_R")) {
+      itemValue <- relevanceObj[[item]]
+      itemValueString <- format(itemValue, digits=digits)
+
+      if (!is.null(itemValue)) {
+        if (item=="parameter") {
+          displayList[[paste("parameter:")]] <- itemValueString
+        } else if (item=="alpha") {
+          displayList[["alphaR"]] <- itemValueString
+        } else if (item=="Reject H_R") {
+          displayList[["Reject H_R: e-relevance <= 1/alphaR"]] <- itemValueString
+        }
+      }
+    }
+
+    cat(paste(format(names(displayList), width = 20L, justify = "right"),
+              format(displayList, digits = digits), sep = " = "), sep = "\n")
+  }
 
   someTime <- designObj[["timeStamp"]]
 
@@ -438,199 +508,396 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 #' @param col colour of the lines
 #' @param colQuant colour of the quantiles
 #' @param cex size of the labels and the quantile text
+#' @param histFewestAtTop logical, if TRUE, then fewest counts
+#' (of against the null or against minimal efficacy) at the top
+#' of the histogram
+#' @param density the density of shading lines, in lines per inch.
+#' The default value of NULL means that no shading lines are drawn.
+#' Non-positive values of density also inhibit the drawing of shading lines.
+#' @param overColour colour of an e-value sequence that cross the
+#' upper boundary of 1/alpha
+#' @param overColourBorder colour for the border of a rectangle in the histogram
+#' corresponding to e-values that cross the upper boundary of 1/alpha
+#' @param continueColour colour for lines of e-values that did not (yet) cross
+#' a threshold
+#' @param continueColourBorder colour for the border of a rectangle in the histogram
+#' corresponding to e-values that did not (yet) cross a threshold
+#' @param underColour colour of an e-value sequence that cross the
+#' lower boundary of alphaRelevance
+#' @param underColourBorder colour for the border of a rectangle in the histogram
+#' corresponding to e-values that cross the lower boundary of alphaRelevance
+#' @param wantNotStoppedHist logical, if \code{TRUE} then show histogram
+#' of not stopped paths
+#' @param wantNotStoppedSamplePaths logical, if \code{TRUE} then show stopped
+#' sample paths of e-values
+#' @param wantLegend logical, if \code{TRUE} then show information of the
+#' percentage of stopped sample paths
+#' @param legendAdjRelevance vector of 3 numerics that allow for the adjustment of
+#' the percentages shown at the bottom of the plot, when relevance testing is on
+#' @param legendAdj vector of 2 numerics that allow for the adjustment of
+#' the percentages shown at the bottom of the plot
+#' @param legendCexFactor numeric, additional factor to control the text size of
+#' the additional information such as the percentages at the bottom of the plot
+#' @param wantTitle logical, if \code{TRUE} then add title
+#' @param yLabPAdj numeric to adjust the position of the y-axis label
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return Nothing it only plots
 #' @export
 #'
+#'
 plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
-                            xlim=NULL, ylim=NULL, maxNBins=35,
+                            xlim=NULL, ylim=NULL, maxNBins=40,
                             numSamplePaths=100, wantStepLines=FALSE,
-                            wantQuantiles=NULL, border="#1F78B4E6",
+                            wantQuantiles=NULL,
                             breaks=NULL, lwd=2, pch=15,
-                            histInnerColour="#A6CEE380", col="#DAA52066",
-                            colQuant="#AA0000", cex=1.3, ...) {
+                            colQuant="#AA0000",
+                            overColour="#8FC6E3",
+                            overColourBorder="#1F78B4E6",
+                            underColour="#E7A72199",
+                            underColourBorder="#BD8E17FF",
+                            continueColour="#8CA252E6",
+                            continueColourBorder="#637939E6",
+                            histInnerColour=col,
+                            col=overColour,
+                            border=overColourBorder,
+                            cex=1.3, yLabPAdj=-1,
+                            wantNotStoppedHist=FALSE,
+                            wantNotStoppedSamplePaths=TRUE,
+                            wantLegend=TRUE,
+                            legendAdjRelevance=c(-0.1, 0.5, 1),
+                            legendAdj=c(0.2, 0.8),
+                            legendCexFactor=0.85,
+                            histFewestAtTop=FALSE,
+                            density=NULL, wantTitle=TRUE, ...) {
 
   designScenario <- x[["designScenario"]]
 
-  if (designScenario %in% c("1a", "2")) {
-    alpha <- x[["alpha"]]
-    nPlan <- x[["nPlan"]][1]
+  if (is.null(designScenario) || !(designScenario %in% c("1a", "2")))
+    return()
 
-    if (designScenario=="1a") {
-      nPlanBatch <- x[["nPlanBatch"]][1]
-      breakVector <- x[["breakVector"]]
-      stoppingTimes <- x[["bootObjN1Plan"]][["data"]]
+  alpha <- x[["alpha"]]
+  nPlan <- x[["nPlan"]][1]
+
+  if (designScenario=="1a") {
+    nPlanBatch <- x[["nPlanBatch"]][1]
+    breakVector <- x[["breakVector"]]
+    stoppingTimes <- x[["bootObjN1Plan"]][["data"]]
+  }
+
+  if (designScenario=="2") {
+
+    if (is.null(x[["nPlanBatch"]]))
+      x[["nPlanBatch"]] <- nPlan
+
+    nPlanBatch <- x[["nPlanBatch"]]
+    samplePaths <- x[["samplePaths"]]
+    mIter <- dim(samplePaths)[1]
+
+    firstPassageTimes <- breakVector <- integer(mIter)
+
+    for (j in 1:mIter) {
+      firstPassageTimes[j] <- suppressWarnings(
+        min(which(samplePaths[j, ] >= 1/alpha))
+      )
     }
 
-    if (designScenario=="2") {
+    stoppingTimes <- firstPassageTimes
+    stoppingTimes[is.infinite(firstPassageTimes)] <- nPlanBatch
+    breakVector[is.infinite(firstPassageTimes)] <- 1
+    breakVector[Matrix::which(x[["breakVector"]]==-1)] <- -1
+  }
 
-      if (is.null(x[["nPlanBatch"]]))
-        x[["nPlanBatch"]] <- nPlan
+  if (numSamplePaths==0) {
+    oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
 
-      nPlanBatch <- x[["nPlanBatch"]]
-      samplePaths <- x[["samplePaths"]]
-      mIter <- dim(samplePaths)[1]
+    maxStoppingTimes <- max(stoppingTimes)
+    minStoppingTimes <- min(stoppingTimes)
 
-      firstPassageTimes <- breakVector <- integer(mIter)
-
-      for (j in 1:mIter) {
-        firstPassageTimes[j] <- suppressWarnings(
-          min(which(samplePaths[j, ] >= 1/alpha))
-        )
-      }
-
-      stoppingTimes <- firstPassageTimes
-      stoppingTimes[is.infinite(firstPassageTimes)] <- nPlanBatch
-      breakVector[is.infinite(firstPassageTimes)] <- 1
+    if (is.null(breaks)) {
+      breaks <- if (maxStoppingTimes-minStoppingTimes+1 > maxNBins)
+        maxNBins
+      else
+        (minStoppingTimes-1):nPlanBatch
     }
 
-    if (numSamplePaths==0) {
-      oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+    stopHist <- graphics::hist(
+      stoppingTimes, freq=FALSE,
+      breaks=breaks,
+      col=histInnerColour,
+      border=border, lwd=lwd, xaxt="n", yaxt="n",
+      xlab="", ylab="", main=main)
 
-      maxStoppingTimes <- max(stoppingTimes)
-      minStoppingTimes <- min(stoppingTimes)
+    if (is.null(xlab))
+      xlab <- "Stopping times"
 
-      if (is.null(breaks)) {
-        breaks <- if (maxStoppingTimes-minStoppingTimes > maxNBins)
-          maxNBins
-        else
-          minStoppingTimes:nPlanBatch
-      }
+    graphics::axis(side = 2)
+    graphics::axis(side = 1)
+    graphics::axis(side = 1, at=c(0, 2*nPlanBatch))
 
-      stopHist <- hist(stoppingTimes, freq=FALSE,
-                       breaks=breaks,
-                       col=histInnerColour,
-                       border=border, lwd=lwd, xaxt="n", yaxt="n",
-                       xlab="", ylab="", main=main)
+    if (is.null(ylab))
+      ylab <- "Density"
 
-      if (is.null(xlab))
-        xlab <- "Stopping times"
+    graphics::mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
+    graphics::mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
 
-      axis(side = 2)
-      axis(side = 1)
-      axis(side = 1, at=c(0, 2*nPlanBatch))
+    if (maxStoppingTimes-minStoppingTimes > maxNBins) {
+      firstPassageTimes <- stoppingTimes[!breakVector]
+      fptHist <- graphics::hist(
+        firstPassageTimes, breaks=stopHist[["breaks"]],
+        plot=FALSE)
 
-      if (is.null(ylab))
-        ylab <- "Density"
+      lastIndex <- length(stopHist[["counts"]])
 
-      mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
-      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+      graphics::rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=fptHist[["density"]][lastIndex],
+           xright=stopHist[["breaks"]][lastIndex+1],
+           ytop=stopHist[["density"]][lastIndex],
+           col=col, border=border)
+    } else {
+      lastIndex <- length(stopHist[["counts"]])
+      rejectedAtNBatch <- stopHist[["counts"]][lastIndex]-sum(breakVector)
 
-      if (maxStoppingTimes-minStoppingTimes > maxNBins) {
-        firstPassageTimes <- stoppingTimes[!breakVector]
-        fptHist <- hist(firstPassageTimes, breaks=stopHist[["breaks"]],
-                        plot=FALSE)
+      totalCount <- sum(stopHist[["counts"]])
 
-        lastIndex <- length(stopHist[["counts"]])
+      graphics::rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=rejectedAtNBatch/totalCount,
+           xright=stopHist[["breaks"]][lastIndex+1],
+           ytop=stopHist[["density"]][lastIndex],
+           col=col,
+           border=border)
+    }
 
-        rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=fptHist[["density"]][lastIndex],
-             xright=stopHist[["breaks"]][lastIndex+1],
-             ytop=stopHist[["density"]][lastIndex],
-             col=col, border=border)
+    graphics::lines(c(nPlan, nPlan), c(0, max(stopHist[["counts"]])), lwd=lwd, lty=2)
+  }
+
+  alphaRelevance <- NULL
+  relevanceTestSim <- x[["relevanceTestSim"]]
+  histRelevance <- NULL
+  relevanceTest <- x[["relevanceTest"]]
+
+  if (numSamplePaths > 0) {
+    fptAll <- stoppingTimes
+
+    # Stop indexes ----
+    #
+    indexStopAlt <- Matrix::which(breakVector==0)
+    indexStopFut <- Matrix::which(breakVector==-1)
+    indexStopNot <- Matrix::which(breakVector==1)
+
+    nAlt <- length(indexStopAlt)
+    nFut <- length(indexStopFut)
+    nNotStopped <- length(indexStopNot)
+
+    nAll <- length(stoppingTimes)
+
+    fptAlt <- stoppingTimes[indexStopAlt]
+    fptNot <- stoppingTimes[indexStopNot]
+
+    if (relevanceTest) {
+      fptFut <- as.integer(relevanceTestSim[["stoppingTimes"]][indexStopFut])
+      alphaRelevance <- relevanceTestSim[["alpha"]]
+
+      fptAll[indexStopFut] <- fptFut
+    }
+
+    fptAllFinite <- fptAll
+
+    # fptStopped <- fptAll
+    # fptStopped[indexStopNot] <- Inf
+    #
+    # if (isFALSE(wantNotStoppedHist))
+    #   fptAll <- fptStopped
+
+    # Compute hist  ----
+    #
+    breaksMin <- min(fptAll)
+
+    nMax <- min(nPlanBatch, max(fptAllFinite))
+
+    if (is.null(breaks)) {
+      breaks <- if (nMax-breaksMin+1 > maxNBins) {
+        seq(breaksMin-1, nMax, length=maxNBins)
       } else {
-        lastIndex <- length(stopHist[["counts"]])
-        rejectedAtNBatch <- stopHist[["counts"]][lastIndex]-sum(breakVector)
-
-        totalCount <- sum(stopHist[["counts"]])
-
-        rect(xleft=stopHist[["breaks"]][lastIndex], ybottom=rejectedAtNBatch/totalCount,
-             xright=stopHist[["breaks"]][lastIndex+1],
-             ytop=stopHist[["density"]][lastIndex],
-             col=col,
-             border=border)
+        (breaksMin-1):nMax
       }
-
-      lines(c(nPlan, nPlan), c(0, max(stopHist[["counts"]])), lwd=lwd, lty=2)
     }
 
-    if (numSamplePaths > 0) {
-      firstPassageTimes <- stoppingTimes
+    histAlt <- if (nAlt > 0) graphics::hist(fptAlt, plot=FALSE, breaks=breaks) else
+      list(counts=rep(0, length=length(breaks)-1))
 
-      # These are the sample paths that did not resulted in a rejection
-      firstPassageTimes[which(breakVector==1)] <- Inf
+    histFut <- if (isTRUE(relevanceTest) && nFut > 0) graphics::hist(fptFut, plot=FALSE, breaks=breaks) else
+      list(counts=rep(0, length=length(breaks)-1))
 
-      breaksMin <- min(firstPassageTimes)
+    histNot <- if (isTRUE(wantNotStoppedHist) && nNotStopped > 0) graphics::hist(fptNot, plot=FALSE, breaks=breaks) else
+      list(counts=rep(0, length=length(breaks)-1))
 
-      if (is.null(breaks)) {
-        breaks <- if (nPlanBatch-breaksMin > maxNBins)
-          maxNBins
-        else
-          breaksMin:nPlanBatch
+    nHistTotal <- sum(histAlt[["counts"]], histFut[["counts"]], histNot[["counts"]])
+
+    breaks <- histAlt[["breaks"]]
+
+    yMaxHist <- max(histAlt[["counts"]], histFut[["counts"]])/nHistTotal
+
+    yMin <- -1*log(3/(2*alpha))
+
+    if (isTRUE(relevanceTest))
+      yMin <- min(c(yMin, -1*log(3/(2*alphaRelevance))))
+
+    if (is.null(ylim))
+      ylim <- c(yMin, 2.75*log(1/alpha))
+
+    someConstant <- 0.8*(ylim[2]+log(alpha))/yMaxHist
+    textHeightQuant <- (ylim[2]+log(alpha))+log(1/alpha)
+
+    if (is.null(xlim))
+      xlim <- c(0, nPlanBatch)
+
+    # Draw canvas ----
+    #
+    oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+
+    plot(NULL, xlim = xlim, ylim = ylim, xlab = "", ylab = "",
+         cex.lab = cex, cex.axis = cex, las = 1, main=main,
+         xaxt = "n", yaxt = "n", bty = "n", type = "p", pch = pch,
+         bg = "grey", ...)
+
+    graphics::lines(x=c(0, 1.5*nPlanBatch), y=c(0, 0), col="darkgrey", lwd=lwd, lty=2)
+
+    graphics::lines(x=c(0, 1.5*nPlanBatch), y=log(c(1/alpha, 1/alpha)))
+
+    if (relevanceTest)
+      graphics::lines(x=c(0, 1.5*nPlanBatch), y=log(c(alphaRelevance, alphaRelevance)))
+
+    if (relevanceTest) {
+      yLabs <- c(1e-24, alphaRelevance, "1", 1/alpha)
+      criticalP <- log(c(1e-24, alphaRelevance, 1, 1/alpha))
+    } else {
+      yLabs <- c(1e-24, alpha, "1", 1/alpha)
+      criticalP <- log(c(1e-24, alpha, 1, 1/alpha))
+    }
+
+    graphics::axis(side = 2, at = criticalP, tick = TRUE, las = 2,
+                   cex.axis = cex, labels = yLabs)
+    graphics::axis(side = 1)
+    graphics::axis(side = 1, at=c(0, 2*xlim[2]))
+
+    if (is.null(ylab))
+      ylab <- "Evidence"
+
+    graphics::mtext(ylab, side = 2, line = 2.5, las = 0, cex = cex, adj=0.25, padj=yLabPAdj)
+
+    if (is.null(xlab))
+      xlab <- "Sample size"
+
+    graphics::mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+
+    # Draw hist -----
+    #
+    histOrder <- if (nAlt >= nFut) c(2, 1, 3) else 1:3
+
+    if (histFewestAtTop)
+      histOrder <- if (nAlt >= nFut) 1:3 else c(2, 1, 3)
+
+    # histOrder <- order(c(nAlt, nFut, nNotStopped), decreasing=decreasingHist)
+    lineColours <- c(col, underColour, continueColour)
+    borderColours <- c(border, underColourBorder, continueColourBorder)
+
+    countMat <- matrix(c(histAlt[["counts"]],
+                         histFut[["counts"]],
+                         histNot[["counts"]]), nrow=3, byrow=TRUE)
+
+    countMat <- countMat[histOrder, ]
+
+    cumsumCountMat <- apply(countMat, 2, cumsum)
+
+    for (i in 1:3) {
+      someRow <- countMat[i, ]
+      tempIndex <- which(countMat[i, ]!=0)
+
+      if (i==1) {
+        tempHeightLower <- rep(0, length(breaks)-1)
+      } else {
+        tempHeightLower <- cumsumCountMat[i-1, ]/nHistTotal
       }
 
-      fptHist <-
-        hist(firstPassageTimes, plot=FALSE,
-             breaks=breaks)
+      tempHeightUpper <- cumsumCountMat[i, ]/nHistTotal
 
-      oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes()
+      tempColour <- lineColours[histOrder[i]]
+      tempColourBorder <- borderColours[histOrder[i]]
 
-      y <- fptHist[["density"]]
-      nB <- length(fptHist$breaks)
-      yRange <- range(y, 0)
+      for (j in seq_along(tempIndex)) {
+        leftCornerIndex <- tempIndex[j]
 
-      if (is.null(ylim))
-        ylim <- c(-1*log(3/(2*alpha)), 2.75*log(1/alpha))
+        leftCorner <- breaks[leftCornerIndex]+0.5
+        rightCorner <- breaks[leftCornerIndex+1]+0.5
 
-      someConstant <- (ylim[2]+log(alpha))/yRange[2]
-      textHeightQuant <- (ylim[2]+log(alpha))+log(1/alpha)
+        graphics::rect(leftCorner, someConstant*tempHeightLower[leftCornerIndex] + log(1/alpha),
+             rightCorner, someConstant*tempHeightUpper[leftCornerIndex] + log(1/alpha),
+             col = tempColour, border = tempColourBorder, lwd=2,
+             angle = 45, density = density, lty = NULL)
+      }
+    }
 
-      if (!is.null(wantQuantiles))
-        someConstant <- 0.8*someConstant
+    # Draw sample paths -----
+    samplePaths <- x[["samplePaths"]]
 
-      if (!is.null(wantQuantiles))
-        someConstant <- someConstant*0.9
+    # Alexander: Just to avoid a matrix turning into a vector
+    #
+    if (nAlt==1)
+      indexStopAlt <- c(indexStopAlt, indexStopAlt)
 
-      if (is.null(xlim))
-        xlim <- c(0, nPlanBatch)
+    if (nFut==1)
+      indexStopFut <- c(indexStopFut, indexStopFut)
 
-      plot(NULL, xlim = xlim, ylim = ylim, xlab = "", ylab = "",
-           cex.lab = cex, cex.axis = cex, las = 1, main=main,
-           xaxt = "n", yaxt = "n", bty = "n", type = "p", pch = pch,
-           bg = "grey", ...)
+    if (nNotStopped==1)
+      indexStopNot <- c(indexStopNot, indexStopNot)
 
-      abline(h = log(1), col = "darkgrey", lwd = lwd, lty = 2)
-      abline(h = log(1/alpha))
+    stoppedPaths <- samplePaths
 
-      criticalP = log(c(alpha, 1, 1/alpha))
+    if (relevanceTest)
+      stoppedPaths[indexStopFut, ] <- x[["relevanceTestSim"]][["samplePaths"]][indexStopFut, ]
 
-      axis(side = 2, at = c(criticalP), tick = TRUE, las = 2, cex.axis = cex,
-           labels = c(alpha, "1", 1/alpha))
-      axis(side = 1)
-      axis(side = 1, at=c(0, 2*xlim[2]))
+    nLinesNot <- if (isFALSE(wantNotStoppedSamplePaths)) 0 else
+      min(ceil(nNotStopped/nAll*numSamplePaths), nNotStopped)
 
-      if (is.null(ylab))
-        ylab <- "Evidence"
+    if (nAlt >= nFut) {
+      nLinesFut <- min(ceil(nFut/nAll*numSamplePaths), nFut)
+      nLinesAlt <- min(numSamplePaths-nLinesFut-nLinesNot, nAlt)
+    } else {
+      nLinesAlt <- min(ceil(nAlt/nAll*numSamplePaths), nAlt)
+      nLinesFut <- min(numSamplePaths-nLinesAlt-nLinesNot, nFut)
+    }
 
-      mtext(ylab, side = 2, line = 2.5, las = 0, cex = cex, adj=0.25)
+    linesOrder <- order(c(nAlt, nFut, nNotStopped), decreasing=TRUE)
 
-      if (is.null(xlab))
-        xlab <- "Sample size"
+    nLinesToPlot <- c(nLinesAlt, nLinesFut, nLinesNot)[linesOrder]
 
-      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+    lastPoints <- if (!is.null(alphaRelevance)) c(1/alpha, alphaRelevance) else
+      c(1/alpha, NULL)
 
+    lastPoints <- c(lastPoints, NULL)[linesOrder]
 
-      samplePaths <- x[["samplePaths"]]
+    lineIndexes <- list(indexStopAlt, indexStopFut, indexStopNot)[linesOrder]
 
-      stoppedPaths <- samplePaths[!breakVector, ]
+    for (i in 1:3) {
+      someLineColour <- lineColours[linesOrder[i]]
+      someBorderColour <- borderColours[linesOrder[i]]
+      someNLinesToPlot <- nLinesToPlot[i]
+      someLastPoint <- lastPoints[i]
+      someIndexSet <- lineIndexes[[i]]
 
-      rect(fptHist$breaks[-nB]+0.5, log(1/alpha),
-           fptHist$breaks[-1L]+0.5, someConstant*y+log(1/alpha),
-           col = histInnerColour, border = border, lwd=lwd,
-           angle = 45, density = NULL, lty = NULL)
+      someLineColour <- grDevices::adjustcolor(
+        someLineColour,
+        alpha.f=max(1-someNLinesToPlot/sum(nLinesToPlot), 0.25))
 
-      finiteFirstPassageTimes <- firstPassageTimes[!breakVector]
+      if (someNLinesToPlot==0)
+        next()
 
-      for (i in 1:numSamplePaths) {
-        stoppedTime <- finiteFirstPassageTimes[i]
-        evidenceLine <- stoppedPaths[i, 1:stoppedTime]
+      for (j in 1:someNLinesToPlot) {
+        stoppedTime <- fptAllFinite[someIndexSet[j]]
 
-        if (evidenceLine[stoppedTime] >= 1/alpha)
-          evidenceLine[stoppedTime] <- 1/alpha
+        evidenceLine <- stoppedPaths[someIndexSet[j], 1:stoppedTime]
 
-        someScale <- 3*alpha
-
-        evidenceLine <- evidenceLine
+        if (!is.null(someLastPoint) && !is.na(someLastPoint))
+          evidenceLine[stoppedTime] <- someLastPoint
 
         if (isTRUE(wantStepLines)) {
           xLine <- c(0, rep(1:stoppedTime, each=2))
@@ -641,25 +908,96 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
           yLine <- c(0, log(evidenceLine))
         }
 
-        lines(xLine, yLine, col=col, lwd=lwd, lty=1)
+        graphics::lines(xLine, yLine, col=someLineColour, lwd=lwd, lty=1)
 
-        if (evidenceLine[stoppedTime]==1/alpha)
-          points(stoppedTime, log(evidenceLine[stoppedTime]),
-                 col=border, pch=pch, lwd=lwd)
+        if (!is.null(someLastPoint) && !is.na(someLastPoint))
+          graphics::points(stoppedTime, log(evidenceLine[stoppedTime]),
+                 col=someBorderColour, pch=pch, lwd=lwd)
+      }
+    }
+
+    if (is.null(wantQuantiles) && !is.null(x[["power"]]))
+      wantQuantiles <- x[["power"]]
+
+    if (!is.null(wantQuantiles) && !isFALSE(wantQuantiles)) {
+      graphics::mtext("Quantiles [%]", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
+
+      badQuantileIndeces <- which(wantQuantiles > nAlt/nAll)
+
+      if (length(badQuantileIndeces) >= 1) {
+        warning(paste0("The requested quantile(s) ", wantQuantiles[badQuantileIndeces], " cannot be displayed. Max power in this simulation run: ", nAlt/nAll))
+        wantQuantiles <- wantQuantiles[-badQuantileIndeces]
       }
 
-      if (!is.null(wantQuantiles)) {
-        mtext("quantiles", side=2, col=colQuant, cex=cex, adj=0.5, at=textHeightQuant)
 
-        quants <- stats::quantile(stoppingTimes, wantQuantiles)
+      quants <- round(stats::quantile(stoppingTimes, wantQuantiles), 2)
 
-        for (i in seq_along(quants)) {
-          text(wantQuantiles[i], x=quants[i], y=textHeightQuant, col=colQuant, cex=cex)
-          segments(x0=quants[i], y0=-0.9*log(1/alpha), y1=0.95*textHeightQuant, col=colQuant)
-          text(quants[i], x=quants[i], y=-log(1/alpha), col=colQuant, cex=cex)
+      quantileNames <- round(wantQuantiles*100, 2)
+
+      for (i in seq_along(quants)) {
+
+        if (relevanceTest) {
+          quantFut <- round(sum(fptFut <= quants[i])/nAll*100, 2)
+
+          graphics::text(quantileNames[i], x=quants[i], y=textHeightQuant,
+               col=overColourBorder, cex=legendCexFactor*cex, pos=2)
+          graphics::text("+", x=quants[i],
+               y=textHeightQuant, col=colQuant, cex=cex)
+          graphics::text(quantFut, x=quants[i], y=textHeightQuant, col=underColourBorder, cex=legendCexFactor*cex, pos=4)
+        } else {
+          graphics::text(quantileNames[i], x=quants[i],
+               y=textHeightQuant, col=overColourBorder, cex=cex)
         }
+
+        # TODO(Alexander): perhaps change the lower position as minimum of -log(1/alpha) and log(beta)
+        #
+        graphics::segments(x0=quants[i], y0=-0.9*log(1/alpha), y1=0.95*textHeightQuant, col=colQuant)
+        graphics::text(quants[i], x=quants[i], y=-log(1/alpha), col=colQuant, cex=cex)
+      }
+    }
+
+    if (wantTitle)
+      graphics::mtext(paste0("True ", names(x[["esMin"]]), " = ",
+                             round(x[["esTrue"]], 3)),
+            col=colQuant, side=3, line = 1, las = 1,
+            cex = cex*legendCexFactor, adj=0)
+
+    if (wantLegend) {
+
+      if (relevanceTest) {
+        graphics::mtext(paste0("Alternative: ",
+                               round(nAlt/nAll*100, 1), "%"),
+              col=border, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdjRelevance[1])
+
+        graphics::mtext(paste0("Inferior effect: ",
+                               round(nFut/nAll*100, 1), "%"),
+              col=underColourBorder, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdjRelevance[2])
+
+        graphics::mtext(paste0("No decision: ",
+                               round(nNotStopped/nAll*100, 1), "%"),
+              col=continueColourBorder, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdjRelevance[3])
+      } else {
+        graphics::mtext(paste0("Alternative: ",
+                               round(nAlt/nAll*100, 1), "%"),
+              col=border, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdj[1])
+        graphics::mtext(paste0("No rejection: ",
+                               round(nNotStopped/nAll*100, 1), "%"),
+              col=continueColourBorder, side=1, line = 4, las = 1,
+              cex = cex*legendCexFactor, adj=legendAdj[2])
       }
 
+
+
+      # legend("topleft",
+      #        legend=c(paste("Alternative: ", round(nAlt/nAll*100, 1), "%"),
+      #                 paste("Futility: ", round(nFut/nAll*100, 1), "%"),
+      #                 paste("Continued: ", round(nNotStopped/nAll*100, 1)), "%"),
+      #        col=c(col, underColour, continueColour),
+      #        lty=1, cex=cex, lwd=lwd, box.lty=box.lty, xpd=TRUE)
     }
   }
 }
@@ -671,6 +1009,7 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' Plots the saviTest object for sequential analyses
 #'
 #' @inheritParams plot.saviDesign
+#'
 #' @param fillPlot logical, if TRUE then plot the confidence
 #' sequence with a background colour
 #' @param switchNFill integer, if \code{is.null(fillPlot)}, then
@@ -686,7 +1025,6 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' progression line to an existing plot. If TRUE and
 #' \code{wantConfSeqPlot==TRUE} then adds another anytime-valid confidence
 #' sequence.
-#' @param lineColour The colour to be used for the e-value progression.
 #' @param h0Colour Colour to indicate the null hypothesis.
 #' @param col The colour for filling the anytime-valid confidence interval.
 #' @param border The colour to draw the border.
@@ -700,6 +1038,14 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' \code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.
 #' @param runInt logical, if \code{TRUE} (default), then shows the running
 #' intersection of the confidence sequence.
+#' @param wantRelevance logical, if \code{FALSE}, then don't show the
+#' e-values for relevanceTest. Default \code{wantRelevance==NULL}, if
+#' \code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
+#' automatically.
+#' @param xaxt default NULL. If "n" then suppresses plotting of the x-axis.
+#' @param yaxt default NULL. If "n" then suppresses plotting of the y-axis.
+#'
+#'
 #' @return Returns nothing just plots
 #' @export
 #'
@@ -707,14 +1053,34 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           xlim=NULL, ylim=NULL, lwd=3, cex=1.3,
                           fillPlot=NULL, switchNFill=1e4,
                           logScale=NULL, switchNLog=30,
-                          h0Colour="gold", lineColour="#1F78B4E6",
-                          col="#A6CEE380", border="#1F78B4E6",
+                          h0Colour="darkgrey",
+                          overColour="#8FC6E3",
+                          overColourBorder="#1F78B4E6",
+                          underColour="#E7A72199",
+                          underColourBorder="#BD8E17FF",
+                          continueColour="#8CA252E6",
+                          continueColourBorder="#637939E6",
+                          col=overColour,
+                          border=overColourBorder,
                           wantConfSeqPlot=FALSE, add=FALSE,
                           density=NULL, angle=45,
                           xaxt=NULL, yaxt=NULL,
-                          fillOddEven=FALSE, runInt=TRUE, ...) {
+                          fillOddEven=FALSE, runInt=TRUE,
+                          wantRelevance=NULL,
+                          ...) {
   eValueVec <- x[["eValueVec"]]
+  eRelevanceVec <- x[["eRelevanceVec"]]
+
   n1Vec <- x[["n1Vec"]]
+
+  designObj <- x[["designObj"]]
+
+  relevanceTest <- FALSE
+
+  if ((is.null(wantRelevance) || isTRUE(wantRelevance)) && designObj[["relevanceTest"]] && !is.null(eRelevanceVec)) {
+    relevanceTest <- TRUE
+    alphaRelevance <- designObj[["relevanceTestSim"]][["alpha"]]
+  }
 
   if (is.null(n1Vec) || is.null(eValueVec)) {
     warning("Can't plot. No sequential analysis.")
@@ -730,7 +1096,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 
   if (isTRUE(wantConfSeqPlot)) {
     confSeqMatrix <- x[["confSeqMatrix"]]
-    h0 <- x[["designObj"]][["h0"]]
+    h0 <- designObj[["h0"]]
 
     upperLine <- confSeqMatrix[, 2]
     lowerLine <- confSeqMatrix[, 1]
@@ -781,10 +1147,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
            type="l", xlab = "", ylab = "", cex.lab = cex,
            cex.axis = cex, xaxt="n", yaxt="n", bty="n", log=logPlot)
 
-      lines(c(1, maxX), c(h0, h0), lwd=lwd, lty=2, col=h0Colour)
-
-      if (is.null(xaxt) || xaxt!="n") axis(1)
-      if (is.null(yaxt) || yaxt!="n") axis(2)
+      if (is.null(xaxt) || xaxt!="n") graphics::axis(1)
+      if (is.null(yaxt) || yaxt!="n") graphics::axis(2)
 
       if (is.null(ylab))
         ylab <- switch(x[["testName"]],
@@ -792,8 +1156,10 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                        "T-Test"="mu",
                        "logrank"="log(hazard ratio)")
 
-      mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
-      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+      graphics::mtext(ylab, side = 2, line = 4,
+                      las = 0, cex = cex, adj=0.5)
+      graphics::mtext(xlab, side = 1, line = 2.5,
+                      las = 1, cex = cex)
     }
 
     if (is.null(fillPlot))
@@ -806,34 +1172,57 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     }
 
     if (fillPlot) {
-      polygon(c(n1Vec, rev(n1Vec)),
+      graphics::polygon(c(n1Vec, rev(n1Vec)),
               c(upperLine, rev(lowerLine)),
               col=col, border=border, lwd=lwd,
               density = density, angle=angle,
               fillOddEven=fillOddEven)
     } else {
-      lines(n1Vec, upperLine, col=border, lwd=lwd)
-      lines(n1Vec, lowerLine, col=border, lwd=lwd)
+      graphics::lines(n1Vec, upperLine, col=border, lwd=lwd)
+      graphics::lines(n1Vec, lowerLine, col=border, lwd=lwd)
     }
+
+    graphics::lines(c(1, maxX), c(h0, h0), lwd=lwd, lty=2, col=h0Colour)
   }
 
   # e-value plot
   if (!isTRUE(wantConfSeqPlot)) {
-    alpha <- x[["designObj"]][["alpha"]]
+    alpha <- designObj[["alpha"]]
     oldPar <- setSafeStatsPlotOptionsAndReturnOldOnes();
+
+    nInfinite <- sum(is.infinite(eValueVec))
+
+    if (relevanceTest) {
+      nInfinite <- nInfinite+sum(is.infinite(eRelevanceVec))
+    }
+
+    if (nInfinite >= 1) {
+      warning("Overflow: E-values infinite, removed for plotting")
+
+      finiteIndex <- which(is.finite(eValueVec))
+
+      if (relevanceTest) {
+        finiteIndex <- intersect(finiteIndex, which(is.finite(eRelevanceVec)))
+        eRelevanceVec <- eRelevanceVec[finiteIndex]
+      }
+
+      eValueVec <- eValueVec[finiteIndex]
+      n1Vec <- n1Vec[finiteIndex]
+    }
 
     maxEValue <- max(eValueVec, na.rm=TRUE)
     minEValue <- min(eValueVec, na.rm=TRUE)
 
-    if (is.infinite(maxEValue)) {
-      warning("Overflow: E-values infinite, removed for plotting")
-
-      finiteIndex <- which(is.finite(eValueVec))
-      eValueVec <- eValueVec[finiteIndex]
-
-      n1Vec <- n1Vec[finiteIndex]
-      maxEValue <- max(eValueVec, na.rm=TRUE)
+    if (relevanceTest) {
+      maxEValue <- max(eRelevanceVec, maxEValue, na.rm=TRUE)
+      minEValue <- min(eRelevanceVec, minEValue, na.rm=TRUE)
     }
+
+    if (minEValue <= .Machine[["double.xmin"]])
+      minEValue <- 1e-300
+
+    if (maxEValue >= .Machine[["double.xmax"]])
+      maxEValue <- 1e300
 
     if (!isTRUE(add)) {
       rangeEValue <- maxEValue-minEValue
@@ -850,7 +1239,14 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       logPlot <- if (isTRUE(logScale)) "y" else ""
 
       maxY <- ceil(max(maxEValue, 1/alpha))
-      minY <- if (isTRUE(logScale)) minEValue else 0
+
+      minY <- minEValue
+
+      if (relevanceTest)
+        minY <- min(minY, alphaRelevance)
+
+      if (isFALSE(logScale))
+        minY <- 0
 
       lastIndex <- length(n1Vec)
       maxX <- n1Vec[lastIndex]
@@ -868,22 +1264,30 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       threshLine <- c(1/alpha, 1/alpha)
       unitLine <- c(1, 1)
 
-      lines(c(1, maxX), threshLine, lwd=lwd, lty=2, col="grey40")
+      graphics::lines(c(1, maxX), threshLine, lwd=lwd, lty=2, col="grey40")
 
       if (maxY/threshLine[1] < 10)
-        lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
+        graphics::lines(c(1, maxX), unitLine, lwd=lwd, lty=3, col="grey60")
 
-      if (is.null(xaxt) || xaxt!="n") axis(1)
-      if (is.null(yaxt) || yaxt!="n") axis(2)
+      if (relevanceTest)
+        graphics::lines(c(1, maxX), c(alphaRelevance, alphaRelevance),
+              lwd=lwd, lty=2, col="grey40")
+
+      if (is.null(xaxt) || xaxt!="n") graphics::axis(1)
+      if (is.null(yaxt) || yaxt!="n") graphics::axis(2)
 
       if (is.null(ylab))
         ylab <- "e-value"
 
-      mtext(ylab, side = 2, line = 4, las = 0, cex = cex, adj=0.5)
-      mtext(xlab, side = 1, line = 2.5, las = 1, cex = cex)
+      graphics::mtext(ylab, side = 2,
+                      line = 4, las = 0, cex = cex, adj=0.5)
+      graphics::mtext(xlab, side = 1,
+                      line = 2.5, las = 1, cex = cex)
     }
 
-    lines(n1Vec, eValueVec, lwd=lwd, col=lineColour)
+    graphics::lines(n1Vec, eValueVec, lwd=lwd, col=overColour)
+
+    if (relevanceTest)
+      graphics::lines(n1Vec, eRelevanceVec, lwd=lwd, col=underColour)
   }
 }
-

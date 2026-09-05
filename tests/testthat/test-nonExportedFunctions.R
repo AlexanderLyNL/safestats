@@ -22,7 +22,7 @@ test_that("checkAndReturnsEsMinParameterSide throws a warning", {
 })
 
 test_that("checkAndReturnsNPlan throws a warning", {
-  expect_warning(safestats:::checkAndReturnsNPlan(nPlan=5, testType="twoSample"))
+  expect_warning(safestats:::checkAndReturnNPlan(nPlan=5, testType="twoSample"))
 })
 
 test_that("tryOrFailWithNA returns correct value", {

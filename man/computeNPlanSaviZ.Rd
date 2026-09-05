@@ -3,66 +3,65 @@
 \name{computeNPlanSafeZ}
 \alias{computeNPlanSafeZ}
 \alias{computeNPlanSaviZ}
-\title{Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta}
+\title{Helper function: Computes nPlan based on meanDiffTrue, alpha and power}
 \usage{
 computeNPlanSaviZ(
   meanDiffTrue,
-  beta = 0.2,
+  power = 0.8,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
   sigma = 1,
   kappa = sigma,
+  meanDiffMin = NULL,
+  beta = NULL,
   ratio = 1,
   parameter = NULL,
   nMax = 1e+08,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
-  futility = FALSE,
-  growFutility = FALSE,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  alphaRelevance = NULL,
+  highN = 10000L,
   ...
 )
 }
 \arguments{
-\item{meanDiffTrue}{numeric, data governing parameter value}
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulations. Default
+meanDiffTrue=meanDiffMin.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average
-likelihood defined by the likelihood at the parameter value phiS. For the two sided
-case 1/2 at -phiS and 1/2 phiS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
 \item{nMax}{integer > 0, maximum sample size of the (first) sample in each sample path.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
@@ -70,27 +69,46 @@ two point masses at the minimal clinically relevant effect size.}
 
 \item{seed}{integer, seed number.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the savi z test under continuous monitoring.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi z test under continuous monitoring.}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
-approximation of the power, the number of samples for the savi z test under continuous monitoring,
-or for the computation of the logarithm of the implied target.}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy
+of the approximations of the power, the number of samples for the savi z test under continuous
+monitoring,or for the computation of the logarithm of the implied target.}
 
-\item{futility}{logical, if \code{TRUE} then impose rule to stop
-for futility if e < beta. Default \code{FALSE}.}
-
-\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
-to stop for futility (e < beta). Default \code{FALSE}.}
+\item{relevanceTest}{logical, if \code{TRUE} then impose a rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
+
+\item{meanDiffMin}{numeric that defines the minimal relevant mean difference,
+the smallest population mean difference that we would like to detect (with sufficient power).}
+
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test. Taken to be minimum of
+alpha and 1-power.}
+
+\item{highN}{integer, largest possible sampling horizon. This might be the
+largest n that we are able to fund, which by default is set to 1e4L.
+Typically, highN is not used, as the function
+\code{computeNPlanBatchSaviZ()} tries to find the sampling horizon.
+If all fails, then use highN as the sampling horizon.}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}}.
 }
 \description{
-Helper function: Computes the planned sample size based on the minimal clinical relevant mean
-difference, alpha and beta
+Helper function: Computes nPlan based on meanDiffTrue, alpha and power
 }
 \section{Functions}{
 \itemize{
@@ -101,6 +119,6 @@ difference, alpha and beta
 computeNPlanSaviZ(0.7, 0.2, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

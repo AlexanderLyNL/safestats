@@ -7,7 +7,7 @@
 \usage{
 designSaviLogrank(
   hrMin = NULL,
-  beta = NULL,
+  power = NULL,
   nEvents = NULL,
   alpha = 0.05,
   h0 = 1,
@@ -25,6 +25,11 @@ designSaviLogrank(
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  beta = NULL,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  wantEValuesAtNMax = NULL,
+  wantSimData = FALSE,
   ...
 )
 }
@@ -32,13 +37,12 @@ designSaviLogrank(
 \item{hrMin}{numeric that defines the minimal relevant hazard ratio, the smallest hazard ratio that we want to
 detect.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
 \item{nEvents}{numeric > 0, targetted number of events.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
 \item{h0}{numeric > 0, represents the null hypothesis, default h0=1.}
 
@@ -67,9 +71,9 @@ hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the desi
 \item{parameter}{Numeric > 0, represents the savi tests defining thetaS. Default NULL so it's decided by the
 algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
@@ -88,6 +92,21 @@ savi logrank test under continuous monitoring}
 power or nEvents for the exact savi logrank test under continuous monitoring}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted chance to stop for
+the alternative over the null hypothesis, when the alternative holds true. Note that prior to version 0.8.8
+power <- 1-beta. This overrides the "beta" argument}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant standardised mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{wantEValuesAtNMax}{logical. If \code{TRUE} then compute eValues at nMax. Default \code{FALSE}.}
+
+\item{wantSimData}{logical. If \code{TRUE}, then output the simulated data.}
 }
 \value{
 Returns a saviDesign object that includes:
@@ -123,7 +142,7 @@ designSaviLogrank(hrMin=0.7, beta=0.3, nSim=10)
 designSaviLogrank(hrMin=0.7, nEvents=190, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 ter Schure, J., Pérez-Ortiz, M. F., Ly, A., & Grünwald, P. D. (2024). The Safe Logrank Test: Error control under continuous monitoring with unlimited horizon. \emph{The New England Journal of Statistics in Data Science}, \strong{2}(\emph{2}), 190-214, https://doi.org/10.51387/24-NEJSDS65. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Schoenfeld, D. (1981). The asymptotic properties of nonparametric tests for comparing survival distributions. \emph{Biometrika}, \strong{68}(\emph{1}), 316-319, https://doi.org/10.2307/2335833. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

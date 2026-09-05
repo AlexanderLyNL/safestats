@@ -3,60 +3,60 @@
 \name{computeNPlanSafeT}
 \alias{computeNPlanSafeT}
 \alias{computeNPlanSaviT}
-\title{Helper function: Computes the planned sample size of the savi T-test based on the
-minimal clinical relevant standardised mean difference.}
+\title{Helper function: Computes nPlan based on deltaMin and power}
 \usage{
 computeNPlanSaviT(
   deltaTrue,
-  beta = 0.2,
+  power = 0.8,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   testType = c("oneSample", "paired", "twoSample"),
+  deltaMin = NULL,
+  beta = NULL,
   ratio = 1,
   parameter = NULL,
   nMax = 1e+08,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
+  nuMin = 2,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
+  sigma = 1,
+  sigma2 = 1,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  alphaRelevance = NULL,
   ...
 )
 }
 \arguments{
-\item{deltaTrue}{numeric, the value of the true standardised effect size (test-relevant parameter).
-This argument is used by \code{designSaviT()} with \code{deltaTrue <- deltaMin}}
+\item{deltaTrue}{numeric, data governing effect size used for simulations. Default
+deltaTrue=deltaMin.}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both
-the sample sizes and deltaS, which defines the test. Note that 1-beta defines the power.}
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent of n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of the
-non-central t-distributions with in the denominator the likelihood with non-centrality
-parameter set to 0, and in the numerator an average likelihood defined by the likelihood
-at the non-centrality parameter value deltaS. For the two sided
-case 1/2 at -deltaS and 1/2 deltaS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
 \item{nMax}{integer > 0, maximum sample size of the (first) sample in each sample path.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant standardised effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
@@ -64,21 +64,48 @@ two point masses at the minimal clinically relevant standardised effect size.}
 
 \item{seed}{integer, seed number.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the savi t test under continuous monitoring.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi t test under continuous monitoring.}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
-approximation of the power, the number of samples for the savi t test under continuous monitoring,
-or for the computation of the logarithm of the implied target.}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy
+of the approximations of the power, the number of samples for the savi t test under continuous
+monitoring,or for the computation of the logarithm of the implied target.}
 
 \item{...}{further arguments to be passed to or from methods, but mainly to perform do.calls.}
+
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
+
+\item{deltaMin}{numeric that defines the minimal relevant standardised mean difference,
+the smallest population effect size that we would like to detect (with sufficient power).}
+
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
+\item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
+are trivial, thus, 1.}
+
+\item{sigma}{numeric > 0 representing the population standard deviation used for the test.}
+
+\item{sigma2}{numeric > 0 representing the population standard deviation used for the test,
+for the second group in a two-sample t-test}
+
+\item{relevanceTest}{logical, if \code{TRUE} then impose a rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test. Taken to be minimum of
+alpha and 1-power.}
 }
 \value{
 a list which contains at least nPlan and an adapted bootObject of class  \code{\link[boot]{boot}()}.
 }
 \description{
-Helper function: Computes the planned sample size of the savi T-test based on the
-minimal clinical relevant standardised mean difference.
+Helper function: Computes nPlan based on deltaMin and power
 }
 \section{Functions}{
 \itemize{
@@ -89,6 +116,6 @@ minimal clinical relevant standardised mean difference.
 computeNPlanSaviT(0.7, 0.2, nSim=10)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

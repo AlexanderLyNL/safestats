@@ -18,16 +18,24 @@
   switchNFill = 10000,
   logScale = NULL,
   switchNLog = 30,
-  h0Colour = "gold",
-  lineColour = "#1F78B4E6",
-  col = "#A6CEE380",
-  border = "#1F78B4E6",
+  h0Colour = "darkgrey",
+  overColour = "#8FC6E3",
+  overColourBorder = "#1F78B4E6",
+  underColour = "#E7A72199",
+  underColourBorder = "#BD8E17FF",
+  continueColour = "#8CA252E6",
+  continueColourBorder = "#637939E6",
+  col = overColour,
+  border = overColourBorder,
   wantConfSeqPlot = FALSE,
   add = FALSE,
   density = NULL,
   angle = 45,
+  xaxt = NULL,
+  yaxt = NULL,
   fillOddEven = FALSE,
   runInt = TRUE,
+  wantRelevance = NULL,
   ...
 )
 }
@@ -64,8 +72,6 @@ than switchNLog}
 
 \item{h0Colour}{Colour to indicate the null hypothesis.}
 
-\item{lineColour}{The colour to be used for the e-value progression.}
-
 \item{col}{The colour for filling the anytime-valid confidence interval.}
 
 \item{border}{The colour to draw the border.}
@@ -92,8 +98,35 @@ negative values and \code{NA} suppress shading (and so allow colour filling).}
 
 \item{...}{further arguments to be passed to or from methods.}
 
+\item{overColour}{colour of an e-value sequence that cross the
+upper boundary of 1/alpha}
+
+\item{overColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that cross the upper boundary of 1/alpha}
+
+\item{underColour}{colour of an e-value sequence that cross the
+lower boundary of alphaRelevance}
+
+\item{underColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that cross the lower boundary of alphaRelevance}
+
+\item{continueColour}{colour for lines of e-values that did not (yet) cross
+a threshold}
+
+\item{continueColourBorder}{colour for the border of a rectangle in the histogram
+corresponding to e-values that did not (yet) cross a threshold}
+
+\item{xaxt}{default NULL. If "n" then suppresses plotting of the x-axis.}
+
+\item{yaxt}{default NULL. If "n" then suppresses plotting of the y-axis.}
+
 \item{runInt}{logical, if \code{TRUE} (default), then shows the running
 intersection of the confidence sequence.}
+
+\item{wantRelevance}{logical, if \code{FALSE}, then don't show the
+e-values for relevanceTest. Default \code{wantRelevance==NULL}, if
+\code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
+automatically.}
 }
 \value{
 Returns nothing just plots

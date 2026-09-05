@@ -3,130 +3,160 @@
 \name{designSafeZ}
 \alias{designSafeZ}
 \alias{designSaviZ}
-\title{Designs a Safe Anytime-Valid Z Experiment}
+\title{Design a Safe Anytime-Valid Experiment to Test Means with a Z Test}
 \usage{
 designSaviZ(
   meanDiffMin = NULL,
-  beta = NULL,
+  power = NULL,
   nPlan = NULL,
   alpha = 0.05,
   h0 = 0,
   alternative = c("twoSided", "greater", "less"),
   sigma = 1,
   kappa = sigma,
+  meanDiffTrue = NULL,
+  beta = NULL,
   testType = c("oneSample", "paired", "twoSample"),
   ratio = 1,
   parameter = NULL,
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
   wantSamplePaths = TRUE,
+  wantSimData = TRUE,
   lowEsTrue = 0.01,
   highEsTrue = 3,
   pb = TRUE,
   seed = NULL,
   nSim = 1000L,
   nBoot = nSim,
-  futility = FALSE,
-  growFutility = FALSE,
+  relevanceTest = FALSE,
+  relevanceSize = NULL,
+  alphaRelevance = NULL,
+  betaDefault = 0.2,
+  highN = 10000L,
+  wantSampling = TRUE,
   ...
 )
 }
 \arguments{
-\item{meanDiffMin}{numeric that defines the minimal relevant mean difference, the smallest population mean
-that we would like to detect.}
+\item{meanDiffMin}{numeric that defines the minimal relevant mean difference,
+the smallest population mean difference that we would like to detect (with sufficient power).}
 
-\item{beta}{numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-and "phiS". Note that 1-beta defines the power.}
+\item{beta}{numerical in (0,1). Old parameter now replaced by the power parameter}
 
-\item{nPlan}{optional numeric vector of length at most 2. When provided, it is used to find the savi test
-defining parameter phiS. Note that if the purpose is to plan based on nPlan alone, then both meanDiffMin
-and beta should be set to NULL.}
+\item{nPlan}{optional numeric vector of length at most 2, see scenario 2 and 3 above.}
 
-\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error control --independent on n-- that the
-designed test has to adhere to. Note that it also defines the rejection rule e10 >= 1/alpha.}
+\item{alpha}{numeric in (0, 1) that specifies the tolerable type I error and the null
+rejection rule e >= 1/alpha.}
 
-\item{h0}{numeric, represents the null hypothesis, default h0=0.}
+\item{h0}{numeric, representing the null value, default h0=0.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
-\item{sigma}{numeric > 0 representing the assumed population standard deviation used for the test.}
+\item{sigma}{numeric > 0 representing the assumed population standard deviation used to
+scale the data.}
 
 \item{kappa}{the true population standard deviation. Default kappa=sigma.}
 
 \item{testType}{either one of "oneSample", "paired", "twoSample".}
 
-\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
-is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
+\item{ratio}{numeric > 0 representing the randomisation ratio of condition 2 over condition 1.
+If testType is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.}
 
-\item{parameter}{optional numeric test defining parameter. Default set to \code{NULL}.
-For eType=="eCauchy" the numerator is a mixture with meanDiff/sigma mixed
-over a Cauchy distribution centred at zero and scale kappaG. For eType=="eGauss"
-the numerator is a mixture with meanDiff/sigma mixed over a Gaussian centred at
-zero and variance g. For eType=="grow" the savi test is a likelihood ratio of z distributions with in the
-denominator the likelihood with mean difference 0 and in the numerator an average
-likelihood defined by the likelihood at the parameter value phiS. For the two sided
-case 1/2 at -phiS and 1/2 phiS.}
+\item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
+and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
 
-\item{eType}{character one of "eCauchy", "eGauss", "grow". "eCauchy" yields e-values based on
-a Cauchy mixture, "eGauss" based on a Gaussian/normal mixture, and "grow" based on a mixture of
-two point masses at the minimal clinically relevant effect size.}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
 \item{wantSamplePaths}{logical, if \code{TRUE} then also outputs the sample paths.}
 
 \item{lowEsTrue}{numeric, lower bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find meanDiffMin}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 
 \item{highEsTrue}{numeric, upper bound for the candidate set of the
-targeted minimal clinically relevant effect size.
-Design scenario 3: nPlan and beta given, goal find meanDiffMin}
+targeted minimal clinically relevant effect size for scenario 3.a.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
 
 \item{seed}{integer, seed number.}
 
-\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of samples paths
-for the savi z test under continuous monitoring.}
+\item{nSim}{integer > 0, the number of simulations needed to compute power or the number of
+samples paths for the savi z test under continuous monitoring.}
 
-\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy of
-approximation of the power, the number of samples for the savi z test under continuous monitoring,
-or for the computation of the logarithm of the implied target.}
+\item{nBoot}{integer > 0 representing the number of bootstrap samples to assess the accuracy
+of the approximations of the power, the number of samples for the savi z test under continuous
+monitoring,or for the computation of the logarithm of the implied target.}
 
-\item{futility}{logical, if \code{TRUE} then impose rule to stop
-for futility if e < beta. Default \code{FALSE}.}
-
-\item{growFutility}{logical, if \code{TRUE} then use the grow e-value
-to stop for futility (e < beta). Default \code{FALSE}.}
+\item{relevanceTest}{logical, if \code{TRUE} then impose a rule to stop
+for minimal efficiency if e <= alphaRelevance. Default \code{FALSE}.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{power}{numeric in (0, 1) that specifies the desired power, that is, the targetted
+chance to stop in favour of the alternative over the null hypothesis, when the alternative
+holds true. Note that prior to version 0.8.8 power <- 1-beta. The "beta" argument does not
+need to be specified anymore.}
+
+\item{meanDiffTrue}{numeric, data governing mean difference used for simulations. Default
+meanDiffTrue=meanDiffMin.}
+
+\item{wantSimData}{logical, if \code{TRUE} then also output the simulated data}
+
+\item{relevanceSize}{numeric, the minimal clinical relevant mean
+difference that we do not want to miss under the alternative.
+Default relevanceSize=NULL implies relevanceSize=abs(meanDiffMin)}
+
+\item{alphaRelevance}{numeric, the threshold for relevance test. Taken to be minimum of
+alpha and 1-power.}
+
+\item{betaDefault}{numeric, defaulting value for 1-power and alphaRelevance}
+
+\item{highN}{integer, largest possible sampling horizon. This might be the
+largest n that we are able to fund, which by default is set to 1e4L.
+Typically, highN is not used, as the function
+\code{computeNPlanBatchSaviZ()} tries to find the sampling horizon.
+If all fails, then use highN as the sampling horizon.}
+
+\item{wantSampling}{logical, default TRUE so sampling paths are drawn.
+For instance, if meanDiffMin and power, are given, then nPlan
+(scenario 1a) is derived by sampling. Set this to FALSE, whenever we
+want to run a minimal efficacy test without needing to know nPlan}
 }
 \value{
 Returns a saviDesign object that includes:
 
 \describe{
-\item{nPlan}{the sample size(s) to plan for. Computed based on beta and meanDiffMin, or provided by the user
-if known.}
-\item{parameter}{the savi test defining parameter. Here phiS.}
-\item{esMin}{the minimally clinically relevant effect size provided by the user.}
+\item{parameter}{the savi test defining parameter, see \code{\link{matchEParameterWith}}.}
 \item{alpha}{the tolerable type I error provided by the user.}
-\item{beta}{the tolerable type II error specified by the user.}
-\item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
-\item{testType}{any of "oneSample", "paired", "twoSample" effectively provided by the user.}
-\item{paired}{logical, \code{TRUE} if "paired", \code{FALSE} otherwise.}
-\item{sigma}{the assumed population standard deviation used for the test provided by the user.}
-\item{kappa}{the true population standard deviation, typically, sigma=kappa.}
-\item{ratio}{default is 1. Different from 1, whenever testType equals "twoSample", then it defines
-ratio between the planned randomisation of condition 2 over condition 1.}
-\item{pilot}{logical, specifying whether it's a pilot design.}
+\item{pilot}{logical, specifying whether it's a pilot design, which occurs
+when saviZTest is called without a designObj.}
+\item{testName}{"Z-Test".}
 \item{call}{the expression with which this function is called.}
 }
 }
 \description{
-A designed experiment requires (1) a sample size nPlan to plan for, and (2) the parameter of the savi test, i.e.,
-phiS. Provided with a clinically relevant minimal mean difference meanDiffMin, this function outputs
-phiS = meanDiffMin as the savi test defining parameter in accordance to the GROW criterion.
-If a tolerable type II error, i.e., beta, is provided then nPlan can be sampled. The sampled nPlan is then
-the smallest nPlan for which meanDiffMin can be found with power at least 1 - beta under optional stopping.
+A designed experiment requires (1) a sample size nPlan to plan for, and
+(2) a savi test defining parameter. The design involves alpha and the
+three quantities: (1) nPlan, (2) power, and (3) a minimal
+clinically relevant mean difference meanDiffMin.
+\describe{
+\item{Scenario 1.a}{Goal: "nPlan" and optimal E-variable. Given: meanDiffMin and power.}
+\item{Scenario 1.b}{Goal: an optimal E-variable. Given: meanDiffMin only.}
+\item{Scenario 2}{Goal: "power" and optimal E-variable. Given: meanDiffMin and nPlan.}
+\item{Scenario 3.a}{Goal: "meanDiffMin" and optimal E-variable. Given: power and nPlan.}
+\item{Scenario 3.b}{Goal: an optimal E-variable. Given: nPlan only.}
+}
+}
+\details{
+Every scenario returns an E-variable adapted to the input. Scenario 1.a,
+for instance, outputs the parameter of the provided eType (default mom)
+savi test, see \code{\link{matchEParameterWith}} for details, and nPlan.
+The nPlan is based on samples paths drawn under meanDiffTrue (if not specified,
+then meanDiffTrue=meanDiffMin by default). The resulting nPlan corresponds to the
+power (say 80\%) quantile of the first-passage time distribution associated
+with E crossing threshold 1/alpha.
 }
 \section{Functions}{
 \itemize{
@@ -134,13 +164,33 @@ the smallest nPlan for which meanDiffMin can be found with power at least 1 - be
 
 }}
 \examples{
-designObj <- designSaviZ(meanDiffMin=0.8, alpha=0.2, beta=0.2,
-                         alternative="greater", nSim=1e2)
+# Scenario 1.b: Goal: an E-variable
+designObj <- designSaviZ(meanDiffMin=0.8)
 
-# Detectable relevant mean difference
-designObj <- designSaviZ(nPlan = 100, beta=0.2)
+# Scenario 1.a: Goal: "nPlan" and optimal E-variable.
+designObj <- designSaviZ(meanDiffMin=0.8, power=0.6, alpha=0.2,
+                         alternative="greater", nSim=100)
+
+plot(designObj)
+
+# Scenario 1a. with relevance testing, also stopping for practically null
+designObj <- designSaviZ(meanDiffMin=0.8, power=0.6, alpha=0.2,
+                         alternative="greater", nSim=100,
+                         relevanceTest=TRUE)
+
+plot(designObj)
+
+# Scenario 2: Goal: "power" and optimal E-variable
+designObj <- designSaviZ(meanDiffMin=0.8, nPlan=16, nSim=100)
+
+# Scenario 3.a: Goal: "meanDiffMin" and optimal E-variable
+designObj <- designSaviZ(power=0.7, nPlan=16)
+
+# Scenario 3.b: Goal: an optimal E-variable. Given: nPlan only.
+designObj <- designSaviZ(nPlan=16)
+
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091–1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
 }

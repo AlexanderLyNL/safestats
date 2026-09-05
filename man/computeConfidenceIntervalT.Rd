@@ -10,33 +10,43 @@ computeConfidenceIntervalT(
   nEff,
   nu,
   parameter,
-  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai", "bayarri"),
+  eType = c("mom", "eGauss", "imom", "eCauchy", "grow", "lai"),
   alternative = c("twoSided", "greater", "less"),
   ciValue = 0.95,
-  maxRoot = 11
+  maxRoot = 11,
+  nuMin = 2
 )
 }
 \arguments{
-\item{meanObs}{numeric, the observed mean. For two sample tests this is difference of the means.}
+\item{meanObs}{numeric, the observed mean. For two sample tests this
+is difference of the means.}
 
-\item{sdObs}{numeric, the observed standard deviation. For a two-sample test this is the root
-of the pooled variance.}
+\item{sdObs}{numeric, the observed standard deviation. For a two-sample
+test this is the root of the pooled variance.}
 
-\item{nEff}{numeric > 0, the effective sample size. For one sample test this is just n.}
+\item{nEff}{numeric > 0, the effective sample size. For one sample tests,
+this is just n.}
 
 \item{nu}{numeric > 0, the degrees of freedom.}
 
-\item{parameter}{numeric > 0, the savi test defining parameter.}
+\item{parameter}{numeric > 0, the savi test defining parameter,
+see \code{\link{matchEParameterWith}} for details.}
 
-\item{eType}{character, type of e-value: "eCauchy" (default), "eGauss", or "grow"}
+\item{eType}{character one of "mom", "grow", "eGauss", and "eCauchy". "mom" is default
+and uses a non-local moment prior with bump(s) at meanDiffMin, "grow" uses point prior(s) at
+meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauchy prior.}
 
-\item{alternative}{a character string specifying the alternative hypothesis must be one of "twoSided" (default),
-"greater" or "less".}
+\item{alternative}{a character string specifying the alternative hypothesis. Must be one
+of "twoSided" (default), "greater" or "less".}
 
-\item{ciValue}{numeric is the ciValue-level of the confidence sequence. Default ciValue=NULL,
-and ciValue = 1 - alpha}
+\item{ciValue}{numeric representing the confidence level.
+Default ciValue=NULL yields ciValue = 1 - alpha}
 
-\item{maxRoot}{Used to bound the candidate set of width of the confidence interval.}
+\item{maxRoot}{Used to bound the candidate set of width of the
+confidence interval/}
+
+\item{nuMin}{numeric > 0, the minimum degrees of freedom under which the results
+are trivial, thus, 1.}
 }
 \value{
 numeric vector that contains the upper and lower bound of the savi confidence sequence

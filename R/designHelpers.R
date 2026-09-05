@@ -1,10 +1,11 @@
 #' Helper function that extract the results for the design scenario 1a: Target nPlan
 #'
-#' @param samplingResult output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT
+#' @param samplingResult output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT
 #' @param esMin numeric that defines the minimal clinically relevant effect size,
 #' e.g. meanDiffMin for the z-test, or deltaMin for the t-test.
-#' @param beta numeric in (0, 1) that specifies the tolerable type II error control necessary to calculate both "n"
-#' and "phiS". Note that 1-beta defines the power.
+#' @param power numeric in (0, 1) that specifies the desirable power necessary to calculate both "n"
+#' and the minimum detectable effect size.
+#' @param beta numerical in (0,1). Old parameter now replaced by the power parameter
 #' @param ratio numeric > 0 representing the randomisation ratio of condition 2 over condition 1. If testType
 #' is not equal to "twoSample", or if nPlan is of length(1) then ratio=1.
 #' @param testType either one of "oneSample", "paired", "twoSample".
@@ -14,20 +15,21 @@
 #'
 #' @examples
 #'
-#' samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
-#' result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
+#' samplingResult <- computeNPlanSaviZ(0.7, nSim=10, nMax=20)
+#' result <- designSavi1aHelper(samplingResult, 0.7, 0.2, 1)
 designSavi1aHelper <- function(
-    samplingResult, esMin, beta, ratio,
+    samplingResult, esMin, power, ratio, beta=NULL,
     testType=c("oneSample", "paired","twoSample")) {
 
   testType <- match.arg(testType)
 
-  result <- list("parameter"=NULL, "esMin"=esMin, "beta"=beta,
+  result <- list("parameter"=NULL, "esMin"=esMin, "power"=power,
                  "nPlan"=NULL, "nPlanTwoSe"=NULL, "nPlanBatch"=NULL,
                  "nMean"=NULL, "nMeanTwoSe"=NULL,
                  "bootObjN1Plan"=NULL, "bootObjN1Mean"=NULL,
                  "samplePaths"=NULL, "breakVector"=NULL,
-                 "note"=NULL)
+                 "relevanceTest"=FALSE, "relevanceTestSim"=NULL,
+                 "simData"=NULL, "beta"=beta, "note"=NULL)
 
   nPlanBatch <- samplingResult[["nPlanBatch"]]
   bootObjN1Plan <- samplingResult[["bootObjN1Plan"]]
@@ -89,6 +91,10 @@ designSavi1aHelper <- function(
   result[["nPlanTwoSe"]] <- nPlanTwoSe
   result[["nMean"]] <- nMean
   result[["nMeanTwoSe"]] <- nMeanTwoSe
+
+  result[["relevanceTestSim"]] <- samplingResult[["relevanceTestSim"]]
+  result[["simData"]] <- samplingResult[["simData"]]
+
   result[["note"]] <- note
 
   return(result)
@@ -97,7 +103,7 @@ designSavi1aHelper <- function(
 
 #' Helper function that extract the results for the design scenario 1a: Target nPlan
 #'
-#' @param samplingResult output from sampling functions such as computeNPlanSafeZ and computeNPlanSafeT
+#' @param samplingResult output from sampling functions such as computeNPlanSaviZ and computeNPlanSaviT
 #' @param esMin numeric that defines the minimal clinically relevant effect size,
 #' e.g. meanDiffMin for the z-test, or deltaMin for the t-test.
 #' @param nPlan vector of max length 2 representing the planned sample sizes.
@@ -110,8 +116,8 @@ designSavi1aHelper <- function(
 #'
 #' @examples
 #'
-#' samplingResult <- computeNPlanSafeZ(0.7, nSim=10, nMax=20)
-#' result <- designSafe1aHelper(samplingResult, 0.7, 0.2, 1)
+#' samplingResult <- computeNPlanSaviZ(0.7, nSim=10, nMax=20)
+#' result <- designSavi1aHelper(samplingResult, 0.7, 0.2, 1)
 designSavi2Helper <- function(
     samplingResult, esMin, nPlan, ratio,
     testType=c("oneSample", "paired","twoSample")) {
@@ -120,9 +126,10 @@ designSavi2Helper <- function(
 
   result <- list(
     "parameter"=NULL, "esMin"=esMin, "nPlan"=nPlan,
-    "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
+    "power"=NULL, "powerTwoSe"=NULL, "bootObjPower"=NULL,
     "logImpliedTarget"=NULL, "logImpliedTargetTwoSe"=NULL,
-    "bootObjLogImpliedTarget"=NULL,
+    "bootObjLogImpliedTarget"=NULL, "simData"=NULL,
+    "beta"=NULL, "betaTwoSe"=NULL, "bootObjBeta"=NULL,
     "samplePaths"=NULL, "breakVector"=NULL)
 
   result[["parameter"]] <- samplingResult[["parameter"]]
@@ -131,17 +138,34 @@ designSavi2Helper <- function(
   result[["samplePaths"]] <- samplingResult[["samplePaths"]]
   result[["breakVector"]] <- samplingResult[["breakVector"]]
 
-  bootObjBeta <- samplingResult[["bootObjBeta"]]
+  someBeta <- samplingResult[["beta"]]
 
-  result[["beta"]] <- samplingResult[["beta"]]
-  result[["bootObjBeta"]] <- bootObjBeta
-  result[["betaTwoSe"]] <- 2*bootObjBeta[["bootSe"]]
+  if (!is.null(someBeta)) {
+    bootObjBeta <- samplingResult[["bootObjBeta"]]
+
+    result[["beta"]] <- someBeta
+    result[["bootObjBeta"]] <- bootObjBeta
+    result[["betaTwoSe"]] <- 2*bootObjBeta[["bootSe"]]
+  }
+
+  somePower <- samplingResult[["power"]]
+
+  if (!is.null(somePower)) {
+    bootObjPower <- samplingResult[["bootObjPower"]]
+
+    result[["power"]] <- somePower
+    result[["bootObjPower"]] <- bootObjPower
+    result[["powerTwoSe"]] <- 2*bootObjPower[["bootSe"]]
+  }
 
   bootObjLogImpliedTarget <- samplingResult[["bootObjLogImpliedTarget"]]
 
   result[["logImpliedTarget"]] <- samplingResult[["logImpliedTarget"]]
   result[["bootObjLogImpliedTarget"]] <- bootObjLogImpliedTarget
   result[["logImpliedTargetTwoSe"]] <- 2*bootObjLogImpliedTarget[["bootSe"]]
+
+  result[["simData"]] <- samplingResult[["simData"]]
+  result[["relevanceTestSim"]] <- samplingResult[["relevanceTestSim"]]
 
   return(result)
 }
@@ -150,7 +174,7 @@ designSavi2Helper <- function(
 
 #' Computes the bootObj for sequential sampling procedures regarding nPlan, beta, the implied target
 #'
-#' @inheritParams designSafeZ
+#' @inheritParams designSaviZ
 #' @param values numeric vector. If objType equals "nPlan" or "beta" then values should be stopping times,
 #' if objType equals "logImpliedTarget" then values should be eValues.
 #' @param nBoot integer > 0 representing the number of bootstrap samples
@@ -164,16 +188,15 @@ designSavi2Helper <- function(
 #' @examples
 #' computeBootObj(1:100, objType="nPlan", beta=0.3)
 computeBootObj <- function(
-    values, beta=NULL, nPlan=NULL,
-    nBoot=1e3L, alpha=NULL,
-    objType=c("nPlan", "nMean", "beta", "betaFromEValues",
+    values, power=NULL, nPlan=NULL,
+    nBoot=1e3L, alpha=NULL, beta=NULL,
+    objType=c("nPlan", "nMean", "power", "beta", "betaFromEValues",
               "logImpliedTarget", "expectedStopTime")) {
   objType <- match.arg(objType)
 
-  # TODO(Alexander): futility
-  # browser()
+  power <- matchPowerWith("power"=power, "beta"=beta)
 
-  if (objType=="beta") {
+  if (objType=="power") {
     if (is.null(nPlan) || nPlan <= 0)
       stop("Please provide an nPlan > 0")
 
@@ -182,8 +205,32 @@ computeBootObj <- function(
 
     bootObj <- try(
       boot::boot(times, function(x, idx) {
-                            1-mean(x[idx] <= nPlan)
-                          },  R = nBoot)
+        mean(x[idx] <= nPlan)
+      },  R = nBoot)
+    )
+
+    j <- 1
+
+    while (isTryError(bootObj) && j < 21) {
+      bootObj <- try(
+        boot::boot(times, function(x, idx) {
+          mean(x[idx] <= nPlan)
+        },  R = nBoot/2^j)
+      )
+
+      j <- j+1
+    }
+  } else if (objType=="beta") {
+    if (is.null(nPlan) || nPlan <= 0)
+      stop("Please provide an nPlan > 0")
+
+    times <- values
+    stopifnot(nPlan > 0)
+
+    bootObj <- try(
+      boot::boot(times, function(x, idx) {
+        1-mean(x[idx] <= nPlan)
+      },  R = nBoot)
     )
 
     j <- 1
@@ -224,14 +271,16 @@ computeBootObj <- function(
     }
 
   } else if (objType=="nPlan") {
-    if (is.null(beta) || beta <= 0 || beta >= 1)
-      stop("Please provide a beta in (0, 1)")
+    if (is.null(beta)) {
+      if (is.null(power) || power <= 0 || power >= 1)
+        stop("Please provide a targeted power in (0, 1)")
+    }
 
     times <- values
 
     bootObj <- try(
       boot::boot(times, function(x, idx) {
-        stats::quantile(x[idx], prob=1-beta, names=FALSE)
+        stats::quantile(x[idx], prob=power, names=FALSE)
       } , R = nBoot)
     )
 
@@ -240,7 +289,7 @@ computeBootObj <- function(
     while (isTryError(bootObj) && j < 21) {
       bootObj <- try(
         boot::boot(times, function(x, idx) {
-          stats::quantile(x[idx], prob=1-beta, names=FALSE)
+          stats::quantile(x[idx], prob=power, names=FALSE)
         } , R = nBoot/2^j)
       )
 
@@ -314,13 +363,12 @@ computeBootObj <- function(
   return(bootObj)
 }
 
-
 #' Helper function to compute uncertainty regarding nPlan estimates
 #'
-#' @inheritParams designSafe1aHelper
+#' @inheritParams designSavi1aHelper
 #' @inheritParams computeBootObj
 #'
-#' @param parameter numeric > 0, the safe test defining parameter.
+#' @param parameter numeric > 0, the savi test defining parameter.
 #' @param nPlanBatch integer, the sample size needed in a batch design
 #' to reach the targeted power=1-beta with tolerable type I error alpha
 #'
@@ -328,24 +376,28 @@ computeBootObj <- function(
 #' @export
 #'
 #' @examples
-#' samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+#' samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
 #' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 computeNPlanBootstrapper <- function(
     samplingResult, parameter,
-    beta, nPlanBatch, nBoot) {
-
-
-  # TODO(Alexander): futility
-  # browser()
-  # TODO(Alexander): Here figure out which stopping times to use when futility=TRUE
+    power, nPlanBatch, nBoot, beta=NULL) {
 
   times <- samplingResult[["stoppingTimes"]]
 
+  power <- matchPowerWith("power"=power, "beta"=beta)
+
   bootObjN1Plan <- computeBootObj(
     "values"=times, "objType"="nPlan",
-    "beta"=beta, "nBoot"=nBoot)
+    "power"=power, "nBoot"=nBoot, "beta"=beta)
 
   n1Plan <- ceil(bootObjN1Plan[["t0"]])
+
+  relevanceRes <- samplingResult[["relevanceTestSim"]]
+
+  if (!is.null(relevanceRes)) {
+    relevanceIndex <- Matrix::which(samplingResult[["breakVector"]]==-1)
+    times[relevanceIndex] <- as.numeric(relevanceRes[["stoppingTimes"]])[relevanceIndex]
+  }
 
   bootObjN1Mean <- computeBootObj(
     "values"=times, "objType"="nMean",
@@ -357,14 +409,16 @@ computeNPlanBootstrapper <- function(
                  "n1Mean"=n1Mean, "bootObjN1Mean"=bootObjN1Mean,
                  "nPlanBatch"=nPlanBatch, "parameter"=parameter,
                  "samplePaths"=samplingResult[["samplePaths"]],
-                 "breakVector"=samplingResult[["breakVector"]])
+                 "breakVector"=samplingResult[["breakVector"]],
+                 "simData"=samplingResult[["simData"]],
+                 "relevanceTestSim"=samplingResult[["relevanceTestSim"]])
 }
 
 
 
 #' Helper function to compute uncertainty regarding nPlan estimates
 #'
-#' @inheritParams designSafe2Helper
+#' @inheritParams designSavi2Helper
 #' @inheritParams computeBootObj
 #' @inheritParams computeNPlanBootstrapper
 #'
@@ -372,7 +426,7 @@ computeNPlanBootstrapper <- function(
 #' @export
 #'
 #' @examples
-#' samplingResult <- sampleStoppingTimesSafeT(0.7, nSim=10, nMax=20)
+#' samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
 #' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
 computeBetaBootstrapper <- function(
     samplingResult, parameter,
@@ -384,7 +438,7 @@ computeBetaBootstrapper <- function(
   breakVector <- samplingResult[["breakVector"]]
 
   # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
-  times[as.logical(breakVector)] <- Inf
+  times[Matrix::which(breakVector!=0)] <- Inf
 
   bootObjBeta <- computeBootObj(
     "values"=times, "objType"="beta",
@@ -402,14 +456,61 @@ computeBetaBootstrapper <- function(
                  "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
                  "samplePaths"=samplingResult[["samplePaths"]],
                  "breakVector"=samplingResult[["breakVector"]],
-                 "parameter"=parameter)
+                 "simData"=samplingResult[["simData"]],
+                 "parameter"=parameter, "relevanceTestSim"=samplingResult[["relevanceTestSim"]])
+
+  return(result)
+}
+
+#' Helper function to compute uncertainty regarding nPlan estimates
+#'
+#' @inheritParams designSavi2Helper
+#' @inheritParams computeBootObj
+#' @inheritParams computeNPlanBootstrapper
+#'
+#' @return list with bootstrap objects
+#' @export
+#'
+#' @examples
+#' samplingResult <- sampleStoppingTimesSaviT(0.7, nSim=10, nMax=20)
+#' result <- computeNPlanBootstrapper(samplingResult, 0.7, 0.2, 20, nBoot=1e2)
+computePowerBootstrapper <- function(
+    samplingResult, parameter,
+    nPlan, nBoot) {
+
+  times <- samplingResult[["stoppingTimes"]]
+
+  # Note(Alexander): Break vector is 1 whenever the sample path did not stop
+  breakVector <- samplingResult[["breakVector"]]
+
+  # Note(Alexander): Setting the stopping time to Inf for these paths doesn't matter for the quantile
+  times[Matrix::which(breakVector!=0)] <- Inf
+
+  bootObjPower <- computeBootObj(
+    "values"=times, "objType"="power",
+    "nPlan"=nPlan[1], "nBoot"=nBoot)
+
+  eValuesAtNMax <- samplingResult[["eValuesAtNMax"]]
+
+  bootObjLogImpliedTarget <- computeBootObj(
+    "values"=eValuesAtNMax, "objType"="logImpliedTarget",
+    "nBoot"=nBoot)
+
+  result <- list("power" = bootObjPower[["t0"]],
+                 "bootObjPower" = bootObjPower,
+                 "logImpliedTarget"=bootObjLogImpliedTarget[["t0"]],
+                 "bootObjLogImpliedTarget"=bootObjLogImpliedTarget,
+                 "samplePaths"=samplingResult[["samplePaths"]],
+                 "breakVector"=samplingResult[["breakVector"]],
+                 "simData"=samplingResult[["simData"]],
+                 "parameter"=parameter, "relevanceTestSim"=samplingResult[["relevanceTestSim"]])
 
   return(result)
 }
 
 #' Construct a list to be set in the sampleStoppingTimes... function
 #' @param nSim integer > 0, the number of simulations needed to compute power or the number of samples paths
-#' for the safe z test under continuous monitoring.
+#' for the savi z test under continuous monitoring.
 #' @param nMax integer > 0, maximum sample size of the (first) sample in each sample path.
 #' @param wantEValuesAtNMax logical. If \code{TRUE}, then compute eValues at nMax. Default \code{FALSE}.
 #' @param wantSamplePaths logical. If \code{TRUE}, then output the (stopped) sample paths. Default \code{TRUE}.
@@ -423,8 +524,9 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
                                             wantEValuesAtNMax=FALSE,
                                             wantSamplePaths=TRUE) {
 
-  stoppingTimes <- breakVector <- stoppedVector <- integer(nSim)
+  stoppingTimes <- integer(nSim)
   eValuesStopped <- numeric(nSim)
+  breakVector <- Matrix::sparseVector(x=0, i=1, length=nSim)
 
   eValuesAtNMax <- if (wantEValuesAtNMax) numeric(nSim) else NULL
   samplePaths <- if (wantSamplePaths) matrix(nrow=nSim, ncol=nMax[1]) else NULL
@@ -433,6 +535,215 @@ constructSampleStoppingTimesList <- function(nSim=1e3L, nMax=1e3L,
                  "stoppingTimes"=stoppingTimes, "breakVector"=breakVector,
                  "eValuesStopped"=eValuesStopped, "eValuesAtNMax"=eValuesAtNMax,
                  "samplePaths"=samplePaths, "n1Vector"=NULL, "ratio"=NULL,
-                 "simData"=NULL, "stoppedVector"=stoppedVector)
+                 "simData"=NULL)
   return(result)
+}
+
+
+# Match args ----
+
+#' Checks and outputs a threshold for a minimal efficacy analysis
+#'
+#' @inheritParams designSaviZ
+#' @param alphaRelevance numeric > 0 and < 1, used to set the threshold of
+#' a minimal efficacy procedure
+#' @param beta numeric > 0 and < 1, a tolerable type II error, used to set
+#' the threshold if alphaRelevance is not given
+#' @param betaDefault numeric > 0 and < 1 a default value (0.2) to run
+#' a minimal efficacy procedure
+#'
+#' @returns a alphaRelevance threshold
+#' @export
+#'
+#' @examples
+#' matchAlphaRelevanceWith(0.3)
+matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power=NULL, beta=NULL, betaDefault=0.2) {
+  if (is.null(alphaRelevance) && !is.null(power) && !is.null(alpha))
+    alphaRelevance <- min(alpha, 1-power)
+
+  if (!is.null(alphaRelevance) && !is.null(power))
+    alphaRelevance <- min(alphaRelevance, 1-power)
+
+  if (!is.null(alphaRelevance) && !is.null(alpha))
+    alphaRelevance <- min(alphaRelevance, alpha)
+
+  if (!is.null(alphaRelevance)) {
+    stopifnot(alphaRelevance > 0, alphaRelevance < 1)
+    return(alphaRelevance)
+  }
+
+  if (!is.null(alpha))
+    return(alpha)
+
+  if (!is.null(power)) {
+    stopifnot(power > 0, power < 1)
+    return(1-power)
+  }
+
+  if (!is.null(beta) && length(beta)!=0) {
+    stopifnot(beta >0, beta < 1)
+    return(beta)
+  }
+
+  warning("To run a minimal efficacy procedure ",
+          "a alphaRelevance threshold needs to be specified ",
+          "by default alphaRelevance <- ", betaDefault)
+  alphaRelevance <- betaDefault
+
+  return(alphaRelevance)
+}
+
+#' Match the parameter of a savi z or t-test
+#'
+#' Based on the minimal clinically relevant effect size esMin,
+#' sigma (for z-tests), alternative and eType
+#'
+#' @inheritParams designSaviZ
+#' @param esMin numeric: meanDiffMin for z-tests, or deltaMin for t-tests
+#' @param analysisType character. Either "z", "t", or "logRank", currently.
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchEParameterWith(0.4)
+matchEParameterWith <- function(esMin, analysisType=c("z", "t", "logRank"),
+                                sigma=1,
+                                alternative=c("twoSided", "greater", "less"),
+                                eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
+                                parameter=NULL) {
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+  analysisType <- match.arg(analysisType)
+
+  # TODO(Alexander):
+  #
+  if (!is.null(parameter))
+    return(parameter)
+
+  if (analysisType %in% c("z", "t")) {
+    if (analysisType=="z") {
+      parameter <- switch(eType,
+                          "mom"=1/2*(esMin/sigma)^2,
+                          "eGauss"=(esMin/sigma)^2,
+                          "imom"=(esMin/sigma)^2,
+                          "eCauchy"=abs(esMin/sigma),
+                          "grow"=abs(esMin))
+    } else if (analysisType=="t") {
+      parameter <- switch(eType,
+                          "mom"=1/2*esMin^2,
+                          "eGauss"=esMin^2,
+                          "imom"=abs(esMin),
+                          "eCauchy"=abs(esMin),
+                          "grow"=abs(esMin))
+    }
+
+    if (eType=="grow") {
+      if (alternative=="less")
+        parameter <- -parameter
+    }
+  } else if (analysisType=="logRank") {
+    parameter <- if (esMin > 1) 1/esMin else esMin
+  }
+
+  return(parameter)
+}
+
+#' Match the meanDiffMin of a savi z-test
+#'
+#' Based on the parameter, sigma, alternative and eType
+#'
+#' @inheritParams designSaviZ
+#' @inheritParams matchEParameterWith
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchEsMinWith(parameter=0.4)
+matchEsMinWith <- function(parameter, analysisType=c("z", "t"),
+                           sigma=1,
+                           alternative=c("twoSided", "greater", "less"),
+                           eType=c("mom", "eGauss", "imom", "eCauchy", "grow")) {
+
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+  analysisType <- match.arg(analysisType)
+
+  parameter <- abs(parameter)
+
+  if (analysisType=="z") {
+    esMin <- switch(eType,
+                    "mom"=sqrt(2*parameter)*sigma,
+                    "eGauss"=sqrt(parameter)*sigma,
+                    "imom"=sqrt(parameter)*sigma,
+                    "eCauchy"=parameter*sigma,
+                    "grow"=abs(parameter))
+  }
+
+  if (analysisType=="t") {
+    esMin <- switch(eType,
+                    "mom"=sqrt(2*parameter),
+                    "eGauss"=sqrt(parameter),
+                    "imom"=abs(parameter),
+                    "eCauchy"=abs(parameter),
+                    "grow"=abs(parameter))
+  }
+
+  if (alternative=="less" && eType %in% c("grow", "imom", "eCauchy"))
+    esMin <- -esMin
+
+  return(esMin)
+}
+
+#' Match the parameter of a minimal efficacy savi z-test
+#'
+#' Based on the relevanceSize, meanDiffMin, alternative and eType
+#'
+#' @inheritParams designSaviZ
+#' @inheritParams matchEParameterWith
+#'
+#' @param esTrue numeric. meanDiffTrue for z-tests, or deltaTrue for t-tests
+#'
+#' @returns the parameter, a numeric value
+#' @export
+#'
+#' @examples
+#' matchRelevanceParameterWith(0.4)
+matchRelevanceParameterWith <- function(relevanceSize, esMin, esTrue) {
+
+  if (!is.null(relevanceSize))
+    return(abs(relevanceSize))
+
+  if (!is.null(esMin))
+    return(abs(esMin))
+
+  if (!is.null(esTrue))
+    return(abs(esTrue))
+
+}
+
+#' Helper function to check whether the power or beta (redundant now) argument is given
+#'
+#' @inheritParams designSaviZ
+#'
+#' @returns numeric representing power
+#' @export
+#'
+#' @examples
+#' matchPowerWith(0.8)
+matchPowerWith <- function(power, beta=NULL) {
+  if (!is.null(power)) {
+    if (!is.null(beta))
+      warning("Both power and beta specified. Preference given to power")
+
+    return(power)
+  }
+
+  if (!is.null(beta)) {
+    power <- 1-beta
+    return(power)
+  }
+
+  return(NULL)
 }
