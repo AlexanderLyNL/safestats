@@ -280,9 +280,10 @@ saviLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     nEff <- ratio/(1+ratio)^2*nEvents
 
     zStat <- sumStats[["z"]]
-    meanObs <- zStat/sqrt(nEff)
-
-    result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(meanObs), "eValue"=NULL,
+    sumOMinE <- sumStats[["sumOMinE"]]
+    sumVarOMinE <- sumStats[["sumVarOMinE"]]
+    
+    result <- list("statistic"=zStat, "n"=nEvents, "estimate"=exp(sumOMinE/sumVarOMinE), "eValue"=NULL,
                    "confSeq"=NULL, "testType"="gLogrank", "dataName"=dataName)
     class(result) <- "saviTest"
 
