@@ -74,8 +74,7 @@ constructSaviDesignObj <- function(testName) {
     testSpecificList <- list("exact"=NULL)
   } else if (testName=="Two Proportions") {
     testSpecificList <- list(
-      "priorHyperParameters"=list("betaA1"=0.18, "betaA2"=0.18,
-                                  "betaB1"=0.18, "betaB2"=0.18),
+      "betaParameter"=list("betaA1"=0.18, "betaA2"=0.18,"betaB1"=0.18, "betaB2"=0.18),
       "relevanceTest"=FALSE,
       "runningIntersection"=TRUE,
       "testName"=testName)
@@ -114,7 +113,7 @@ constructSaviTestObj <- function(testName) {
   } else if (testName=="Logrank") {
     testSpecificList <- list("sumStats"=NULL, "testName"=testName)
   } else if (testName=="Two Proportions") {
-    testSpecificList <- list("posteriorHyperParameters"=NULL, "testName"=testName)
+    testSpecificList <- list("betaPrior"=NULL, "testName"=testName)
   }
 
   result <- utils::modifyList(result, testSpecificList)

@@ -39,12 +39,12 @@ the decision, never silently diverge.
 - Groups are `A` and `B`. `ya`, `yb` are success counts, `na`, `nb` group
   sizes. Counts are integer-valued, non-negative and at most the group size.
 - Two effect measures, named exactly `propDiff` (difference of
-  proportions) and `logOR` (log odds ratio). Both are signed **B minus A**
+  proportions) and `logOdds` (log odds ratio). Both are signed **B minus A**
   and both are anchored on `thetaA`: group B is always derived from group A
   and the effect, never the other way round.
   - `thetaB = thetaA + propDiff`, so `propDiff = thetaB - thetaA`.
-  - `thetaB = plogis(qlogis(thetaA) + logOR)`, so
-    `logOR = logit(thetaB) - logit(thetaA)`.
+  - `thetaB = plogis(qlogis(thetaA) + logOdds)`, so
+    `logOdds = logit(thetaB) - logit(thetaA)`.
   The legacy spellings `difference`, `linearDifference` and `logOddsRatio`
   are not used anywhere in new code.
 - `alternative` takes `c("twoSided", "greater", "less")`, in that order.
@@ -92,20 +92,25 @@ function, its inputs, its output, and the convention it relies on.
 ### 1. Sample-size vocabulary
 
 `nSim` is the number of simulated paths, `nBoot` the number of bootstrap
-resamples. `nPlan = c(nBlocks, na, nb)`, with `nBlocks` first because
-`plot.saviDesign` reads `nPlan[1]`. The 2x2 design has no `nMax`,
+resamples. `nPlan` is `list(na, nb)`, the planned per-group block size
+(reopened by Decision 12: block count is observed data, not planned, so
+`nPlan` no longer carries `nBlocks`; `plot.saviDesign` reading `nPlan[1]`
+as `nBlocks` is stale and needs revisiting). The 2x2 design has no `nMax`,
 `highN` or `nPlanBatch` (left `NULL`), and no `thetaA` scenario.
 
 ### 2. Design and test object fields
 
-Only `eType = "grow"` for now, and the effect is always `propDiff`; there
-is no `effectMeasure` field. `designSavi2x2(propDiffmin, na, nb, nPlan,
-alpha, power, h0, alternative, eType, priorHyperParameters,
+Two effect measures, `propDiff` and `logOdds`, both first-class; there is
+still no `effectMeasure` field (reopened by Decision 12: `eType` alone
+picks the effect and the e-variable construction: `"eBeta"` or `"grow"`
+for `propDiff`, `"eGauss"` or `"grow"` for `logOdds`; `"grow"`'s dispatch
+between the two is not yet designed). `designSavi2x2(na, nb, propDiffMin,
+logOddsMin, alpha, power, h0, alternative, eType, betaParameter,
 runningIntersection)` returns a
 `saviDesign` with `testName = "Two Proportions"`, `testType = "2x2"`,
 `h0 = c(propDiff = h0)`, and:
 
-- `priorHyperParameters`: `list(betaA1, betaA2, betaB1, betaB2)`, the
+- `betaParameter`: `list(betaA1, betaA2, betaB1, betaB2)`, the
   success and failure shapes of the Beta priors on `thetaA` and `thetaB`.
   The default, all four `0.18`, lives in `constructSaviDesignObj("Two
   Proportions")`; the design function replaces it only when the argument is
@@ -117,7 +122,7 @@ runningIntersection)` returns a
   confidence sequence (Decision 4); `plot()` and `print()` read it as for
   the other tests.
 
-Reserved for when the conditional e-variable returns: its prior on `logOR`
+Reserved for when the conditional e-variable returns: its prior on `logOdds`
 defaults to mean `0` and sd `1`.
 
 `constructSaviTestObj("Two Proportions")` gets no `sumStats` or
@@ -125,6 +130,10 @@ defaults to mean `0` and sd `1`.
 field declared `NULL` in a constructor is absent until a function sets it.
 
 ### 3. Test function, unrestricted two-sided case
+
+Superseded by the `propDiff`/`logOdds` split of Decision 12
+(`savi2x2TestStatPropDiff`, `savi2x2TestStatLogOdds`); the numerator/
+denominator construction below is unchanged for `propDiff`.
 
 `savi2x2Test(ya, yb, designObj = NULL)`: `ya`, `yb` are per-block success
 counts in observation order; `na`, `nb`, `alternative`, `h0` and the prior
@@ -137,14 +146,15 @@ warning). No `ciValue` or confidence sequence yet.
   `thetaA = thetaB`.
 - `eValueVec` is the cumulative e-process, `eValue` its last element.
 - `n = c(na, nb, nBlocks)` in totals; `estimate` holds both observed
-  proportions and `propDiff` (B minus A); `posteriorHyperParameters` is the
-  Beta posterior after the last block.
+  proportions and `propDiff` (B minus A); `betaParameter` on the result is
+  the Beta posterior after the last block (same field name as the design's
+  prior, but holding the posterior; flagged as ambiguous, not yet resolved).
 - Errors, until each is designed: non-`NULL` `esMin`, `alternative` other
   than `"twoSided"`, `h0 != 0`. The design rejects non-positive Beta shapes.
 
 ### 4. Confidence sequence for propDiff
 
-`computeConfidenceInterval2x2PropDiff(ya, yb, na, nb, priorHyperParameters,
+`computeConfidenceInterval2x2PropDiff(ya, yb, na, nb, betaParameter,
 alpha, precision = 100)` inverts the test on `precision` equally spaced
 candidates strictly inside `(-1, 1)`. Each candidate `propDiff` is a point
 null with its own e-process: numerator the predictable Beta posterior mean
@@ -157,11 +167,13 @@ block and block `i` keeps the candidates whose current e-value is below
 `1/alpha`, so the sets need not be nested. Each run of consecutive non-rejected
 candidates is one interval, and the confidence set is the union of the
 intervals; min and max over the whole set are not taken, since that would
-fill holes. Returns a matrix with columns `block`, `lowerBound`,
-`upperBound`: one row per block without holes, as for the z-test, several
-rows for a block with holes, none for a block with everything rejected.
+fill holes. Returns a two-column matrix, `lowerBound` and `upperBound`
+(reopened by Decision 12: block is the rowname, not a data column, since
+`ncol` stays 2): one row per block without holes, as for the z-test,
+several rows for a block with holes, none for a block with everything
+rejected.
 
-`savi2x2Test(..., wantCi = TRUE)` passes the design's
+`savi2x2TestStatPropDiff(..., wantCi = TRUE)` passes the design's
 `runningIntersection` through and stores, as the other tests do, a two-column
 `nBlocks x 2` `confSeqMatrix` (`lowerBound`, `upperBound`; other code reads it
 by position): row `i` is the outermost bounds of block `i`'s union, `NA` for a
@@ -169,8 +181,8 @@ fully rejected block. This hull contains the union, so coverage holds, and
 the rows stay nested under the running intersection. The exact union is kept only for the last block, as
 `confSeq` (a `k x 2` matrix of `lowerBound`, `upperBound`; `k = 1` without
 holes), with `ciValue = 1 - alpha` (no separate `ciValue` argument).
-`savi2x2TestStat` returns the cumulative e-process, on the log scale when
-`log = TRUE`.
+`logLikelihoodRatioMultiBern` (renamed from `savi2x2TestStat`, Decision 12)
+returns the cumulative e-process, on the log scale when `log = TRUE`.
 
 ### 5. Plotting with plot.saviTest
 
@@ -188,7 +200,7 @@ holes), with `ciValue = 1 - alpha` (no separate `ciValue` argument).
 
 ### 6. Restricted alternative on propDiff
 
-Only `propDiff` restrictions; `logOR` is out of scope. `designSavi2x2`
+Only `propDiff` restrictions; `logOdds` is out of scope. `designSavi2x2`
 accepts `propDiffMin` as `NULL` or one number strictly inside `(0, 1)`,
 stored as `esMin`. Allowed combinations; everything else errors:
 
@@ -203,7 +215,9 @@ stored as `esMin`. Allowed combinations; everything else errors:
 The restricted numerator builds on `learnPredictiveThetas` from `cond`:
 `predictiveThetas2x2PropDiff(..., propDiff, nWeight = 1000)`, next to
 `predictiveThetas2x2(...)` for the Beta posterior means of Decision 3;
-`logEProcess2x2PlugIn(..., propDiff = NULL)` picks between them. The free
+`computeEValueVecPropDiff(..., propDiff = NULL)` (renamed from
+`logEProcess2x2PlugIn`, Decision 12) picks between them and returns
+`eValueVec` (length `nBlocks`) directly, not a list. The free
 coordinate `rho` is `thetaA` rescaled to its feasible interval
 `(max(0, -propDiff), min(1, 1 - propDiff))`, on `nWeight` equally spaced
 grid points strictly inside `(0, 1)`, with the prior `Beta(betaA1, betaA2)`;
@@ -214,42 +228,42 @@ null is always the point `thetaA = thetaB`; `"greater"` names the direction
 of the alternative, not a composite null. The confidence sequence keeps the
 unrestricted numerator. `nWeight` is not a design field.
 
-### 7. Plug-in conditional e-factor on logOR
+### 7. Plug-in conditional e-factor on logOdds
 
-`conditionalEValueFixedAlternative(ya, yb, na, nb, logOR, log = FALSE)`
+`logLikelihoodRatioFNCH(ya, yb, na, nb, logOdds, log = FALSE)`
 returns the conditional e-factor of **one** block (scalar counts), not a
-cumulative e-process; `savi2x2CondStat(ya, yb, na, nb, logOR, ...)` applies
+cumulative e-process; `savi2x2CondStat(ya, yb, na, nb, logOdds, ...)` applies
 it blockwise to vectors and returns the per-block e-factors (its `eType` and
 `alternative` dispatch is not designed yet). It conditions on the block's total `ya + yb`: under
-the null `yb` is hypergeometric, under `logOR` (B minus A, anchored on
-`thetaA`) it is Fisher's noncentral hypergeometric with odds `exp(logOR)` on
-group B, and the log e-factor is `yb * logOR - fnchLogPartition(nb, na, ya +
-yb, logOR) + lchoose(na + nb, ya + yb)`, on the log scale when `log = TRUE`.
-Weighting `yb` is what gives the B-minus-A sign; an earlier version weighted
-`ya` and so measured A minus B.
-`logOR` is one finite number
-supplied by the caller (plug-in, e.g. GROW or UMP); a prior on `logOR` is
+the null `yb` is hypergeometric, under `logOdds` (B minus A, anchored on
+`thetaA`) it is Fisher's noncentral hypergeometric with odds `exp(logOdds)` on
+group B, and the log e-factor is `log(dFNCHypergeo(yb, nb, na, ya + yb,
+exp(logOdds)))` minus the same at `logOdds = 0`, on the log scale when `log =
+TRUE`. Weighting `yb` is what gives the B-minus-A sign; an earlier version
+weighted `ya` and so measured A minus B.
+`logOdds` is one finite number
+supplied by the caller (plug-in, e.g. GROW or UMP); a prior on `logOdds` is
 reserved for later.
 
-`fnchLogPartition(na, nb, totalSuccesses, logOR)` is the log of
-`sum_k choose(na, k) choose(nb, totalSuccesses - k) exp(logOR * k)` over the
-feasible `k`, computed by a max-shifted log-sum-exp; at `logOR = 0` it
+`fnchLogPartition(na, nb, totalSuccesses, logOdds)` is the log of
+`sum_k choose(na, k) choose(nb, totalSuccesses - k) exp(logOdds * k)` over the
+feasible `k`, computed by a max-shifted log-sum-exp; at `logOdds = 0` it
 returns `lchoose(na + nb, totalSuccesses)` exactly.
 
-### 8. UMP plug-in conditional e-factor on logOR
+### 8. UMP plug-in conditional e-factor on logOdds
 
-`solveUmpLogOR(na, nb, totalSuccesses, alpha, alternative = c("greater",
-"less"), nullLogOR = 0, searchBound = 100)` finds the UMP plug-in `logOR` for
-**one** block by `uniroot` on `(nullLogOR, nullLogOR + 100)` for `"greater"`
-and `(nullLogOR - 100, nullLogOR)` for `"less"`: the `logOR` where
-`KL(FNCH(logOR) || FNCH(nullLogOR)) = log(1/alpha)`, with
-`KL = (logOR - nullLogOR) * mean - fnchLogPartition(nb, na, logOR) +
-fnchLogPartition(nb, na, nullLogOR)`, the FNCH mean of `yb` coming from
-`BiasedUrn::meanFNCHypergeo(nb, na, totalSuccesses, exp(logOR))`. The KL is
+`solveUmpLogOdds(na, nb, totalSuccesses, alpha, alternative = c("greater",
+"less"), nullLogOdds = 0, searchBound = 100)` finds the UMP plug-in `logOdds` for
+**one** block by `uniroot` on `(nullLogOdds, nullLogOdds + 100)` for `"greater"`
+and `(nullLogOdds - 100, nullLogOdds)` for `"less"`: the `logOdds` where
+`KL(FNCH(logOdds) || FNCH(nullLogOdds)) = log(1/alpha)`, with
+`KL = (logOdds - nullLogOdds) * mean - fnchLogPartition(nb, na, logOdds) +
+fnchLogPartition(nb, na, nullLogOdds)`, the FNCH mean of `yb` coming from
+`BiasedUrn::meanFNCHypergeo(nb, na, totalSuccesses, exp(logOdds))`. The KL is
 bounded, so when the target is out of reach (e.g. a degenerate conditional
 distribution, or tiny tables) the solver returns `NULL` and the caller uses
 the trivial e-factor `1`. The e-factor itself is
-`conditionalEValueFixedAlternative` at the solved `logOR`; the former wrapper
+`logLikelihoodRatioFNCH` at the solved `logOdds`; the former wrapper
 `savi2x2UmpStat` is removed and a `"twoSided"` rule (previously the plain
 average of the two sides) is to be decided with the `eType` dispatch of
 `savi2x2CondStat`. `alpha` is the target level of the one-shot test, not a
@@ -259,8 +273,9 @@ design field yet.
 
 Block sizes are observed data, like `ya` and `yb`. `designSavi2x2(na, nb)`
 is unchanged: one positive integer each, the planned sizes, kept in
-`nPlan = c(nBlocks, na, nb)`. `savi2x2Test(ya, yb, na = NULL, nb = NULL,
-designObj = NULL, ...)`: each of `na`, `nb` is `NULL` (the design's planned
+`nPlan` (`list(na, nb)`, Decision 12). `savi2x2TestStatPropDiff(ya, yb, na
+= NULL, nb = NULL, designObj = NULL, ...)` and `savi2x2TestStatLogOdds`
+(same signature): each of `na`, `nb` is `NULL` (the design's planned
 size), one number (broadcast to `nBlocks`) or a vector of length `nBlocks`;
 any other length errors. Sizes are positive integers with `ya[i] <= na[i]`
 and `yb[i] <= nb[i]` per block. Observed sizes may differ from the planned
@@ -270,25 +285,81 @@ Internals always receive full-length vectors and block `i` uses `na[i]`,
 `nb[i]`: the plug-in learners, the pooled projection, the RIPr solver and
 the confidence sequence. The Beta posterior means of `predictiveThetas2x2`
 divide by the cumulative size of blocks `1..i-1`, not `na * (i - 1)`.
-Output: `n = c(na = sum(na), nb = sum(nb), nBlocks)`,
-`posteriorHyperParameters` uses `sum(na)`, `sum(nb)`; the per-block vectors
-are not stored on the result. The logOR conditional e-factor is untouched.
+Output: `n = c(na = sum(na), nb = sum(nb), nBlocks)`, the result's
+`betaParameter` uses `sum(na)`, `sum(nb)`; the per-block vectors
+are not stored on the result. The logOdds conditional e-factor is untouched.
 
-### 10. Confidence sequence for logOR
+### 10. Confidence sequence for logOdds
 
-`conditionalEValueFixedAlternative(ya, yb, na, nb, logOR, nullLogOR = 0,
-log = FALSE)` gains the null: the log e-factor is `ya * (logOR - nullLogOR) -
-fnchLogPartition(logOR) + fnchLogPartition(nullLogOR)`, unchanged at
-`nullLogOR = 0`.
+`logLikelihoodRatioFNCH(ya, yb, na, nb, logOdds, nullLogOdds = 0,
+log = FALSE)` gains the null: the log e-factor is `log(dFNCHypergeo(yb, nb,
+na, ya + yb, exp(logOdds)))` minus the same at `logOdds = nullLogOdds`, unchanged
+at `nullLogOdds = 0`.
 
-`computeConfidenceInterval2x2LogOR(ya, yb, na, nb, priorHyperParameters,
-alpha, precision = 100, logORBound = 40)` inverts the conditional test on
-`precision` equally spaced candidates strictly inside `(-logORBound,
-logORBound)`. Each candidate is the `nullLogOR` of its own e-process, the
+`computeConfidenceInterval2x2LogOdds(ya, yb, na, nb, betaParameter,
+alpha, precision = 100, logOddsBound = 40)` inverts the conditional test on
+`precision` equally spaced candidates strictly inside `(-logOddsBound,
+logOddsBound)`. Each candidate is the `nullLogOdds` of its own e-process, the
 product over blocks of the conditional e-factors. The plug-in alternative
 for block `i` is predictable: `logit(thetaB) - logit(thetaA)` from the Beta
 posterior means of `predictiveThetas2x2` given blocks `1..i-1` (the prior
 means for block 1, so a symmetric prior gives the trivial factor 1 there).
 The same plug-in serves every candidate. `runningIntersection`, runs and the
-returned `block`, `lowerBound`, `upperBound` matrix are as in Decision 4.
-Not yet wired into `savi2x2Test`.
+returned two-column, block-rowname matrix are as in Decision 4.
+Wired into `savi2x2TestStatLogOdds` (Decision 12) via
+`computeEValueVecLogOdds`, the same plug-in cumulated blockwise.
+
+### 11. FNCH conditional e-factor via BiasedUrn
+
+`conditionalEValueFixedAlternative` (Decisions 7, 10) is renamed
+`logLikelihoodRatioFNCH` and computed as a log likelihood ratio of
+`BiasedUrn::dFNCHypergeo` at `logOdds` over `nullLogOdds`, not via
+`fnchLogPartition`; same arguments, same value (checked against the old
+implementation to ~1e-9, floating-point noise). `dFNCHypergeo` is
+near-constant time in block size where `fnchLogPartition`'s log-sum-exp is
+`O(n)`, so this is the faster route for large blocks; `fnchLogPartition`
+itself stays, since `solveUmpLogOdds` still needs it for the KL solve.
+
+### 12. propDiff/logOdds split, and naming cleanup
+
+`priorHyperParameters` is renamed `betaParameter` on the design
+(`constructSaviDesignObj`); the test result's posterior (`constructSaviTestObj`)
+is its own field, `betaPrior` (it is the posterior of the observed blocks
+but also the prior a further block would use), resolving the earlier
+name collision. `logOR`/`LogOR` is renamed `logOdds`/
+`LogOdds` throughout, spelled like `propDiff` rather than abbreviated
+(`solveUmpLogOR` → `solveUmpLogOdds`,
+`computeConfidenceInterval2x2LogOR` → `computeConfidenceInterval2x2LogOdds`,
+`logOR`/`nullLogOR` params → `logOdds`/`nullLogOdds`).
+
+`savi2x2Test` is replaced by two effect-specific functions, both
+`(ya, yb, na = NULL, nb = NULL, designObj = NULL, wantCi = TRUE)` per
+Decision 9: `savi2x2TestStatPropDiff` (Decision 3's numerator/denominator,
+Decision 6's restriction) and `savi2x2TestStatLogOdds` (Decision 7's
+conditional e-factor, cumulated via `computeEValueVecLogOdds`, and
+Decision 10's confidence sequence). Neither does its own restriction or
+type checking yet (`# TODO: THESE ARGS CHECKING WILL BE DONE FINAL STEP`);
+`savi2x2TestStatLogOdds` has no restricted alternative yet (`logOdds` stays
+out of scope per Decision 6).
+
+`savi2x2TestStat` is renamed `logLikelihoodRatioMultiBern`.
+`logEProcess2x2PlugIn` is renamed `computeEValueVecPropDiff` and confirmed
+to return the plain `eValueVec` (length `nBlocks`), not a list.
+
+`designSavi2x2(na, nb, propDiffMin = NULL, logOddsMin = NULL, alpha, power,
+h0, alternative, eType, betaParameter, runningIntersection)`: `eType` is
+`"eBeta"`, `"grow"` or `"eGauss"` (Decision 2); at most one of
+`propDiffMin`, `logOddsMin` is supplied and whichever is set is stored as
+`esMin` (still no `effectMeasure` field — `eType` and which `*Min` is set
+together imply the effect, `"grow"`'s dispatch between the two not yet
+designed). `nPlan` is stored as `list(na, nb)`, not `c(nBlocks, na, nb)`
+(reopens Decision 1): block count is observed per call, not planned, so it
+no longer belongs in `nPlan`; `plot.saviDesign`, which reads `nPlan[1]` as
+`nBlocks`, is not yet updated for this.
+
+`computeConfidenceInterval2x2PropDiff` and `...LogOdds` (Decision 4, 10)
+always return a two-column matrix, `lowerBound`/`upperBound` (`ncol = 2`):
+block is the rowname, not a `"block"` data column, since a block may
+contribute zero, one, or several rows (holes) and `rbind` needs a fixed
+column count throughout. Callers read the block index with
+`rownames(confSetRuns)`, e.g. `rownames(confSetRuns) == nBlocks`.
