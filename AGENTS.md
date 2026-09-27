@@ -117,7 +117,7 @@ runningIntersection)` returns a
   not `NULL`, and errors on other names.
 - `parameter`: a length-one named string summarising the prior, for
   printing.
-- `runningIntersection`: `TRUE` or `FALSE`, default `TRUE` in
+- `runningIntersection`: `TRUE` or `FALSE`, default `FALSE` in
   `constructSaviDesignObj("Two Proportions")`. The test reads it for the
   confidence sequence (Decision 4); `plot()` and `print()` read it as for
   the other tests.
@@ -635,10 +635,24 @@ blocks against `thetaB - thetaA = propDiff` (per-block
 (`lowerBound`, `upperBound`), row `i` from
 `computeConfidenceInterval2x2PropDiff` on blocks `1..i` (the test's thetas
 restricted to the first `i` blocks, which are predictable, so unchanged).
-The design's `runningIntersection` (default `TRUE`) intersects row `i`
+The design's `runningIntersection` (default `FALSE`) intersects row `i`
 with row `i - 1`, so the rows are nested and a fully rejected row is `NA`
 from then on; `FALSE` keeps each row as computed. `confSeq` is then the
 last row and `ciValue = 1 - alpha`; otherwise `wantCi` gives Decision 23's
 interval on all data. Runtime is quadratic in `nBlocks` (about 0.4 ms x
 nBlocks^2: ~7 min at 1000 blocks), hence off by default. Reopens the
 shelved blockwise sequence of Decision 13 on top of Decision 23.
+
+### 25. propDiff interval takes betaParameter and a domain
+
+`computeConfidenceInterval2x2PropDiff(ya, yb, na, nb, betaParameter,
+alpha, domain = c(-1, 1))`: computes the eBeta numerator thetas itself
+with `predictiveThetas2x2` (cheap; replaces Decision 23's `thetaA`,
+`thetaB` arguments) and searches only inside `domain` (kept `1e-9` inside
+`(-1, 1)` for the projection). By convexity the result is the kept set
+intersected with `domain`; a bound still inside at the edge is reported
+as that `domain` edge, the empty set as `NA`. In Decision 24's sequence,
+`runningIntersection = TRUE` passes the previous row as `domain` instead
+of intersecting afterwards, and stops at the first empty row (the rest
+stay `NA`); `FALSE` always uses `c(-1, 1)`. Running-intersection rows
+match the previous code to ~3e-5, `uniroot()`'s default tolerance.

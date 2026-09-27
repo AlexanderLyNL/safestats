@@ -69,26 +69,24 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   result <- constructSaviTestObj("Two Proportions")
 
   # eBeta only. Blockwise sequence (Decision 24): row i is the interval on
-  # blocks 1..i, so the cost is quadratic in nBlocks. The thetas of blocks
-  # 1..i are the first i entries, since block i only uses blocks 1..i-1.
+  # blocks 1..i, so the cost is quadratic in nBlocks.
   if (wantConfidenceSequence && eType == "eBeta") {
     confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
       dimnames = list(NULL, c("lowerBound", "upperBound"))
     )
+    domain <- c(-1, 1)
     for (i in seq_len(nBlocks)) {
       interval <- computeConfidenceInterval2x2PropDiff(
-        ya[1:i], yb[1:i], na[1:i], nb[1:i], thetaA[1:i], thetaB[1:i], alpha
+        ya[1:i], yb[1:i], na[1:i], nb[1:i], betaParameter, alpha, domain
       )
-      # Running intersection: a value that leaves never returns; an empty
-      # (NA) row stays empty from then on.
-      if (runningIntersection && i > 1L) {
-        interval <- c(
-          max(interval[1], confSeqMatrix[i - 1L, 1]),
-          min(interval[2], confSeqMatrix[i - 1L, 2])
-        )
-        if (!anyNA(interval) && interval[1] > interval[2]) interval[] <- NA
-      }
       confSeqMatrix[i, ] <- interval
+      # Running intersection: the next block searches only inside this
+      # interval, so a value that leaves never returns; once empty, the
+      # remaining rows stay NA.
+      if (runningIntersection) {
+        if (anyNA(interval)) break
+        domain <- interval
+      }
     }
     result[["confSeqMatrix"]] <- confSeqMatrix
     result[["confSeq"]] <- confSeqMatrix[nBlocks, ]
@@ -96,7 +94,7 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   } else if (wantCi && eType == "eBeta") {
     # One interval on all blocks (Decision 23).
     result[["confSeq"]] <- computeConfidenceInterval2x2PropDiff(
-      ya, yb, na, nb, thetaA, thetaB, alpha
+      ya, yb, na, nb, betaParameter, alpha
     )
     result[["ciValue"]] <- 1 - alpha
   }
@@ -325,17 +323,25 @@ designSavi2x2 <- function(
 #' Anytime-valid confidence interval for propDiff on all blocks
 #'
 #' Inverts the eBeta test on point nulls `thetaB - thetaA = propDiff`: the
-#' numerator is the test's own predictable `thetaA`, `thetaB` (one per
-#' block, from blocks `1..i-1`), and each block's null `thetaA` is its
+#' numerator is the predictable Beta posterior means `predictiveThetas2x2()`
+#' (block `i` from blocks `1..i-1`), and each block's null `thetaA` is its
 #' projection `solveRIPr2x2PropDiff()` onto that line. The log e-value is
 #' convex in `propDiff`, so the kept set `{propDiff : f < log(1 / alpha)}`
-#' is one interval or empty.
+#' is one interval or empty, and searching only inside `domain` returns its
+#' intersection with `domain`.
 #'
-#' @return Named numeric `c(lowerBound, upperBound)`; `-1` or `1` when that
-#'   edge is still inside, both `NA` when the set is empty.
+#' @param domain `c(lower, upper)` inside `[-1, 1]`, the candidates searched;
+#'   a previous interval gives the running intersection.
+#' @return Named numeric `c(lowerBound, upperBound)`; the `domain` edge when
+#'   that edge is still inside, both `NA` when the set is empty.
 #' @noRd
 computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
-                                                 thetaA, thetaB, alpha) {
+                                                 betaParameter, alpha,
+                                                 domain = c(-1, 1)) {
+  thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
+  thetaA <- thetas[["thetaA"]]
+  thetaB <- thetas[["thetaB"]]
+
   # f(propDiff): log e-value on all blocks against propDiff, minus the
   # threshold log(1 / alpha).
   fPropDiff <- function(propDiff) {
@@ -351,28 +357,30 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
     ) - log(1 / alpha)
   }
 
-  # The projection needs thetaA strictly inside its range, so search just
+  # The projection needs thetaA strictly inside its range, so stay just
   # inside (-1, 1).
   eps <- 1e-9
+  lower <- max(domain[1], -1 + eps)
+  upper <- min(domain[2], 1 - eps)
   minimiser <- stats::optimize(fPropDiff,
-    interval = c(-1 + eps, 1 - eps)
+    interval = c(lower, upper)
   )[["minimum"]]
 
-  # Even the minimiser is rejected: the set is empty.
+  # Even the minimiser is rejected: the set is empty inside the domain.
   if (fPropDiff(minimiser) >= 0) {
     return(c("lowerBound" = NA_real_, "upperBound" = NA_real_))
   }
 
-  # Still inside at the edge: the bound is the parameter limit.
-  lowerBound <- if (fPropDiff(-1 + eps) < 0) {
-    -1
+  # Still inside at the edge: the bound is the domain edge.
+  lowerBound <- if (fPropDiff(lower) < 0) {
+    domain[1]
   } else {
-    stats::uniroot(fPropDiff, lower = -1 + eps, upper = minimiser)[["root"]]
+    stats::uniroot(fPropDiff, lower = lower, upper = minimiser)[["root"]]
   }
-  upperBound <- if (fPropDiff(1 - eps) < 0) {
-    1
+  upperBound <- if (fPropDiff(upper) < 0) {
+    domain[2]
   } else {
-    stats::uniroot(fPropDiff, lower = minimiser, upper = 1 - eps)[["root"]]
+    stats::uniroot(fPropDiff, lower = minimiser, upper = upper)[["root"]]
   }
 
   return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
