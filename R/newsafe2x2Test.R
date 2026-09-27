@@ -5,15 +5,19 @@
 #' `eType = "eBeta"`: the unrestricted numerator of Decision 3 (`twoSided`
 #' only). `eType = "grow"`: the numerator restricted to
 #' `thetaB - thetaA = propDiffMin` (Decision 6), `"greater"` only. Only
-#' eBeta gets a confidence interval (Decision 23), on all blocks.
+#' eBeta gets a confidence interval (Decision 23), on all blocks;
+#' `wantConfidenceSequence = TRUE` adds the blockwise `confSeqMatrix`
+#' (Decision 24).
 #' @noRd
 savi2x2TestStatPropDiff <- function(ya, yb,
-                                    designObj = NULL, wantCi = TRUE) {
+                                    designObj = NULL, wantCi = TRUE,
+                                    wantConfidenceSequence = FALSE) {
   # TODO: THESE ARGS CHECKING WILL BE DONE FINAL STEP
   # grow must have a propDiffMin; eBeta must have none and be twoSided
   propDiffMin <- designObj[["esMin"]]
   alternative <- designObj[["alternative"]]
   betaParameter <- designObj[["betaParameter"]]
+  runningIntersection <- designObj[["runningIntersection"]]
   alpha <- designObj[["alpha"]]
   eType <- designObj[["eType"]]
   na <- designObj[["nPlan"]][["na"]]
@@ -64,8 +68,33 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Compute: confSeq ----
   result <- constructSaviTestObj("Two Proportions")
 
-  # eBeta only, on all blocks (Decision 23).
-  if (wantCi && eType == "eBeta") {
+  # eBeta only. Blockwise sequence (Decision 24): row i is the interval on
+  # blocks 1..i, so the cost is quadratic in nBlocks. The thetas of blocks
+  # 1..i are the first i entries, since block i only uses blocks 1..i-1.
+  if (wantConfidenceSequence && eType == "eBeta") {
+    confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
+      dimnames = list(NULL, c("lowerBound", "upperBound"))
+    )
+    for (i in seq_len(nBlocks)) {
+      interval <- computeConfidenceInterval2x2PropDiff(
+        ya[1:i], yb[1:i], na[1:i], nb[1:i], thetaA[1:i], thetaB[1:i], alpha
+      )
+      # Running intersection: a value that leaves never returns; an empty
+      # (NA) row stays empty from then on.
+      if (runningIntersection && i > 1L) {
+        interval <- c(
+          max(interval[1], confSeqMatrix[i - 1L, 1]),
+          min(interval[2], confSeqMatrix[i - 1L, 2])
+        )
+        if (!anyNA(interval) && interval[1] > interval[2]) interval[] <- NA
+      }
+      confSeqMatrix[i, ] <- interval
+    }
+    result[["confSeqMatrix"]] <- confSeqMatrix
+    result[["confSeq"]] <- confSeqMatrix[nBlocks, ]
+    result[["ciValue"]] <- 1 - alpha
+  } else if (wantCi && eType == "eBeta") {
+    # One interval on all blocks (Decision 23).
     result[["confSeq"]] <- computeConfidenceInterval2x2PropDiff(
       ya, yb, na, nb, thetaA, thetaB, alpha
     )

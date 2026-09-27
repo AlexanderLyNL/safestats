@@ -627,3 +627,18 @@ blocks against `thetaB - thetaA = propDiff` (per-block
 `solveRIPr2x2PropDiff` nulls) minus `log(1 / alpha)`. Returns
 `c(lowerBound, upperBound)`: `-1`/`1` when the edge is still inside, both
 `NA` when empty. `savi2x2TestStatPropDiff` calls it only for eBeta.
+
+### 24. Blockwise confidence sequence for propDiff
+
+`savi2x2TestStatPropDiff(..., wantConfidenceSequence = FALSE)`: when
+`TRUE` and `eType = "eBeta"`, it stores `confSeqMatrix`, `nBlocks x 2`
+(`lowerBound`, `upperBound`), row `i` from
+`computeConfidenceInterval2x2PropDiff` on blocks `1..i` (the test's thetas
+restricted to the first `i` blocks, which are predictable, so unchanged).
+The design's `runningIntersection` (default `TRUE`) intersects row `i`
+with row `i - 1`, so the rows are nested and a fully rejected row is `NA`
+from then on; `FALSE` keeps each row as computed. `confSeq` is then the
+last row and `ciValue = 1 - alpha`; otherwise `wantCi` gives Decision 23's
+interval on all data. Runtime is quadratic in `nBlocks` (about 0.4 ms x
+nBlocks^2: ~7 min at 1000 blocks), hence off by default. Reopens the
+shelved blockwise sequence of Decision 13 on top of Decision 23.
