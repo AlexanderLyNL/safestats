@@ -328,8 +328,8 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
   thetaA <- thetas[["thetaA"]]
   thetaB <- thetas[["thetaB"]]
 
-  # f(propDiff): log e-value on all blocks against propDiff, minus the
-  # threshold log(1 / alpha).
+  # product of the seq-RIPr e-variable against the H0: thetaB = thetaA + propDiff
+  # f: find zero points against 1/alpha
   fPropDiff <- function(propDiff) {
     nullThetaA <- mapply(solveRIPr2x2PropDiff,
       thetaA = thetaA, thetaB = thetaB, na = na, nb = nb,
@@ -352,9 +352,10 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
     interval = c(lower, upper)
   )[["minimum"]]
 
-  # Even the minimiser is rejected: the set is empty inside the domain.
+  # min > 1 / alpha, no confidence interval found
   if (fPropDiff(minimiser) >= 0) {
-    return(c("lowerBound" = NA_real_, "upperBound" = NA_real_))
+    warning("No confidence interval is found!")
+    return(c("lowerBound" = -1, "upperBound" = 1))
   }
 
   # Still inside at the edge: the bound is the domain edge.
