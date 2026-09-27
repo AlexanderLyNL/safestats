@@ -791,3 +791,16 @@ in `nBlocks`, hence off by default. `plot.saviTest` labels the
 confidence-sequence axis `logOdds` when the design's `eType` is not
 `"eBeta"`. The linear-time grid cumulation (Decision 26's route, reusing
 the eGauss `logPGrid`) is the follow-up.
+
+### 31. Shared e-process notation in both test functions
+
+`savi2x2TestStatPropDiff` and `savi2x2TestStatLogOdds` name their
+e-process the same way: `logLikelihoodNull` and
+`logLikelihoodAlternative` are the cumulative log likelihoods of blocks
+`1..i` under the null (denominator: the pooled binomial for `propDiff`,
+the hypergeometric given each block's total for `logOdds`) and under the
+alternative (numerator: the predictable thetas, the fixed `logOddsMin`,
+or the eGauss grid mixture), and `logEValueVec` is their difference. The
+former `logPCum` (Decisions 18, 27, 28, 30) is
+`logLikelihoodAlternative`, so the logOdds interval receives
+`logLikelihoodAlternative[i]`. Same arithmetic, same output.

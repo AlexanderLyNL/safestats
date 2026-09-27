@@ -40,6 +40,8 @@ savi2x2TestStatPropDiff <- function(ya, yb,
     stop("ya, yb must be integers in 0..na, 0..nb; na, nb positive integers")
   }
 
+  result <- constructSaviTestObj("Two Proportions")
+
   # Compute: eValueVec ----
   # Numerator: predictable thetas from blocks 1..i-1 only.
   # eBeta (twoSided): independent Beta posterior means.
@@ -58,17 +60,20 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
   thetaNull <- (na * thetaA + nb * thetaB) / (na + nb)
 
-  # Cumulative log likelihood ratio; dbinom() handles theta at 0 or 1.
-  logEValueVec <- cumsum(
-    stats::dbinom(ya, na, thetaA, log = TRUE) +
-      stats::dbinom(yb, nb, thetaB, log = TRUE) -
-      stats::dbinom(ya, na, thetaNull, log = TRUE) -
+  # Cumulative log likelihood of blocks 1..i under the null (denominator)
+  # and under the alternative (numerator); dbinom() handles theta at 0 or 1.
+  logLikelihoodNull <- cumsum(
+    stats::dbinom(ya, na, thetaNull, log = TRUE) +
       stats::dbinom(yb, nb, thetaNull, log = TRUE)
   )
+  logLikelihoodAlternative <- cumsum(
+    stats::dbinom(ya, na, thetaA, log = TRUE) +
+      stats::dbinom(yb, nb, thetaB, log = TRUE)
+  )
+  logEValueVec <- logLikelihoodAlternative - logLikelihoodNull
+
 
   # Compute: confSeq ----
-  result <- constructSaviTestObj("Two Proportions")
-
   # confidence interval or sequences only in eBeta
   # use 1 - alpha unless user specified
   ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
@@ -159,10 +164,11 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   result <- constructSaviTestObj("Two Proportions")
 
   # Compute: eValueVec ----
-  # Per-block null log likelihood (conditional on the total), then the
-  # cumulative log likelihood of blocks 1..i under the alternative.
-  logPNull <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
-  logPCum <- switch(eType,
+  # Cumulative log likelihood of blocks 1..i under the null (denominator,
+  # hypergeometric given each block's total) and under the alternative
+  # (numerator).
+  logLikelihoodNull <- cumsum(stats::dhyper(yb, nb, na, ya + yb, log = TRUE))
+  logLikelihoodAlternative <- switch(eType,
     # grow: the fixed alternative logOddsMin (Decision 15).
     grow = cumsum(logLikelihoodFNCH(ya, yb, na, nb, logOddsMin)),
     # eGauss: N(0, 1) prior on a fixed logOdds grid, twoSided (Decision 18).
@@ -193,7 +199,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
       logOddsUmp <- solveUmpLogOdds(na[1], nb[1], ya[1] + yb[1], alpha,
                                     "greater")
       logPUmp <- if (is.null(logOddsUmp)) {
-        logPNull[1]
+        logLikelihoodNull[1]
       } else {
         logLikelihoodFNCH(ya[1], yb[1], na[1], nb[1], logOddsUmp)
       }
@@ -201,7 +207,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
     },
     stop("eType ", eType, " is not implemented for logOdds")
   )
-  logEValueVec <- logPCum - cumsum(logPNull)
+  logEValueVec <- logLikelihoodAlternative - logLikelihoodNull
 
   # Compute: confSeq ----
   # grow: no confidence interval until its construction is agreed.
@@ -211,9 +217,10 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   result[["ciValue"]] <- ciValue
   if (wantConfidenceSequence && eType == "eGauss") {
     # Row i inverts the e-process on blocks 1..i: every numerator factor is
-    # fixed given its block's total or predictable, so logPCum[i] is the
-    # numerator at block i just as logPCum[nBlocks] is at the end
-    # (Decision 30). Recomputed from scratch per block, quadratic in nBlocks.
+    # fixed given its block's total or predictable, so
+    # logLikelihoodAlternative[i] is the numerator at block i just as its
+    # last element is at the end (Decision 30). Recomputed from scratch per
+    # block, quadratic in nBlocks.
     confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
       dimnames = list(NULL, c("lowerBound", "upperBound"))
     )
@@ -222,7 +229,8 @@ savi2x2TestStatLogOdds <- function(ya, yb,
       # The empty set is reported with a warning; here it is an NA row.
       row <- tryCatch(
         computeConfidenceInterval2x2LogOdds(
-          ya[1:i], yb[1:i], na[1:i], nb[1:i], logPCum[i], 1 - ciValue,
+          ya[1:i], yb[1:i], na[1:i], nb[1:i], logLikelihoodAlternative[i],
+          1 - ciValue,
           domain = domain
         ),
         warning = function(w) c("lowerBound" = NA_real_, "upperBound" = NA_real_)
@@ -239,7 +247,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
     result[["confSeq"]] <- confSeqMatrix[nBlocks, ]
   } else if (wantCi && eType == "eGauss") {
     result[["confSeq"]] <- computeConfidenceInterval2x2LogOdds(
-      ya, yb, na, nb, logPCum[nBlocks], 1 - ciValue
+      ya, yb, na, nb, logLikelihoodAlternative[nBlocks], 1 - ciValue
     )
   }
 
@@ -532,7 +540,8 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
 #' `domain` (convexity).
 #'
 #' @param logPTotal The numerator's cumulative log likelihood after the
-#'   last block, e.g. `logPCum[nBlocks]` of `savi2x2TestStatLogOdds()`.
+#'   last block, `logLikelihoodAlternative[nBlocks]` of
+#'   `savi2x2TestStatLogOdds()`.
 #' @param domain `c(lower, upper)`, the candidates searched; a previous
 #'   interval gives the running intersection.
 #' @return Named numeric `c(lowerBound, upperBound)`; the `domain` edge
