@@ -582,3 +582,15 @@ confidence interval is Decision 17 unchanged, with the numerator total
 Reopens Decision 17 for grow: `savi2x2TestStatLogOdds(eType = "grow")`
 sets no `confSeq` or `ciValue`, whatever `wantCi`; its construction is
 still under discussion. eGauss keeps Decision 17's interval (Decision 18).
+
+### 20. propDiff e-process inline in the test function
+
+`savi2x2TestStatPropDiff` computes its e-process in three inline steps:
+the predictable numerator thetas (`predictiveThetas2x2` for `"eBeta"`,
+twoSided; `predictiveThetas2x2PropDiff` at `propDiffMin` for `"grow"`,
+greater only, twoSided later), the pooled projection
+`(na * thetaA + nb * thetaB) / (na + nb)` as the null, and
+`cumsum` of the binomial log likelihood ratio via `stats::dbinom(log =
+TRUE)`. `logLikelihoodRatioMultiBern` and `computeEValueVecPropDiff`
+(Decisions 4, 6, 12) are removed; `computeConfidenceInterval2x2PropDiff`
+sums the same `dbinom` terms inline. Output unchanged to ~1e-15.

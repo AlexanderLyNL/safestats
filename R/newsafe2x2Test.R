@@ -25,12 +25,29 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   if (length(nb) == 1L) nb <- rep(nb, nBlocks)
 
   # Compute: eValueVec ----
-  logEValueVec <- switch(eType,
-    "eBeta" = computeEValueVecPropDiff(ya, yb, na, nb, betaParameter),
-    "grow" = computeEValueVecPropDiff(ya, yb, na, nb, betaParameter,
+  # Numerator: predictable thetas from blocks 1..i-1 only.
+  # eBeta (twoSided): independent Beta posterior means.
+  # grow (greater only for now): learnt on the curve thetaB - thetaA =
+  # propDiffMin. grow + twoSided: TODO later.
+  thetas <- switch(eType,
+    "eBeta" = predictiveThetas2x2(ya, yb, na, nb, betaParameter),
+    "grow" = predictiveThetas2x2PropDiff(ya, yb, na, nb, betaParameter,
       propDiff = propDiffMin
     ),
     stop("eType ", eType, " is not implemented for propDiff")
+  )
+  thetaA <- thetas[["thetaA"]]
+  thetaB <- thetas[["thetaB"]]
+
+  # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
+  thetaNull <- (na * thetaA + nb * thetaB) / (na + nb)
+
+  # Cumulative log likelihood ratio; dbinom() handles theta at 0 or 1.
+  logEValueVec <- cumsum(
+    stats::dbinom(ya, na, thetaA, log = TRUE) +
+      stats::dbinom(yb, nb, thetaB, log = TRUE) -
+      stats::dbinom(ya, na, thetaNull, log = TRUE) -
+      stats::dbinom(yb, nb, thetaNull, log = TRUE)
   )
 
   # Compute: confSeq ----
@@ -300,14 +317,12 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
       )
     }, numeric(1))
 
-    logE <- logLikelihoodRatioMultiBern(
-      ya = ya, yb = yb, na = na, nb = nb,
-      numeratorThetaA = thetas[["thetaA"]],
-      numeratorThetaB = thetas[["thetaB"]],
-      denominatorThetaA = nullThetaA, denominatorThetaB = nullThetaA + delta,
-      log = TRUE
+    sum(
+      stats::dbinom(ya, na, thetas[["thetaA"]], log = TRUE) +
+        stats::dbinom(yb, nb, thetas[["thetaB"]], log = TRUE) -
+        stats::dbinom(ya, na, nullThetaA, log = TRUE) -
+        stats::dbinom(yb, nb, nullThetaA + delta, log = TRUE)
     )
-    logE[length(ya)]
   }
 
   # f is convex, so its minimiser splits the kept set into one root on each
@@ -340,43 +355,6 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
 # Helpers ----
 
 ## propDiff ----
-# TODO: check if this works for ya yb na nb of vector at the same length!
-logLikelihoodRatioMultiBern <- function(ya, yb, na, nb,
-                                        numeratorThetaA, numeratorThetaB,
-                                        denominatorThetaA, denominatorThetaB,
-                                        log = FALSE, ...) {
-  successesA <- ya * (log(numeratorThetaA) - log(denominatorThetaA))
-  successesB <- yb * (log(numeratorThetaB) - log(denominatorThetaB))
-
-  failuresA <- (na - ya) * (log1p(-numeratorThetaA) - log1p(-denominatorThetaA))
-  failuresB <- (nb - yb) * (log1p(-numeratorThetaB) - log1p(-denominatorThetaB))
-
-  logEValueVec <- cumsum(successesA + failuresA + successesB + failuresB)
-
-  if (log) logEValueVec else exp(logEValueVec)
-}
-
-# Cumulative log e-value vector against thetaA = thetaB; length nBlocks.
-computeEValueVecPropDiff <- function(ya, yb, na, nb, betaParameter,
-                                     propDiff = NULL) {
-  thetas <- if (is.null(propDiff)) {
-    predictiveThetas2x2(ya, yb, na, nb, betaParameter)
-  } else {
-    predictiveThetas2x2PropDiff(ya, yb, na, nb, betaParameter,
-      propDiff = propDiff
-    )
-  }
-  thetaA <- thetas[["thetaA"]]
-  thetaB <- thetas[["thetaB"]]
-  thetaNull <- (na * thetaA + nb * thetaB) / (na + nb)
-
-  logLikelihoodRatioMultiBern(
-    ya = ya, yb = yb, na = na, nb = nb,
-    numeratorThetaA = thetaA, numeratorThetaB = thetaB,
-    denominatorThetaA = thetaNull, denominatorThetaB = thetaNull,
-    log = TRUE
-  )
-}
 # Predictable plug-in for the numerator, for block i given the counts of
 # blocks 1 to i - 1 only. predictiveThetas2x2(): the independent Beta
 # posterior means of thetaA and thetaB. predictiveThetas2x2PropDiff(): the
