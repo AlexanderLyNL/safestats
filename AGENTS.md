@@ -594,3 +594,15 @@ greater only, twoSided later), the pooled projection
 TRUE)`. `logLikelihoodRatioMultiBern` and `computeEValueVecPropDiff`
 (Decisions 4, 6, 12) are removed; `computeConfidenceInterval2x2PropDiff`
 sums the same `dbinom` terms inline. Output unchanged to ~1e-15.
+
+### 21. propDiff confidence interval inline, eBeta only
+
+Replaces Decision 14's function: `computeConfidenceInterval2x2PropDiff` is
+removed and `savi2x2TestStatPropDiff` builds the interval inline, as
+`savi2x2TestStatLogOdds` does, only for `eType = "eBeta"` (grow gets no
+`confSeq` or `ciValue`). `fPropDiff(thetaA, thetaB, propDiff, alpha)` is
+the log e-value on all blocks against `thetaB - thetaA = propDiff`, minus
+`log(1 / alpha)`: the test's own eBeta numerator thetas, and per block the
+null `thetaA` from `solveRIPr2x2PropDiff`. One interval for the last block
+(all data): `optimize()` on `(-1, 1)`, `uniroot()` on each side, `-1`/`1`
+when the edge is still inside, `NA` when empty. Output unchanged to ~1e-15.

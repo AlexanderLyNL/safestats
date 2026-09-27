@@ -4,9 +4,8 @@
 #'
 #' `eType = "eBeta"`: the unrestricted numerator of Decision 3 (`twoSided`
 #' only). `eType = "grow"`: the numerator restricted to
-#' `thetaB - thetaA = propDiffMin` (Decision 6), `"greater"` only. The
-#' confidence interval (Decision 14) always uses the
-#' unrestricted numerator.
+#' `thetaB - thetaA = propDiffMin` (Decision 6), `"greater"` only. Only
+#' eBeta gets a confidence interval (Decision 21), on all blocks.
 #' @noRd
 savi2x2TestStatPropDiff <- function(ya, yb,
                                     designObj = NULL, wantCi = TRUE) {
@@ -53,13 +52,56 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Compute: confSeq ----
   result <- constructSaviTestObj("Two Proportions")
 
-  if (wantCi) {
-    # One interval on all observed blocks (Decision 14): no blockwise
-    # sequence, hence no confSeqMatrix for propDiff.
-    result[["confSeq"]] <- computeConfidenceInterval2x2PropDiff(
-      ya = ya, yb = yb, na = na, nb = nb,
-      betaParameter = betaParameter, alpha = alpha
+  # eBeta only, on all blocks (Decision 21). Against the point null
+  # thetaB - thetaA = propDiff the numerator is unchanged and each block's
+  # null thetaA is its projection onto that line. f is convex in propDiff,
+  # so the kept set {propDiff : f < log(1 / alpha)} is one interval or empty.
+  fPropDiff <- function(thetaA, thetaB, propDiff, alpha) {
+    nullThetaA <- mapply(solveRIPr2x2PropDiff,
+      thetaA = thetaA, thetaB = thetaB, na = na, nb = nb,
+      MoreArgs = list(propDiff = propDiff)
     )
+    sum(
+      stats::dbinom(ya, na, thetaA, log = TRUE) +
+        stats::dbinom(yb, nb, thetaB, log = TRUE) -
+        stats::dbinom(ya, na, nullThetaA, log = TRUE) -
+        stats::dbinom(yb, nb, nullThetaA + propDiff, log = TRUE)
+    ) - log(1 / alpha)
+  }
+
+  if (wantCi && eType == "eBeta") {
+    eps <- 1e-9
+    # optimize() and uniroot() vary the one argument left unnamed, propDiff.
+    minimiser <- stats::optimize(fPropDiff,
+      interval = c(-1 + eps, 1 - eps),
+      thetaA = thetaA, thetaB = thetaB, alpha = alpha
+    )[["minimum"]]
+
+    if (fPropDiff(thetaA, thetaB, minimiser, alpha) >= 0) {
+      # Even the minimiser is rejected: the set is empty.
+      confSeq <- c("lowerBound" = NA_real_, "upperBound" = NA_real_)
+    } else {
+      # Still inside at the edge: the bound is the parameter limit.
+      lowerBound <- if (fPropDiff(thetaA, thetaB, -1 + eps, alpha) < 0) {
+        -1
+      } else {
+        stats::uniroot(fPropDiff,
+          lower = -1 + eps, upper = minimiser,
+          thetaA = thetaA, thetaB = thetaB, alpha = alpha
+        )[["root"]]
+      }
+      upperBound <- if (fPropDiff(thetaA, thetaB, 1 - eps, alpha) < 0) {
+        1
+      } else {
+        stats::uniroot(fPropDiff,
+          lower = minimiser, upper = 1 - eps,
+          thetaA = thetaA, thetaB = thetaB, alpha = alpha
+        )[["root"]]
+      }
+      confSeq <- c("lowerBound" = lowerBound, "upperBound" = upperBound)
+    }
+
+    result[["confSeq"]] <- confSeq
     result[["ciValue"]] <- 1 - alpha
   }
 
@@ -268,88 +310,6 @@ designSavi2x2 <- function(
   result[["timeStamp"]] <- Sys.time()
 
   return(result)
-}
-
-
-# Confidence Interval ----
-
-#' Anytime-valid confidence interval for the proportion difference
-#'
-#' Inverts the test on all observed blocks by root-finding. A candidate
-#' `delta` for `thetaB - thetaA` is kept when the cumulative log e-process
-#' against the point null `thetaB - thetaA = delta`,
-#'
-#'   f(delta) = sum_i log p(ya_i, yb_i | thetaA_i, thetaB_i)
-#'                    - log p(ya_i, yb_i | thetaA_i*(delta), thetaA_i*(delta) + delta),
-#'
-#' is below `log(1 / alpha)`. The numerator thetas are the predictive Beta
-#' posterior means from blocks `1..i-1` (`predictiveThetas2x2()`) and do not
-#' depend on `delta`; the denominator theta is the reverse information
-#' projection `solveRIPr2x2PropDiff()`, so each block's term is convex in
-#' `delta` and `f` has a single minimum. The kept set is therefore one
-#' interval or empty inside `(-1, 1)`: the minimiser is located with
-#' `stats::optimize()` and each bound with one `stats::uniroot()` call on
-#' either side of it.
-#'
-#' @param ya,yb integer vectors, the successes in group A and group B in each
-#'   block.
-#' @param na,nb integer vectors of length `length(ya)`, the block sizes.
-#' @param betaParameter list with `betaA1`, `betaA2`, `betaB1`, `betaB2`.
-#' @param alpha numeric in (0, 1); the interval has coverage `1 - alpha`.
-#'
-#' @return A named numeric of length 2, `lowerBound` and `upperBound`, both
-#'   `NA` when every candidate is rejected.
-#' @noRd
-computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
-                                                 betaParameter,
-                                                 alpha) {
-  thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
-  threshold <- log(1 / alpha)
-  eps <- 1e-9
-
-  # f(delta): cumulative log e-process on all blocks against the null
-  # thetaB - thetaA = delta, with the fixed eBeta numerator.
-  logEProcessAtDelta <- function(delta) {
-    nullThetaA <- vapply(seq_along(ya), function(j) {
-      solveRIPr2x2PropDiff(
-        thetaA = thetas[["thetaA"]][j], thetaB = thetas[["thetaB"]][j],
-        na = na[j], nb = nb[j], propDiff = delta
-      )
-    }, numeric(1))
-
-    sum(
-      stats::dbinom(ya, na, thetas[["thetaA"]], log = TRUE) +
-        stats::dbinom(yb, nb, thetas[["thetaB"]], log = TRUE) -
-        stats::dbinom(ya, na, nullThetaA, log = TRUE) -
-        stats::dbinom(yb, nb, nullThetaA + delta, log = TRUE)
-    )
-  }
-
-  # f is convex, so its minimiser splits the kept set into one root on each
-  # side; if even the minimum is above the threshold the set is empty.
-  minimiser <- stats::optimize(logEProcessAtDelta,
-    interval = c(-1 + eps, 1 - eps)
-  )[["minimum"]]
-
-  if (logEProcessAtDelta(minimiser) >= threshold) {
-    return(c("lowerBound" = NA_real_, "upperBound" = NA_real_))
-  }
-
-  excess <- function(delta) logEProcessAtDelta(delta) - threshold
-
-  lowerBound <- if (excess(-1 + eps) < 0) {
-    -1
-  } else {
-    stats::uniroot(excess, lower = -1 + eps, upper = minimiser)[["root"]]
-  }
-
-  upperBound <- if (excess(1 - eps) < 0) {
-    1
-  } else {
-    stats::uniroot(excess, lower = minimiser, upper = 1 - eps)[["root"]]
-  }
-
-  return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
 }
 
 # Helpers ----
