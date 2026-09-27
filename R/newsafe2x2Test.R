@@ -691,3 +691,24 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
     tol = 1e-10
   )[["root"]]
 }
+
+# Sampling functions for design ----
+
+#' Simulate stopping times of the propDiff grow test
+#'
+#' Decision 29. `propDiffMin` (`> 0`, `"greater"`) is both the grow plug-in
+#' and the data-generating effect: data lie on `thetaB = thetaA +
+#' propDiffMin` at `nTheta` baselines `thetaA`, and `nPlan` is the worst
+#' `power` quantile of the stopping time over those baselines.
+#'
+#' @return A list: `thetaA`, `thetaB`, `stoppingTimes` (`nTheta x nSim`,
+#'   `Inf` when a path never crosses `1 / alpha`), `nPlan`, `worstCaseIndex`.
+#' @noRd
+sampleStoppingTimesSavi2x2 <- function(
+  propDiffMin, power, na, nb, alpha = 0.05,
+  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, maxBlocks = 1e4L,
+  seed = NULL
+) {
+  # TODO: baseline grid, per-path block loop, worst-case quantile
+  stop("sampleStoppingTimesSavi2x2 is not implemented yet.")
+}

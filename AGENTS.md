@@ -742,3 +742,23 @@ is fixed given its block's total or predictable, so
 1 - ciValue)` inverts the new numerator directly, and the kept set is still
 one interval. The inversion level is `1 - ciValue`, the test's `ciValue`
 argument (default `1 - alpha`), for eGauss.
+
+### 29. Stopping-time simulation for propDiff grow (stub)
+
+`sampleStoppingTimesSavi2x2(propDiffMin, power, na, nb, alpha = 0.05,
+betaParameter = NULL, nTheta = 8L, nSim = 1e3L, maxBlocks = 1e4L, seed =
+NULL)`, under `# Sampling functions for design ----`. Plans the grow test on
+`propDiff`, `"greater"` only: `propDiffMin` is both the numerator plug-in
+and the data-generating effect, as in the t-test design and `cond`. Data
+lie on the curve `thetaB = thetaA + propDiffMin` at `nTheta` baselines
+`thetaA = rho * (1 - propDiffMin)`, `rho` equally spaced strictly inside
+`(0, 1)`. Per baseline, `nSim` paths of `maxBlocks` blocks, `ya ~
+Binom(na, thetaA)`, `yb ~ Binom(nb, thetaB)`; each path runs the same
+e-process as `savi2x2TestStatPropDiff(eType = "grow")` and stops at the
+first block with `E >= 1 / alpha`, `Inf` when none. One standalone
+per-path block loop, no chunking. Returns a list: `thetaA`, `thetaB`
+(length `nTheta`), `stoppingTimes` (`nTheta x nSim`), `nPlan` the
+`ceiling` of the largest `power` quantile over the baselines (the worst
+case), `worstCaseIndex`. No bootstrap SE and no eBeta planning yet; the
+design does not call it yet. Body is a stub until the contract is
+confirmed.
