@@ -363,3 +363,50 @@ block is the rowname, not a `"block"` data column, since a block may
 contribute zero, one, or several rows (holes) and `rbind` needs a fixed
 column count throughout. Callers read the block index with
 `rownames(confSetRuns)`, e.g. `rownames(confSetRuns) == nBlocks`.
+
+### 13. Root-finding confidence sequence for propDiff
+
+`computeConfidenceInterval2x2PropDiff(ya, yb, na, nb, betaParameter, alpha,
+runningIntersection = TRUE)` replaces Decision 4's grid for `propDiff`
+(`computeConfidenceInterval2x2LogOdds`, Decision 10, is untouched and stays
+grid-based): no `precision` argument, no candidate grid. The eBeta
+numerator (`predictiveThetas2x2`) does not depend on the candidate
+`propDiff`, so for data through block `i` the cumulative log e-process, as
+a function of the candidate `delta`,
+
+    f_i(delta) := cumsum(computeEValueVecPropDiff(ya[1:i], yb[1:i], na[1:i],
+      nb[1:i], betaParameter, propDiff = delta))[i]
+
+is a sum over `j = 1..i` of the KL-projection terms of
+`solveRIPr2x2PropDiff()`, each convex in `delta`; `f_i` is therefore convex
+with one minimum. Checked numerically across balanced, extreme and
+near-degenerate tables: `f_i` always has exactly one sign change in its
+derivative, confirming this. Consequently `{delta : f_i(delta) <
+log(1 / alpha)}` is always a single interval or empty inside `(-1, 1)` —
+the multi-run ("holes") case of Decisions 4 and 12 cannot arise for this
+numerator and is dropped for `propDiff` only.
+
+Per block `i`: try a cheap interior guess first, the posterior mean of
+`thetaB - thetaA` given blocks `1..i` (unlike the numerator's `thetas`,
+which holds out block `i`); only if `f_i` there is `>= log(1 / alpha)` does
+it fall back to locating the minimiser with `stats::optimize()` on
+`(-1 + eps, 1 - eps)`. If `f_i` at the minimiser is still `>= log(1 /
+alpha)` the block's raw interval is empty; otherwise find the lower and
+upper bound with `stats::uniroot()` bracketed on either side of it (or
+`-1`/`1` directly when `f_i` at that edge is already below the threshold).
+No warm-starting or bracket reuse across blocks — simplicity over speed;
+this recomputes the cumulative e-process from scratch at every block, so
+runtime is quadratic in `nBlocks` (a few minutes at `nBlocks = 1000` in
+`~/Downloads/local-run.R`), left as-is for now.
+
+`runningIntersection = TRUE` (default): block `i`'s interval is the
+intersection of its raw interval with block `i - 1`'s returned interval, so
+a value that leaves the set never returns and the sequence stays nested,
+matching Decision 4's semantics without per-candidate state. `FALSE`: each
+block's interval is its raw root-finding result on the data seen so far,
+independent of other blocks. Output shape is unchanged from Decision 12: a
+two-column matrix, `lowerBound`/`upperBound`, block as the rowname, at most
+one row per block (never several, per the argument above), absent for a
+fully rejected block. `savi2x2TestStatPropDiff`'s wiring (hull into
+`confSeqMatrix`, exact union as `confSeq` for the last block) needs no
+change, since the hull of a single row is that row.

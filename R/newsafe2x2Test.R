@@ -214,63 +214,136 @@ designSavi2x2 <- function(
 # Confidence Interval ----
 
 #' Anytime-valid confidence sequence for the proportion difference
+#'
+#' Inverts the test by root-finding rather than a grid. For data through
+#' block `i`, the eBeta numerator (`predictiveThetas2x2()`) does not depend
+#' on the candidate `propDiff`, so the cumulative log e-process against the
+#' candidate null `thetaB - thetaA = delta`,
+#' `f_i(delta) := cumsum(computeEValueVecPropDiff(..., propDiff = delta))[i]`,
+#' is a sum over blocks of `solveRIPr2x2PropDiff()`'s KL-projection terms,
+#' each convex in `delta`. `f_i` is therefore convex with a single minimum,
+#' so `{delta : f_i(delta) < log(1 / alpha)}` is always a single interval or
+#' empty inside `(-1, 1)`, never several runs: the minimiser is located with
+#' a cheap interior guess (falling back to `stats::optimize()` only if the
+#' guess misses the set) and each bound, if any, with one `stats::uniroot()`
+#' call on either side of it.
+#'
+#' With `runningIntersection = TRUE` block `i`'s interval is intersected
+#' with block `i - 1`'s, so a value that leaves the set never returns and
+#' the sequence is nested over blocks; with `FALSE` each block's interval is
+#' its raw root-finding result on the data seen so far.
+#'
+#' @param ya,yb integer vectors, the successes in group A and group B in each
+#'   block.
+#' @param na,nb integer vectors of length `length(ya)`, the block sizes.
+#' @param betaParameter list with `betaA1`, `betaA2`, `betaB1`, `betaB2`.
+#' @param alpha numeric in (0, 1); the sequence has coverage `1 - alpha`.
+#' @param runningIntersection logical, see above.
+#'
+#' @return A two-column matrix, `lowerBound` and `upperBound` (`ncol = 2`):
+#'   block is the rowname, not a data column. At most one row per block, as
+#'   for the z-test; a block whose interval is empty has no row.
 #' @noRd
 computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
                                                  betaParameter,
-                                                 alpha, precision = 100,
+                                                 alpha,
                                                  runningIntersection = TRUE) {
   nBlocks <- length(ya)
   thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
+  threshold <- log(1 / alpha)
+  eps <- 1e-9
 
-  propDiffGrid <- seq(-1, 1, length.out = precision + 2)[-c(1, precision + 2)]
-  logEValues <- numeric(precision)
-  inSet <- rep(TRUE, precision)
+  # f_i(delta): cumulative log e-process against thetaB - thetaA = delta,
+  # using the fixed eBeta numerator and the data through block i only.
+  logEProcessAtDelta <- function(delta, i) {
+    blocks <- seq_len(i)
+    nullThetaA <- vapply(blocks, function(j) {
+      solveRIPr2x2PropDiff(
+        thetaA = thetas[["thetaA"]][j], thetaB = thetas[["thetaB"]][j],
+        na = na[j], nb = nb[j], propDiff = delta
+      )
+    }, numeric(1))
+
+    logE <- logLikelihoodRatioMultiBern(
+      ya = ya[blocks], yb = yb[blocks], na = na[blocks], nb = nb[blocks],
+      numeratorThetaA = thetas[["thetaA"]][blocks],
+      numeratorThetaB = thetas[["thetaB"]][blocks],
+      denominatorThetaA = nullThetaA, denominatorThetaB = nullThetaA + delta,
+      log = TRUE
+    )
+    logE[i]
+  }
 
   # ncol = 2: only lowerBound, upperBound are data columns. Block is the
-  # rowname, since a block may contribute zero, one or several rows.
+  # rowname, since a block may contribute zero or one row.
   confSeqMatrix <- matrix(numeric(0),
     ncol = 2,
     dimnames = list(NULL, c("lowerBound", "upperBound"))
   )
 
+  prevLower <- -1
+  prevUpper <- 1
+
+  # A cheap interior guess for each block: the posterior mean of
+  # thetaB - thetaA given blocks 1..i (unlike `thetas`, which holds out
+  # block i). f is convex, so any point where it is below the threshold lies
+  # strictly between the two roots; this avoids an optimize() search at
+  # every block, falling back to one only if the guess misses the set.
+  posteriorThetaA <- (betaParameter[["betaA1"]] + cumsum(ya)) /
+    (betaParameter[["betaA1"]] + betaParameter[["betaA2"]] + cumsum(na))
+  posteriorThetaB <- (betaParameter[["betaB1"]] + cumsum(yb)) /
+    (betaParameter[["betaB1"]] + betaParameter[["betaB2"]] + cumsum(nb))
+  interiorGuess <- pmin(pmax(posteriorThetaB - posteriorThetaA, -1 + eps), 1 - eps)
+
   for (i in seq_len(nBlocks)) {
-    # Under the running intersection a rejected candidate never returns, so
-    # its e-process is not advanced; otherwise every candidate is followed.
-    activeCandidates <- if (runningIntersection) which(inSet) else seq_len(precision)
+    f <- function(delta) logEProcessAtDelta(delta, i)
 
-    for (j in activeCandidates) {
-      propDiff <- propDiffGrid[j]
-      nullThetaA <- solveRIPr2x2PropDiff(
-        thetaA = thetas[["thetaA"]][i], thetaB = thetas[["thetaB"]][i],
-        na = na[i], nb = nb[i], propDiff = propDiff
-      )
-
-      logEValues[j] <- logEValues[j] + logLikelihoodRatioMultiBern(
-        ya = ya[i], yb = yb[i], na = na[i], nb = nb[i],
-        numeratorThetaA = thetas[["thetaA"]][i],
-        numeratorThetaB = thetas[["thetaB"]][i],
-        denominatorThetaA = nullThetaA,
-        denominatorThetaB = nullThetaA + propDiff,
-        log = TRUE
-      )
+    minimiser <- interiorGuess[i]
+    minimum <- f(minimiser)
+    if (minimum >= threshold) {
+      minimiser <- stats::optimize(f, interval = c(-1 + eps, 1 - eps))[["minimum"]]
+      minimum <- f(minimiser)
     }
 
-    notRejected <- logEValues < log(1 / alpha)
-    inSet <- if (runningIntersection) inSet & notRejected else notRejected
+    if (minimum >= threshold) {
+      rawLower <- NA_real_
+      rawUpper <- NA_real_
+    } else {
+      rawLower <- if (f(-1 + eps) < threshold) {
+        -1
+      } else {
+        stats::uniroot(function(delta) f(delta) - threshold,
+          lower = -1 + eps, upper = minimiser
+        )[["root"]]
+      }
 
-    # Split the non-rejected candidates into runs of neighbours on the grid;
-    # each run is one interval of the union.
-    runs <- rle(inSet)
-    runEnds <- cumsum(runs[["lengths"]])[runs[["values"]]]
-    runStarts <- runEnds - runs[["lengths"]][runs[["values"]]] + 1
+      rawUpper <- if (f(1 - eps) < threshold) {
+        1
+      } else {
+        stats::uniroot(function(delta) f(delta) - threshold,
+          lower = minimiser, upper = 1 - eps
+        )[["root"]]
+      }
+    }
 
-    newRows <- cbind(
-      "lowerBound" = propDiffGrid[runStarts],
-      "upperBound" = propDiffGrid[runEnds]
-    )
-    rownames(newRows) <- rep(i, length(runStarts))
+    if (runningIntersection) {
+      lowerBound <- max(prevLower, rawLower)
+      upperBound <- min(prevUpper, rawUpper)
+    } else {
+      lowerBound <- rawLower
+      upperBound <- rawUpper
+    }
 
-    confSeqMatrix <- rbind(confSeqMatrix, newRows)
+    if (!is.na(lowerBound) && !is.na(upperBound) && lowerBound <= upperBound) {
+      newRow <- cbind("lowerBound" = lowerBound, "upperBound" = upperBound)
+      rownames(newRow) <- i
+      confSeqMatrix <- rbind(confSeqMatrix, newRow)
+      prevLower <- lowerBound
+      prevUpper <- upperBound
+    } else {
+      prevLower <- NA_real_
+      prevUpper <- NA_real_
+    }
   }
 
   return(confSeqMatrix)
