@@ -5,7 +5,7 @@
 #' `eType = "eBeta"`: the unrestricted numerator of Decision 3 (`twoSided`
 #' only). `eType = "grow"`: the numerator restricted to
 #' `thetaB - thetaA = propDiffMin` (Decision 6), `"greater"` only. Only
-#' eBeta gets a confidence interval (Decision 21), on all blocks.
+#' eBeta gets a confidence interval (Decision 23), on all blocks.
 #' @noRd
 savi2x2TestStatPropDiff <- function(ya, yb,
                                     designObj = NULL, wantCi = TRUE) {
@@ -64,56 +64,11 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Compute: confSeq ----
   result <- constructSaviTestObj("Two Proportions")
 
-  # eBeta only, on all blocks (Decision 21). Against the point null
-  # thetaB - thetaA = propDiff the numerator is unchanged and each block's
-  # null thetaA is its projection onto that line. f is convex in propDiff,
-  # so the kept set {propDiff : f < log(1 / alpha)} is one interval or empty.
-  fPropDiff <- function(thetaA, thetaB, propDiff, alpha) {
-    nullThetaA <- mapply(solveRIPr2x2PropDiff,
-      thetaA = thetaA, thetaB = thetaB, na = na, nb = nb,
-      MoreArgs = list(propDiff = propDiff)
-    )
-    sum(
-      stats::dbinom(ya, na, thetaA, log = TRUE) +
-        stats::dbinom(yb, nb, thetaB, log = TRUE) -
-        stats::dbinom(ya, na, nullThetaA, log = TRUE) -
-        stats::dbinom(yb, nb, nullThetaA + propDiff, log = TRUE)
-    ) - log(1 / alpha)
-  }
-
+  # eBeta only, on all blocks (Decision 23).
   if (wantCi && eType == "eBeta") {
-    eps <- 1e-9
-    # optimize() and uniroot() vary the one argument left unnamed, propDiff.
-    minimiser <- stats::optimize(fPropDiff,
-      interval = c(-1 + eps, 1 - eps),
-      thetaA = thetaA, thetaB = thetaB, alpha = alpha
-    )[["minimum"]]
-
-    if (fPropDiff(thetaA, thetaB, minimiser, alpha) >= 0) {
-      # Even the minimiser is rejected: the set is empty.
-      confSeq <- c("lowerBound" = NA_real_, "upperBound" = NA_real_)
-    } else {
-      # Still inside at the edge: the bound is the parameter limit.
-      lowerBound <- if (fPropDiff(thetaA, thetaB, -1 + eps, alpha) < 0) {
-        -1
-      } else {
-        stats::uniroot(fPropDiff,
-          lower = -1 + eps, upper = minimiser,
-          thetaA = thetaA, thetaB = thetaB, alpha = alpha
-        )[["root"]]
-      }
-      upperBound <- if (fPropDiff(thetaA, thetaB, 1 - eps, alpha) < 0) {
-        1
-      } else {
-        stats::uniroot(fPropDiff,
-          lower = minimiser, upper = 1 - eps,
-          thetaA = thetaA, thetaB = thetaB, alpha = alpha
-        )[["root"]]
-      }
-      confSeq <- c("lowerBound" = lowerBound, "upperBound" = upperBound)
-    }
-
-    result[["confSeq"]] <- confSeq
+    result[["confSeq"]] <- computeConfidenceInterval2x2PropDiff(
+      ya, yb, na, nb, thetaA, thetaB, alpha
+    )
     result[["ciValue"]] <- 1 - alpha
   }
 
@@ -334,6 +289,64 @@ designSavi2x2 <- function(
   result[["timeStamp"]] <- Sys.time()
 
   return(result)
+}
+
+# Confidence Interval ----
+
+#' Anytime-valid confidence interval for propDiff on all blocks
+#'
+#' Inverts the eBeta test on point nulls `thetaB - thetaA = propDiff`: the
+#' numerator is the test's own predictable `thetaA`, `thetaB` (one per
+#' block, from blocks `1..i-1`), and each block's null `thetaA` is its
+#' projection `solveRIPr2x2PropDiff()` onto that line. The log e-value is
+#' convex in `propDiff`, so the kept set `{propDiff : f < log(1 / alpha)}`
+#' is one interval or empty.
+#'
+#' @return Named numeric `c(lowerBound, upperBound)`; `-1` or `1` when that
+#'   edge is still inside, both `NA` when the set is empty.
+#' @noRd
+computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
+                                                 thetaA, thetaB, alpha) {
+  # f(propDiff): log e-value on all blocks against propDiff, minus the
+  # threshold log(1 / alpha).
+  fPropDiff <- function(propDiff) {
+    nullThetaA <- mapply(solveRIPr2x2PropDiff,
+      thetaA = thetaA, thetaB = thetaB, na = na, nb = nb,
+      MoreArgs = list(propDiff = propDiff)
+    )
+    sum(
+      stats::dbinom(ya, na, thetaA, log = TRUE) +
+        stats::dbinom(yb, nb, thetaB, log = TRUE) -
+        stats::dbinom(ya, na, nullThetaA, log = TRUE) -
+        stats::dbinom(yb, nb, nullThetaA + propDiff, log = TRUE)
+    ) - log(1 / alpha)
+  }
+
+  # The projection needs thetaA strictly inside its range, so search just
+  # inside (-1, 1).
+  eps <- 1e-9
+  minimiser <- stats::optimize(fPropDiff,
+    interval = c(-1 + eps, 1 - eps)
+  )[["minimum"]]
+
+  # Even the minimiser is rejected: the set is empty.
+  if (fPropDiff(minimiser) >= 0) {
+    return(c("lowerBound" = NA_real_, "upperBound" = NA_real_))
+  }
+
+  # Still inside at the edge: the bound is the parameter limit.
+  lowerBound <- if (fPropDiff(-1 + eps) < 0) {
+    -1
+  } else {
+    stats::uniroot(fPropDiff, lower = -1 + eps, upper = minimiser)[["root"]]
+  }
+  upperBound <- if (fPropDiff(1 - eps) < 0) {
+    1
+  } else {
+    stats::uniroot(fPropDiff, lower = minimiser, upper = 1 - eps)[["root"]]
+  }
+
+  return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
 }
 
 # Helpers ----

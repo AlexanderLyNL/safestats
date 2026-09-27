@@ -613,5 +613,17 @@ when the edge is still inside, `NA` when empty. Output unchanged to ~1e-15.
 `na`, `nb` from the design, stop unless `ya`, `yb`, `na`, `nb` all have
 length `nBlocks`, are finite integers, `0 <= ya <= na`, `0 <= yb <= nb`
 and `na, nb >= 1`. The other argument checks stay for the final step.
-Both return `estimate = c(thetaA, thetaB, propDiff)`: the observed pooled
-proportions and their difference, B minus A.
+Both return `estimate = c(thetaA, thetaB)`, the observed pooled
+proportions (`propDiff` dropped from the estimate).
+
+### 23. propDiff confidence interval isolated again
+
+Reverses the inline placement of Decision 21, same statistics:
+`computeConfidenceInterval2x2PropDiff(ya, yb, na, nb, thetaA, thetaB,
+alpha)`, under `# Confidence Interval ----`, takes the test's own eBeta
+numerator thetas (one per block) instead of `betaParameter`, so they are
+computed once. Inside, `fPropDiff(propDiff)` is the log e-value on all
+blocks against `thetaB - thetaA = propDiff` (per-block
+`solveRIPr2x2PropDiff` nulls) minus `log(1 / alpha)`. Returns
+`c(lowerBound, upperBound)`: `-1`/`1` when the edge is still inside, both
+`NA` when empty. `savi2x2TestStatPropDiff` calls it only for eBeta.
