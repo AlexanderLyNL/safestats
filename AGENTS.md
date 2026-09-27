@@ -762,3 +762,32 @@ per-path block loop, no chunking. Returns a list: `thetaA`, `thetaB`
 case), `worstCaseIndex`. No bootstrap SE and no eBeta planning yet; the
 design does not call it yet. Body is a stub until the contract is
 confirmed.
+
+### 30. Blockwise confidence sequence for logOdds (naive)
+
+`savi2x2TestStatLogOdds(..., wantConfidenceSequence = FALSE)`: when
+`TRUE` and `eType = "eGauss"`, it stores `confSeqMatrix`, `nBlocks x 2`
+(`lowerBound`, `upperBound`), row `i` from
+`computeConfidenceInterval2x2LogOdds(ya[1:i], yb[1:i], na[1:i], nb[1:i],
+logPCum[i], 1 - ciValue)`, Decision 27's inversion on blocks `1..i`.
+Decision 17's identity holds at every block, not only the last: each
+numerator factor is fixed given its block's total (the UMP plug-in of
+block 1, Decision 28) or predictable (the mixture factors of blocks
+`2..i`), so the log e-process against `delta` after block `i` is
+`logPCum[i] - S_i(delta)`, and the test already holds `logPCum` for every
+block. Each row's kept set is one interval or empty (concavity of `S_i`).
+`computeConfidenceInterval2x2LogOdds` gains `domain = c(-40, 40)` in place
+of `logOddsBound`, as Decision 25's `domain` for `propDiff`: the search
+range, whose edge is reported when still inside, and the whole `domain`
+with a warning when empty. In the sequence an empty row is `NA` (the
+warning is caught, not shown). The design's `runningIntersection`
+(default `FALSE`) passes the previous row as `domain`, so the rows are
+nested, and stops at the first empty row (the rest stay `NA`); `FALSE`
+searches `(-40, 40)` every block. `confSeq` is then the last row,
+`ciValue` unchanged; without the flag `wantCi` gives Decision 27's
+interval. Grow still gets nothing (Decision 19). One `optimize` and up to
+two `uniroot` per block, each summing `i` FNCH log densities: quadratic
+in `nBlocks`, hence off by default. `plot.saviTest` labels the
+confidence-sequence axis `logOdds` when the design's `eType` is not
+`"eBeta"`. The linear-time grid cumulation (Decision 26's route, reusing
+the eGauss `logPGrid`) is the follow-up.

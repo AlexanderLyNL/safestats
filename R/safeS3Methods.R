@@ -1188,7 +1188,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                        "Z-Test"="mu",
                        "T-Test"="mu",
                        "logrank"="log(hazard ratio)",
-                       "Two Proportions"="propDiff")
+                       "Two Proportions"=if (x[["designObj"]][["eType"]] == "eBeta") "propDiff" else "logOdds")
 
       graphics::mtext(ylab, side = 2, line = 4,
                       las = 0, cex = cex, adj=0.5)

@@ -125,15 +125,20 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 #' (Decision 18), `"twoSided"` only. Only eGauss gets a confidence interval
 #' (Decision 17), inverting its e-process on point nulls, with the first
 #' block's factor the UMP plug-in (Decision 28); grow gets none.
+#' `wantConfidenceSequence = TRUE` adds the blockwise `confSeqMatrix`
+#' (Decision 30), row `i` the same inversion on blocks `1..i`.
 #' @noRd
 savi2x2TestStatLogOdds <- function(ya, yb,
-                                   designObj = NULL, wantCi = TRUE, ciValue = NULL) {
+                                   designObj = NULL, wantCi = TRUE,
+                                   wantConfidenceSequence = FALSE,
+                                   ciValue = NULL) {
   # grow must have a logOddsMin > 0
   nBlocks <- length(ya)
   logOddsMin <- designObj[["esMin"]]
   alternative <- designObj[["alternative"]]
   alpha <- designObj[["alpha"]]
   eType <- designObj[["eType"]]
+  runningIntersection <- designObj[["runningIntersection"]]
   na <- designObj[["nPlan"]][["na"]]
   nb <- designObj[["nPlan"]][["nb"]]
   if (length(na) == 1L) na <- rep(na, nBlocks)
@@ -153,6 +158,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 
   result <- constructSaviTestObj("Two Proportions")
 
+  # Compute: eValueVec ----
   # Per-block null log likelihood (conditional on the total), then the
   # cumulative log likelihood of blocks 1..i under the alternative.
   logPNull <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
@@ -203,7 +209,35 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   # the level is ciValue, 1 - alpha unless the user specified one.
   ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
   result[["ciValue"]] <- ciValue
-  if (wantCi && eType == "eGauss") {
+  if (wantConfidenceSequence && eType == "eGauss") {
+    # Row i inverts the e-process on blocks 1..i: every numerator factor is
+    # fixed given its block's total or predictable, so logPCum[i] is the
+    # numerator at block i just as logPCum[nBlocks] is at the end
+    # (Decision 30). Recomputed from scratch per block, quadratic in nBlocks.
+    confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
+      dimnames = list(NULL, c("lowerBound", "upperBound"))
+    )
+    domain <- c(-40, 40)
+    for (i in seq_len(nBlocks)) {
+      # The empty set is reported with a warning; here it is an NA row.
+      row <- tryCatch(
+        computeConfidenceInterval2x2LogOdds(
+          ya[1:i], yb[1:i], na[1:i], nb[1:i], logPCum[i], 1 - ciValue,
+          domain = domain
+        ),
+        warning = function(w) c("lowerBound" = NA_real_, "upperBound" = NA_real_)
+      )
+      if (runningIntersection) {
+        # A value that leaves never returns: search inside the previous
+        # row, and once empty the remaining rows stay NA.
+        if (anyNA(row)) break
+        domain <- row
+      }
+      confSeqMatrix[i, ] <- row
+    }
+    result[["confSeqMatrix"]] <- confSeqMatrix
+    result[["confSeq"]] <- confSeqMatrix[nBlocks, ]
+  } else if (wantCi && eType == "eGauss") {
     result[["confSeq"]] <- computeConfidenceInterval2x2LogOdds(
       ya, yb, na, nb, logPCum[nBlocks], 1 - ciValue
     )
@@ -493,17 +527,20 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
 #' minus the FNCH log likelihood of the data at `delta` (Decision 17). That
 #' log likelihood is concave in `delta`, so `f` is convex with its minimum
 #' at the conditional MLE and the kept set `{delta : f < log(1 / alpha)}`
-#' is one interval or empty. The interval is only claimed on
-#' `(-logOddsBound, logOddsBound)`.
+#' is one interval or empty. The interval is only claimed on `domain`,
+#' and searching only inside `domain` returns its intersection with
+#' `domain` (convexity).
 #'
 #' @param logPTotal The numerator's cumulative log likelihood after the
 #'   last block, e.g. `logPCum[nBlocks]` of `savi2x2TestStatLogOdds()`.
-#' @return Named numeric `c(lowerBound, upperBound)`; `-logOddsBound` /
-#'   `logOddsBound` when that edge is still inside, and the whole range
-#'   with a warning when the set is empty.
+#' @param domain `c(lower, upper)`, the candidates searched; a previous
+#'   interval gives the running intersection.
+#' @return Named numeric `c(lowerBound, upperBound)`; the `domain` edge
+#'   when that edge is still inside, and the whole `domain` with a warning
+#'   when the set is empty.
 #' @noRd
 computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
-                                                alpha, logOddsBound = 40) {
+                                                alpha, domain = c(-40, 40)) {
   # product of the conditional e-variable against H0: logOdds = delta
   # f: find zero points against 1 / alpha
   fLogOdds <- function(logOdds) {
@@ -512,26 +549,24 @@ computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
       log(1 / alpha)
   }
 
-  minimiser <- stats::optimize(fLogOdds,
-    interval = c(-logOddsBound, logOddsBound)
-  )[["minimum"]]
+  minimiser <- stats::optimize(fLogOdds, interval = domain)[["minimum"]]
 
   # min > 1 / alpha, no confidence interval found
   if (fLogOdds(minimiser) >= 0) {
     warning("No confidence interval is found!")
-    return(c("lowerBound" = -logOddsBound, "upperBound" = logOddsBound))
+    return(c("lowerBound" = domain[1], "upperBound" = domain[2]))
   }
 
-  # Still inside at the search edge: the bound is the edge itself.
-  lowerBound <- if (fLogOdds(-logOddsBound) < 0) {
-    -logOddsBound
+  # Still inside at the search edge: the bound is the domain edge.
+  lowerBound <- if (fLogOdds(domain[1]) < 0) {
+    domain[1]
   } else {
-    stats::uniroot(fLogOdds, lower = -logOddsBound, upper = minimiser)[["root"]]
+    stats::uniroot(fLogOdds, lower = domain[1], upper = minimiser)[["root"]]
   }
-  upperBound <- if (fLogOdds(logOddsBound) < 0) {
-    logOddsBound
+  upperBound <- if (fLogOdds(domain[2]) < 0) {
+    domain[2]
   } else {
-    stats::uniroot(fLogOdds, lower = minimiser, upper = logOddsBound)[["root"]]
+    stats::uniroot(fLogOdds, lower = minimiser, upper = domain[2])[["root"]]
   }
 
   return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
