@@ -76,7 +76,7 @@ constructSaviDesignObj <- function(testName) {
     testSpecificList <- list(
       "betaParameter"=list("betaA1"=0.18, "betaA2"=0.18,"betaB1"=0.18, "betaB2"=0.18),
       "relevanceTest"=FALSE,
-      "runningIntersection"=TRUE,
+      "runningIntersection"=FALSE,
       "testName"=testName)
   }
 

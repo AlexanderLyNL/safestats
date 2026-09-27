@@ -200,6 +200,10 @@ returns the cumulative e-process, on the log scale when `log = TRUE`.
 
 ### 6. Restricted alternative on propDiff
 
+Shelved in part: the two-sided `"grow"` average at `+/-``propDiffMin` is
+removed for now, together with `logMeanExpPair`; `"grow"` is `"greater"`
+only. The contract below is kept for when it returns.
+
 Only `propDiff` restrictions; `logOdds` is out of scope. `designSavi2x2`
 accepts `propDiffMin` as `NULL` or one number strictly inside `(0, 1)`,
 stored as `esMin`. Allowed combinations; everything else errors:
@@ -410,3 +414,149 @@ one row per block (never several, per the argument above), absent for a
 fully rejected block. `savi2x2TestStatPropDiff`'s wiring (hull into
 `confSeqMatrix`, exact union as `confSeq` for the last block) needs no
 change, since the hull of a single row is that row.
+
+### 14. One confidence interval on all data for propDiff
+
+`computeConfidenceInterval2x2PropDiff(ya, yb, na, nb, betaParameter, alpha)`
+takes the full observed vectors and returns a single interval for the data
+as a whole: a named numeric `c(lowerBound, upperBound)`, both `NA` when the
+set is empty. No block loop, no `runningIntersection` argument, no matrix,
+no block index. The candidate `delta` is kept when
+
+    f(delta) = sum_{i=1}^{t} log [ p(ya_i, yb_i | thetaA_i, thetaB_i)
+                                 / p(ya_i, yb_i | thetaA_i*(delta), thetaA_i*(delta) + delta) ]
+
+is below `log(1 / alpha)`, with `thetaA_i, thetaB_i` the predictive Beta
+posterior means from blocks `1..i-1` (`predictiveThetas2x2`) and
+`thetaA_i*(delta)` the projection `solveRIPr2x2PropDiff(thetaA_i, thetaB_i,
+na_i, nb_i, delta)`. `f` is convex (Decision 13), so the root finding is:
+minimiser by `stats::optimize()` on `(-1, 1)` (no interior guess, for
+simplicity), `stats::uniroot()` on each side, `-1` or
+`1` when the edge is already inside.
+
+`savi2x2TestStatPropDiff(wantCi = TRUE)` stores that vector as `confSeq`
+and sets `ciValue = 1 - alpha`; it no longer sets `confSeqMatrix`, so
+`plot.saviTest(wantConfSeqPlot = TRUE)` has nothing to draw for `propDiff`
+for now. The blockwise sequence and its running intersection (Decision 13)
+are shelved, not contradicted. `computeConfidenceInterval2x2LogOdds` and
+`savi2x2TestStatLogOdds` are untouched.
+
+### 15. GROW plug-in on logOdds
+
+Shelved in part: the two-sided `"grow"` average at `+/-``logOddsMin` is
+removed for now, together with `logMeanExpPair`; `"grow"` is `"greater"`
+only. The contract below is kept for when it returns.
+
+`designSavi2x2(logOddsMin, eType = "grow", alternative)`: `logOddsMin` is
+`NULL` or one finite number strictly greater than `0`, stored as `esMin`
+(Decision 12). `savi2x2TestStatLogOdds` reads `designObj[["eType"]]`;
+only `"grow"` uses `esMin`, every other `eType` keeps the predictable
+posterior-mean plug-in of Decision 10. Allowed combinations for `"grow"`;
+everything else errors once argument checking is done:
+
+- `logOddsMin > 0`, `"greater"`: block `i`'s e-factor is
+  `logLikelihoodRatioFNCH(ya[i], yb[i], na[i], nb[i], logOdds =
+  logOddsMin)`, the conditional e-factor of Decision 7 at the fixed
+  alternative, cumulated over blocks.
+- `logOddsMin > 0`, `"twoSided"`: the e-process is the average of the two
+  cumulative e-processes at `+logOddsMin` and `-logOddsMin` (averaged as
+  processes, not per block, as in Decision 6).
+- `"less"` is not designed yet, as for `propDiff`.
+
+`computeEValueVecLogOdds(ya, yb, na, nb, logOdds)` cumulates the
+conditional e-factors at the fixed `logOdds` (the same value in every
+block); the predictable posterior-mean plug-in it used to cumulate
+(Decision 10) now lives only inside `computeConfidenceInterval2x2LogOdds`. The null is the point `thetaA = thetaB` (`nullLogOdds =
+0`) throughout; the confidence sequence (Decision 10) keeps the
+unrestricted plug-in, as Decision 6 does for `propDiff`. The two-sided
+average is computed on the log scale by the shared helper
+`logMeanExpPair(logX, logY)`, also used by `savi2x2TestStatPropDiff`.
+
+### 16. Gaussian-mixture conditional e-process on logOdds (eGauss)
+
+Shelved: all eGauss code is removed for now (`eType` is `"eBeta"` or
+`"grow"`, and `savi2x2TestStatLogOdds` takes `"grow"` only). The contract
+below is kept for when it returns.
+
+`designSavi2x2(eType = "eGauss")` with `logOddsMin = NULL` and
+`alternative = "twoSided"`; any `*Min` or one-sided alternative with
+`"eGauss"` errors once argument checking is done. The prior on `logOdds`
+is Normal(`priorMean = 0`, `priorSd = 1`) (reserved in Decision 2), held
+on `nWeight = 2000` equally spaced grid points on `[-logOddsBound,
+logOddsBound]`, `logOddsBound = 20`, and normalised over the grid. These
+three are arguments of the helper with the stated defaults, not design
+fields (as `nWeight` in Decision 6).
+
+`computeEValueVecLogOddsGauss(ya, yb, na, nb, priorMean = 0, priorSd = 1,
+nWeight = 2000L, logOddsBound = 20)` returns the cumulative log e-process
+(length `nBlocks`): for block `i` it is
+`logSumExp(priorLogWeights + sum_{j <= i} logLR_j(grid))`, where
+`logLR_j(logOdds)` is the conditional log likelihood ratio of Decision 7 at
+`logOdds` against `nullLogOdds = 0`, evaluated on the whole grid at once via
+`logLikelihoodRatioFNCHGrid(ya, yb, na, nb, logOddsGrid)` (the
+exponential-family form `logOdds * yb - psi(logOdds) + psi(0)`, `psi` the
+log partition over the feasible `yb`, shifted column-wise against
+overflow). This equals the reference `computeEGaussGrid` in
+`~/Downloads/safe2x2TestCond.R`, which averages each block's likelihood
+ratio under the running grid posterior, since the product of those
+blockwise factors telescopes to the prior mixture of the cumulative
+likelihood ratio; the reference weights `ya` (A minus B), so it is
+reproduced by our code with the groups swapped. Blockwise e-factors are
+`diff(c(0, logEValueVec))`, on the log scale.
+
+`savi2x2TestStatLogOdds` dispatches on `eType`: `"eGauss"` uses this
+mixture, `"grow"` Decision 15, any other `eType` errors.
+`savi2x2TestStatPropDiff` likewise: `"eBeta"` or `"grow"`, else an error.
+The confidence sequence (Decision 10) keeps its predictable plug-in for
+every `eType`. The two test functions keep their size handling and
+result filling inline, without shared helpers.
+
+### 17. One confidence interval on all data for logOdds (grow)
+
+`computeConfidenceInterval2x2LogOdds(ya, yb, na, nb, logEValue, alpha,
+logOddsBound = 40)` replaces Decision 10's grid: no `betaParameter`, no
+`precision`, no `runningIntersection`, no plug-in of its own, no block
+loop. It inverts the **test's own** grow e-process on point nulls
+`nullLogOdds = delta`, and returns a single named numeric
+`c(lowerBound, upperBound)` for the data as a whole, as Decision 14 does
+for `propDiff`; both `NA` when the set is empty.
+
+The key identity: the grow alternative is fixed in advance, so the
+conditional e-factor of block `i` against `delta` factors as
+`LR_i(logOddsMin | 0) / LR_i(delta | 0)` (Decision 7's
+`logLikelihoodRatioFNCH` with `nullLogOdds = delta`). Cumulated, the log
+e-process against `delta` is
+
+    f(delta) = logEValue - S(delta),
+    S(delta) = sum_i logLikelihoodRatioFNCH(ya_i, yb_i, na_i, nb_i,
+                                            logOdds = delta, nullLogOdds = 0, log = TRUE),
+
+with `logEValue` the test's final cumulative log e-value against `0`
+(the last element of `logEValueVec`, which `savi2x2TestStatLogOdds` already
+holds). `S` is shared by the `+logOddsMin` and `-logOddsMin` processes, so
+it also factors out of the two-sided average (Decision 15): one formula
+for `"greater"` and `"twoSided"`. `S(delta)` is the conditional
+log-likelihood of a common log odds ratio `delta`, concave in `delta`, so
+`f` is convex with its minimiser at the conditional MLE, and the kept set
+`{delta : f(delta) < log(1 / alpha)}` is one interval or empty. Root
+finding as in Decision 14: `stats::optimize()` on
+`(-logOddsBound, logOddsBound)`, `stats::uniroot()` on each side of the
+minimiser. When `f` is still below the threshold at `-logOddsBound` or
+`logOddsBound` the bound is reported as that edge, `-logOddsBound` or
+`logOddsBound` (the range the interval is claimed on), not `-Inf`/`Inf`;
+the empty set stays `NA`. At odds
+`exp(40)` every block sits at its extreme feasible `yb`, so `f` has
+integer slope there and can only stay below `log(1 / alpha)` if that
+slope is `0`, in which case the set is genuinely unbounded. Blocks whose
+conditional distribution is degenerate (a single feasible `yb`) have
+`S_i = 0` for every `delta` and are skipped, an exact speed-up.
+
+`savi2x2TestStatLogOdds(wantCi = TRUE)` computes this only for
+`eType = "grow"`, stores the vector as `confSeq` and sets
+`ciValue = 1 - alpha`; it no longer sets `confSeqMatrix`, so, as for
+`propDiff`, `plot.saviTest(wantConfSeqPlot = TRUE)` has nothing to draw.
+`"eGauss"` gets no confidence interval for now (the same identity holds
+for any alternative fixed before the data, mixtures included, so it can
+be wired in later with the same call). The design's
+`runningIntersection` is now read by neither test. Decision 10's
+blockwise sequence is shelved, not contradicted.

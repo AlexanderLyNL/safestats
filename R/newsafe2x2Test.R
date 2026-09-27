@@ -1,82 +1,62 @@
 # Testing fnts ----
 
-
-
-
-
 #' Safe anytime-valid 2x2 test for propDiff
+#'
+#' `eType = "eBeta"`: the unrestricted numerator of Decision 3 (`twoSided`
+#' only). `eType = "grow"`: the numerator restricted to
+#' `thetaB - thetaA = propDiffMin` (Decision 6), `"greater"` only. The
+#' confidence interval (Decision 14) always uses the
+#' unrestricted numerator.
 #' @noRd
-savi2x2TestStatPropDiff <- function(ya, yb, na = NULL, nb = NULL,
+savi2x2TestStatPropDiff <- function(ya, yb,
                                     designObj = NULL, wantCi = TRUE) {
   # TODO: THESE ARGS CHECKING WILL BE DONE FINAL STEP
-  # grow must have a propDiffMin
-  # eBeta must not have a propDiffMin, i.e. propDiffMin == NULL and must be twoSided
-  result <- constructSaviTestObj("Two Proportions")
-
+  # grow must have a propDiffMin; eBeta must have none and be twoSided
   propDiffMin <- designObj[["esMin"]]
   alternative <- designObj[["alternative"]]
   betaParameter <- designObj[["betaParameter"]]
   alpha <- designObj[["alpha"]]
+  eType <- designObj[["eType"]]
+  na <- designObj[["nPlan"]][["na"]]
+  nb <- designObj[["nPlan"]][["nb"]]
 
   nBlocks <- length(ya)
-  if (is.null(na)) na <- designObj[["nPlan"]][["na"]]
-  if (is.null(nb)) nb <- designObj[["nPlan"]][["nb"]]
   if (length(na) == 1L) na <- rep(na, nBlocks)
   if (length(nb) == 1L) nb <- rep(nb, nBlocks)
 
   # Compute: eValueVec ----
-  if (is.null(propDiffMin)) {
-    logEValueVec <- computeEValueVecPropDiff(ya, yb, na, nb, betaParameter)
-  } else if (alternative == "greater") {
-    logEValueVec <- computeEValueVecPropDiff(ya, yb, na, nb, betaParameter,
+  logEValueVec <- switch(eType,
+    "eBeta" = computeEValueVecPropDiff(ya, yb, na, nb, betaParameter),
+    "grow" = computeEValueVecPropDiff(ya, yb, na, nb, betaParameter,
       propDiff = propDiffMin
-    )
-  } else {
-    # twoSided and grow: equal-weight mixture at +propDiffMin and -propDiffMin
-    logEPlus <- computeEValueVecPropDiff(ya, yb, na, nb, betaParameter,
-      propDiff = propDiffMin
-    )
-    logEMinus <- computeEValueVecPropDiff(ya, yb, na, nb, betaParameter,
-      propDiff = -propDiffMin
-    )
-    logEValueVec <- pmax(logEPlus, logEMinus) +
-      log1p(exp(-abs(logEPlus - logEMinus))) - log(2)
-  }
+    ),
+    stop("eType ", eType, " is not implemented for propDiff")
+  )
 
-  eValueVec <- exp(logEValueVec)
+  # Compute: confSeq ----
+  result <- constructSaviTestObj("Two Proportions")
 
-  # Compute: confSeqMatrix ----
   if (wantCi) {
-    confSetRuns <- computeConfidenceInterval2x2PropDiff(
+    # One interval on all observed blocks (Decision 14): no blockwise
+    # sequence, hence no confSeqMatrix for propDiff.
+    result[["confSeq"]] <- computeConfidenceInterval2x2PropDiff(
       ya = ya, yb = yb, na = na, nb = nb,
-      betaParameter = betaParameter, alpha = alpha,
-      runningIntersection = designObj[["runningIntersection"]]
+      betaParameter = betaParameter, alpha = alpha
     )
-
-    # One row per block, as for the other tests: the outermost bounds of that
-    # block's union, NA when every candidate is rejected. The hull contains
-    # the union, so coverage is kept; only the last block is kept exact.
-    block <- factor(rownames(confSetRuns), levels = seq_len(nBlocks))
-    confSeqMatrix <- cbind(
-      "lowerBound" = as.vector(tapply(confSetRuns[, "lowerBound"], block, min)),
-      "upperBound" = as.vector(tapply(confSetRuns[, "upperBound"], block, max))
-    )
-    lastBlock <- rownames(confSetRuns) == nBlocks
-
-    result[["confSeqMatrix"]] <- confSeqMatrix
-    result[["confSeq"]] <- confSetRuns[lastBlock, c("lowerBound", "upperBound"),
-      drop = FALSE
-    ]
     result[["ciValue"]] <- 1 - alpha
   }
 
   # Fill: Result ----
-  result[["estimate"]] <- c("thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb))
+  eValueVec <- exp(logEValueVec)
+  result[["estimate"]] <- c(
+    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb)
+  )
   # x-axis of plot.saviTest(): the block index.
   result[["n1Vec"]] <- seq_len(nBlocks)
   result[["eValue"]] <- eValueVec[nBlocks]
   result[["eValueVec"]] <- eValueVec
   result[["n"]] <- c("na" = sum(na), "nb" = sum(nb), "nBlocks" = nBlocks)
+  # Beta posterior of the observed blocks, the prior a further block would use.
   result[["betaPrior"]] <- list(
     "betaA1" = betaParameter[["betaA1"]] + sum(ya),
     "betaA2" = betaParameter[["betaA2"]] + sum(na) - sum(ya),
@@ -97,63 +77,96 @@ savi2x2TestStatPropDiff <- function(ya, yb, na = NULL, nb = NULL,
 }
 
 #' Safe anytime-valid 2x2 test for logOdds
+#'
+#' Every block is conditioned on its total successes (Decision 7).
+#' `eType = "grow"`: the fixed alternative `logOddsMin` (Decision 15),
+#' `"greater"` only. The confidence interval
+#' (Decision 17) inverts that grow e-process on point nulls.
 #' @noRd
-savi2x2TestStatLogOdds <- function(ya, yb, na = NULL, nb = NULL,
+savi2x2TestStatLogOdds <- function(ya, yb,
                                    designObj = NULL, wantCi = TRUE) {
   # TODO: THESE ARGS CHECKING WILL BE DONE FINAL STEP
-  # no restricted alternative for logOdds yet: eGauss or grow, twoSided only
-  result <- constructSaviTestObj("Two Proportions")
-
-  betaParameter <- designObj[["betaParameter"]]
-  alpha <- designObj[["alpha"]]
-
+  # grow must have a logOddsMin > 0
   nBlocks <- length(ya)
-  if (is.null(na)) na <- designObj[["nPlan"]][["na"]]
-  if (is.null(nb)) nb <- designObj[["nPlan"]][["nb"]]
+  logOddsMin <- designObj[["esMin"]]
+  alternative <- designObj[["alternative"]]
+  alpha <- designObj[["alpha"]]
+  eType <- designObj[["eType"]]
+  na <- designObj[["nPlan"]][["na"]]
+  nb <- designObj[["nPlan"]][["nb"]]
   if (length(na) == 1L) na <- rep(na, nBlocks)
   if (length(nb) == 1L) nb <- rep(nb, nBlocks)
 
-  # Compute: eValueVec ----
-  eValueVec <- exp(computeEValueVecLogOdds(ya, yb, na, nb, betaParameter))
+  result <- constructSaviTestObj("Two Proportions")
 
-  # Compute: confSeqMatrix ----
+  # grow: eValueVec ----
+  # cumulative eValueVec
+  logPLogOddsMin <- logLikelihoodFNCHVec(ya, yb, na, nb, logOddsMin)
+  logP0 <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
+  logEvalueVec <- cumsum(logPLogOddsMin - logP0)
+
+  # grow: confSeq ----
+  # The alternative is fixed before the data, so the log e-value on all
+  # blocks against the point null logOdds = delta is the numerator's total
+  # log likelihood minus the FNCH log likelihood at delta (Decision 17). It
+  # is convex in delta, so the kept set {delta : f < log(1 / alpha)} is one
+  # interval or empty.
+  fLogOdds <- function(logPLogOddsMin, logOdds, alpha) {
+    sum(logPLogOddsMin) -
+      sum(logLikelihoodFNCHVec(ya, yb, na, nb, logOdds)) -
+      log(1 / alpha)
+  }
+
   if (wantCi) {
-    confSetRuns <- computeConfidenceInterval2x2LogOdds(
-      ya = ya, yb = yb, na = na, nb = nb,
-      betaParameter = betaParameter, alpha = alpha,
-      runningIntersection = designObj[["runningIntersection"]]
-    )
+    logOddsBound <- 40
+    # optimize() and uniroot() vary the one argument left unnamed, logOdds.
+    minimiser <- stats::optimize(fLogOdds,
+      interval = c(-logOddsBound, logOddsBound),
+      logPLogOddsMin = logPLogOddsMin, alpha = alpha
+    )[["minimum"]]
 
-    block <- factor(rownames(confSetRuns), levels = seq_len(nBlocks))
-    confSeqMatrix <- cbind(
-      "lowerBound" = as.vector(tapply(confSetRuns[, "lowerBound"], block, min)),
-      "upperBound" = as.vector(tapply(confSetRuns[, "upperBound"], block, max))
-    )
-    lastBlock <- rownames(confSetRuns) == nBlocks
+    if (fLogOdds(logPLogOddsMin, minimiser, alpha) >= 0) {
+      # Even the conditional MLE is rejected: the set is empty.
+      confSeq <- c("lowerBound" = NA_real_, "upperBound" = NA_real_)
+    } else {
+      # Still inside at the search edge: report the edge itself, the
+      # interval is only claimed on (-logOddsBound, logOddsBound).
+      lowerBound <- if (fLogOdds(logPLogOddsMin, -logOddsBound, alpha) < 0) {
+        -logOddsBound
+      } else {
+        stats::uniroot(fLogOdds,
+          lower = -logOddsBound, upper = minimiser,
+          logPLogOddsMin = logPLogOddsMin, alpha = alpha
+        )[["root"]]
+      }
+      upperBound <- if (fLogOdds(logPLogOddsMin, logOddsBound, alpha) < 0) {
+        logOddsBound
+      } else {
+        stats::uniroot(fLogOdds,
+          lower = minimiser, upper = logOddsBound,
+          logPLogOddsMin = logPLogOddsMin, alpha = alpha
+        )[["root"]]
+      }
+      confSeq <- c("lowerBound" = lowerBound, "upperBound" = upperBound)
+    }
 
-    result[["confSeqMatrix"]] <- confSeqMatrix
-    result[["confSeq"]] <- confSetRuns[lastBlock, c("lowerBound", "upperBound"),
-      drop = FALSE
-    ]
+    result[["confSeq"]] <- confSeq
     result[["ciValue"]] <- 1 - alpha
   }
 
   # Fill: Result ----
-  result[["estimate"]] <- c("thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb))
+  eValueVec <- exp(logEvalueVec)
+  result[["estimate"]] <- c(
+    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb)
+  )
   # x-axis of plot.saviTest(): the block index.
   result[["n1Vec"]] <- seq_len(nBlocks)
   result[["eValue"]] <- eValueVec[nBlocks]
   result[["eValueVec"]] <- eValueVec
   result[["n"]] <- c("na" = sum(na), "nb" = sum(nb), "nBlocks" = nBlocks)
-  result[["betaPrior"]] <- list(
-    "betaA1" = betaParameter[["betaA1"]] + sum(ya),
-    "betaA2" = betaParameter[["betaA2"]] + sum(na) - sum(ya),
-    "betaB1" = betaParameter[["betaB1"]] + sum(yb),
-    "betaB2" = betaParameter[["betaB2"]] + sum(nb) - sum(yb)
-  )
   result[["designObj"]] <- designObj
   result[["testType"]] <- "2x2"
-  result[["alternative"]] <- designObj[["alternative"]]
+  result[["alternative"]] <- alternative
   result[["h0"]] <- designObj[["h0"]]
   result[["dataName"]] <- paste(
     deparse1(substitute(ya)), "and",
@@ -166,40 +179,41 @@ savi2x2TestStatLogOdds <- function(ya, yb, na = NULL, nb = NULL,
 
 # Design fnts ----
 # TODO: add "less" when direction is clean in `alternative`
-#
+
 #' Design a safe anytime-valid 2x2 test
+#'
+#' `eType` picks the effect: `"eBeta"` (propDiff) is unrestricted and
+#' `"twoSided"`; `"grow"` plugs in whichever of `propDiffMin`, `logOddsMin`
+#' is set and is `"greater"` only. Inputs are assumed valid.
 #' @noRd
 designSavi2x2 <- function(
-  na, nb,
-  propDiffMin = NULL, logOddsMin = NULL,
+  na, nb, propDiffMin = NULL, logOddsMin = NULL,
   alpha = 0.05, power = NULL, h0 = 0,
   alternative = c("twoSided", "greater"),
-  eType = c("eBeta", "grow", "eGauss"),
+  eType = c("eBeta", "grow"),
   betaParameter = NULL,
   runningIntersection = NULL
 ) {
-  # TODO: THESE ARGS CHECKING WILL BE DONE FINAL STEP
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
   result <- constructSaviDesignObj("Two Proportions")
 
+  # NULL keeps the constructor's defaults.
   if (!is.null(betaParameter)) {
-    requiredNames <- names(result[["betaParameter"]])
-    result[["betaParameter"]] <- betaParameter[requiredNames]
+    result[["betaParameter"]] <- betaParameter
+  }
+  if (!is.null(runningIntersection)) {
+    result[["runningIntersection"]] <- runningIntersection
   }
 
-  # propDiff: eType eBeta or grow. logOdds: eType eGauss or grow. Only one of
-  # propDiffMin, logOddsMin is set, matching the effect eType picks out.
+  # TODO: what if both are NULL
   result[["esMin"]] <- if (!is.null(propDiffMin)) propDiffMin else logOddsMin
   result[["parameter"]] <- c(
     "Beta hyperparameters" =
       paste(unlist(result[["betaParameter"]]), collapse = " ")
   )
   result[["eType"]] <- eType
-  if (!is.null(runningIntersection)) {
-    result[["runningIntersection"]] <- runningIntersection
-  }
   result[["alpha"]] <- alpha
   result[["alternative"]] <- alternative
   result[["h0"]] <- c("propDiff" = h0)
@@ -215,51 +229,44 @@ designSavi2x2 <- function(
 
 # Confidence Interval ----
 
-#' Anytime-valid confidence sequence for the proportion difference
+#' Anytime-valid confidence interval for the proportion difference
 #'
-#' Inverts the test by root-finding rather than a grid. For data through
-#' block `i`, the eBeta numerator (`predictiveThetas2x2()`) does not depend
-#' on the candidate `propDiff`, so the cumulative log e-process against the
-#' candidate null `thetaB - thetaA = delta`,
-#' `f_i(delta) := cumsum(computeEValueVecPropDiff(..., propDiff = delta))[i]`,
-#' is a sum over blocks of `solveRIPr2x2PropDiff()`'s KL-projection terms,
-#' each convex in `delta`. `f_i` is therefore convex with a single minimum,
-#' so `{delta : f_i(delta) < log(1 / alpha)}` is always a single interval or
-#' empty inside `(-1, 1)`, never several runs: the minimiser is located with
-#' a cheap interior guess (falling back to `stats::optimize()` only if the
-#' guess misses the set) and each bound, if any, with one `stats::uniroot()`
-#' call on either side of it.
+#' Inverts the test on all observed blocks by root-finding. A candidate
+#' `delta` for `thetaB - thetaA` is kept when the cumulative log e-process
+#' against the point null `thetaB - thetaA = delta`,
 #'
-#' With `runningIntersection = TRUE` block `i`'s interval is intersected
-#' with block `i - 1`'s, so a value that leaves the set never returns and
-#' the sequence is nested over blocks; with `FALSE` each block's interval is
-#' its raw root-finding result on the data seen so far.
+#'   f(delta) = sum_i log p(ya_i, yb_i | thetaA_i, thetaB_i)
+#'                    - log p(ya_i, yb_i | thetaA_i*(delta), thetaA_i*(delta) + delta),
+#'
+#' is below `log(1 / alpha)`. The numerator thetas are the predictive Beta
+#' posterior means from blocks `1..i-1` (`predictiveThetas2x2()`) and do not
+#' depend on `delta`; the denominator theta is the reverse information
+#' projection `solveRIPr2x2PropDiff()`, so each block's term is convex in
+#' `delta` and `f` has a single minimum. The kept set is therefore one
+#' interval or empty inside `(-1, 1)`: the minimiser is located with
+#' `stats::optimize()` and each bound with one `stats::uniroot()` call on
+#' either side of it.
 #'
 #' @param ya,yb integer vectors, the successes in group A and group B in each
 #'   block.
 #' @param na,nb integer vectors of length `length(ya)`, the block sizes.
 #' @param betaParameter list with `betaA1`, `betaA2`, `betaB1`, `betaB2`.
-#' @param alpha numeric in (0, 1); the sequence has coverage `1 - alpha`.
-#' @param runningIntersection logical, see above.
+#' @param alpha numeric in (0, 1); the interval has coverage `1 - alpha`.
 #'
-#' @return A two-column matrix, `lowerBound` and `upperBound` (`ncol = 2`):
-#'   block is the rowname, not a data column. At most one row per block, as
-#'   for the z-test; a block whose interval is empty has no row.
+#' @return A named numeric of length 2, `lowerBound` and `upperBound`, both
+#'   `NA` when every candidate is rejected.
 #' @noRd
 computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
                                                  betaParameter,
-                                                 alpha,
-                                                 runningIntersection = TRUE) {
-  nBlocks <- length(ya)
+                                                 alpha) {
   thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
   threshold <- log(1 / alpha)
   eps <- 1e-9
 
-  # f_i(delta): cumulative log e-process against thetaB - thetaA = delta,
-  # using the fixed eBeta numerator and the data through block i only.
-  logEProcessAtDelta <- function(delta, i) {
-    blocks <- seq_len(i)
-    nullThetaA <- vapply(blocks, function(j) {
+  # f(delta): cumulative log e-process on all blocks against the null
+  # thetaB - thetaA = delta, with the fixed eBeta numerator.
+  logEProcessAtDelta <- function(delta) {
+    nullThetaA <- vapply(seq_along(ya), function(j) {
       solveRIPr2x2PropDiff(
         thetaA = thetas[["thetaA"]][j], thetaB = thetas[["thetaB"]][j],
         na = na[j], nb = nb[j], propDiff = delta
@@ -267,146 +274,40 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
     }, numeric(1))
 
     logE <- logLikelihoodRatioMultiBern(
-      ya = ya[blocks], yb = yb[blocks], na = na[blocks], nb = nb[blocks],
-      numeratorThetaA = thetas[["thetaA"]][blocks],
-      numeratorThetaB = thetas[["thetaB"]][blocks],
+      ya = ya, yb = yb, na = na, nb = nb,
+      numeratorThetaA = thetas[["thetaA"]],
+      numeratorThetaB = thetas[["thetaB"]],
       denominatorThetaA = nullThetaA, denominatorThetaB = nullThetaA + delta,
       log = TRUE
     )
-    logE[i]
+    logE[length(ya)]
   }
 
-  # ncol = 2: only lowerBound, upperBound are data columns. Block is the
-  # rowname, since a block may contribute zero or one row.
-  confSeqMatrix <- matrix(numeric(0),
-    ncol = 2,
-    dimnames = list(NULL, c("lowerBound", "upperBound"))
-  )
+  # f is convex, so its minimiser splits the kept set into one root on each
+  # side; if even the minimum is above the threshold the set is empty.
+  minimiser <- stats::optimize(logEProcessAtDelta,
+    interval = c(-1 + eps, 1 - eps)
+  )[["minimum"]]
 
-  prevLower <- -1
-  prevUpper <- 1
-
-  # A cheap interior guess for each block: the posterior mean of
-  # thetaB - thetaA given blocks 1..i (unlike `thetas`, which holds out
-  # block i). f is convex, so any point where it is below the threshold lies
-  # strictly between the two roots; this avoids an optimize() search at
-  # every block, falling back to one only if the guess misses the set.
-  posteriorThetaA <- (betaParameter[["betaA1"]] + cumsum(ya)) /
-    (betaParameter[["betaA1"]] + betaParameter[["betaA2"]] + cumsum(na))
-  posteriorThetaB <- (betaParameter[["betaB1"]] + cumsum(yb)) /
-    (betaParameter[["betaB1"]] + betaParameter[["betaB2"]] + cumsum(nb))
-  interiorGuess <- pmin(pmax(posteriorThetaB - posteriorThetaA, -1 + eps), 1 - eps)
-
-  for (i in seq_len(nBlocks)) {
-    f <- function(delta) logEProcessAtDelta(delta, i)
-
-    minimiser <- interiorGuess[i]
-    minimum <- f(minimiser)
-    if (minimum >= threshold) {
-      minimiser <- stats::optimize(f, interval = c(-1 + eps, 1 - eps))[["minimum"]]
-      minimum <- f(minimiser)
-    }
-
-    if (minimum >= threshold) {
-      rawLower <- NA_real_
-      rawUpper <- NA_real_
-    } else {
-      rawLower <- if (f(-1 + eps) < threshold) {
-        -1
-      } else {
-        stats::uniroot(function(delta) f(delta) - threshold,
-          lower = -1 + eps, upper = minimiser
-        )[["root"]]
-      }
-
-      rawUpper <- if (f(1 - eps) < threshold) {
-        1
-      } else {
-        stats::uniroot(function(delta) f(delta) - threshold,
-          lower = minimiser, upper = 1 - eps
-        )[["root"]]
-      }
-    }
-
-    if (runningIntersection) {
-      lowerBound <- max(prevLower, rawLower)
-      upperBound <- min(prevUpper, rawUpper)
-    } else {
-      lowerBound <- rawLower
-      upperBound <- rawUpper
-    }
-
-    if (!is.na(lowerBound) && !is.na(upperBound) && lowerBound <= upperBound) {
-      newRow <- cbind("lowerBound" = lowerBound, "upperBound" = upperBound)
-      rownames(newRow) <- i
-      confSeqMatrix <- rbind(confSeqMatrix, newRow)
-      prevLower <- lowerBound
-      prevUpper <- upperBound
-    } else {
-      prevLower <- NA_real_
-      prevUpper <- NA_real_
-    }
+  if (logEProcessAtDelta(minimiser) >= threshold) {
+    return(c("lowerBound" = NA_real_, "upperBound" = NA_real_))
   }
 
-  return(confSeqMatrix)
-}
+  excess <- function(delta) logEProcessAtDelta(delta) - threshold
 
-#' Anytime-valid confidence sequence for the log odds ratio
-#' @noRd
-computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb,
-                                              betaParameter,
-                                              alpha, precision = 100,
-                                              logOddsBound = 40,
-                                              runningIntersection = TRUE) {
-  nBlocks <- length(ya)
-  thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
-  # Predictable plug-in alternative: B minus A on the logit scale.
-  # TODO: to be decided here
-  plugInLogOdds <- stats::qlogis(thetas[["thetaB"]]) -
-    stats::qlogis(thetas[["thetaA"]])
-
-  logOddsGrid <- seq(-logOddsBound, logOddsBound,
-    length.out = precision + 2
-  )[-c(1, precision + 2)]
-  logEValues <- numeric(precision)
-  inSet <- rep(TRUE, precision)
-
-  # ncol = 2: only lowerBound, upperBound are data columns. Block is the
-  # rowname, since a block may contribute zero, one or several rows.
-  confSeqMatrix <- matrix(numeric(0),
-    ncol = 2,
-    dimnames = list(NULL, c("lowerBound", "upperBound"))
-  )
-
-  for (i in seq_len(nBlocks)) {
-    # Under the running intersection a rejected candidate never returns, so
-    # its e-process is not advanced; otherwise every candidate is followed.
-    activeCandidates <- if (runningIntersection) which(inSet) else seq_len(precision)
-
-    for (j in activeCandidates) {
-      logEValues[j] <- logEValues[j] + logLikelihoodRatioFNCH(
-        ya = ya[i], yb = yb[i], na = na[i], nb = nb[i],
-        logOdds = plugInLogOdds[i], nullLogOdds = logOddsGrid[j], log = TRUE
-      )
-    }
-
-    notRejected <- logEValues < log(1 / alpha)
-    inSet <- if (runningIntersection) inSet & notRejected else notRejected
-
-    runs <- rle(inSet)
-    runEnds <- cumsum(runs[["lengths"]])[runs[["values"]]]
-    runStarts <- runEnds - runs[["lengths"]][runs[["values"]]] + 1
-
-    newRows <- cbind(
-      "lowerBound" = logOddsGrid[runStarts],
-      "upperBound" = logOddsGrid[runEnds]
-    )
-    rownames(newRows) <- rep(i, length(runStarts))
-
-    confSeqMatrix <- rbind(confSeqMatrix, newRows)
+  lowerBound <- if (excess(-1 + eps) < 0) {
+    -1
+  } else {
+    stats::uniroot(excess, lower = -1 + eps, upper = minimiser)[["root"]]
   }
 
-  return(confSeqMatrix)
+  upperBound <- if (excess(1 - eps) < 0) {
+    1
+  } else {
+    stats::uniroot(excess, lower = minimiser, upper = 1 - eps)[["root"]]
+  }
+
+  return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
 }
 
 # Helpers ----
@@ -435,7 +336,7 @@ computeEValueVecPropDiff <- function(ya, yb, na, nb, betaParameter,
     predictiveThetas2x2(ya, yb, na, nb, betaParameter)
   } else {
     predictiveThetas2x2PropDiff(ya, yb, na, nb, betaParameter,
-                                propDiff = propDiff
+      propDiff = propDiff
     )
   }
   thetaA <- thetas[["thetaA"]]
@@ -533,34 +434,16 @@ solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff) {
 
 ## logOdds ----
 
-# Cumulative log e-value against thetaA = thetaB (logOdds scale); length
-# nBlocks. Predictable plug-in alternative for block i: logit(thetaB) -
-# logit(thetaA) from the Beta posterior means given blocks 1..i-1.
-computeEValueVecLogOdds <- function(ya, yb, na, nb, betaParameter) {
-  thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
-  plugInLogOdds <- stats::qlogis(thetas[["thetaB"]]) -
-    stats::qlogis(thetas[["thetaA"]])
-
-  cumsum(mapply(
-    logLikelihoodRatioFNCH,
-    ya = ya, yb = yb, na = na, nb = nb, logOdds = plugInLogOdds,
-    MoreArgs = list(log = TRUE)
-  ))
+# Per-block conditional log likelihood at one logOdds (B minus A): given the
+# block's total ya + yb, yb is Fisher's noncentral hypergeometric with odds
+# exp(logOdds) on group B. A vector of length nBlocks; dFNCHypergeo() takes
+# scalar sizes, hence the loop over blocks.
+logLikelihoodFNCHVec <- function(ya, yb, na, nb, logOdds) {
+  mapply(function(ya, yb, na, nb) {
+    log(BiasedUrn::dFNCHypergeo(yb, nb, na, ya + yb, exp(logOdds)))
+  }, ya = ya, yb = yb, na = na, nb = nb)
 }
 
-
-# Conditional likelihood ratio at a fixed logOdds (B minus A) against the
-# null nullLogOdds, given the block's total successes ya + yb: under either
-# value yb is Fisher's noncentral hypergeometric with odds exp(logOdds) on group
-# B (central at 0).
-logLikelihoodRatioFNCH <- function(ya, yb, na, nb, logOdds,
-                                   nullLogOdds = 0, log = FALSE) {
-  totalSuccesses <- ya + yb
-  logLR <- log(BiasedUrn::dFNCHypergeo(yb, nb, na, totalSuccesses, exp(logOdds))) -
-    log(BiasedUrn::dFNCHypergeo(yb, nb, na, totalSuccesses, exp(nullLogOdds)))
-
-  if (log) logLR else exp(logLR)
-}
 
 # Log partition function of Fisher's noncentral hypergeometric distribution
 fnchLogPartition <- function(na, nb, totalSuccesses, logOdds) {
@@ -589,9 +472,9 @@ fnchLogPartition <- function(na, nb, totalSuccesses, logOdds) {
 # -log P0(ya at its feasible extreme), so the equation may have no root:
 # then NULL is returned and the caller uses the trivial e-factor 1.
 solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
-                          alternative = c("greater", "less"),
-                          nullLogOdds = 0,
-                          searchBound = 100) {
+                            alternative = c("greater", "less"),
+                            nullLogOdds = 0,
+                            searchBound = 100) {
   alternative <- match.arg(alternative)
 
   # logOdds is B minus A, so the weighted count is yb: group B goes first.
