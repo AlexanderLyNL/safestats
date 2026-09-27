@@ -120,8 +120,7 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Fill: Result ----
   eValueVec <- exp(logEValueVec)
   result[["estimate"]] <- c(
-    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb),
-    "propDiff" = sum(yb) / sum(nb) - sum(ya) / sum(na)
+    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb)
   )
   # x-axis of plot.saviTest(): the block index.
   result[["n1Vec"]] <- seq_len(nBlocks)
@@ -268,8 +267,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   # Fill: Result ----
   eValueVec <- exp(logEvalueVec)
   result[["estimate"]] <- c(
-    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb),
-    "propDiff" = sum(yb) / sum(nb) - sum(ya) / sum(na)
+    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb)
   )
   # x-axis of plot.saviTest(): the block index.
   result[["n1Vec"]] <- seq_len(nBlocks)
