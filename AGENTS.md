@@ -656,3 +656,42 @@ as that `domain` edge, the empty set as `NA`. In Decision 24's sequence,
 of intersecting afterwards, and stops at the first empty row (the rest
 stay `NA`); `FALSE` always uses `c(-1, 1)`. Running-intersection rows
 match the previous code to ~3e-5, `uniroot()`'s default tolerance.
+
+### 26. Grid-cumulated confidence sequence for propDiff
+
+Reopens Decision 4's grid, with the projection vectorised, for the
+blockwise sequence only; Decision 23's single interval on all data and
+`solveRIPr2x2PropDiff` are unchanged.
+`computeConfidenceSequence2x2PropDiff(ya, yb, na, nb, betaParameter,
+alpha, runningIntersection)` returns the `nBlocks x 2` matrix
+(`lowerBound`, `upperBound`) that `savi2x2TestStatPropDiff(
+wantConfidenceSequence = TRUE)` stores as `confSeqMatrix` (Decision 24),
+now linear in `nBlocks`:
+
+- Grid: `nGrid = 2000` candidates `delta` equally spaced strictly inside
+  `(-1, 1)`, always. `sdMax = sqrt(1 / (4 sum(na)) + 1 / (4 sum(nb)))`,
+  the worst-case Wald standard deviation of the difference on the observed
+  totals, is the scale of the last (narrowest) interval; when it would call
+  for more than 2000 points (`ceiling(2 / sdMax) > 2000`, i.e. the step
+  `1e-3` is coarser than `sdMax`) the grid stays at 2000 and a warning
+  says the bounds are conservative. `nGrid` is not a design field.
+- Cumulation: the log e-process against every candidate is held on the
+  grid and block `i` adds its term once. The null `thetaA` for all
+  candidates at once is the single root on the feasible interval of the
+  cubic `na (x - thetaA)(x + delta)(1 - x - delta) + nb (x + delta -
+  thetaB) x (1 - x)` (the KL derivative of `solveRIPr2x2PropDiff` times
+  `x (1 - x)(x + delta)(1 - x - delta)`), found by vectorised bisection.
+- Bounds: the kept candidates form one run (convexity, Decision 13).
+  Each bound is refined outward by the secant through the first rejected
+  node and its outer neighbour: it lies below the convex `f` outside them,
+  so its root brackets the true boundary from outside and the reported
+  interval contains the exact one. `-1`/`1` when the outermost candidate
+  is kept, `NA` when none is.
+- `runningIntersection = TRUE`: row `i` is the intersection with row
+  `i - 1`, rejected candidates are dropped from the update (they never
+  return), and the rows after the first empty one stay `NA`. `FALSE`:
+  every candidate stays active and each row is its own raw interval.
+
+Matches the root-finding rows of Decision 25 to ~3e-5 (`uniroot`'s
+tolerance) on ordinary tables, conservative by at most one grid step on
+extreme ones; about 3 s at 1000 blocks against ~7 min.

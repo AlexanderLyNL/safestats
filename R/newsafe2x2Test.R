@@ -7,7 +7,7 @@
 #' `thetaB - thetaA = propDiffMin` (Decision 6), `"greater"` only. Only
 #' eBeta gets a confidence interval (Decision 23), on all blocks;
 #' `wantConfidenceSequence = TRUE` adds the blockwise `confSeqMatrix`
-#' (Decision 24).
+#' (Decisions 24, 26).
 #' @noRd
 savi2x2TestStatPropDiff <- function(ya, yb,
                                     designObj = NULL, wantCi = TRUE,
@@ -68,26 +68,12 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Compute: confSeq ----
   result <- constructSaviTestObj("Two Proportions")
 
-  # eBeta only. Blockwise sequence (Decision 24): row i is the interval on
-  # blocks 1..i, so the cost is quadratic in nBlocks.
+  # eBeta only. Blockwise sequence (Decision 26): row i is the interval on
+  # blocks 1..i, cumulated on a grid of candidates.
   if (wantConfidenceSequence && eType == "eBeta") {
-    confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
-      dimnames = list(NULL, c("lowerBound", "upperBound"))
+    confSeqMatrix <- computeConfidenceSequence2x2PropDiff(
+      ya, yb, na, nb, betaParameter, alpha, runningIntersection
     )
-    domain <- c(-1, 1)
-    for (i in seq_len(nBlocks)) {
-      interval <- computeConfidenceInterval2x2PropDiff(
-        ya[1:i], yb[1:i], na[1:i], nb[1:i], betaParameter, alpha, domain
-      )
-      confSeqMatrix[i, ] <- interval
-      # Running intersection: the next block searches only inside this
-      # interval, so a value that leaves never returns; once empty, the
-      # remaining rows stay NA.
-      if (runningIntersection) {
-        if (anyNA(interval)) break
-        domain <- interval
-      }
-    }
     result[["confSeqMatrix"]] <- confSeqMatrix
     result[["confSeq"]] <- confSeqMatrix[nBlocks, ]
     result[["ciValue"]] <- 1 - alpha
@@ -384,6 +370,141 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
   }
 
   return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
+}
+
+#' Anytime-valid confidence sequence for propDiff, one row per block
+#'
+#' Row `i` inverts the eBeta test on blocks `1..i` against point nulls
+#' `thetaB - thetaA = propDiff`, on a fixed grid of candidates whose
+#' cumulative log e-process is advanced once per block (Decision 26). The
+#' grid has 2000 candidates; a warning says when its step is coarser than
+#' `sdMax`, the worst-case Wald standard deviation of the difference on the
+#' observed totals, the scale of the narrowest (last) interval. The null
+#' `thetaA` of every
+#' candidate is the root of a cubic, found for all candidates at once by
+#' bisection. The kept candidates form one run (convexity, Decision 13) and
+#' each bound is refined outward by a secant, so the reported interval
+#' contains the exact one.
+#'
+#' @return `nBlocks x 2` matrix, `lowerBound` and `upperBound`; `-1` / `1`
+#'   when the outermost candidate is kept, both `NA` when the set is empty.
+#'   With `runningIntersection` the rows are nested and stay `NA` after the
+#'   first empty row.
+#' @noRd
+computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
+                                                 betaParameter, alpha,
+                                                 runningIntersection) {
+  nBlocks <- length(ya)
+  thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
+  thetaA <- thetas[["thetaA"]]
+  thetaB <- thetas[["thetaB"]]
+  logThreshold <- log(1 / alpha)
+
+  # 2000 candidates strictly inside (-1, 1). The final interval has width
+  # on the scale of sdMax; warn when the grid step is coarser than that.
+  nGrid <- 2000L
+  sdMax <- sqrt(1 / (4 * sum(na)) + 1 / (4 * sum(nb)))
+  if (ceiling(2 / sdMax) > nGrid) {
+    warning("The confidence sequence grid step ", 2 / nGrid,
+      " is coarser than the standard deviation scale ", signif(sdMax, 3),
+      " of propDiff on these totals; the bounds are conservative")
+  }
+  grid <- seq(-1, 1, length.out = nGrid + 2L)[-c(1L, nGrid + 2L)]
+
+  # Feasible null thetaA per candidate: both thetaA and thetaA + delta in
+  # [0, 1].
+  gridLower <- pmax(0, -grid)
+  gridUpper <- pmin(1, 1 - grid)
+
+  # Cumulative log e-process per candidate; which candidates may still be
+  # kept, and which take part in the update (the same, plus two guard
+  # nodes on each side for the secant under the running intersection).
+  logEValues <- numeric(nGrid)
+  candidate <- rep(TRUE, nGrid)
+  active <- rep(TRUE, nGrid)
+  previous <- c(-1, 1)
+
+  confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
+    dimnames = list(NULL, c("lowerBound", "upperBound"))
+  )
+
+  for (i in seq_len(nBlocks)) {
+    delta <- grid[active]
+
+    # Null thetaA for every active candidate: the KL derivative of
+    # solveRIPr2x2PropDiff() times x (1 - x)(x + delta)(1 - x - delta) is a
+    # cubic in x, negative then positive across its single root on the
+    # feasible interval. 52 bisection steps reach machine precision.
+    lower <- gridLower[active]
+    upper <- gridUpper[active]
+    for (step in seq_len(52L)) {
+      x <- (lower + upper) / 2
+      cubic <- na[i] * (x - thetaA[i]) * (x + delta) * (1 - x - delta) +
+        nb[i] * (x + delta - thetaB[i]) * x * (1 - x)
+      positive <- cubic > 0
+      upper[positive] <- x[positive]
+      lower[!positive] <- x[!positive]
+    }
+    nullThetaA <- (lower + upper) / 2
+
+    # Block i's log likelihood ratio term against each active candidate.
+    logEValues[active] <- logEValues[active] +
+      stats::dbinom(ya[i], na[i], thetaA[i], log = TRUE) +
+      stats::dbinom(yb[i], nb[i], thetaB[i], log = TRUE) -
+      stats::dbinom(ya[i], na[i], nullThetaA, log = TRUE) -
+      stats::dbinom(yb[i], nb[i], nullThetaA + delta, log = TRUE)
+
+    # Kept candidates; one run by convexity.
+    f <- logEValues - logThreshold
+    kept <- candidate & f < 0
+    if (!any(kept)) {
+      if (runningIntersection) break
+      next
+    }
+    keptRange <- range(which(kept))
+
+    # Refine each bound outward: the secant through the first rejected node
+    # and its outer neighbour lies below the convex f outside them, so its
+    # root is outside the true boundary. At the grid edge the bound is the
+    # rejected node itself, or -1 / 1 when even the outermost node is kept.
+    lowerBound <- if (keptRange[1] == 1L) {
+      -1
+    } else {
+      j <- keptRange[1] - 1L
+      if (j == 1L) {
+        grid[j]
+      } else {
+        grid[j] - f[j] * (grid[j] - grid[j - 1L]) / (f[j] - f[j - 1L])
+      }
+    }
+    upperBound <- if (keptRange[2] == nGrid) {
+      1
+    } else {
+      j <- keptRange[2] + 1L
+      if (j == nGrid) {
+        grid[j]
+      } else {
+        grid[j] - f[j] * (grid[j + 1L] - grid[j]) / (f[j + 1L] - f[j])
+      }
+    }
+
+    # Running intersection: a candidate that leaves never returns, so drop
+    # it from the update, keeping the two nodes beyond the run on each side
+    # up to date for the secant; intersect with the previous row, and once
+    # empty the remaining rows stay NA.
+    if (runningIntersection) {
+      candidate <- kept
+      active <- seq_len(nGrid) >= keptRange[1] - 2L &
+        seq_len(nGrid) <= keptRange[2] + 2L
+      lowerBound <- max(lowerBound, previous[1])
+      upperBound <- min(upperBound, previous[2])
+      if (lowerBound > upperBound) break
+      previous <- c(lowerBound, upperBound)
+    }
+    confSeqMatrix[i, ] <- c(lowerBound, upperBound)
+  }
+
+  return(confSeqMatrix)
 }
 
 # Helpers ----
