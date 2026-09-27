@@ -606,3 +606,12 @@ the log e-value on all blocks against `thetaB - thetaA = propDiff`, minus
 null `thetaA` from `solveRIPr2x2PropDiff`. One interval for the last block
 (all data): `optimize()` on `(-1, 1)`, `uniroot()` on each side, `-1`/`1`
 when the edge is still inside, `NA` when empty. Output unchanged to ~1e-15.
+
+### 22. Data checks and estimate in both test functions
+
+`savi2x2TestStatPropDiff` and `savi2x2TestStatLogOdds`, after broadcasting
+`na`, `nb` from the design, stop unless `ya`, `yb`, `na`, `nb` all have
+length `nBlocks`, are finite integers, `0 <= ya <= na`, `0 <= yb <= nb`
+and `na, nb >= 1`. The other argument checks stay for the final step.
+Both return `estimate = c(thetaA, thetaB, propDiff)`: the observed pooled
+proportions and their difference, B minus A.

@@ -23,6 +23,18 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   if (length(na) == 1L) na <- rep(na, nBlocks)
   if (length(nb) == 1L) nb <- rep(nb, nBlocks)
 
+  # Data checks: one count and size per block, counts within their sizes.
+  if (length(yb) != nBlocks || length(na) != nBlocks ||
+      length(nb) != nBlocks) {
+    stop("ya, yb, na and nb must have one value per block")
+  }
+  counts <- c(ya, yb, na, nb)
+  if (!all(is.finite(counts)) || any(counts %% 1 != 0) ||
+      any(c(ya, yb) < 0) || any(c(na, nb) < 1) ||
+      any(ya > na) || any(yb > nb)) {
+    stop("ya, yb must be integers in 0..na, 0..nb; na, nb positive integers")
+  }
+
   # Compute: eValueVec ----
   # Numerator: predictable thetas from blocks 1..i-1 only.
   # eBeta (twoSided): independent Beta posterior means.
@@ -108,7 +120,8 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Fill: Result ----
   eValueVec <- exp(logEValueVec)
   result[["estimate"]] <- c(
-    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb)
+    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb),
+    "propDiff" = sum(yb) / sum(nb) - sum(ya) / sum(na)
   )
   # x-axis of plot.saviTest(): the block index.
   result[["n1Vec"]] <- seq_len(nBlocks)
@@ -156,6 +169,18 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   nb <- designObj[["nPlan"]][["nb"]]
   if (length(na) == 1L) na <- rep(na, nBlocks)
   if (length(nb) == 1L) nb <- rep(nb, nBlocks)
+
+  # Data checks: one count and size per block, counts within their sizes.
+  if (length(yb) != nBlocks || length(na) != nBlocks ||
+      length(nb) != nBlocks) {
+    stop("ya, yb, na and nb must have one value per block")
+  }
+  counts <- c(ya, yb, na, nb)
+  if (!all(is.finite(counts)) || any(counts %% 1 != 0) ||
+      any(c(ya, yb) < 0) || any(c(na, nb) < 1) ||
+      any(ya > na) || any(yb > nb)) {
+    stop("ya, yb must be integers in 0..na, 0..nb; na, nb positive integers")
+  }
 
   result <- constructSaviTestObj("Two Proportions")
 
@@ -243,7 +268,8 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   # Fill: Result ----
   eValueVec <- exp(logEvalueVec)
   result[["estimate"]] <- c(
-    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb)
+    "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb),
+    "propDiff" = sum(yb) / sum(nb) - sum(ya) / sum(na)
   )
   # x-axis of plot.saviTest(): the block index.
   result[["n1Vec"]] <- seq_len(nBlocks)
