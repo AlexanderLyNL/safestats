@@ -80,8 +80,9 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 #'
 #' Every block is conditioned on its total successes (Decision 7).
 #' `eType = "grow"`: the fixed alternative `logOddsMin` (Decision 15),
-#' `"greater"` only. The confidence interval
-#' (Decision 17) inverts that grow e-process on point nulls.
+#' `"greater"` only. `eType = "eGauss"`: N(0, 1) mixture on a fixed grid
+#' (Decision 18), `"twoSided"` only. The confidence interval (Decision 17)
+#' inverts the test's own e-process on point nulls.
 #' @noRd
 savi2x2TestStatLogOdds <- function(ya, yb,
                                    designObj = NULL, wantCi = TRUE) {
@@ -99,20 +100,45 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 
   result <- constructSaviTestObj("Two Proportions")
 
-  # grow: eValueVec ----
-  # cumulative eValueVec
-  logPLogOddsMin <- logLikelihoodFNCHVec(ya, yb, na, nb, logOddsMin)
+  # Numerator: cumulative log likelihood of blocks 1..i under the alternative.
   logP0 <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
-  logEvalueVec <- cumsum(logPLogOddsMin - logP0)
+  logPCum <- switch(eType,
+    # grow: the fixed alternative logOddsMin (Decision 15).
+    grow = cumsum(logLikelihoodFNCHVec(ya, yb, na, nb, logOddsMin)),
+    # eGauss: N(0, 1) prior on a fixed logOdds grid, twoSided (Decision 18).
+    eGauss = {
+      logOddsGrid <- seq(-20, 20, length.out = 2000)
+      logPrior <- stats::dnorm(logOddsGrid, log = TRUE)
+      logPrior <- logPrior - max(logPrior) -
+        log(sum(exp(logPrior - max(logPrior))))
+      # nBlocks x grid: FNCH log density of yb at every grid logOdds.
+      logPGrid <- t(mapply(function(ya, yb, na, nb) {
+        k <- max(0, ya + yb - na):min(nb, ya + yb)
+        logTerms <- outer(logOddsGrid, k) +
+          rep(lchoose(nb, k) + lchoose(na, ya + yb - k),
+              each = length(logOddsGrid))
+        shift <- apply(logTerms, 1, max)
+        logTerms[, yb - k[1] + 1] - shift - log(rowSums(exp(logTerms - shift)))
+      }, ya = ya, yb = yb, na = na, nb = nb))
+      # Cumulate over blocks, then mix over the grid (log-sum-exp per block).
+      logMix <- sweep(
+        matrix(apply(logPGrid, 2, cumsum), nrow = nBlocks), 2, logPrior, "+"
+      )
+      shift <- apply(logMix, 1, max)
+      shift + log(rowSums(exp(logMix - shift)))
+    },
+    stop("eType ", eType, " is not implemented for logOdds")
+  )
+  logEvalueVec <- logPCum - cumsum(logP0)
 
-  # grow: confSeq ----
+  # confSeq ----
   # The alternative is fixed before the data, so the log e-value on all
   # blocks against the point null logOdds = delta is the numerator's total
   # log likelihood minus the FNCH log likelihood at delta (Decision 17). It
   # is convex in delta, so the kept set {delta : f < log(1 / alpha)} is one
   # interval or empty.
-  fLogOdds <- function(logPLogOddsMin, logOdds, alpha) {
-    sum(logPLogOddsMin) -
+  fLogOdds <- function(logPTotal, logOdds, alpha) {
+    logPTotal -
       sum(logLikelihoodFNCHVec(ya, yb, na, nb, logOdds)) -
       log(1 / alpha)
   }
@@ -122,29 +148,29 @@ savi2x2TestStatLogOdds <- function(ya, yb,
     # optimize() and uniroot() vary the one argument left unnamed, logOdds.
     minimiser <- stats::optimize(fLogOdds,
       interval = c(-logOddsBound, logOddsBound),
-      logPLogOddsMin = logPLogOddsMin, alpha = alpha
+      logPTotal = logPCum[nBlocks], alpha = alpha
     )[["minimum"]]
 
-    if (fLogOdds(logPLogOddsMin, minimiser, alpha) >= 0) {
+    if (fLogOdds(logPCum[nBlocks], minimiser, alpha) >= 0) {
       # Even the conditional MLE is rejected: the set is empty.
       confSeq <- c("lowerBound" = NA_real_, "upperBound" = NA_real_)
     } else {
       # Still inside at the search edge: report the edge itself, the
       # interval is only claimed on (-logOddsBound, logOddsBound).
-      lowerBound <- if (fLogOdds(logPLogOddsMin, -logOddsBound, alpha) < 0) {
+      lowerBound <- if (fLogOdds(logPCum[nBlocks], -logOddsBound, alpha) < 0) {
         -logOddsBound
       } else {
         stats::uniroot(fLogOdds,
           lower = -logOddsBound, upper = minimiser,
-          logPLogOddsMin = logPLogOddsMin, alpha = alpha
+          logPTotal = logPCum[nBlocks], alpha = alpha
         )[["root"]]
       }
-      upperBound <- if (fLogOdds(logPLogOddsMin, logOddsBound, alpha) < 0) {
+      upperBound <- if (fLogOdds(logPCum[nBlocks], logOddsBound, alpha) < 0) {
         logOddsBound
       } else {
         stats::uniroot(fLogOdds,
           lower = minimiser, upper = logOddsBound,
-          logPLogOddsMin = logPLogOddsMin, alpha = alpha
+          logPTotal = logPCum[nBlocks], alpha = alpha
         )[["root"]]
       }
       confSeq <- c("lowerBound" = lowerBound, "upperBound" = upperBound)
@@ -190,7 +216,7 @@ designSavi2x2 <- function(
   na, nb, propDiffMin = NULL, logOddsMin = NULL,
   alpha = 0.05, power = NULL, h0 = 0,
   alternative = c("twoSided", "greater"),
-  eType = c("eBeta", "grow"),
+  eType = c("eBeta", "grow", "eGauss"),
   betaParameter = NULL,
   runningIntersection = NULL
 ) {

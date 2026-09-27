@@ -560,3 +560,19 @@ for any alternative fixed before the data, mixtures included, so it can
 be wired in later with the same call). The design's
 `runningIntersection` is now read by neither test. Decision 10's
 blockwise sequence is shelved, not contradicted.
+
+### 18. eGauss on logOdds, fixed-grid marginal
+
+Reopens Decision 16, `"twoSided"` only. `designSavi2x2(eType = "eGauss")`
+with `logOddsMin = NULL`. Hardcoded inside `savi2x2TestStatLogOdds`: prior
+Normal(0, 1) on 2000 equally spaced `logOdds` in `[-20, 20]`, normalised
+over the grid. The numerator after block `i` is the grid mixture of the
+cumulative conditional likelihood,
+`logPCum[i] = logSumExp(logPrior + sum_{j <= i} logP_j(grid))`, with
+`logP_j` the FNCH log density of `yb_j` (B minus A), computed per block for
+the whole grid at once (`outer` over grid and feasible `yb`, shifted by the
+row max). No posterior loop: the product of the predictive factors
+telescopes to this mixture. `logEValueVec = logPCum - cumsum(logP0)`. The
+confidence interval is Decision 17 unchanged, with the numerator total
+`logPCum[nBlocks]` in place of grow's. Checked against `cond`'s
+`computeEGaussGrid` with the groups swapped. No new helpers.
