@@ -197,7 +197,9 @@ designSavi2x2 <- function(
       paste(unlist(result[["betaParameter"]]), collapse = " ")
   )
   result[["eType"]] <- eType
-  result[["runningIntersection"]] <- runningIntersection
+  if (!is.null(runningIntersection)) {
+    result[["runningIntersection"]] <- runningIntersection
+  }
   result[["alpha"]] <- alpha
   result[["alternative"]] <- alternative
   result[["h0"]] <- c("propDiff" = h0)
