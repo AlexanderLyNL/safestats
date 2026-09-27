@@ -730,7 +730,7 @@ updating is unchanged: the grid posterior still absorbs block 1, and blocks
 with `logMixCum` Decision 18's grid mixture of the cumulative conditional
 likelihood. When `solveUmpLogOdds` returns `NULL` (the KL target is out of
 reach, e.g. a degenerate total) block 1's factor is `1`, i.e. `logPCum[1] =
-logP0[1]`. The plug-in is solved at the design's `alpha`. `"greater"` is
+logPNull[1]`. The plug-in is solved at the design's `alpha`. `"greater"` is
 used for the first block even though eGauss is `"twoSided"`; the two-sided
 UMP rule (Decision 8) is still open, as is the same replacement for
 `propDiff` and for grow (grow is untouched: fixed `logOddsMin` in every

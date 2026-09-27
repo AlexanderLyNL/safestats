@@ -153,11 +153,12 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 
   result <- constructSaviTestObj("Two Proportions")
 
-  # Numerator: cumulative log likelihood of blocks 1..i under the alternative.
-  logP0 <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
+  # Per-block null log likelihood (conditional on the total), then the
+  # cumulative log likelihood of blocks 1..i under the alternative.
+  logPNull <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
   logPCum <- switch(eType,
     # grow: the fixed alternative logOddsMin (Decision 15).
-    grow = cumsum(logLikelihoodFNCHVec(ya, yb, na, nb, logOddsMin)),
+    grow = cumsum(logLikelihoodFNCH(ya, yb, na, nb, logOddsMin)),
     # eGauss: N(0, 1) prior on a fixed logOdds grid, twoSided (Decision 18).
     # The first block's factor is the UMP plug-in instead of the prior
     # mixture; the posterior still absorbs block 1 (Decision 28).
@@ -186,15 +187,15 @@ savi2x2TestStatLogOdds <- function(ya, yb,
       logOddsUmp <- solveUmpLogOdds(na[1], nb[1], ya[1] + yb[1], alpha,
                                     "greater")
       logPUmp <- if (is.null(logOddsUmp)) {
-        logP0[1]
+        logPNull[1]
       } else {
-        logLikelihoodFNCHVec(ya[1], yb[1], na[1], nb[1], logOddsUmp)
+        logLikelihoodFNCH(ya[1], yb[1], na[1], nb[1], logOddsUmp)
       }
       logPUmp + logMixCum - logMixCum[1]
     },
     stop("eType ", eType, " is not implemented for logOdds")
   )
-  logEvalueVec <- logPCum - cumsum(logP0)
+  logEValueVec <- logPCum - cumsum(logPNull)
 
   # Compute: confSeq ----
   # grow: no confidence interval until its construction is agreed.
@@ -209,7 +210,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   }
 
   # Fill: Result ----
-  eValueVec <- exp(logEvalueVec)
+  eValueVec <- exp(logEValueVec)
   result[["estimate"]] <- c(
     "thetaA" = sum(ya) / sum(na), "thetaB" = sum(yb) / sum(nb)
   )
@@ -507,7 +508,7 @@ computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
   # f: find zero points against 1 / alpha
   fLogOdds <- function(logOdds) {
     logPTotal -
-      sum(logLikelihoodFNCHVec(ya, yb, na, nb, logOdds)) -
+      sum(logLikelihoodFNCH(ya, yb, na, nb, logOdds)) -
       log(1 / alpha)
   }
 
@@ -626,7 +627,7 @@ solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff) {
 # block's total ya + yb, yb is Fisher's noncentral hypergeometric with odds
 # exp(logOdds) on group B. A vector of length nBlocks; dFNCHypergeo() takes
 # scalar sizes, hence the loop over blocks.
-logLikelihoodFNCHVec <- function(ya, yb, na, nb, logOdds) {
+logLikelihoodFNCH <- function(ya, yb, na, nb, logOdds) {
   mapply(function(ya, yb, na, nb) {
     log(BiasedUrn::dFNCHypergeo(yb, nb, na, ya + yb, exp(logOdds)))
   }, ya = ya, yb = yb, na = na, nb = nb)
