@@ -1,5 +1,30 @@
 # Test functions ----
 
+# Conditional e-factor of one block at a UMP plug-in logOdds: the log
+# likelihood of yb given the block's total under the alternative (FNCH with
+# odds exp(logOdds) on group B) minus the same under the null
+# (hypergeometric). twoSided averages the two one-sided e-factors.
+savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
+                               alternative = c("twoSided", "greater", "less")) {
+  alternative <- match.arg(alternative)
+  logLikelihoodNull <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
+
+  # greater: the UMP logOdds on (0, Inf). TODO: find root in positive
+  logOddsPositive <- 1
+  # less: the UMP logOdds on (-Inf, 0). TODO: find root in negative
+  logOddsNegative <- -1
+
+  logLikelihoodPositive <- logLikelihoodFNCH(ya, yb, na, nb, logOddsPositive)
+  logLikelihoodNegative <- logLikelihoodFNCH(ya, yb, na, nb, logOddsNegative)
+
+  switch(alternative,
+    "twoSided" = 0.5 * exp(logLikelihoodPositive - logLikelihoodNull) +
+      0.5 * exp(logLikelihoodNegative - logLikelihoodNull),
+    "greater" = exp(logLikelihoodPositive - logLikelihoodNull),
+    "less" = exp(logLikelihoodNegative - logLikelihoodNull)
+  )
+}
+
 #' Safe anytime-valid 2x2 test for propDiff
 #'
 #' `eType = "eBeta"`: the unrestricted numerator of Decision 3 (`twoSided`
@@ -27,6 +52,12 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   nBlocks <- length(ya)
   if (length(na) == 1L) na <- rep(na, nBlocks)
   if (length(nb) == 1L) nb <- rep(nb, nBlocks)
+
+  if (nBlocks == 1L) {
+    warnings("There is only 1 table, switched to conditional e-variable")
+  }
+
+  eValueUmp <- savi2x2TestStatUmp(ya = ya[1], yb = yb[1], na = na[1], nb = nb[1], alpha = alpha, alternative = alternative)
 
   # Data checks: one count and size per block, counts within their sizes.
   if (length(yb) != nBlocks || length(na) != nBlocks ||
@@ -72,6 +103,8 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   )
   logEValueVec <- logLikelihoodAlternative - logLikelihoodNull
 
+  # multiplied by ump conditional e-variable
+  logEValueVec <- logEValueVec + log(eValueUmp)
 
   # Compute: confSeq ----
   # confidence interval or sequences only in eBeta
