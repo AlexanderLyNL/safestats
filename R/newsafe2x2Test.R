@@ -1,4 +1,4 @@
-# Testing fnts ----
+# Test functions ----
 
 #' Safe anytime-valid 2x2 test for propDiff
 #'
@@ -231,7 +231,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   return(result)
 }
 
-# Design fnts ----
+# Design functions ----
 # TODO: add "less" when direction is clean in `alternative`
 
 #' Design a safe anytime-valid 2x2 test
@@ -536,9 +536,7 @@ computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
   return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
 }
 
-# Helpers ----
-
-## propDiff ----
+# Helpers: propDiff ----
 
 # Predictable plug-in for the numerator, for block i given the counts of
 # blocks 1 to i - 1 only. predictiveThetas2x2(): the independent Beta
@@ -622,7 +620,7 @@ solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff) {
   )[["root"]]
 }
 
-## logOdds ----
+# Helpers: logOdds ----
 
 # Per-block conditional log likelihood at one logOdds (B minus A): given the
 # block's total ya + yb, yb is Fisher's noncentral hypergeometric with odds
