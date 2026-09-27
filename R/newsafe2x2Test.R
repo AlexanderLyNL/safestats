@@ -11,8 +11,7 @@
 #' @noRd
 savi2x2TestStatPropDiff <- function(ya, yb,
                                     designObj = NULL, wantCi = TRUE,
-                                    wantConfidenceSequence = FALSE) {
-  # TODO: THESE ARGS CHECKING WILL BE DONE FINAL STEP
+                                    wantConfidenceSequence = FALSE, ciValue = NULL) {
   # grow must have a propDiffMin; eBeta must have none and be twoSided
   propDiffMin <- designObj[["esMin"]]
   alternative <- designObj[["alternative"]]
@@ -22,6 +21,8 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   eType <- designObj[["eType"]]
   na <- designObj[["nPlan"]][["na"]]
   nb <- designObj[["nPlan"]][["nb"]]
+
+
 
   nBlocks <- length(ya)
   if (length(na) == 1L) na <- rep(na, nBlocks)
@@ -68,21 +69,22 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   # Compute: confSeq ----
   result <- constructSaviTestObj("Two Proportions")
 
-  # eBeta only. Blockwise sequence (Decision 26): row i is the interval on
-  # blocks 1..i, cumulated on a grid of candidates.
+  # confidence interval or sequences only in eBeta
+  # use 1 - alpha unless user specified
+  ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
+  result[["ciValue"]] <- ciValue
+
   if (wantConfidenceSequence && eType == "eBeta") {
     confSeqMatrix <- computeConfidenceSequence2x2PropDiff(
-      ya, yb, na, nb, betaParameter, alpha, runningIntersection
+      ya, yb, na, nb, betaParameter, 1 - ciValue, runningIntersection
     )
     result[["confSeqMatrix"]] <- confSeqMatrix
     result[["confSeq"]] <- confSeqMatrix[nBlocks, ]
-    result[["ciValue"]] <- 1 - alpha
   } else if (wantCi && eType == "eBeta") {
-    # One interval on all blocks (Decision 23).
+    # One confidence interval on last block
     result[["confSeq"]] <- computeConfidenceInterval2x2PropDiff(
-      ya, yb, na, nb, betaParameter, alpha
+      ya, yb, na, nb, betaParameter, 1 - ciValue
     )
-    result[["ciValue"]] <- 1 - alpha
   }
 
   # Fill: Result ----
@@ -124,8 +126,7 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 #' (Decision 17), inverting its e-process on point nulls; grow gets none.
 #' @noRd
 savi2x2TestStatLogOdds <- function(ya, yb,
-                                   designObj = NULL, wantCi = TRUE) {
-  # TODO: THESE ARGS CHECKING WILL BE DONE FINAL STEP
+                                   designObj = NULL, wantCi = TRUE, ciValue = NULL) {
   # grow must have a logOddsMin > 0
   nBlocks <- length(ya)
   logOddsMin <- designObj[["esMin"]]
@@ -182,13 +183,16 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   )
   logEvalueVec <- logPCum - cumsum(logP0)
 
-  # confSeq ----
+  # Compute: confSeq ----
   # grow: no confidence interval until its construction is agreed.
+  # confidence interval or sequences only in eBeta
+  # use 1 - alpha unless user specified
+  ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
+  result[["ciValue"]] <- ciValue
   if (wantCi && eType == "eGauss") {
     result[["confSeq"]] <- computeConfidenceInterval2x2LogOdds(
       ya, yb, na, nb, logPCum[nBlocks], alpha
     )
-    result[["ciValue"]] <- 1 - alpha
   }
 
   # Fill: Result ----
