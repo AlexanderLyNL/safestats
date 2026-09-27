@@ -695,3 +695,18 @@ now linear in `nBlocks`:
 Matches the root-finding rows of Decision 25 to ~3e-5 (`uniroot`'s
 tolerance) on ordinary tables, conservative by at most one grid step on
 extreme ones; about 3 s at 1000 blocks against ~7 min.
+
+### 27. logOdds confidence interval isolated
+
+The inline eGauss interval of Decisions 17 and 18 moves out of
+`savi2x2TestStatLogOdds` into `computeConfidenceInterval2x2LogOdds(ya,
+yb, na, nb, logPTotal, alpha, logOddsBound = 40)`, under `# Confidence
+Interval ----`, as Decision 23 did for `propDiff`. `logPTotal` is the
+numerator's total log likelihood after the last block (`logPCum[nBlocks]`),
+and `fLogOdds(delta)` is `logPTotal` minus the FNCH log likelihood at
+`delta` minus `log(1 / alpha)`; root finding is unchanged. Returns
+`c(lowerBound, upperBound)`, `-logOddsBound` / `logOddsBound` when the
+edge is still inside. The empty set is reported as the whole range with a
+warning, as `computeConfidenceInterval2x2PropDiff` now reports `c(-1, 1)`
+(reopens the `NA` of Decisions 17 and 23). `savi2x2TestStatLogOdds` calls
+it for eGauss only; grow still gets no interval (Decision 19).

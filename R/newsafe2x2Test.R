@@ -183,52 +183,11 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   logEvalueVec <- logPCum - cumsum(logP0)
 
   # confSeq ----
-  # The alternative is fixed before the data, so the log e-value on all
-  # blocks against the point null logOdds = delta is the numerator's total
-  # log likelihood minus the FNCH log likelihood at delta (Decision 17). It
-  # is convex in delta, so the kept set {delta : f < log(1 / alpha)} is one
-  # interval or empty.
-  fLogOdds <- function(logPTotal, logOdds, alpha) {
-    logPTotal -
-      sum(logLikelihoodFNCHVec(ya, yb, na, nb, logOdds)) -
-      log(1 / alpha)
-  }
-
   # grow: no confidence interval until its construction is agreed.
   if (wantCi && eType == "eGauss") {
-    logOddsBound <- 40
-    # optimize() and uniroot() vary the one argument left unnamed, logOdds.
-    minimiser <- stats::optimize(fLogOdds,
-      interval = c(-logOddsBound, logOddsBound),
-      logPTotal = logPCum[nBlocks], alpha = alpha
-    )[["minimum"]]
-
-    if (fLogOdds(logPCum[nBlocks], minimiser, alpha) >= 0) {
-      # Even the conditional MLE is rejected: the set is empty.
-      confSeq <- c("lowerBound" = NA_real_, "upperBound" = NA_real_)
-    } else {
-      # Still inside at the search edge: report the edge itself, the
-      # interval is only claimed on (-logOddsBound, logOddsBound).
-      lowerBound <- if (fLogOdds(logPCum[nBlocks], -logOddsBound, alpha) < 0) {
-        -logOddsBound
-      } else {
-        stats::uniroot(fLogOdds,
-          lower = -logOddsBound, upper = minimiser,
-          logPTotal = logPCum[nBlocks], alpha = alpha
-        )[["root"]]
-      }
-      upperBound <- if (fLogOdds(logPCum[nBlocks], logOddsBound, alpha) < 0) {
-        logOddsBound
-      } else {
-        stats::uniroot(fLogOdds,
-          lower = minimiser, upper = logOddsBound,
-          logPTotal = logPCum[nBlocks], alpha = alpha
-        )[["root"]]
-      }
-      confSeq <- c("lowerBound" = lowerBound, "upperBound" = upperBound)
-    }
-
-    result[["confSeq"]] <- confSeq
+    result[["confSeq"]] <- computeConfidenceInterval2x2LogOdds(
+      ya, yb, na, nb, logPCum[nBlocks], alpha
+    )
     result[["ciValue"]] <- 1 - alpha
   }
 
@@ -506,6 +465,58 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
   }
 
   return(confSeqMatrix)
+}
+
+#' Anytime-valid confidence interval for logOdds on all blocks
+#'
+#' Inverts the conditional test on point nulls `logOdds = delta`. The
+#' alternative is fixed before the data, so the log e-value on all blocks
+#' against `delta` is `logPTotal`, the numerator's total log likelihood,
+#' minus the FNCH log likelihood of the data at `delta` (Decision 17). That
+#' log likelihood is concave in `delta`, so `f` is convex with its minimum
+#' at the conditional MLE and the kept set `{delta : f < log(1 / alpha)}`
+#' is one interval or empty. The interval is only claimed on
+#' `(-logOddsBound, logOddsBound)`.
+#'
+#' @param logPTotal The numerator's cumulative log likelihood after the
+#'   last block, e.g. `logPCum[nBlocks]` of `savi2x2TestStatLogOdds()`.
+#' @return Named numeric `c(lowerBound, upperBound)`; `-logOddsBound` /
+#'   `logOddsBound` when that edge is still inside, and the whole range
+#'   with a warning when the set is empty.
+#' @noRd
+computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
+                                                alpha, logOddsBound = 40) {
+  # product of the conditional e-variable against H0: logOdds = delta
+  # f: find zero points against 1 / alpha
+  fLogOdds <- function(logOdds) {
+    logPTotal -
+      sum(logLikelihoodFNCHVec(ya, yb, na, nb, logOdds)) -
+      log(1 / alpha)
+  }
+
+  minimiser <- stats::optimize(fLogOdds,
+    interval = c(-logOddsBound, logOddsBound)
+  )[["minimum"]]
+
+  # min > 1 / alpha, no confidence interval found
+  if (fLogOdds(minimiser) >= 0) {
+    warning("No confidence interval is found!")
+    return(c("lowerBound" = -logOddsBound, "upperBound" = logOddsBound))
+  }
+
+  # Still inside at the search edge: the bound is the edge itself.
+  lowerBound <- if (fLogOdds(-logOddsBound) < 0) {
+    -logOddsBound
+  } else {
+    stats::uniroot(fLogOdds, lower = -logOddsBound, upper = minimiser)[["root"]]
+  }
+  upperBound <- if (fLogOdds(logOddsBound) < 0) {
+    logOddsBound
+  } else {
+    stats::uniroot(fLogOdds, lower = minimiser, upper = logOddsBound)[["root"]]
+  }
+
+  return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
 }
 
 # Helpers ----
