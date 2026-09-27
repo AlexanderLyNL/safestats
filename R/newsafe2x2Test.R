@@ -81,8 +81,8 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 #' Every block is conditioned on its total successes (Decision 7).
 #' `eType = "grow"`: the fixed alternative `logOddsMin` (Decision 15),
 #' `"greater"` only. `eType = "eGauss"`: N(0, 1) mixture on a fixed grid
-#' (Decision 18), `"twoSided"` only. The confidence interval (Decision 17)
-#' inverts the test's own e-process on point nulls.
+#' (Decision 18), `"twoSided"` only. Only eGauss gets a confidence interval
+#' (Decision 17), inverting its e-process on point nulls; grow gets none.
 #' @noRd
 savi2x2TestStatLogOdds <- function(ya, yb,
                                    designObj = NULL, wantCi = TRUE) {
@@ -143,7 +143,8 @@ savi2x2TestStatLogOdds <- function(ya, yb,
       log(1 / alpha)
   }
 
-  if (wantCi) {
+  # grow: no confidence interval until its construction is agreed.
+  if (wantCi && eType == "eGauss") {
     logOddsBound <- 40
     # optimize() and uniroot() vary the one argument left unnamed, logOdds.
     minimiser <- stats::optimize(fLogOdds,

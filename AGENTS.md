@@ -576,3 +576,9 @@ telescopes to this mixture. `logEValueVec = logPCum - cumsum(logP0)`. The
 confidence interval is Decision 17 unchanged, with the numerator total
 `logPCum[nBlocks]` in place of grow's. Checked against `cond`'s
 `computeEGaussGrid` with the groups swapped. No new helpers.
+
+### 19. No confidence interval for grow on logOdds
+
+Reopens Decision 17 for grow: `savi2x2TestStatLogOdds(eType = "grow")`
+sets no `confSeq` or `ciValue`, whatever `wantCi`; its construction is
+still under discussion. eGauss keeps Decision 17's interval (Decision 18).
