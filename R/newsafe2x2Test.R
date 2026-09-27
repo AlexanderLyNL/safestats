@@ -123,7 +123,8 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 #' `eType = "grow"`: the fixed alternative `logOddsMin` (Decision 15),
 #' `"greater"` only. `eType = "eGauss"`: N(0, 1) mixture on a fixed grid
 #' (Decision 18), `"twoSided"` only. Only eGauss gets a confidence interval
-#' (Decision 17), inverting its e-process on point nulls; grow gets none.
+#' (Decision 17), inverting its e-process on point nulls, with the first
+#' block's factor the UMP plug-in (Decision 28); grow gets none.
 #' @noRd
 savi2x2TestStatLogOdds <- function(ya, yb,
                                    designObj = NULL, wantCi = TRUE, ciValue = NULL) {
@@ -158,6 +159,8 @@ savi2x2TestStatLogOdds <- function(ya, yb,
     # grow: the fixed alternative logOddsMin (Decision 15).
     grow = cumsum(logLikelihoodFNCHVec(ya, yb, na, nb, logOddsMin)),
     # eGauss: N(0, 1) prior on a fixed logOdds grid, twoSided (Decision 18).
+    # The first block's factor is the UMP plug-in instead of the prior
+    # mixture; the posterior still absorbs block 1 (Decision 28).
     eGauss = {
       logOddsGrid <- seq(-20, 20, length.out = 2000)
       logPrior <- stats::dnorm(logOddsGrid, log = TRUE)
@@ -177,7 +180,17 @@ savi2x2TestStatLogOdds <- function(ya, yb,
         matrix(apply(logPGrid, 2, cumsum), nrow = nBlocks), 2, logPrior, "+"
       )
       shift <- apply(logMix, 1, max)
-      shift + log(rowSums(exp(logMix - shift)))
+      logMixCum <- shift + log(rowSums(exp(logMix - shift)))
+      # Block 1: UMP plug-in solved from its total at the design's alpha;
+      # NULL (KL target out of reach) is the trivial e-factor 1.
+      logOddsUmp <- solveUmpLogOdds(na[1], nb[1], ya[1] + yb[1], alpha,
+                                    "greater")
+      logPUmp <- if (is.null(logOddsUmp)) {
+        logP0[1]
+      } else {
+        logLikelihoodFNCHVec(ya[1], yb[1], na[1], nb[1], logOddsUmp)
+      }
+      logPUmp + logMixCum - logMixCum[1]
     },
     stop("eType ", eType, " is not implemented for logOdds")
   )
@@ -185,13 +198,13 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 
   # Compute: confSeq ----
   # grow: no confidence interval until its construction is agreed.
-  # confidence interval or sequences only in eBeta
-  # use 1 - alpha unless user specified
+  # eGauss inverts its own e-process on point nulls (Decisions 17, 28);
+  # the level is ciValue, 1 - alpha unless the user specified one.
   ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
   result[["ciValue"]] <- ciValue
   if (wantCi && eType == "eGauss") {
     result[["confSeq"]] <- computeConfidenceInterval2x2LogOdds(
-      ya, yb, na, nb, logPCum[nBlocks], alpha
+      ya, yb, na, nb, logPCum[nBlocks], 1 - ciValue
     )
   }
 
@@ -526,6 +539,7 @@ computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
 # Helpers ----
 
 ## propDiff ----
+
 # Predictable plug-in for the numerator, for block i given the counts of
 # blocks 1 to i - 1 only. predictiveThetas2x2(): the independent Beta
 # posterior means of thetaA and thetaB. predictiveThetas2x2PropDiff(): the

@@ -710,3 +710,35 @@ edge is still inside. The empty set is reported as the whole range with a
 warning, as `computeConfidenceInterval2x2PropDiff` now reports `c(-1, 1)`
 (reopens the `NA` of Decisions 17 and 23). `savi2x2TestStatLogOdds` calls
 it for eGauss only; grow still gets no interval (Decision 19).
+
+### 28. UMP plug-in at the first block of eGauss on logOdds
+
+No new `eType`. `savi2x2TestStatLogOdds(eType = "eGauss")` (Decision 18)
+replaces only the **first block's** e-factor: instead of the prior mixture
+(which for the symmetric N(0, 1) prior is a wasted block) it uses the
+conditional e-factor at the UMP plug-in `logOddsUmp = solveUmpLogOdds(na[1],
+nb[1], ya[1] + yb[1], alpha, "greater")` (Decision 8), the `logOdds > 0` at
+which the conditional KL against the null reaches `log(1 / alpha)`. It
+depends on block 1 only through its total, which the FNCH e-factor
+conditions on, so it is a valid conditional e-variable. The Bayesian
+updating is unchanged: the grid posterior still absorbs block 1, and blocks
+`2..i` keep their predictive mixture factors, so
+
+    logPCum[1] = log dFNCH(yb_1; nb_1, na_1, ya_1 + yb_1, exp(logOddsUmp)),
+    logPCum[i] = logPCum[1] + logMixCum[i] - logMixCum[1]   (i >= 2),
+
+with `logMixCum` Decision 18's grid mixture of the cumulative conditional
+likelihood. When `solveUmpLogOdds` returns `NULL` (the KL target is out of
+reach, e.g. a degenerate total) block 1's factor is `1`, i.e. `logPCum[1] =
+logP0[1]`. The plug-in is solved at the design's `alpha`. `"greater"` is
+used for the first block even though eGauss is `"twoSided"`; the two-sided
+UMP rule (Decision 8) is still open, as is the same replacement for
+`propDiff` and for grow (grow is untouched: fixed `logOddsMin` in every
+block).
+
+The confidence interval is Decision 17's identity unchanged: every factor
+is fixed given its block's total or predictable, so
+`computeConfidenceInterval2x2LogOdds(ya, yb, na, nb, logPCum[nBlocks],
+1 - ciValue)` inverts the new numerator directly, and the kept set is still
+one interval. The inversion level is `1 - ciValue`, the test's `ciValue`
+argument (default `1 - alpha`), for eGauss.
