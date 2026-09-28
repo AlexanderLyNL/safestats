@@ -772,8 +772,8 @@ predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
 # The numerator lives on the curve thetaB = thetaA + propDiffMin: block i
 # uses the posterior mean of thetaA under a grid posterior on that curve
 # given blocks 1..i-1, the null is the pooled projection onto
-# thetaA = thetaB, and block 1's e-factor is its UMP conditional e-factor
-# alone, in place of the plug-in ratio. "twoSided" runs the same process on the curve
+# thetaA = thetaB, and block 1's plug-in ratio is replaced by its UMP
+# conditional e-factor (the posterior still absorbs block 1). "twoSided" runs the same process on the curve
 # thetaB = thetaA - propDiffMin as well and averages the two cumulative
 # e-values as processes (Decision 34). Returns logEValueVec of length
 # nBlocks; with earlyStopping the loop stops at the first block whose value
@@ -789,7 +789,7 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
     stop("alternative = 'less' is not designed yet for the grow test on propDiff")
   }
   nBlocks <- length(ya)
-  logThreshold <- if (earlyStopping) log(1 / alpha) else Inf
+  logThreshold <- log(1 / alpha)
   # The design requires propDiffMin > 0; abs() is for a later signed value.
   propDiffMin <- abs(propDiffMin)
 
@@ -821,26 +821,27 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   logWeights <- (betaA1 - 1) * log(rho) + (betaA2 - 1) * log1p(-rho)
   logWeights <- matrix(logWeights - max(logWeights), nWeight, nSides)
 
-  # Cumulative log likelihood of blocks 1..i under the null (denominator)
-  # and under the alternative (numerator), per side.
+  # Block 1's UMP conditional e-factor per side, in that side's direction.
+  # It depends on block 1 alone and replaces block 1's plug-in ratio after
+  # the loop; inside the loop it is used only by the early-stopping check.
+  logEValueUmp <- numeric(nSides)
+  for (s in seq_len(nSides)) {
+    logEValueUmp[s] <- log(savi2x2TestStatUmp(
+      ya[1], yb[1], na[1], nb[1], alpha,
+      if (signs[s] > 0) "greater" else "less"
+    ))
+  }
+
+  # The plain plug-in process, Bayesian updating from start to finish:
+  # every block, block 1 included, takes the posterior-mean plug-in given
+  # blocks 1..i-1 and is added to the posterior afterwards. Row i holds
+  # the cumulative log e-value of blocks 1..i per side.
   logLikelihoodNull <- numeric(nSides)
   logLikelihoodAlternative <- numeric(nSides)
-  logEValueVec <- numeric(0)
+  logEValueSides <- matrix(NA_real_, nBlocks, nSides)
 
   for (i in seq_len(nBlocks)) {
     for (s in seq_len(nSides)) {
-      if (i == 1) {
-        # Block 1: its UMP conditional e-factor in this side's direction
-        # replaces the plug-in ratio, which at block 1 is only the prior
-        # mean. The conditional factor is already a likelihood ratio, so it
-        # goes into the numerator and the denominator gets nothing.
-        eValueUmp <- savi2x2TestStatUmp(
-          ya[1], yb[1], na[1], nb[1], alpha,
-          if (signs[s] > 0) "greater" else "less"
-        )
-        logLikelihoodAlternative[s] <- log(eValueUmp)
-        next
-      }
       # Numerator: posterior mean of thetaA given blocks 1..i-1, on the curve.
       weights <- exp(logWeights[, s])
       thetaA <- sum(thetaAGrid[, s] * weights) / sum(weights)
@@ -855,14 +856,18 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
         stats::dbinom(ya[i], na[i], thetaA, log = TRUE) +
         stats::dbinom(yb[i], nb[i], thetaB, log = TRUE)
     }
+    logEValueSides[i, ] <- logLikelihoodAlternative - logLikelihoodNull
 
-    # Average of the one-sided cumulative e-values, on the log scale shifted
-    # by the larger one so exp() cannot overflow. One side: the value itself.
-    logEValueSides <- logLikelihoodAlternative - logLikelihoodNull
-    logEValueMax <- max(logEValueSides)
-    logEValueVec[i] <- logEValueMax + log(mean(exp(logEValueSides - logEValueMax)))
-
-    if (logEValueVec[i] >= logThreshold) break
+    # Early stopping looks at the replaced process (block 1 swapped for the
+    # UMP factor, see below), averaged over the sides on the log scale.
+    if (earlyStopping) {
+      logEValueReplaced <- logEValueSides[i, ] - logEValueSides[1, ] + logEValueUmp
+      logEValueMax <- max(logEValueReplaced)
+      if (logEValueMax + log(mean(exp(logEValueReplaced - logEValueMax))) >= logThreshold) {
+        logEValueSides <- logEValueSides[seq_len(i), , drop = FALSE]
+        break
+      }
+    }
 
     # Only now add block i to each posterior, so block i + 1 is predicted
     # from the past alone.
@@ -871,6 +876,18 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
       yb[i] * logThetaB + (nb[i] - yb[i]) * logOneMinusThetaB
     logWeights <- sweep(logWeights, 2, apply(logWeights, 2, max))
   }
+
+  # Replace block 1's plug-in ratio by its UMP factor: the cumulative
+  # process of each side shifts by the same constant from block 1 on, so
+  # replacing logEValueSides[1, ] alone would leave the later rows wrong.
+  logEValueSides <- sweep(logEValueSides, 2, logEValueUmp - logEValueSides[1, ], "+")
+
+  # Average of the one-sided cumulative e-values per block, on the log
+  # scale shifted by the larger one so exp() cannot overflow. One side:
+  # the value itself.
+  logEValueMax <- apply(logEValueSides, 1, max)
+  logEValueVec <- logEValueMax +
+    log(rowMeans(exp(logEValueSides - logEValueMax)))
 
   logEValueVec
 }

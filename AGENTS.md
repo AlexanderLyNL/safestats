@@ -1053,11 +1053,15 @@ e-factor is `savi2x2TestStatUmp(ya[1], yb[1], na[1], nb[1], alpha,
 side)` **in place of** its plug-in ratio, not multiplied into it (as
 Decision 28 does for eGauss on logOdds). The product of the two block-1
 factors is not an e-variable: its exact null expectation on `na = 5`,
-`nb = 3` reaches 2.3 at the pooled null `theta = 0.3`. So
-`logLikelihoodAlternative` starts at the log UMP factor, block 1 adds
-nothing to `logLikelihoodNull` or `logLikelihoodAlternative`, and
-`logEValueVec[1]` is the log UMP factor; blocks `2..i` are unchanged, and
-block 1 is still absorbed into the grid posterior. The sampler and the
+`nb = 3` reaches 2.3 at the pooled null `theta = 0.3`. The
+loop is the plain plug-in process with Bayesian updating from start to
+finish, block 1 included, storing the per-side cumulative log e-values;
+after the loop each side is shifted by the log UMP factor minus block 1's
+plug-in log ratio (a constant from block 1 on, so `logEValueVec[1]` alone
+could not be replaced) and the sides are averaged. With `earlyStopping`
+the in-loop check applies the same shift, so the cut is at the replaced
+process's first crossing. `logEValueVec[1]` is the log UMP factor and
+blocks `2..i` are unchanged. The sampler and the
 design inherit this. `savi2x2TestStatPropDiff(eType = "eBeta")` still
 multiplies the UMP factor into its whole e-process (Decision 32), the same
 invalid product, and is not yet changed.
