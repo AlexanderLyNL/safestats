@@ -857,7 +857,7 @@ sampleStoppingTimesSavi2x2 <- function(
   stoppingTimes <- matrix(Inf, nrow = nTheta, ncol = nSim)
 
   if (pb) {
-    pbSavi <- utils::txtProgressBar(style = 3, title = "Savi test threshold crossing")
+    pbSavi <- utils::txtProgressBar(style = 3, title = "Sampling worst-case stopping time")
   }
 
   for (k in seq_len(nTheta)) {
@@ -885,6 +885,17 @@ sampleStoppingTimesSavi2x2 <- function(
   }
 
   if (pb) close(pbSavi)
+
+  # Paths still below 1 / alpha at nMax have stopping time Inf; too many of
+  # them make the power quantile Inf, so the horizon (or the effect) is too
+  # small for planning.
+  fractionNeverCrossed <- mean(!is.finite(stoppingTimes))
+  if (fractionNeverCrossed > 0.05) {
+    warning(sprintf(
+      "%.1f%% of the paths never cross 1/alpha at nMax = %g, try increasing nMax or propDiffMin",
+      100 * fractionNeverCrossed, nMax
+    ))
+  }
 
   # Planned block count: the power quantile of the stopping time at the
   # hardest baseline; Inf when too many paths never cross 1 / alpha.
