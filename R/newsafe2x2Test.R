@@ -843,7 +843,8 @@ sampleStoppingTimesSavi2x2 <- function(
   if (is.null(betaParameter)) {
     betaParameter <- constructSaviDesignObj("Two Proportions")[["betaParameter"]]
   }
-  if (!is.null(seed)) set.seed(2026)
+  # Reproducible by default: 2026 unless a seed is given.
+  set.seed(if (is.null(seed)) 2026 else seed)
 
   # Baselines on the curve thetaB = thetaA + propDiffMin: thetaA runs over
   # its feasible range (0, 1 - propDiffMin) at nTheta equally spaced
@@ -856,15 +857,16 @@ sampleStoppingTimesSavi2x2 <- function(
   stoppingTimes <- matrix(Inf, nrow = nTheta, ncol = nSim)
 
   if (pb) {
-    pbSavi <- utils::txtProgressBar(
-      min = 0, max = nTheta * nSim, style = 3,
-      title = "Savi 2x2 test threshold crossing"
-    )
+    pbSavi <- utils::txtProgressBar(style = 3, title = "Savi test threshold crossing")
   }
 
   for (k in seq_len(nTheta)) {
     for (sim in seq_len(nSim)) {
-      if (pb) utils::setTxtProgressBar(pbSavi, (k - 1) * nSim + sim)
+      if (pb) {
+        utils::setTxtProgressBar(
+          pbSavi, "value" = ((k - 1) * nSim + sim) / (nTheta * nSim), "title" = "Trials"
+        )
+      }
 
       ya <- stats::rbinom(nMax, na, thetaATrue[k])
       yb <- stats::rbinom(nMax, nb, thetaBTrue[k])
