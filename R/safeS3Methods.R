@@ -365,7 +365,7 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   designObj[["decision rule"]] <- 1/designObj[["alpha"]]
 
-  for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
+  for (item in c("nPlan", "nBlocksPlan", "nEvents", "nMean", "esMin", "alternative",
                  "alternativeRestriction", "power", "beta",
                  "eType", "parameter", "alpha",
                  "decision rule",
@@ -374,7 +374,7 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
     itemValueString <- format(itemValue, digits=digits)
 
     if (!is.null(itemValue)) {
-      if (item %in% c("nPlan", "nMean")) {
+      if (item %in% c("nPlan", "nBlocksPlan", "nMean")) {
         itemNeem <- paste0(item, "TwoSe")
 
         itemTwoSe <- designObj[[itemNeem]]

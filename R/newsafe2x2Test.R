@@ -331,7 +331,9 @@ designSavi2x2 <- function(
   alternative = c("twoSided", "greater"),
   eType = c("eBeta", "grow", "eGauss"),
   betaParameter = NULL,
-  runningIntersection = NULL
+  runningIntersection = NULL,
+  nTheta = 8L, nSim = 1e3L, nBoot = nSim, nMax = 1e4L, seed = NULL,
+  wantSamplePaths = FALSE, pb = TRUE
 ) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
@@ -346,17 +348,56 @@ designSavi2x2 <- function(
     result[["runningIntersection"]] <- runningIntersection
   }
 
-  # TODO
-  # propDiffMin + power find the nPlan, only with grow
-  # same for logOddsMin
-  # find the nBlocksPlan!
-
-  # TODO
-  # propDiffMin + nBlocksPlan find the power
-
-
   # TODO: what if both are NULL
   result[["esMin"]] <- if (!is.null(propDiffMin)) propDiffMin else logOddsMin
+
+  # Planning (Decision 37), grow only: power alone plans the block count
+  # at the hardest baseline, nBlocksPlan alone evaluates the worst-case
+  # power there. Both or neither is not a planning scenario.
+  if (!is.null(power) && !is.null(nBlocksPlan)) {
+    stop("supply power (to find nBlocksPlan) or nBlocksPlan (to find power), not both")
+  }
+  if ((!is.null(power) || !is.null(nBlocksPlan)) && eType != "grow") {
+    stop("planning the block count or the power needs eType = 'grow'")
+  }
+  if (!is.null(power)) {
+    planning <- computeNPlanSavi2x2(
+      propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+      power = power, alpha = alpha, alternative = alternative,
+      betaParameter = result[["betaParameter"]], nTheta = nTheta,
+      nSim = nSim, nBoot = nBoot, nMax = nMax, seed = seed,
+      wantSamplePaths = wantSamplePaths, pb = pb
+    )
+    result[["designScenario"]] <- "1a"
+    result[["power"]] <- power
+    result[["nBlocksPlan"]] <- c("nBlocksPlan" = planning[["nPlan"]])
+    result[["nBlocksPlanTwoSe"]] <- 2 * planning[["bootObjNPlan"]][["bootSe"]]
+    result[["bootObjNBlocksPlan"]] <- planning[["bootObjNPlan"]]
+    result[["nMean"]] <- c("nMean" = planning[["nMean"]])
+    result[["nMeanTwoSe"]] <- 2 * planning[["bootObjNMean"]][["bootSe"]]
+    result[["bootObjNMean"]] <- planning[["bootObjNMean"]]
+  } else if (!is.null(nBlocksPlan)) {
+    planning <- computePowerSavi2x2(
+      propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+      nBlocks = nBlocksPlan, alpha = alpha, alternative = alternative,
+      betaParameter = result[["betaParameter"]], nTheta = nTheta,
+      nSim = nSim, nBoot = nBoot, seed = seed,
+      wantSamplePaths = wantSamplePaths, pb = pb
+    )
+    result[["designScenario"]] <- "2"
+    result[["nBlocksPlan"]] <- c("nBlocksPlan" = unname(nBlocksPlan))
+    result[["power"]] <- planning[["power"]]
+    result[["powerTwoSe"]] <- 2 * planning[["bootObjPower"]][["bootSe"]]
+    result[["bootObjPower"]] <- planning[["bootObjPower"]]
+  }
+  if (!is.null(power) || !is.null(nBlocksPlan)) {
+    worstCaseIndex <- planning[["worstCaseIndex"]]
+    result[["worstCaseIndex"]] <- worstCaseIndex
+    result[["worstCaseThetaA"]] <- planning[["thetaA"]][worstCaseIndex]
+    result[["worstCaseThetaB"]] <- planning[["thetaB"]][worstCaseIndex]
+    result[["breakVector"]] <- planning[["breakVector"]]
+    result[["samplePaths"]] <- planning[["samplePaths"]]
+  }
   result[["parameter"]] <- c(
     "Beta hyperparameters" =
       paste(unlist(result[["betaParameter"]]), collapse = " ")
@@ -365,7 +406,6 @@ designSavi2x2 <- function(
   result[["alpha"]] <- alpha
   result[["alternative"]] <- alternative
   result[["h0"]] <- c("propDiff" = h0)
-  # TODO: add stopping time simulation
   result[["nPlan"]] <- list("na" = na, "nb" = nb)
   result[["testType"]] <- "2x2"
   result[["call"]] <- sys.call()

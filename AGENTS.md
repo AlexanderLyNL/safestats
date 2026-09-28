@@ -972,3 +972,33 @@ quantile step is skipped and `nPlan`, `worstCaseIndex` are `NULL`, no
 warning. `wantSamplePaths` is passed through, default `FALSE`. Neither
 function is exported yet, as the sampler is not; the design does not call
 them yet.
+
+### 37. Design scenarios: nPlan from power, power from nBlocksPlan
+
+`designSavi2x2(na, nb, nBlocksPlan = NULL, propDiffMin = NULL, logOddsMin
+= NULL, alpha = 0.05, power = NULL, h0 = 0, alternative, eType,
+betaParameter, runningIntersection, nTheta = 8L, nSim = 1e3L, nBoot =
+nSim, nMax = 1e4L, seed = NULL, wantSamplePaths = FALSE, pb = TRUE)`.
+`nPlan` stays `list(na, nb)` (Decision 12); the planned block count is
+its own field, `nBlocksPlan`, since the block count is what the two
+scenarios plan or evaluate. Both scenarios need `eType = "grow"` and
+exactly one of `propDiffMin`, `logOddsMin` (Decision 36's samplers); any
+other `eType` with `power` or `nBlocksPlan` errors, as does supplying both:
+
+- `power` given, `nBlocksPlan = NULL` (`designScenario = "1a"`):
+  `computeNPlanSavi2x2` at the design's `alpha`, `alternative` and
+  `betaParameter`; stores `nBlocksPlan` (named `"nBlocksPlan"`, `Inf` with
+  the sampler's warning), `nBlocksPlanTwoSe = 2 * bootSe`,
+  `bootObjNBlocksPlan`, `nMean`, `nMeanTwoSe`, `bootObjNMean`, and `power`
+  as the target (no `powerTwoSe`).
+- `nBlocksPlan` given, `power = NULL` (`designScenario = "2"`):
+  `computePowerSavi2x2` at `nBlocks = nBlocksPlan`; stores `power`,
+  `powerTwoSe = 2 * bootSe`, `bootObjPower` and `nBlocksPlan` as given.
+- Neither: no simulation, the design as before (`designScenario = NULL`).
+
+Both scenarios also store `worstCaseIndex`, `worstCaseThetaA`,
+`worstCaseThetaB` (the hardest baseline), `breakVector` and `samplePaths`
+(`NULL` unless `wantSamplePaths`). `print.saviDesign` adds `nBlocksPlan`
+to the `nPlan`/`nMean` `±2se` branch, the smallest 2x2 edit in
+`R/safeS3Methods.R`; `nPlan` (the list) prints as before. The sketch
+comments in the design function are replaced by this wiring.
