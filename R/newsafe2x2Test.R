@@ -369,26 +369,24 @@ designSavi2x2 <- function(
   # is contradictory, and the minimal effect from power and nBlocksPlan is
   # not implemented. eBeta and eGauss take no *Min and no planning, and
   # are twoSided only.
-  hasEsMin <- !is.null(propDiffMin) || !is.null(logOddsMin)
-  wantsPlanning <- !is.null(power) || !is.null(nBlocksPlan)
   if (!is.null(propDiffMin) && !is.null(logOddsMin)) {
     stop("supply propDiffMin or logOddsMin, not both")
   }
   if (eType == "grow") {
-    if (!hasEsMin && wantsPlanning) {
-      stop("finding the minimal effect from power and nBlocksPlan is not implemented yet")
-    }
-    if (!hasEsMin) {
+    if (is.null(propDiffMin) && is.null(logOddsMin)) {
+      if (!is.null(power) || !is.null(nBlocksPlan)) {
+        stop("finding the minimal effect from power and nBlocksPlan is not implemented yet")
+      }
       stop("eType = 'grow' needs propDiffMin or logOddsMin")
     }
     if (!is.null(power) && !is.null(nBlocksPlan)) {
       stop("supply power (to find nBlocksPlan) or nBlocksPlan (to find power), not both")
     }
   } else {
-    if (hasEsMin) {
+    if (!is.null(propDiffMin) || !is.null(logOddsMin)) {
       stop("eType = '", eType, "' takes no propDiffMin or logOddsMin")
     }
-    if (wantsPlanning) {
+    if (!is.null(power) || !is.null(nBlocksPlan)) {
       stop("no sampling for eType = '", eType, "'; power and nBlocksPlan need eType = 'grow'")
     }
     if (alternative != "twoSided") {
