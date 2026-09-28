@@ -846,7 +846,8 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 #' at `nTheta` more. `logOddsMin` (`"greater"` only): data lie on
 #' `thetaB = plogis(qlogis(thetaA) + logOddsMin)` at `nTheta` baselines.
 #' `nPlan` is the worst `power` quantile of the stopping time over all
-#' baselines.
+#' baselines; with `power = NULL` the quantile step is skipped and `nPlan`,
+#' `worstCaseIndex` are `NULL` (Decision 36).
 #'
 #' @return A list: `thetaA`, `thetaB`, and one row per baseline in
 #'   `stoppingTimes` (`Inf` when a path never crosses `1 / alpha`),
@@ -856,7 +857,7 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 #'   `worstCaseIndex`.
 #' @noRd
 sampleStoppingTimesSavi2x2 <- function(
-  propDiffMin = NULL, logOddsMin = NULL, na, nb, power, alpha = 0.05,
+  propDiffMin = NULL, logOddsMin = NULL, na, nb, power = NULL, alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   eType = c("grow"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nMax = 1e4L, nBoot = 1e4L,
@@ -883,8 +884,8 @@ sampleStoppingTimesSavi2x2 <- function(
     stopifnot(is.finite(logOddsMin), logOddsMin > 0)
   }
   stopifnot(
-    alpha > 0, alpha < 1, power > 0, power < 1, na >= 1, nb >= 1,
-    is.finite(nMax)
+    alpha > 0, alpha < 1, is.null(power) || (power > 0 && power < 1),
+    na >= 1, nb >= 1, is.finite(nMax)
   )
 
   if (is.null(betaParameter)) {
@@ -987,13 +988,17 @@ sampleStoppingTimesSavi2x2 <- function(
   # stopping time, finite exactly when at least a fraction power of that
   # baseline's paths crossed 1 / alpha within nMax (never-crossing paths are
   # Inf).
-  quantiles <- apply(stoppingTimes, 1, stats::quantile, probs = power,
-    names = FALSE, type = 1
-  )
-  worstCaseIndex <- which.max(quantiles)
-  nPlan <- ceiling(quantiles[worstCaseIndex])
+  nPlan <- NULL
+  worstCaseIndex <- NULL
+  if (!is.null(power)) {
+    quantiles <- apply(stoppingTimes, 1, stats::quantile, probs = power,
+      names = FALSE, type = 1
+    )
+    worstCaseIndex <- which.max(quantiles)
+    nPlan <- ceiling(quantiles[worstCaseIndex])
+  }
 
-  if (!is.finite(nPlan)) {
+  if (!is.null(nPlan) && !is.finite(nPlan)) {
     fractionNeverCrossed <- mean(!is.finite(stoppingTimes[worstCaseIndex, ]))
     esMinName <- if (!is.null(propDiffMin)) "propDiffMin" else "logOddsMin"
     warning(sprintf(paste(
@@ -1013,5 +1018,145 @@ sampleStoppingTimesSavi2x2 <- function(
     "ratio" = nb / na,
     "nPlan" = nPlan,
     "worstCaseIndex" = worstCaseIndex
+  )
+}
+
+
+#' Worst-case power of the 2x2 grow test at a planned block count
+#'
+#' Decision 36. Runs [sampleStoppingTimesSavi2x2()] with `nMax = nBlocks`
+#' and reports, per baseline, the fraction of paths that cross `1 / alpha`
+#' within `nBlocks`; the worst case is the smallest of these, since the
+#' test must meet its target whatever `thetaA` is.
+#'
+#' @param nBlocks Planned block count at which the test is evaluated.
+#' @inheritParams sampleStoppingTimesSavi2x2
+#'
+#' @return A list: `power` (the worst-case power), `powerVec` (one per
+#'   baseline), `worstCaseIndex`, `bootObjPower` (a [boot::boot()] object
+#'   on the worst baseline, with `bootSe`), `nBlocks`, and the sampler's
+#'   `thetaA`, `thetaB`, `stoppingTimes`, `breakVector`, `eValuesStopped`,
+#'   `samplePaths`, `n1Vector`, `ratio`.
+#' @noRd
+computePowerSavi2x2 <- function(
+  propDiffMin = NULL, logOddsMin = NULL, na, nb, nBlocks, alpha = 0.05,
+  alternative = c("twoSided", "less", "greater"),
+  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nBoot = nSim,
+  seed = NULL, wantSamplePaths = FALSE, pb = TRUE
+) {
+  alternative <- match.arg(alternative)
+  stopifnot(length(nBlocks) == 1, is.finite(nBlocks), nBlocks >= 1)
+
+  samplingResult <- sampleStoppingTimesSavi2x2(
+    propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+    power = NULL, alpha = alpha, alternative = alternative,
+    betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
+    nMax = nBlocks, seed = seed, wantSamplePaths = wantSamplePaths, pb = pb
+  )
+
+  # Power per baseline: the fraction of paths that crossed 1 / alpha within
+  # nBlocks (a never-crossing path has stopping time Inf). The worst case is
+  # the smallest.
+  stoppingTimes <- samplingResult[["stoppingTimes"]]
+  powerVec <- rowMeans(stoppingTimes <= nBlocks)
+  worstCaseIndex <- which.min(powerVec)
+
+  bootObjPower <- computeBootObj(
+    values = stoppingTimes[worstCaseIndex, ], objType = "power",
+    nPlan = nBlocks, nBoot = nBoot
+  )
+
+  list(
+    "power" = powerVec[worstCaseIndex],
+    "powerVec" = powerVec,
+    "worstCaseIndex" = worstCaseIndex,
+    "bootObjPower" = bootObjPower,
+    "nBlocks" = nBlocks,
+    "thetaA" = samplingResult[["thetaA"]],
+    "thetaB" = samplingResult[["thetaB"]],
+    "stoppingTimes" = stoppingTimes,
+    "breakVector" = samplingResult[["breakVector"]],
+    "eValuesStopped" = samplingResult[["eValuesStopped"]],
+    "samplePaths" = samplingResult[["samplePaths"]],
+    "n1Vector" = samplingResult[["n1Vector"]],
+    "ratio" = samplingResult[["ratio"]]
+  )
+}
+
+
+#' Worst-case planned block count of the 2x2 grow test
+#'
+#' Decision 36. Runs [sampleStoppingTimesSavi2x2()] and reports its `nPlan`,
+#' the `power` quantile of the stopping time at the hardest baseline
+#' (Decision 33), with a bootstrap SE and the mean stopping time of paths
+#' capped at `nPlan`, both at that baseline.
+#'
+#' @inheritParams sampleStoppingTimesSavi2x2
+#'
+#' @return A list: `nPlan` (the worst-case block count, `Inf` with a warning
+#'   when the worst baseline crossed too rarely), `nPlanVec` (the quantile
+#'   per baseline), `worstCaseIndex`, `bootObjNPlan`, `nMean`,
+#'   `bootObjNMean` ([boot::boot()] objects on the worst baseline, `NULL`
+#'   when `nPlan` is `Inf`), and the sampler's `thetaA`, `thetaB`,
+#'   `stoppingTimes`, `breakVector`, `eValuesStopped`, `samplePaths`,
+#'   `n1Vector`, `ratio`.
+#' @noRd
+computeNPlanSavi2x2 <- function(
+  propDiffMin = NULL, logOddsMin = NULL, na, nb, power = 0.8, alpha = 0.05,
+  alternative = c("twoSided", "less", "greater"),
+  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nBoot = nSim,
+  nMax = 1e4L, seed = NULL, wantSamplePaths = FALSE, pb = TRUE
+) {
+  alternative <- match.arg(alternative)
+  stopifnot(!is.null(power), power > 0, power < 1)
+
+  samplingResult <- sampleStoppingTimesSavi2x2(
+    propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+    power = power, alpha = alpha, alternative = alternative,
+    betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
+    nMax = nMax, seed = seed, wantSamplePaths = wantSamplePaths, pb = pb
+  )
+
+  stoppingTimes <- samplingResult[["stoppingTimes"]]
+  nPlan <- samplingResult[["nPlan"]]
+  worstCaseIndex <- samplingResult[["worstCaseIndex"]]
+  # The same order-statistic quantile per baseline as the sampler's nPlan.
+  nPlanVec <- apply(stoppingTimes, 1, stats::quantile, probs = power,
+    names = FALSE, type = 1
+  )
+
+  # Simulation uncertainty at the worst baseline only: the bootstrap
+  # quantile, and the mean stopping time with paths capped at nPlan. A
+  # never-crossing path (Inf) has no finite bootstrap, so both stay NULL.
+  bootObjNPlan <- NULL
+  bootObjNMean <- NULL
+  nMean <- NA_real_
+  if (is.finite(nPlan)) {
+    bootObjNPlan <- computeBootObj(
+      values = stoppingTimes[worstCaseIndex, ], objType = "nPlan",
+      power = power, nBoot = nBoot
+    )
+    bootObjNMean <- computeBootObj(
+      values = stoppingTimes[worstCaseIndex, ], objType = "nMean",
+      nPlan = nPlan, nBoot = nBoot
+    )
+    nMean <- ceiling(bootObjNMean[["t0"]])
+  }
+
+  list(
+    "nPlan" = nPlan,
+    "nPlanVec" = nPlanVec,
+    "worstCaseIndex" = worstCaseIndex,
+    "bootObjNPlan" = bootObjNPlan,
+    "nMean" = nMean,
+    "bootObjNMean" = bootObjNMean,
+    "thetaA" = samplingResult[["thetaA"]],
+    "thetaB" = samplingResult[["thetaB"]],
+    "stoppingTimes" = stoppingTimes,
+    "breakVector" = samplingResult[["breakVector"]],
+    "eValuesStopped" = samplingResult[["eValuesStopped"]],
+    "samplePaths" = samplingResult[["samplePaths"]],
+    "n1Vector" = samplingResult[["n1Vector"]],
+    "ratio" = samplingResult[["ratio"]]
   )
 }

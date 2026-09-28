@@ -930,3 +930,44 @@ Decision 5) and `ratio = nb / na`. `stoppingTimes` keeps `Inf` for a path
 that never crosses (the t-test stores `nMax` there). `eValuesAtNMax` and
 `simData` stay accepted but unimplemented. The never-crossed warning names
 whichever `*Min` was supplied.
+
+### 36. Worst-case power and worst-case nPlan
+
+Two wrappers around `sampleStoppingTimesSavi2x2`, under `# Sampling
+functions for design ----`, mirroring `computePowerSaviT` and
+`computeNPlanSaviT`: both take the sampler's planning arguments
+(`propDiffMin = NULL, logOddsMin = NULL, na, nb, alpha = 0.05,
+alternative, betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nBoot = nSim,
+seed = NULL, pb = TRUE`), run one simulation, and reduce it over the
+baselines to the worst case. "Worst" is over the `nTheta` (or `2 nTheta`,
+Decision 34) baselines: the smallest power, or the largest stopping-time
+quantile, since the test must meet its target whatever `thetaA` is.
+
+- `computePowerSavi2x2(..., nBlocks)`: `nBlocks` is the planned block
+  count at which the test is evaluated. The sampler runs with `nMax =
+  nBlocks` and `power = NULL`. Per baseline the power is the fraction of
+  paths that cross `1 / alpha` within `nBlocks` (`stoppingTimes <=
+  nBlocks`); `power` is the minimum over baselines, `worstCaseIndex` its
+  row, `powerVec` the whole vector. `bootObjPower` is `computeBootObj(
+  objType = "power", nPlan = nBlocks, nBoot)` on the worst baseline's
+  stopping times, so `bootObjPower[["bootSe"]]` is the simulation SE of the
+  worst-case power. No `logImpliedTarget` (the sampler has no
+  `eValuesAtNMax`).
+- `computeNPlanSavi2x2(..., power = 0.8, nMax = 1e4L)`: the sampler runs
+  with `power` and `nMax`; `nPlan` and `worstCaseIndex` are the sampler's
+  (Decision 33: `type = 1` quantile at the hardest baseline, `Inf` with the
+  sampler's warning when it crossed too rarely), `nPlanVec` the per-baseline
+  quantiles. `bootObjNPlan` is `computeBootObj(objType = "nPlan", power,
+  nBoot)` and `bootObjNMean` is `computeBootObj(objType = "nMean", nPlan,
+  nBoot)` (the mean stopping time with paths capped at `nPlan`), both on
+  the worst baseline's stopping times; `nMean` is the `ceiling` of the
+  latter's `t0`. Both boot objects are `NULL` when `nPlan` is `Inf`.
+
+Both return, next to these, the sampler's `thetaA`, `thetaB`,
+`stoppingTimes`, `breakVector`, `eValuesStopped`, `samplePaths`,
+`n1Vector` and `ratio`, so the per-baseline picture is not lost.
+`sampleStoppingTimesSavi2x2` gains `power = NULL`: when `NULL` the
+quantile step is skipped and `nPlan`, `worstCaseIndex` are `NULL`, no
+warning. `wantSamplePaths` is passed through, default `FALSE`. Neither
+function is exported yet, as the sampler is not; the design does not call
+them yet.
