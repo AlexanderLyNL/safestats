@@ -43,7 +43,7 @@ savi2x2TestStatPropDiff <- function(ya, yb,
                                     designObj = NULL, wantCi = TRUE,
                                     wantConfidenceSequence = FALSE, ciValue = NULL) {
   # grow must have a propDiffMin; eBeta must have none and be twoSided
-  propDiffMin <- designObj[["esMin"]]
+  propDiffMin <- unname(designObj[["esMin"]])
   alternative <- designObj[["alternative"]]
   betaParameter <- designObj[["betaParameter"]]
   runningIntersection <- designObj[["runningIntersection"]]
@@ -179,7 +179,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
                                    ciValue = NULL) {
   # grow must have a logOddsMin > 0
   nBlocks <- length(ya)
-  logOddsMin <- designObj[["esMin"]]
+  logOddsMin <- unname(designObj[["esMin"]])
   alternative <- designObj[["alternative"]]
   alpha <- designObj[["alpha"]]
   eType <- designObj[["eType"]]
@@ -418,7 +418,12 @@ designSavi2x2 <- function(
     result[["runningIntersection"]] <- runningIntersection
   }
 
-  result[["esMin"]] <- if (!is.null(propDiffMin)) propDiffMin else logOddsMin
+  # Named so print() and plot() show which effect the minimal value is on.
+  result[["esMin"]] <- if (!is.null(propDiffMin)) {
+    c("propDiff" = propDiffMin)
+  } else if (!is.null(logOddsMin)) {
+    c("logOdds" = logOddsMin)
+  }
 
   # Dispatch (Decisions 37, 42, 43). grow on propDiff is the only case with
   # sampling. With propDiffMin: power alone plans the block count at the
@@ -473,7 +478,7 @@ designSavi2x2 <- function(
       ), nBlocksPlan, power))
     }
     result[["designScenario"]] <- "3"
-    result[["esMin"]] <- esMin
+    result[["esMin"]] <- c("propDiff" = esMin)
     result[["power"]] <- power
   } else if (!is.null(power)) {
     planning <- computeNPlanSavi2x2(
