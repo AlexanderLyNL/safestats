@@ -365,7 +365,7 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
   designObj[["decision rule"]] <- 1/designObj[["alpha"]]
 
-  for (item in c("nPlan", "nBlocksPlan", "nEvents", "nMean", "esMin", "alternative",
+  for (item in c("nPlan", "nEvents", "nMean", "esMin", "alternative",
                  "alternativeRestriction", "power", "beta",
                  "eType", "parameter", "alpha",
                  "decision rule",
@@ -374,27 +374,21 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
     itemValueString <- format(itemValue, digits=digits)
 
     if (!is.null(itemValue)) {
-      if (item %in% c("nPlan", "nBlocksPlan", "nMean")) {
+      if (item %in% c("nPlan", "nMean")) {
         itemNeem <- paste0(item, "TwoSe")
 
         itemTwoSe <- designObj[[itemNeem]]
 
         if (!is.null(itemTwoSe)) {
+          # An NA standard error prints that element plainly: the 2x2 nPlan
+          # holds na, nb, nBlocksPlan and only the last one is simulated.
+          hasSe <- !is.na(itemTwoSe)
+          itemValueString <- sapply(unlist(itemValue), format, digits=digits)
+          itemValueString[hasSe] <- paste0(itemValueString[hasSe], "\U00B1",
+                                           sapply(itemTwoSe[hasSe], format, digits=digits))
           tempNeem <- names(designObj[[item]])
-
-          for (i in seq_along(itemValue)) {
-            if (i==1) {
-              itemValueString <- paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                        format(itemTwoSe[i], digits=digits))
-            } else {
-              itemValueString <- paste(itemValueString,
-                                       paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                              format(itemTwoSe[i], digits=digits)),
-                                       sep=", ")
-            }
-          }
-          tempNeem <- paste0(names(designObj[[item]]), "\U00B1", "2se")
-          displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
+          tempNeem[hasSe] <- paste0(tempNeem[hasSe], "\U00B1", "2se")
+          displayList[[paste(tempNeem, collapse=", ")]] <- paste(itemValueString, collapse=", ")
         } else {
           tempNeem <- names(designObj[[item]])
           displayList[[paste(tempNeem, collapse=", ")]] <- itemValue

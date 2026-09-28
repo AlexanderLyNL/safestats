@@ -979,28 +979,36 @@ them yet.
 = NULL, alpha = 0.05, power = NULL, h0 = 0, alternative, eType,
 betaParameter, runningIntersection, nTheta = 8L, nSim = 1e3L, nBoot =
 nSim, nMax = 1e4L, seed = NULL, wantSamplePaths = FALSE, pb = TRUE)`.
-`nPlan` stays `list(na, nb)` (Decision 12); the planned block count is
-its own field, `nBlocksPlan`, since the block count is what the two
-scenarios plan or evaluate. Both scenarios need `eType = "grow"` and
+`nPlan` is `list(na, nb)` (Decision 12) and gains a third element,
+`nBlocksPlan`, whenever one is planned or given. Both scenarios need `eType = "grow"` and
 exactly one of `propDiffMin`, `logOddsMin` (Decision 36's samplers); any
 other `eType` with `power` or `nBlocksPlan` errors, as does supplying both:
 
 - `power` given, `nBlocksPlan = NULL` (`designScenario = "1a"`):
   `computeNPlanSavi2x2` at the design's `alpha`, `alternative` and
-  `betaParameter`; stores `nBlocksPlan` (named `"nBlocksPlan"`, `Inf` with
-  the sampler's warning), `nBlocksPlanTwoSe = 2 * bootSe`,
-  `bootObjNBlocksPlan`, `nMean`, `nMeanTwoSe`, `bootObjNMean`, and `power`
-  as the target (no `powerTwoSe`).
+  `betaParameter`; stores `nPlan[["nBlocksPlan"]]` (`Inf` with the
+  sampler's warning), `nPlanTwoSe = c(NA, NA, 2 * bootSe)` (`na`, `nb` are
+  planned, not simulated), `bootObjNBlocksPlan`, `nMean`, `nMeanTwoSe`,
+  `bootObjNMean`, and `power` as the target (no `powerTwoSe`).
 - `nBlocksPlan` given, `power = NULL` (`designScenario = "2"`):
   `computePowerSavi2x2` at `nBlocks = nBlocksPlan`; stores `power`,
-  `powerTwoSe = 2 * bootSe`, `bootObjPower` and `nBlocksPlan` as given.
+  `powerTwoSe = 2 * bootSe`, `bootObjPower` and `nPlan[["nBlocksPlan"]]`
+  as given.
 - Neither: no simulation, the design as before (`designScenario = NULL`).
+
+Dispatch on `eType`, all errors unless stated: both `*Min` supplied;
+`"grow"` without a `*Min` (with `power` or `nBlocksPlan` the message says
+the minimal effect from them is not implemented yet); `"grow"` with both
+`power` and `nBlocksPlan`; `"eBeta"` or `"eGauss"` with a `*Min` or with
+`power` or `nBlocksPlan` (no sampling there); either with `alternative !=
+"twoSided"` warns that it is ignored, since both are twoSided only.
 
 Both scenarios also store `worstCaseIndex`, `worstCaseThetaA`,
 `worstCaseThetaB` (the hardest baseline), `breakVector` and `samplePaths`
-(`NULL` unless `wantSamplePaths`). `print.saviDesign` adds `nBlocksPlan`
-to the `nPlan`/`nMean` `±2se` branch, the smallest 2x2 edit in
-`R/safeS3Methods.R`; `nPlan` (the list) prints as before. The sketch
+(`NULL` unless `wantSamplePaths`). `print.saviDesign`'s `nPlan`/`nMean`
+`±2se` branch prints an element plainly when its standard error is `NA`,
+the smallest 2x2 edit in `R/safeS3Methods.R`; the t-test's output is
+unchanged. The sketch
 comments in the design function are replaced by this wiring.
 
 ### 38. Two-sided grow on logOdds, and chunked logOdds simulation

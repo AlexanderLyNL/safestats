@@ -361,17 +361,39 @@ designSavi2x2 <- function(
     result[["runningIntersection"]] <- runningIntersection
   }
 
-  # TODO: what if both are NULL
   result[["esMin"]] <- if (!is.null(propDiffMin)) propDiffMin else logOddsMin
 
-  # Planning (Decision 37), grow only: power alone plans the block count
-  # at the hardest baseline, nBlocksPlan alone evaluates the worst-case
-  # power there. Both or neither is not a planning scenario.
-  if (!is.null(power) && !is.null(nBlocksPlan)) {
-    stop("supply power (to find nBlocksPlan) or nBlocksPlan (to find power), not both")
+  # Dispatch (Decision 37). grow plugs in exactly one *Min and is the only
+  # eType with sampling: power alone plans the block count at the hardest
+  # baseline, nBlocksPlan alone evaluates the worst-case power there, both
+  # is contradictory, and the minimal effect from power and nBlocksPlan is
+  # not implemented. eBeta and eGauss take no *Min and no planning, and
+  # are twoSided only.
+  hasEsMin <- !is.null(propDiffMin) || !is.null(logOddsMin)
+  wantsPlanning <- !is.null(power) || !is.null(nBlocksPlan)
+  if (!is.null(propDiffMin) && !is.null(logOddsMin)) {
+    stop("supply propDiffMin or logOddsMin, not both")
   }
-  if ((!is.null(power) || !is.null(nBlocksPlan)) && eType != "grow") {
-    stop("planning the block count or the power needs eType = 'grow'")
+  if (eType == "grow") {
+    if (!hasEsMin && wantsPlanning) {
+      stop("finding the minimal effect from power and nBlocksPlan is not implemented yet")
+    }
+    if (!hasEsMin) {
+      stop("eType = 'grow' needs propDiffMin or logOddsMin")
+    }
+    if (!is.null(power) && !is.null(nBlocksPlan)) {
+      stop("supply power (to find nBlocksPlan) or nBlocksPlan (to find power), not both")
+    }
+  } else {
+    if (hasEsMin) {
+      stop("eType = '", eType, "' takes no propDiffMin or logOddsMin")
+    }
+    if (wantsPlanning) {
+      stop("no sampling for eType = '", eType, "'; power and nBlocksPlan need eType = 'grow'")
+    }
+    if (alternative != "twoSided") {
+      warning("eType = '", eType, "' is twoSided; alternative = '", alternative, "' is ignored")
+    }
   }
   if (!is.null(power)) {
     planning <- computeNPlanSavi2x2(
@@ -383,8 +405,9 @@ designSavi2x2 <- function(
     )
     result[["designScenario"]] <- "1a"
     result[["power"]] <- power
-    result[["nBlocksPlan"]] <- c("nBlocksPlan" = planning[["nPlan"]])
-    result[["nBlocksPlanTwoSe"]] <- 2 * planning[["bootObjNPlan"]][["bootSe"]]
+    nBlocksPlan <- planning[["nPlan"]]
+    # na, nb are planned, not simulated: no standard error for them.
+    result[["nPlanTwoSe"]] <- c(NA, NA, 2 * planning[["bootObjNPlan"]][["bootSe"]])
     result[["bootObjNBlocksPlan"]] <- planning[["bootObjNPlan"]]
     result[["nMean"]] <- c("nMean" = planning[["nMean"]])
     result[["nMeanTwoSe"]] <- 2 * planning[["bootObjNMean"]][["bootSe"]]
@@ -398,7 +421,6 @@ designSavi2x2 <- function(
       wantSamplePaths = wantSamplePaths, pb = pb
     )
     result[["designScenario"]] <- "2"
-    result[["nBlocksPlan"]] <- c("nBlocksPlan" = unname(nBlocksPlan))
     result[["power"]] <- planning[["power"]]
     result[["powerTwoSe"]] <- 2 * planning[["bootObjPower"]][["bootSe"]]
     result[["bootObjPower"]] <- planning[["bootObjPower"]]
@@ -420,6 +442,9 @@ designSavi2x2 <- function(
   result[["alternative"]] <- alternative
   result[["h0"]] <- c("propDiff" = h0)
   result[["nPlan"]] <- list("na" = na, "nb" = nb)
+  if (!is.null(nBlocksPlan)) {
+    result[["nPlan"]][["nBlocksPlan"]] <- unname(nBlocksPlan)
+  }
   result[["testType"]] <- "2x2"
   result[["call"]] <- sys.call()
   result[["timeStamp"]] <- Sys.time()
