@@ -241,7 +241,11 @@ savi2x2TestStatLogOdds <- function(ya, yb,
         shift <- apply(logTerms, 1, max)
         logTerms[, yb - k[1] + 1] - shift - log(rowSums(exp(logTerms - shift)))
       }, ya = ya, yb = yb, na = na, nb = nb))
-      # Cumulate over blocks, then mix over the grid (log-sum-exp per block).
+      # Cumulate over blocks (cumsum down each grid column; matrix() keeps
+      # a single block as a 1-row matrix), then add the log prior weight to
+      # every row of its column: sweep(x, 2, v, "+") adds v[j] to column j.
+      # Row i then holds log(prior * likelihood of blocks 1..i) on the grid,
+      # mixed over the grid by the log-sum-exp below.
       logMix <- sweep(
         matrix(apply(logPGrid, 2, cumsum), nrow = nBlocks), 2, logPrior, "+"
       )
@@ -874,12 +878,19 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
     logWeights <- logWeights +
       ya[i] * logThetaA + (na[i] - ya[i]) * logOneMinusThetaA +
       yb[i] * logThetaB + (nb[i] - yb[i]) * logOneMinusThetaB
+    # Re-centre each side's column at its maximum (sweep(x, 2, v) subtracts
+    # v[j] from column j): the largest weight is again exactly 1, so the
+    # posterior mean's exp() and sum() cannot underflow however many
+    # blocks have been seen. A per-column constant leaves the mean unchanged.
     logWeights <- sweep(logWeights, 2, apply(logWeights, 2, max))
   }
 
   # Replace block 1's plug-in ratio by its UMP factor: the cumulative
   # process of each side shifts by the same constant from block 1 on, so
   # replacing logEValueSides[1, ] alone would leave the later rows wrong.
+  # sweep(x, 2, v, "+") adds v[j], side j's log UMP factor minus its block-1
+  # plug-in log ratio, to every row of column j; row 1 becomes the log UMP
+  # factor itself.
   logEValueSides <- sweep(logEValueSides, 2, logEValueUmp - logEValueSides[1, ], "+")
 
   # Average of the one-sided cumulative e-values per block, on the log
