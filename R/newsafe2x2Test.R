@@ -165,7 +165,9 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 #' Safe anytime-valid 2x2 test for logOdds
 #'
 #' Every block is conditioned on its total successes (Decision 7).
-#' `eType = "grow"`: the fixed alternative `logOddsMin` (Decision 15),
+#' `eType = "grow"`: the fixed alternative `logOddsMin` (Decision 15), or
+#' for `"twoSided"` the average of the processes at `+/-logOddsMin`
+#' (Decision 38),
 #' `"greater"` only. `eType = "eGauss"`: N(0, 1) mixture on a fixed grid
 #' (Decision 18), `"twoSided"` only. Only eGauss gets a confidence interval
 #' (Decision 17), inverting its e-process on point nulls, with the first
@@ -209,8 +211,19 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   # (numerator).
   logLikelihoodNull <- cumsum(stats::dhyper(yb, nb, na, ya + yb, log = TRUE))
   logLikelihoodAlternative <- switch(eType,
-    # grow: the fixed alternative logOddsMin (Decision 15).
-    grow = cumsum(logLikelihoodFNCH(ya, yb, na, nb, logOddsMin)),
+    # grow: the fixed alternative logOddsMin (Decision 15); twoSided is
+    # the log of the plain average of the cumulative likelihoods at
+    # +logOddsMin and -logOddsMin, shifted by their max (Decision 38).
+    grow = {
+      logPlus <- cumsum(logLikelihoodFNCH(ya, yb, na, nb, logOddsMin))
+      if (alternative == "twoSided") {
+        logMinus <- cumsum(logLikelihoodFNCH(ya, yb, na, nb, -logOddsMin))
+        shift <- pmax(logPlus, logMinus)
+        shift + log(0.5 * (exp(logPlus - shift) + exp(logMinus - shift)))
+      } else {
+        logPlus
+      }
+    },
     # eGauss: N(0, 1) prior on a fixed logOdds grid, twoSided (Decision 18).
     # The first block's factor is the UMP plug-in instead of the prior
     # mixture; the posterior still absorbs block 1 (Decision 28).
@@ -321,8 +334,8 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 #'
 #' `eType` picks the effect: `"eBeta"` (propDiff) is unrestricted and
 #' `"twoSided"`; `"grow"` plugs in whichever of `propDiffMin`, `logOddsMin`
-#' is set: `"greater"`, or `"twoSided"` for `propDiffMin` only (Decision
-#' 34). Inputs are assumed valid.
+#' is set: `"greater"`, or `"twoSided"` (Decisions 34, 38). Inputs are
+#' assumed valid.
 #' @noRd
 designSavi2x2 <- function(
   na, nb, nBlocksPlan = NULL,
@@ -883,8 +896,10 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 #' `logOddsMin` (`> 0`) is the grow plug-in and the data-generating effect.
 #' `propDiffMin`: data lie on `thetaB = thetaA + propDiffMin` at `nTheta`
 #' baselines `thetaA`, and for `"twoSided"` on `thetaB = thetaA - propDiffMin`
-#' at `nTheta` more. `logOddsMin` (`"greater"` only): data lie on
-#' `thetaB = plogis(qlogis(thetaA) + logOddsMin)` at `nTheta` baselines.
+#' at `nTheta` more. `logOddsMin`: data lie on `thetaB =
+#' plogis(qlogis(thetaA) + logOddsMin)` at `nTheta` baselines, and for
+#' `"twoSided"` on `thetaB = plogis(qlogis(thetaA) - logOddsMin)` at `nTheta`
+#' more (Decision 38).
 #' `nPlan` is the worst `power` quantile of the stopping time over all
 #' baselines; with `power = NULL` the quantile step is skipped and `nPlan`,
 #' `worstCaseIndex` are `NULL` (Decision 36).
@@ -907,16 +922,12 @@ sampleStoppingTimesSavi2x2 <- function(
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
-  # Exactly one effect measure is planned; "less" is not designed yet, and
-  # the grow test on logOdds is "greater" only.
+  # Exactly one effect measure is planned; "less" is not designed yet.
   if (is.null(propDiffMin) == is.null(logOddsMin)) {
     stop("supply exactly one of propDiffMin and logOddsMin")
   }
   if (alternative == "less") {
     stop("alternative = 'less' is not designed yet!")
-  }
-  if (!is.null(logOddsMin) && alternative != "greater") {
-    stop("the grow test on logOdds is designed for alternative = 'greater' only")
   }
   if (!is.null(propDiffMin)) {
     stopifnot(propDiffMin > 0, propDiffMin < 1)
@@ -942,7 +953,8 @@ sampleStoppingTimesSavi2x2 <- function(
   # symmetric under a group swap when na != nb or the Beta priors differ.
   # logOdds: the curve thetaB = plogis(qlogis(thetaA) + logOddsMin), feasible
   # for every thetaA in (0, 1); the outermost baselines, where the
-  # conditional e-factor is nearly trivial, drive nPlan.
+  # conditional e-factor is nearly trivial, drive nPlan. twoSided adds the
+  # curve at -logOddsMin over the same thetaA.
   rhoTheta <- seq(1 / (nTheta + 1), nTheta / (nTheta + 1), length.out = nTheta)
   if (!is.null(propDiffMin)) {
     thetaATrue <- rhoTheta * (1 - propDiffMin)
@@ -954,12 +966,20 @@ sampleStoppingTimesSavi2x2 <- function(
   } else {
     thetaATrue <- rhoTheta
     thetaBTrue <- stats::plogis(stats::qlogis(thetaATrue) + logOddsMin)
+    if (alternative == "twoSided") {
+      thetaATrue <- c(thetaATrue, rhoTheta)
+      thetaBTrue <- c(thetaBTrue,
+                      stats::plogis(stats::qlogis(rhoTheta) - logOddsMin))
+    }
   }
   nBaselines <- length(thetaATrue)
 
   logThreshold <- log(1 / alpha)
   naVec <- rep(na, nMax)
   nbVec <- rep(nb, nMax)
+  # logOdds paths are drawn and evaluated chunkSize blocks at a time, so a
+  # path that stops early never touches all nMax blocks (Decision 38).
+  chunkSize <- min(nMax, 50L)
   stoppingTimes <- matrix(Inf, nrow = nBaselines, ncol = nSim)
   breakVector <- matrix(1L, nrow = nBaselines, ncol = nSim)
   eValuesStopped <- matrix(NA_real_, nrow = nBaselines, ncol = nSim)
@@ -980,27 +1000,56 @@ sampleStoppingTimesSavi2x2 <- function(
         )
       }
 
-      ya <- stats::rbinom(nMax, na, thetaATrue[k])
-      yb <- stats::rbinom(nMax, nb, thetaBTrue[k])
-
-      # the length of the vector is the stopping time, unless the path ran
-      # through all nMax without crossing.
+      # The test's own grow e-process, cut at the first crossing of
+      # 1 / alpha: the length of the vector is the stopping time, unless the
+      # path ran through all nMax blocks without crossing.
       if (!is.null(propDiffMin)) {
+        ya <- stats::rbinom(nMax, na, thetaATrue[k])
+        yb <- stats::rbinom(nMax, nb, thetaBTrue[k])
         logEValueVec <- logEValueVec2x2PropDiffGrow(
           ya, yb, naVec, nbVec, betaParameter, propDiffMin,
           alpha, alternative, earlyStopping = TRUE
         )
       } else {
-        # Nothing is learned between blocks, so the whole path is two
-        # vectorised lines: the FNCH log likelihood at logOddsMin minus the
-        # hypergeometric log likelihood given each block's total.
-        logEValueVec <- cumsum(
-          logLikelihoodFNCH(ya, yb, naVec, nbVec, logOddsMin) -
-            stats::dhyper(yb, nbVec, naVec, ya + yb, log = TRUE)
-        )
-        firstCrossing <- which(logEValueVec >= logThreshold)[1]
-        if (!is.na(firstCrossing)) {
-          logEValueVec <- logEValueVec[seq_len(firstCrossing)]
+        # Nothing is learned between blocks, so each chunk is a few
+        # vectorised lines: the running cumulative FNCH log likelihood at
+        # +logOddsMin (and -logOddsMin, averaged, for twoSided) minus the
+        # running hypergeometric log likelihood given each block's total.
+        logEValueVec <- numeric(0)
+        logCumNull <- 0
+        logCumPlus <- 0
+        logCumMinus <- 0
+        nDrawn <- 0L
+        while (nDrawn < nMax) {
+          nChunk <- min(chunkSize, nMax - nDrawn)
+          naChunk <- naVec[seq_len(nChunk)]
+          nbChunk <- nbVec[seq_len(nChunk)]
+          ya <- stats::rbinom(nChunk, na, thetaATrue[k])
+          yb <- stats::rbinom(nChunk, nb, thetaBTrue[k])
+          logNull <- logCumNull +
+            cumsum(stats::dhyper(yb, nbChunk, naChunk, ya + yb, log = TRUE))
+          logPlus <- logCumPlus +
+            cumsum(logLikelihoodFNCH(ya, yb, naChunk, nbChunk, logOddsMin))
+          if (alternative == "twoSided") {
+            logMinus <- logCumMinus +
+              cumsum(logLikelihoodFNCH(ya, yb, naChunk, nbChunk, -logOddsMin))
+            shift <- pmax(logPlus, logMinus)
+            logAlternative <- shift +
+              log(0.5 * (exp(logPlus - shift) + exp(logMinus - shift)))
+            logCumMinus <- logMinus[nChunk]
+          } else {
+            logAlternative <- logPlus
+          }
+          logCumNull <- logNull[nChunk]
+          logCumPlus <- logPlus[nChunk]
+          logEChunk <- logAlternative - logNull
+          firstCrossing <- which(logEChunk >= logThreshold)[1]
+          if (!is.na(firstCrossing)) {
+            logEValueVec <- c(logEValueVec, logEChunk[seq_len(firstCrossing)])
+            break
+          }
+          logEValueVec <- c(logEValueVec, logEChunk)
+          nDrawn <- nDrawn + nChunk
         }
       }
 

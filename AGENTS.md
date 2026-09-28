@@ -1002,3 +1002,38 @@ Both scenarios also store `worstCaseIndex`, `worstCaseThetaA`,
 to the `nPlan`/`nMean` `±2se` branch, the smallest 2x2 edit in
 `R/safeS3Methods.R`; `nPlan` (the list) prints as before. The sketch
 comments in the design function are replaced by this wiring.
+
+### 38. Two-sided grow on logOdds, and chunked logOdds simulation
+
+Reopens Decision 15's two-sided average for `logOdds` (Decision 35 said
+`"twoSided"` with `logOddsMin` errors; it no longer does).
+`savi2x2TestStatLogOdds(eType = "grow", alternative = "twoSided")`:
+`logLikelihoodAlternative` is the log of the plain average of the two
+cumulative FNCH likelihoods at `+logOddsMin` and `-logOddsMin`, on the
+log scale by shifting with the elementwise max, inlined as in Decision 34,
+so the e-process is the average of the two one-sided cumulative
+e-processes (averaged as processes, not per block). `"greater"` is
+Decision 15 unchanged; there is still no block-1 UMP factor and no
+confidence interval for grow (Decision 19). `designSavi2x2` allows
+`"grow"` with `logOddsMin` and `"twoSided"`.
+
+`sampleStoppingTimesSavi2x2(logOddsMin, alternative = "twoSided")`
+simulates on both curves, as Decision 34 does for `propDiff`: the `nTheta`
+baselines `thetaA = k / (nTheta + 1)` on `thetaB = plogis(qlogis(thetaA) +
+logOddsMin)`, then the same `thetaA` on `thetaB = plogis(qlogis(thetaA) -
+logOddsMin)`, `2 nTheta` rows; the per-path process is the test's
+two-sided average and `earlyStopping` checks it. `"greater"` keeps the
+plus curve. `"less"` still errors, for both effects.
+
+The logOdds branch of the sampler no longer draws and evaluates all
+`nMax` blocks per path: it works in chunks of `chunkSize = min(nMax,
+50L)` blocks (an internal constant, not an argument), drawing `ya`, `yb`
+for the chunk, adding its `cumsum` terms to the running cumulative log
+likelihoods (null, `+logOddsMin`, and `-logOddsMin` for `"twoSided"`),
+and stopping at the first block of the first chunk whose (averaged)
+log e-value reaches `log(1 / alpha)`; the vector is cut there, so its
+length is the stopping time as before. The stopping-time distribution is
+unchanged, but a given seed no longer reproduces the full-vector draws,
+since `ya` and `yb` are now drawn chunk by chunk. The propDiff branch is
+untouched: its blockwise loop already stops early and its draws are
+cheap.
