@@ -332,10 +332,57 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 
 #' Design a safe anytime-valid 2x2 test
 #'
-#' `eType` picks the effect: `"eBeta"` (propDiff) is unrestricted and
-#' `"twoSided"`; `"grow"` plugs in whichever of `propDiffMin`, `logOddsMin`
-#' is set: `"greater"`, or `"twoSided"` (Decisions 34, 38). Inputs are
-#' assumed valid.
+#' `eType` picks the e-variable and, with it, the effect measure. Both
+#' effects are signed B minus A and anchored on `thetaA`: `propDiff =
+#' thetaB - thetaA` and `logOdds = logit(thetaB) - logit(thetaA)`.
+#'
+#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted and
+#'   twoSided only; they take no `propDiffMin` or `logOddsMin` and no
+#'   planning, and a one-sided `alternative` is ignored with a warning.
+#' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
+#'   fixed alternative (Decisions 15, 34, 38), `"greater"` or `"twoSided"`,
+#'   and is the only `eType` with sampling (Decision 37): `power` alone
+#'   plans the block count at the hardest baseline, `nBlocksPlan` alone
+#'   evaluates the worst-case power there. Supplying both errors; neither
+#'   gives the design without simulation. Finding the minimal effect from
+#'   `power` and `nBlocksPlan` is not implemented yet and errors.
+#'
+#' @param na,nb Planned group sizes per block, one positive integer each.
+#' @param nBlocksPlan Planned block count at which the worst-case power is
+#'   evaluated (`"grow"` only). `NULL` unless `power` is `NULL`.
+#' @param propDiffMin,logOddsMin Minimal effect for `"grow"`, at most one of
+#'   them: `propDiffMin` strictly inside `(0, 1)`, `logOddsMin` finite and
+#'   `> 0`. Stored as `esMin`.
+#' @param alpha Significance level; the test rejects at `1 / alpha`.
+#' @param power Target power (`"grow"` only). Plans `nBlocksPlan` when that
+#'   is `NULL`.
+#' @param h0 The null value of `propDiff`; only `0` is designed.
+#' @param alternative `"twoSided"` or `"greater"`; `"less"` is not designed
+#'   yet.
+#' @param eType `"eBeta"`, `"grow"` or `"eGauss"`, see Details.
+#' @param betaParameter `list(betaA1, betaA2, betaB1, betaB2)`, the Beta
+#'   prior shapes on `thetaA` and `thetaB`; `NULL` keeps the constructor's
+#'   default of `0.18` each.
+#' @param runningIntersection `TRUE` to intersect each row of the blockwise
+#'   confidence sequence with the previous one; `NULL` keeps the
+#'   constructor's `FALSE`.
+#' @param nTheta,nSim,nBoot,nMax,seed,wantSamplePaths,pb Simulation settings
+#'   passed to [sampleStoppingTimesSavi2x2()] via [computeNPlanSavi2x2()] or
+#'   [computePowerSavi2x2()]: baselines per curve, paths per baseline,
+#'   bootstrap resamples, block cap per path, seed (`NULL` is `2026`),
+#'   whether to keep the e-value paths, and the progress bar.
+#'
+#' @return A `saviDesign` with `testName = "Two Proportions"`, `testType =
+#'   "2x2"`, `h0 = c(propDiff = h0)`, `esMin`, `eType`, `alpha`,
+#'   `alternative`, `betaParameter`, `parameter` (the prior summarised for
+#'   printing), `runningIntersection` and `nPlan = list(na, nb)`, with a
+#'   third element `nBlocksPlan` when planned or given. With `power`:
+#'   `designScenario = "1a"`, `power` as the target, `nPlanTwoSe = c(NA,
+#'   NA, 2 * bootSe)`, `bootObjNBlocksPlan`, `nMean`, `nMeanTwoSe`,
+#'   `bootObjNMean`. With `nBlocksPlan`: `designScenario = "2"`, `power`
+#'   (the worst case), `powerTwoSe`, `bootObjPower`. Both also carry
+#'   `worstCaseIndex`, `worstCaseThetaA`, `worstCaseThetaB`, `breakVector`
+#'   and `samplePaths`.
 #' @noRd
 designSavi2x2 <- function(
   na, nb, nBlocksPlan = NULL,
