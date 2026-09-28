@@ -819,3 +819,43 @@ of the two one-sided e-factors (settling the rule left open in Decision
 8). `savi2x2TestStatPropDiff` multiplies block 1's factor, at the design's
 `alpha` and `alternative`, into its whole e-process; eGauss on `logOdds`
 keeps Decision 28's `"greater"` first block for now.
+
+### 33. Blockwise grow e-process on propDiff with early stopping
+
+`logEProcess2x2PropDiffGrow(ya, yb, na, nb, betaParameter, propDiffMin,
+alpha, earlyStopping = FALSE, nWeight = 1e3L)`, under `# Helpers: propDiff
+----`, is the whole grow e-process of `savi2x2TestStatPropDiff`
+(`"greater"` only), one block at a time in the shared notation of Decision
+31: block `i` takes the posterior mean of `thetaA` under the grid posterior
+on the curve `thetaB - thetaA = propDiffMin` given blocks `1..i-1` (the
+grid, prior and update of Decision 6, now inside this function;
+`predictiveThetas2x2PropDiff` is removed), the null is the pooled
+projection, `logLikelihoodNull` and `logLikelihoodAlternative` are
+accumulated as scalars and their difference stored as `logEValueVec[i]`, and
+only then is block `i` added to the posterior. Block 1's UMP conditional
+e-factor (Decision 32, `alternative = "greater"`, at `alpha`) is the
+starting value of `logLikelihoodAlternative`, which is why the function
+takes `alpha`. Returns `logEValueVec` of length `nBlocks`; with
+`earlyStopping = TRUE` the loop breaks at the first block whose value
+reaches `log(1 / alpha)`, so the vector is shorter and its length is the
+stopping time (the caller checks the last element against the threshold to
+tell a crossing at the last block from no crossing). `savi2x2TestStatPropDiff`
+calls it with the default for `eType = "grow"`; the eBeta branch keeps
+`predictiveThetas2x2` and its vectorised `cumsum`. Output unchanged to
+~1e-12.
+
+`sampleStoppingTimesSavi2x2` (Decision 29) is filled on top of it: `nTheta`
+baselines `thetaA = k / (nTheta + 1) * (1 - propDiffMin)`, per path the
+`nMax` blocks are drawn up front and the e-process is run with
+`earlyStopping = TRUE`. A path that never crosses within `nMax` has stopping
+time `Inf`, never `NA`. The `power` quantile per baseline is `type = 1` (an
+order statistic), so it is a realised stopping time and is finite exactly
+when at least a fraction `power` of the paths crossed; the interpolating
+default would return `Inf` already when the fraction is met exactly. `nPlan`
+is the `ceiling` of the largest quantile, hence `Inf` when the worst
+baseline crossed too rarely, a signal that `nMax` is too short (no warning
+yet). `seed = NULL` means `set.seed(2026)`; a given seed is used as is.
+`pb = TRUE` drives a `txtProgressBar` as the t-test sampler does, one step
+per path over all baselines. `logOddsMin`, `alternative` other than
+`"greater"`, `nBoot`, `wantEValuesAtNMax`, `wantSamplePaths` and
+`wantSimData` are accepted but not implemented: no bootstrap yet.
