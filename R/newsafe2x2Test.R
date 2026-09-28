@@ -61,8 +61,6 @@ savi2x2TestStatPropDiff <- function(ya, yb,
     warnings("There is only 1 table, switched to conditional e-variable")
   }
 
-  eValueUmp <- savi2x2TestStatUmp(ya = ya[1], yb = yb[1], na = na[1], nb = nb[1], alpha = alpha, alternative = alternative)
-
   # Data checks: one count and size per block, counts within their sizes.
   if (length(yb) != nBlocks || length(na) != nBlocks ||
       length(nb) != nBlocks) {
@@ -78,37 +76,41 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   result <- constructSaviTestObj("Two Proportions")
 
   # Compute: eValueVec ----
-  # Numerator: predictable thetas from blocks 1..i-1 only.
-  # eBeta (twoSided): independent Beta posterior means.
-  # grow (greater only for now): learnt on the curve thetaB - thetaA =
-  # propDiffMin. grow + twoSided: TODO later.
-  thetas <- switch(eType,
-    "eBeta" = predictiveThetas2x2(ya, yb, na, nb, betaParameter),
-    "grow" = predictiveThetas2x2PropDiff(ya, yb, na, nb, betaParameter,
-      propDiff = propDiffMin
-    ),
+  if (eType == "grow") {
+    # greater only for now; twoSided later. The blockwise e-process carries
+    # the UMP factor of block 1 itself.
+    logEValueVec <- logEProcess2x2PropDiffGrow(
+      ya, yb, na, nb, betaParameter, propDiffMin, alpha
+    )
+  } else if (eType == "eBeta") {
+    # Block 1's UMP conditional e-factor multiplies the whole e-process.
+    eValueUmp <- savi2x2TestStatUmp(
+      ya[1], yb[1], na[1], nb[1], alpha, alternative
+    )
+
+    # Numerator (twoSided): independent Beta posterior means of thetaA and
+    # thetaB from blocks 1..i-1 only.
+    thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
+    thetaA <- thetas[["thetaA"]]
+    thetaB <- thetas[["thetaB"]]
+
+    # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
+    thetaNull <- (na * thetaA + nb * thetaB) / (na + nb)
+
+    # Cumulative log likelihood of blocks 1..i under the null (denominator)
+    # and under the alternative (numerator); dbinom() handles theta at 0 or 1.
+    logLikelihoodNull <- cumsum(
+      stats::dbinom(ya, na, thetaNull, log = TRUE) +
+        stats::dbinom(yb, nb, thetaNull, log = TRUE)
+    )
+    logLikelihoodAlternative <- cumsum(
+      stats::dbinom(ya, na, thetaA, log = TRUE) +
+        stats::dbinom(yb, nb, thetaB, log = TRUE)
+    )
+    logEValueVec <- logLikelihoodAlternative - logLikelihoodNull + log(eValueUmp)
+  } else {
     stop("eType ", eType, " is not implemented for propDiff")
-  )
-  thetaA <- thetas[["thetaA"]]
-  thetaB <- thetas[["thetaB"]]
-
-  # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
-  thetaNull <- (na * thetaA + nb * thetaB) / (na + nb)
-
-  # Cumulative log likelihood of blocks 1..i under the null (denominator)
-  # and under the alternative (numerator); dbinom() handles theta at 0 or 1.
-  logLikelihoodNull <- cumsum(
-    stats::dbinom(ya, na, thetaNull, log = TRUE) +
-      stats::dbinom(yb, nb, thetaNull, log = TRUE)
-  )
-  logLikelihoodAlternative <- cumsum(
-    stats::dbinom(ya, na, thetaA, log = TRUE) +
-      stats::dbinom(yb, nb, thetaB, log = TRUE)
-  )
-  logEValueVec <- logLikelihoodAlternative - logLikelihoodNull
-
-  # multiplied by ump conditional e-variable
-  logEValueVec <- logEValueVec + log(eValueUmp)
+  }
 
   # Compute: confSeq ----
   # confidence interval or sequences only in eBeta
@@ -620,11 +622,9 @@ computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
 
 # Helpers: propDiff ----
 
-# Predictable plug-in for the numerator, for block i given the counts of
-# blocks 1 to i - 1 only. predictiveThetas2x2(): the independent Beta
-# posterior means of thetaA and thetaB. predictiveThetas2x2PropDiff(): the
-# numerator lives on the curve thetaB - thetaA = propDiff, and thetaA is the
-# posterior mean under a grid posterior on that curve.
+# Predictable plug-in for the numerator of the eBeta test, for block i given
+# the counts of blocks 1 to i - 1 only: the independent Beta posterior means
+# of thetaA and thetaB.
 predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
   nBlocks <- length(ya)
   betaA1 <- betaParameter[["betaA1"]]
@@ -644,22 +644,29 @@ predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
   ))
 }
 
-predictiveThetas2x2PropDiff <- function(ya, yb, na, nb, betaParameter,
-                                        propDiff, nWeight = 1e3L) {
+# Cumulative log e-process of the grow test on propDiff ("greater"), block
+# by block. The numerator lives on the curve thetaB - thetaA = propDiffMin:
+# block i uses the posterior mean of thetaA under a grid posterior on that
+# curve given blocks 1..i-1, the null is the pooled projection onto
+# thetaA = thetaB, and block 1's UMP conditional e-factor multiplies the
+# whole process. Returns logEValueVec of length nBlocks; with earlyStopping
+# the loop stops at the first block whose value reaches log(1 / alpha), so
+# the vector is shorter and its length is the stopping time.
+logEProcess2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
+                                       propDiffMin, alpha,
+                                       earlyStopping = FALSE,
+                                       nWeight = 1e3L) {
   nBlocks <- length(ya)
+  logThreshold <- if (earlyStopping) log(1 / alpha) else Inf
 
-  # output placeholder
-  thetaA <- numeric(nBlocks)
-
-  # Only the thetaA prior is used
+  # Only the thetaA prior is used: rho = thetaA rescaled to (0, 1).
   betaA1 <- betaParameter[["betaA1"]]
   betaA2 <- betaParameter[["betaA2"]]
 
-  # thetaA are restricted by propDiff
+  # Grid on the curve; thetaA is restricted to (0, 1 - propDiffMin).
   rho <- seq(1 / nWeight, 1 - 1 / nWeight, length.out = nWeight)
-  thetaAGrid <- max(0, -propDiff) + rho * (1 - abs(propDiff))
-  thetaBGrid <- thetaAGrid + propDiff
-
+  thetaAGrid <- rho * (1 - propDiffMin)
+  thetaBGrid <- thetaAGrid + propDiffMin
   logThetaA <- log(thetaAGrid)
   logOneMinusThetaA <- log1p(-thetaAGrid)
   logThetaB <- log(thetaBGrid)
@@ -671,18 +678,44 @@ predictiveThetas2x2PropDiff <- function(ya, yb, na, nb, betaParameter,
   logWeights <- (betaA1 - 1) * log(rho) + (betaA2 - 1) * log1p(-rho)
   logWeights <- logWeights - max(logWeights)
 
-  for (i in seq_len(nBlocks)) {
-    # posterior mean for thetaA
-    weights <- exp(logWeights)
-    thetaA[i] <- sum(thetaAGrid * weights) / sum(weights)
+  # Block 1's UMP conditional e-factor, in the direction of the alternative.
+  eValueUmp <- savi2x2TestStatUmp(
+    ya[1], yb[1], na[1], nb[1], alpha, "greater"
+  )
 
+  # Cumulative log likelihood of blocks 1..i under the null (denominator)
+  # and under the alternative (numerator).
+  logLikelihoodNull <- 0
+  logLikelihoodAlternative <- log(eValueUmp)
+  logEValueVec <- numeric(0)
+
+  for (i in seq_len(nBlocks)) {
+    # Numerator: posterior mean of thetaA given blocks 1..i-1, on the curve.
+    weights <- exp(logWeights)
+    thetaA <- sum(thetaAGrid * weights) / sum(weights)
+    thetaB <- thetaA + propDiffMin
+    # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
+    thetaNull <- (na[i] * thetaA + nb[i] * thetaB) / (na[i] + nb[i])
+
+    logLikelihoodNull <- logLikelihoodNull +
+      stats::dbinom(ya[i], na[i], thetaNull, log = TRUE) +
+      stats::dbinom(yb[i], nb[i], thetaNull, log = TRUE)
+    logLikelihoodAlternative <- logLikelihoodAlternative +
+      stats::dbinom(ya[i], na[i], thetaA, log = TRUE) +
+      stats::dbinom(yb[i], nb[i], thetaB, log = TRUE)
+    logEValueVec[i] <- logLikelihoodAlternative - logLikelihoodNull
+
+    if (logEValueVec[i] >= logThreshold) break
+
+    # Only now add block i to the posterior, so block i + 1 is predicted from
+    # the past alone.
     logWeights <- logWeights +
       ya[i] * logThetaA + (na[i] - ya[i]) * logOneMinusThetaA +
       yb[i] * logThetaB + (nb[i] - yb[i]) * logOneMinusThetaB
     logWeights <- logWeights - max(logWeights)
   }
 
-  list("thetaA" = thetaA, "thetaB" = thetaA + propDiff)
+  logEValueVec
 }
 
 # Find the means that minimize the KL between the alternative and null
@@ -785,10 +818,83 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 #'   `Inf` when a path never crosses `1 / alpha`), `nPlan`, `worstCaseIndex`.
 #' @noRd
 sampleStoppingTimesSavi2x2 <- function(
-  propDiffMin, power, na, nb, alpha = 0.05,
-  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, maxBlocks = 1e4L,
-  seed = NULL
+  propDiffMin, logOddsMin = NULL, na, nb, power, alpha = 0.05,
+  alternative = c("twoSided", "less", "greater"),
+  eType = c("grow"),
+  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nMax = 1e4L, nBoot = 1e4L,
+  seed = NULL, wantEValuesAtNMax = FALSE,
+  wantSamplePaths = TRUE, wantSimData = TRUE, pb = TRUE
 ) {
-  # TODO: baseline grid, per-path block loop, worst-case quantile
-  stop("sampleStoppingTimesSavi2x2 is not implemented yet.")
+  alternative <- match.arg(alternative)
+  eType <- match.arg(eType)
+
+  # Only the grow test on propDiff, "greater", is planned for now.
+  if (is.null(propDiffMin) || !is.null(logOddsMin)) {
+    stop("sampleStoppingTimesSavi2x2 plans propDiffMin only for now")
+  }
+  if (alternative != "greater") {
+    stop("sampleStoppingTimesSavi2x2 is designed for alternative = 'greater' only")
+  }
+  stopifnot(
+    propDiffMin > 0, propDiffMin < 1, alpha > 0, alpha < 1,
+    power > 0, power < 1, na >= 1, nb >= 1, is.finite(nMax)
+  )
+
+  if (is.null(betaParameter)) {
+    betaParameter <- constructSaviDesignObj("Two Proportions")[["betaParameter"]]
+  }
+  if (!is.null(seed)) set.seed(2026)
+
+  # Baselines on the curve thetaB = thetaA + propDiffMin: thetaA runs over
+  # its feasible range (0, 1 - propDiffMin) at nTheta equally spaced
+  # interior points.
+  rhoTheta <- seq(1 / (nTheta + 1), nTheta / (nTheta + 1), length.out = nTheta)
+  thetaATrue <- rhoTheta * (1 - propDiffMin)
+  thetaBTrue <- thetaATrue + propDiffMin
+
+  logThreshold <- log(1 / alpha)
+  stoppingTimes <- matrix(Inf, nrow = nTheta, ncol = nSim)
+
+  if (pb) {
+    pbSavi <- utils::txtProgressBar(
+      min = 0, max = nTheta * nSim, style = 3,
+      title = "Savi 2x2 test threshold crossing"
+    )
+  }
+
+  for (k in seq_len(nTheta)) {
+    for (sim in seq_len(nSim)) {
+      if (pb) utils::setTxtProgressBar(pbSavi, (k - 1) * nSim + sim)
+
+      ya <- stats::rbinom(nMax, na, thetaATrue[k])
+      yb <- stats::rbinom(nMax, nb, thetaBTrue[k])
+
+      # The test's own grow e-process, stopped at the first crossing of
+      # 1 / alpha: the length of the returned vector is the stopping time,
+      # unless the path ran through all nMax blocks without crossing.
+      logEValueVec <- logEProcess2x2PropDiffGrow(
+        ya, yb, rep(na, nMax), rep(nb, nMax), betaParameter, propDiffMin,
+        alpha, earlyStopping = TRUE
+      )
+      if (logEValueVec[length(logEValueVec)] >= logThreshold) {
+        stoppingTimes[k, sim] <- length(logEValueVec)
+      }
+    }
+  }
+
+  if (pb) close(pbSavi)
+
+  # Planned block count: the power quantile of the stopping time at the
+  # hardest baseline; Inf when too many paths never cross 1 / alpha.
+  quantiles <- apply(stoppingTimes, 1, stats::quantile, probs = power,
+    names = FALSE, type = 1
+  )
+  worstCaseIndex <- which.max(quantiles)
+
+  list(
+    "thetaA" = thetaATrue, "thetaB" = thetaBTrue,
+    "stoppingTimes" = stoppingTimes,
+    "nPlan" = ceiling(quantiles[worstCaseIndex]),
+    "worstCaseIndex" = worstCaseIndex
+  )
 }
