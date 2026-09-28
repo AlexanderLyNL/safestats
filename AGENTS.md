@@ -1045,3 +1045,19 @@ unchanged, but a given seed no longer reproduces the full-vector draws,
 since `ya` and `yb` are now drawn chunk by chunk. The propDiff branch is
 untouched: its blockwise loop already stops early and its draws are
 cheap.
+
+### 39. Block 1 of propDiff grow is the UMP factor alone
+
+Reopens Decisions 32 and 33 for `logEValueVec2x2PropDiffGrow`: block 1's
+e-factor is `savi2x2TestStatUmp(ya[1], yb[1], na[1], nb[1], alpha,
+side)` **in place of** its plug-in ratio, not multiplied into it (as
+Decision 28 does for eGauss on logOdds). The product of the two block-1
+factors is not an e-variable: its exact null expectation on `na = 5`,
+`nb = 3` reaches 2.3 at the pooled null `theta = 0.3`. So
+`logLikelihoodAlternative` starts at the log UMP factor, block 1 adds
+nothing to `logLikelihoodNull` or `logLikelihoodAlternative`, and
+`logEValueVec[1]` is the log UMP factor; blocks `2..i` are unchanged, and
+block 1 is still absorbed into the grid posterior. The sampler and the
+design inherit this. `savi2x2TestStatPropDiff(eType = "eBeta")` still
+multiplies the UMP factor into its whole e-process (Decision 32), the same
+invalid product, and is not yet changed.

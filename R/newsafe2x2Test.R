@@ -78,7 +78,7 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 
   # Compute: eValueVec ----
   if (eType == "grow") {
-    # The blockwise e-process carries the UMP factor of block 1 itself and
+    # The blockwise e-process uses the UMP factor as block 1 itself and
     # averages the two sides for twoSided.
     logEValueVec <- logEValueVec2x2PropDiffGrow(
       ya, yb, na, nb, betaParameter, propDiffMin, alpha, alternative
@@ -772,8 +772,8 @@ predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
 # The numerator lives on the curve thetaB = thetaA + propDiffMin: block i
 # uses the posterior mean of thetaA under a grid posterior on that curve
 # given blocks 1..i-1, the null is the pooled projection onto
-# thetaA = thetaB, and block 1's UMP conditional e-factor multiplies the
-# whole process. "twoSided" runs the same process on the curve
+# thetaA = thetaB, and block 1's e-factor is its UMP conditional e-factor
+# alone, in place of the plug-in ratio. "twoSided" runs the same process on the curve
 # thetaB = thetaA - propDiffMin as well and averages the two cumulative
 # e-values as processes (Decision 34). Returns logEValueVec of length
 # nBlocks; with earlyStopping the loop stops at the first block whose value
@@ -822,8 +822,10 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   logWeights <- matrix(logWeights - max(logWeights), nWeight, nSides)
 
   # Cumulative log likelihood of blocks 1..i under the null (denominator)
-  # and under the alternative (numerator), per side. Block 1's UMP
-  # conditional e-factor starts each numerator, in that side's direction.
+  # and under the alternative (numerator), per side. Block 1's factor is
+  # its UMP conditional e-factor in that side's direction, in place of the
+  # plug-in ratio (which at block 1 is the prior mean, a wasted block): it
+  # starts each numerator and block 1 adds nothing else to either side.
   logLikelihoodNull <- numeric(nSides)
   logLikelihoodAlternative <- numeric(nSides)
   for (s in seq_len(nSides)) {
@@ -837,6 +839,8 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
 
   for (i in seq_len(nBlocks)) {
     for (s in seq_len(nSides)) {
+      # Block 1 is the UMP factor above; its plug-in ratio is not used.
+      if (i == 1) next
       # Numerator: posterior mean of thetaA given blocks 1..i-1, on the curve.
       weights <- exp(logWeights[, s])
       thetaA <- sum(thetaAGrid[, s] * weights) / sum(weights)
