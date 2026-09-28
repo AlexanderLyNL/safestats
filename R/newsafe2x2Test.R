@@ -80,7 +80,7 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   if (eType == "grow") {
     # The blockwise e-process carries the UMP factor of block 1 itself and
     # averages the two sides for twoSided.
-    logEValueVec <- logEProcess2x2PropDiffGrow(
+    logEValueVec <- logEValueVec2x2PropDiffGrow(
       ya, yb, na, nb, betaParameter, propDiffMin, alpha, alternative
     )
   } else if (eType == "eBeta") {
@@ -325,7 +325,8 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 #' 34). Inputs are assumed valid.
 #' @noRd
 designSavi2x2 <- function(
-  na, nb, propDiffMin = NULL, logOddsMin = NULL,
+  na, nb, nBlocksPlan = NULL,
+  propDiffMin = NULL, logOddsMin = NULL,
   alpha = 0.05, power = NULL, h0 = 0,
   alternative = c("twoSided", "greater"),
   eType = c("eBeta", "grow", "eGauss"),
@@ -344,6 +345,15 @@ designSavi2x2 <- function(
   if (!is.null(runningIntersection)) {
     result[["runningIntersection"]] <- runningIntersection
   }
+
+  # TODO
+  # propDiffMin + power find the nPlan, only with grow
+  # same for logOddsMin
+  # find the nBlocksPlan!
+
+  # TODO
+  # propDiffMin + nBlocksPlan find the power
+
 
   # TODO: what if both are NULL
   result[["esMin"]] <- if (!is.null(propDiffMin)) propDiffMin else logOddsMin
@@ -646,7 +656,7 @@ predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
 # nBlocks; with earlyStopping the loop stops at the first block whose value
 # reaches log(1 / alpha), so the vector is shorter and its length is the
 # stopping time.
-logEProcess2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
+logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
                                        propDiffMin, alpha,
                                        alternative = c("twoSided", "greater", "less"),
                                        earlyStopping = FALSE,
@@ -827,38 +837,54 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 
 # Sampling functions for design ----
 
-#' Simulate stopping times of the propDiff grow test
+#' Simulate stopping times of the 2x2 grow test
 #'
-#' Decision 29. `propDiffMin` (`> 0`) is both the grow plug-in and the
-#' data-generating effect: data lie on `thetaB = thetaA + propDiffMin` at
-#' `nTheta` baselines `thetaA`, and for `"twoSided"` on `thetaB = thetaA -
-#' propDiffMin` at `nTheta` more (Decision 34). `nPlan` is the worst `power`
-#' quantile of the stopping time over all baselines.
+#' Decisions 29, 34, 35. Exactly one of `propDiffMin` (`> 0`) and
+#' `logOddsMin` (`> 0`) is the grow plug-in and the data-generating effect.
+#' `propDiffMin`: data lie on `thetaB = thetaA + propDiffMin` at `nTheta`
+#' baselines `thetaA`, and for `"twoSided"` on `thetaB = thetaA - propDiffMin`
+#' at `nTheta` more. `logOddsMin` (`"greater"` only): data lie on
+#' `thetaB = plogis(qlogis(thetaA) + logOddsMin)` at `nTheta` baselines.
+#' `nPlan` is the worst `power` quantile of the stopping time over all
+#' baselines.
 #'
-#' @return A list: `thetaA`, `thetaB`, `stoppingTimes` (one row per baseline,
-#'   `Inf` when a path never crosses `1 / alpha`), `nPlan`, `worstCaseIndex`.
+#' @return A list: `thetaA`, `thetaB`, and one row per baseline in
+#'   `stoppingTimes` (`Inf` when a path never crosses `1 / alpha`),
+#'   `breakVector` (`0` crossed, `1` reached `nMax`), `eValuesStopped`;
+#'   `samplePaths` (a list of `nSim x nMax` sparse matrices, or `NULL`),
+#'   `n1Vector` (the block index), `ratio` (`nb / na`), `nPlan`,
+#'   `worstCaseIndex`.
 #' @noRd
 sampleStoppingTimesSavi2x2 <- function(
-  propDiffMin, logOddsMin = NULL, na, nb, power, alpha = 0.05,
+  propDiffMin = NULL, logOddsMin = NULL, na, nb, power, alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   eType = c("grow"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nMax = 1e4L, nBoot = 1e4L,
   seed = NULL, wantEValuesAtNMax = FALSE,
-  wantSamplePaths = TRUE, wantSimData = TRUE, pb = TRUE
+  wantSamplePaths = FALSE, wantSimData = TRUE, pb = TRUE
 ) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
-  # Only the grow test on propDiff is planned for now, "less" not yet.
-  if (is.null(propDiffMin) || !is.null(logOddsMin)) {
-    stop("sampleStoppingTimesSavi2x2 plans propDiffMin only for now")
+  # Exactly one effect measure is planned; "less" is not designed yet, and
+  # the grow test on logOdds is "greater" only.
+  if (is.null(propDiffMin) == is.null(logOddsMin)) {
+    stop("supply exactly one of propDiffMin and logOddsMin")
   }
   if (alternative == "less") {
-    stop("alternative = 'less' is not designed yet for the grow test on propDiff")
+    stop("alternative = 'less' is not designed yet!")
+  }
+  if (!is.null(logOddsMin) && alternative != "greater") {
+    stop("the grow test on logOdds is designed for alternative = 'greater' only")
+  }
+  if (!is.null(propDiffMin)) {
+    stopifnot(propDiffMin > 0, propDiffMin < 1)
+  } else {
+    stopifnot(is.finite(logOddsMin), logOddsMin > 0)
   }
   stopifnot(
-    propDiffMin > 0, propDiffMin < 1, alpha > 0, alpha < 1,
-    power > 0, power < 1, na >= 1, nb >= 1, is.finite(nMax)
+    alpha > 0, alpha < 1, power > 0, power < 1, na >= 1, nb >= 1,
+    is.finite(nMax)
   )
 
   if (is.null(betaParameter)) {
@@ -867,28 +893,45 @@ sampleStoppingTimesSavi2x2 <- function(
   # Reproducible by default: 2026 unless a seed is given.
   set.seed(if (is.null(seed)) 2026 else seed)
 
-  # Baselines on the curve thetaB = thetaA + propDiffMin: thetaA runs over
-  # its feasible range (0, 1 - propDiffMin) at nTheta equally spaced
-  # interior points. twoSided adds the curve thetaB = thetaA - propDiffMin,
-  # thetaA over (propDiffMin, 1), since the test is not symmetric under a
-  # group swap when na != nb or the Beta priors differ.
+  # TODO: a lot of time wasted near the boundary
+  # Baselines: thetaA at nTheta equally spaced interior points of its
+  # feasible range. propDiff: the curve thetaB = thetaA + propDiffMin, thetaA
+  # over (0, 1 - propDiffMin); twoSided adds the curve thetaB = thetaA -
+  # propDiffMin, thetaA over (propDiffMin, 1), since the test is not
+  # symmetric under a group swap when na != nb or the Beta priors differ.
+  # logOdds: the curve thetaB = plogis(qlogis(thetaA) + logOddsMin), feasible
+  # for every thetaA in (0, 1); the outermost baselines, where the
+  # conditional e-factor is nearly trivial, drive nPlan.
   rhoTheta <- seq(1 / (nTheta + 1), nTheta / (nTheta + 1), length.out = nTheta)
-  thetaATrue <- rhoTheta * (1 - propDiffMin)
-  thetaBTrue <- thetaATrue + propDiffMin
-  if (alternative == "twoSided") {
-    thetaATrue <- c(thetaATrue, propDiffMin + rhoTheta * (1 - propDiffMin))
-    thetaBTrue <- c(thetaBTrue, thetaATrue[-seq_len(nTheta)] - propDiffMin)
+  if (!is.null(propDiffMin)) {
+    thetaATrue <- rhoTheta * (1 - propDiffMin)
+    thetaBTrue <- thetaATrue + propDiffMin
+    if (alternative == "twoSided") {
+      thetaATrue <- c(thetaATrue, propDiffMin + rhoTheta * (1 - propDiffMin))
+      thetaBTrue <- c(thetaBTrue, thetaATrue[-seq_len(nTheta)] - propDiffMin)
+    }
+  } else {
+    thetaATrue <- rhoTheta
+    thetaBTrue <- stats::plogis(stats::qlogis(thetaATrue) + logOddsMin)
   }
   nBaselines <- length(thetaATrue)
 
   logThreshold <- log(1 / alpha)
+  naVec <- rep(na, nMax)
+  nbVec <- rep(nb, nMax)
   stoppingTimes <- matrix(Inf, nrow = nBaselines, ncol = nSim)
+  breakVector <- matrix(1L, nrow = nBaselines, ncol = nSim)
+  eValuesStopped <- matrix(NA_real_, nrow = nBaselines, ncol = nSim)
+  samplePaths <- if (wantSamplePaths) vector("list", nBaselines) else NULL
 
   if (pb) {
     pbSavi <- utils::txtProgressBar(style = 3, title = "Sampling worst-case stopping time")
   }
 
   for (k in seq_len(nBaselines)) {
+    if (wantSamplePaths) {
+      samplePaths[[k]] <- matrix(0, nrow = nSim, ncol = nMax)
+    }
     for (sim in seq_len(nSim)) {
       if (pb) {
         utils::setTxtProgressBar(
@@ -899,16 +942,41 @@ sampleStoppingTimesSavi2x2 <- function(
       ya <- stats::rbinom(nMax, na, thetaATrue[k])
       yb <- stats::rbinom(nMax, nb, thetaBTrue[k])
 
-      # The test's own grow e-process, stopped at the first crossing of
-      # 1 / alpha: the length of the returned vector is the stopping time,
-      # unless the path ran through all nMax blocks without crossing.
-      logEValueVec <- logEProcess2x2PropDiffGrow(
-        ya, yb, rep(na, nMax), rep(nb, nMax), betaParameter, propDiffMin,
-        alpha, alternative, earlyStopping = TRUE
-      )
-      if (logEValueVec[length(logEValueVec)] >= logThreshold) {
-        stoppingTimes[k, sim] <- length(logEValueVec)
+      # the length of the vector is the stopping time, unless the path ran
+      # through all nMax without crossing.
+      if (!is.null(propDiffMin)) {
+        logEValueVec <- logEValueVec2x2PropDiffGrow(
+          ya, yb, naVec, nbVec, betaParameter, propDiffMin,
+          alpha, alternative, earlyStopping = TRUE
+        )
+      } else {
+        # Nothing is learned between blocks, so the whole path is two
+        # vectorised lines: the FNCH log likelihood at logOddsMin minus the
+        # hypergeometric log likelihood given each block's total.
+        logEValueVec <- cumsum(
+          logLikelihoodFNCH(ya, yb, naVec, nbVec, logOddsMin) -
+            stats::dhyper(yb, nbVec, naVec, ya + yb, log = TRUE)
+        )
+        firstCrossing <- which(logEValueVec >= logThreshold)[1]
+        if (!is.na(firstCrossing)) {
+          logEValueVec <- logEValueVec[seq_len(firstCrossing)]
+        }
       }
+
+      nStopped <- length(logEValueVec)
+      eValuesStopped[k, sim] <- exp(logEValueVec[nStopped])
+      if (logEValueVec[nStopped] >= logThreshold) {
+        stoppingTimes[k, sim] <- nStopped
+        breakVector[k, sim] <- 0L
+      }
+      if (wantSamplePaths) {
+        # The path up to the crossing, then the crossed value held to nMax.
+        samplePaths[[k]][sim, ] <-
+          exp(logEValueVec)[pmin(seq_len(nMax), nStopped)]
+      }
+    }
+    if (wantSamplePaths) {
+      samplePaths[[k]] <- Matrix::Matrix(samplePaths[[k]], sparse = TRUE)
     }
   }
 
@@ -927,15 +995,22 @@ sampleStoppingTimesSavi2x2 <- function(
 
   if (!is.finite(nPlan)) {
     fractionNeverCrossed <- mean(!is.finite(stoppingTimes[worstCaseIndex, ]))
+    esMinName <- if (!is.null(propDiffMin)) "propDiffMin" else "logOddsMin"
     warning(sprintf(paste(
       "the %g quantile of the stopping time is Inf: %.1f%% of the paths at",
-      "thetaA = %.3f never cross 1/alpha at nMax = %g, try increasing nMax or propDiffMin"
-    ), power, 100 * fractionNeverCrossed, thetaATrue[worstCaseIndex], nMax))
+      "thetaA = %.3f never cross 1/alpha at nMax = %g, try increasing nMax or %s"
+    ), power, 100 * fractionNeverCrossed, thetaATrue[worstCaseIndex], nMax,
+    esMinName))
   }
 
   list(
     "thetaA" = thetaATrue, "thetaB" = thetaBTrue,
     "stoppingTimes" = stoppingTimes,
+    "breakVector" = breakVector,
+    "eValuesStopped" = eValuesStopped,
+    "samplePaths" = samplePaths,
+    "n1Vector" = seq_len(nMax),
+    "ratio" = nb / na,
     "nPlan" = nPlan,
     "worstCaseIndex" = worstCaseIndex
   )

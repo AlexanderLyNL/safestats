@@ -824,7 +824,7 @@ keeps Decision 28's `"greater"` first block for now.
 
 ### 33. Blockwise grow e-process on propDiff with early stopping
 
-`logEProcess2x2PropDiffGrow(ya, yb, na, nb, betaParameter, propDiffMin,
+`logEValueVec2x2PropDiffGrow(ya, yb, na, nb, betaParameter, propDiffMin,
 alpha, earlyStopping = FALSE, nWeight = 1e3L)`, under `# Helpers: propDiff
 ----`, is the whole grow e-process of `savi2x2TestStatPropDiff`
 (`"greater"` only), one block at a time in the shared notation of Decision
@@ -867,7 +867,7 @@ per path over all baselines. `logOddsMin`, `alternative` other than
 
 Returns the two-sided average shelved in Decision 6, for `propDiff` only
 (`logOdds` grow stays `"greater"`, Decision 15).
-`logEProcess2x2PropDiffGrow(ya, yb, na, nb, betaParameter, propDiffMin,
+`logEValueVec2x2PropDiffGrow(ya, yb, na, nb, betaParameter, propDiffMin,
 alpha, alternative = c("twoSided", "greater", "less"), earlyStopping =
 FALSE, nWeight = 1e3L)` uses `abs(propDiffMin)` as the effect size (the
 design still requires `propDiffMin > 0`; the `abs` is for a later signed
@@ -895,3 +895,38 @@ Decision 33 on `thetaB = thetaA + propDiffMin`, then `nTheta` more on
 + 1) * (1 - propDiffMin)`. `thetaA`, `thetaB` have length `2 nTheta`,
 `stoppingTimes` is `2 nTheta x nSim`, and `nPlan` and `worstCaseIndex`
 are taken over all rows. `"greater"` keeps the plus curve only.
+
+### 35. Sampler on logOddsMin, and the t-test's result fields
+
+`logEProcess2x2PropDiffGrow` (Decisions 33, 34) is renamed
+`logEValueVec2x2PropDiffGrow`.
+
+`sampleStoppingTimesSavi2x2(propDiffMin = NULL, logOddsMin = NULL, ...)`:
+exactly one of the two is supplied, else an error. `logOddsMin` (finite,
+`> 0`) plans the grow test on `logOdds`, `"greater"` only, since the test
+has no two-sided grow on logOdds; `"twoSided"` with `logOddsMin`, and
+`"less"` with either, error. Data lie on `thetaB = plogis(qlogis(thetaA) +
+logOddsMin)` at `nTheta` baselines `thetaA = k / (nTheta + 1)`, strictly
+inside `(0, 1)` without rescaling, since the logit curve is feasible
+everywhere; the outermost baselines, where the conditional e-factor is
+nearly trivial, are kept, so `nPlan` is driven by them. Per path the e-
+process is the test's own, inline: the cumulative sum of
+`logLikelihoodFNCH(ya, yb, na, nb, logOddsMin)` minus the hypergeometric
+log likelihood given each block's total, no block-1 UMP factor, cut at the
+first block reaching `log(1 / alpha)`. Both branches then share the same
+bookkeeping: the vector's length is the stopping time when its last
+element reaches the threshold, `Inf` otherwise.
+
+The result gains the t-test's fields, each per baseline because of the
+extra dimension: `breakVector` (`nBaselines x nSim`, `0` crossed, `1`
+reached `nMax` without crossing; the t-test's `-1` futility stop cannot
+occur), `eValuesStopped` (`nBaselines x nSim`, the e-value at the
+stopping time, or at `nMax` when never crossed), `samplePaths` (with
+`wantSamplePaths = TRUE`, now default `FALSE` because `nMax = 1e4`: a list
+of `nBaselines` sparse `nSim x nMax` matrices of the e-value path, the
+crossed value repeated to `nMax` after a crossing, as the t-test fills
+it), `n1Vector = seq_len(nMax)` (the block index, the test's `n1Vec`,
+Decision 5) and `ratio = nb / na`. `stoppingTimes` keeps `Inf` for a path
+that never crosses (the t-test stores `nMax` there). `eValuesAtNMax` and
+`simData` stay accepted but unimplemented. The never-crossed warning names
+whichever `*Min` was supplied.
