@@ -886,28 +886,29 @@ sampleStoppingTimesSavi2x2 <- function(
 
   if (pb) close(pbSavi)
 
-  # Paths still below 1 / alpha at nMax have stopping time Inf; too many of
-  # them make the power quantile Inf, so the horizon (or the effect) is too
-  # small for planning.
-  fractionNeverCrossed <- mean(!is.finite(stoppingTimes))
-  if (fractionNeverCrossed > 0.05) {
-    warning(sprintf(
-      "%.1f%% of the paths never cross 1/alpha at nMax = %g, try increasing nMax or propDiffMin",
-      100 * fractionNeverCrossed, nMax
-    ))
-  }
-
   # Planned block count: the power quantile of the stopping time at the
-  # hardest baseline; Inf when too many paths never cross 1 / alpha.
+  # hardest baseline. type = 1 is an order statistic, so it is a realised
+  # stopping time, finite exactly when at least a fraction power of that
+  # baseline's paths crossed 1 / alpha within nMax (never-crossing paths are
+  # Inf).
   quantiles <- apply(stoppingTimes, 1, stats::quantile, probs = power,
     names = FALSE, type = 1
   )
   worstCaseIndex <- which.max(quantiles)
+  nPlan <- ceiling(quantiles[worstCaseIndex])
+
+  if (!is.finite(nPlan)) {
+    fractionNeverCrossed <- mean(!is.finite(stoppingTimes[worstCaseIndex, ]))
+    warning(sprintf(paste(
+      "the %g quantile of the stopping time is Inf: %.1f%% of the paths at",
+      "thetaA = %.3f never cross 1/alpha at nMax = %g, try increasing nMax or propDiffMin"
+    ), power, 100 * fractionNeverCrossed, thetaATrue[worstCaseIndex], nMax))
+  }
 
   list(
     "thetaA" = thetaATrue, "thetaB" = thetaBTrue,
     "stoppingTimes" = stoppingTimes,
-    "nPlan" = ceiling(quantiles[worstCaseIndex]),
+    "nPlan" = nPlan,
     "worstCaseIndex" = worstCaseIndex
   )
 }

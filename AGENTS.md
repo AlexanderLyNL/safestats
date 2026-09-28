@@ -853,9 +853,9 @@ order statistic), so it is a realised stopping time and is finite exactly
 when at least a fraction `power` of the paths crossed; the interpolating
 default would return `Inf` already when the fraction is met exactly. `nPlan`
 is the `ceiling` of the largest quantile, hence `Inf` when the worst
-baseline crossed too rarely. When more than 5% of all paths never cross,
-the sampler warns with that percentage and `nMax`, advising a larger `nMax`
-or `propDiffMin`. `seed = NULL` means `set.seed(2026)`; a given seed is used as is.
+baseline crossed too rarely; the sampler then warns, naming the quantile,
+the never-crossing percentage at the worst baseline, its `thetaA` and
+`nMax`, and advising a larger `nMax` or `propDiffMin`. `seed = NULL` means `set.seed(2026)`; a given seed is used as is.
 `pb = TRUE` drives a `txtProgressBar` as the t-test sampler does, one step
 per path over all baselines. `logOddsMin`, `alternative` other than
 `"greater"`, `nBoot`, `wantEValuesAtNMax`, `wantSamplePaths` and
