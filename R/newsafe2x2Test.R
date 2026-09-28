@@ -853,7 +853,7 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 #'   `stoppingTimes` (`Inf` when a path never crosses `1 / alpha`),
 #'   `breakVector` (`0` crossed, `1` reached `nMax`), `eValuesStopped`;
 #'   `samplePaths` (a list of `nSim x nMax` sparse matrices, or `NULL`),
-#'   `n1Vector` (the block index), `ratio` (`nb / na`), `nPlan`,
+#'   `n1Vector` (the block index), `nPlan`,
 #'   `worstCaseIndex`.
 #' @noRd
 sampleStoppingTimesSavi2x2 <- function(
@@ -1015,7 +1015,6 @@ sampleStoppingTimesSavi2x2 <- function(
     "eValuesStopped" = eValuesStopped,
     "samplePaths" = samplePaths,
     "n1Vector" = seq_len(nMax),
-    "ratio" = nb / na,
     "nPlan" = nPlan,
     "worstCaseIndex" = worstCaseIndex
   )
@@ -1036,7 +1035,7 @@ sampleStoppingTimesSavi2x2 <- function(
 #'   baseline), `worstCaseIndex`, `bootObjPower` (a [boot::boot()] object
 #'   on the worst baseline, with `bootSe`), `nBlocks`, and the sampler's
 #'   `thetaA`, `thetaB`, `stoppingTimes`, `breakVector`, `eValuesStopped`,
-#'   `samplePaths`, `n1Vector`, `ratio`.
+#'   `samplePaths`, `n1Vector`.
 #' @noRd
 computePowerSavi2x2 <- function(
   propDiffMin = NULL, logOddsMin = NULL, na, nb, nBlocks, alpha = 0.05,
@@ -1078,8 +1077,7 @@ computePowerSavi2x2 <- function(
     "breakVector" = samplingResult[["breakVector"]],
     "eValuesStopped" = samplingResult[["eValuesStopped"]],
     "samplePaths" = samplingResult[["samplePaths"]],
-    "n1Vector" = samplingResult[["n1Vector"]],
-    "ratio" = samplingResult[["ratio"]]
+    "n1Vector" = samplingResult[["n1Vector"]]
   )
 }
 
@@ -1099,7 +1097,7 @@ computePowerSavi2x2 <- function(
 #'   `bootObjNMean` ([boot::boot()] objects on the worst baseline, `NULL`
 #'   when `nPlan` is `Inf`), and the sampler's `thetaA`, `thetaB`,
 #'   `stoppingTimes`, `breakVector`, `eValuesStopped`, `samplePaths`,
-#'   `n1Vector`, `ratio`.
+#'   `n1Vector`.
 #' @noRd
 computeNPlanSavi2x2 <- function(
   propDiffMin = NULL, logOddsMin = NULL, na, nb, power = 0.8, alpha = 0.05,
@@ -1156,7 +1154,6 @@ computeNPlanSavi2x2 <- function(
     "breakVector" = samplingResult[["breakVector"]],
     "eValuesStopped" = samplingResult[["eValuesStopped"]],
     "samplePaths" = samplingResult[["samplePaths"]],
-    "n1Vector" = samplingResult[["n1Vector"]],
-    "ratio" = samplingResult[["ratio"]]
+    "n1Vector" = samplingResult[["n1Vector"]]
   )
 }

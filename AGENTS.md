@@ -926,7 +926,7 @@ stopping time, or at `nMax` when never crossed), `samplePaths` (with
 of `nBaselines` sparse `nSim x nMax` matrices of the e-value path, the
 crossed value repeated to `nMax` after a crossing, as the t-test fills
 it), `n1Vector = seq_len(nMax)` (the block index, the test's `n1Vec`,
-Decision 5) and `ratio = nb / na`. `stoppingTimes` keeps `Inf` for a path
+Decision 5). `stoppingTimes` keeps `Inf` for a path
 that never crosses (the t-test stores `nMax` there). `eValuesAtNMax` and
 `simData` stay accepted but unimplemented. The never-crossed warning names
 whichever `*Min` was supplied.
@@ -964,8 +964,9 @@ quantile, since the test must meet its target whatever `thetaA` is.
   latter's `t0`. Both boot objects are `NULL` when `nPlan` is `Inf`.
 
 Both return, next to these, the sampler's `thetaA`, `thetaB`,
-`stoppingTimes`, `breakVector`, `eValuesStopped`, `samplePaths`,
-`n1Vector` and `ratio`, so the per-baseline picture is not lost.
+`stoppingTimes`, `breakVector`, `eValuesStopped`, `samplePaths` and
+`n1Vector`, so the per-baseline picture is not lost. There is no `ratio`
+field (removed from the sampler too): `na`, `nb` are in the design.
 `sampleStoppingTimesSavi2x2` gains `power = NULL`: when `NULL` the
 quantile step is skipped and `nPlan`, `worstCaseIndex` are `NULL`, no
 warning. `wantSamplePaths` is passed through, default `FALSE`. Neither
