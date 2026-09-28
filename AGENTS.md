@@ -1092,13 +1092,34 @@ an `NA` makes the design stop with a warning.
 ### 41. Minimal detectable logOdds
 
 `computeEsMinSavi2x2(..., effect = c("propDiff", "logOdds"),
-propDiffBounds = c(0.01, 0.9), logOddsBounds = c(0.01, 10), tol = 1e-5)`
+propDiffBounds = c(0.01, 0.9), logOddsBounds = c(0.01, 40), tol = 1e-5)`
 extends Decision 40 to `logOdds` grow. `effect` picks the measure whose
 minimal value is sought, since the output is the effect and the other
 wrappers' rule (whichever `*Min` is set) cannot apply; `"logOdds"` passes
 the candidate as `logOddsMin` to `computePowerSavi2x2` and searches
 `logOddsBounds` (the logit curve is feasible for every `thetaA`, so no
-rescaling; the outermost baselines drive the worst case, Decision 35).
+rescaling; the outermost baselines drive the worst case, Decision 35). The
+upper bound `40` matches the confidence-interval domain; the lower bound
+stays positive, since the sampler takes `logOddsMin > 0` as a magnitude
+and `"twoSided"` adds the `-logOddsMin` curve itself.
 Everything else, the fixed seed, the sign-change check, the bare numeric
 return and `NA`, is as in Decision 40. `alternative` allows `"greater"` and
 `"twoSided"` for both effects (Decisions 34, 38).
+
+### 42. Design scenario 3: minimal effect from nBlocksPlan and power
+
+Reopens Decision 37's error for `"grow"` with `power` and `nBlocksPlan`
+but no `*Min`. `designSavi2x2(..., effect = c("propDiff", "logOdds"),
+...)`: `effect` is read only in this scenario (`designScenario = "3"`) and
+names the measure whose minimal detectable value is sought; elsewhere the
+set `*Min` implies the effect and `effect` is ignored. The design calls
+`computeEsMinSavi2x2(na, nb, nBlocksPlan, power, alpha, alternative,
+effect, betaParameter, nTheta, nSim, seed, pb)` with the function's default
+bounds and `tol` (not design arguments), and stores the root as `esMin`,
+`power` as the target, `nPlan[["nBlocksPlan"]]` as given and
+`designScenario = "3"`. No bootstrap object, worst-case baseline,
+`breakVector` or `samplePaths` are stored, since the root finder returns
+only the effect. An `NA` root stops with an error naming `nBlocksPlan`,
+`power` and the search bounds, advising a larger `nBlocksPlan` or a
+smaller `power`. `"grow"` with `power` and `nBlocksPlan` **and** a `*Min`
+still errors (Decision 37).

@@ -346,19 +346,23 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 #'   fixed alternative (Decisions 15, 34, 38), `"greater"` or `"twoSided"`,
 #'   and is the only `eType` with sampling (Decision 37): `power` alone
 #'   plans the block count at the hardest baseline, `nBlocksPlan` alone
-#'   evaluates the worst-case power there. Supplying both errors; neither
-#'   gives the design without simulation. Finding the minimal effect from
-#'   `power` and `nBlocksPlan` is not implemented yet and errors.
+#'   evaluates the worst-case power there, and both without a `*Min` find
+#'   the minimal detectable `effect` (Decision 42). Both with a `*Min`
+#'   errors; neither gives the design without simulation.
 #'
 #' @param na,nb Planned group sizes per block, one positive integer each.
-#' @param nBlocksPlan Planned block count at which the worst-case power is
-#'   evaluated (`"grow"` only). `NULL` unless `power` is `NULL`.
+#' @param nBlocksPlan Planned block count at which the worst-case power, or
+#'   with `power` the minimal effect, is evaluated (`"grow"` only).
 #' @param propDiffMin,logOddsMin Minimal effect for `"grow"`, at most one of
 #'   them: `propDiffMin` strictly inside `(0, 1)`, `logOddsMin` finite and
-#'   `> 0`. Stored as `esMin`.
+#'   `> 0`. Stored as `esMin`; found from `power` and `nBlocksPlan` when
+#'   both are `NULL`.
 #' @param alpha Significance level; the test rejects at `1 / alpha`.
 #' @param power Target power (`"grow"` only). Plans `nBlocksPlan` when that
-#'   is `NULL`.
+#'   is `NULL`, the minimal effect when it is given.
+#' @param effect `"propDiff"` or `"logOdds"`, the effect whose minimal
+#'   detectable value is sought when neither `*Min` is given; ignored
+#'   otherwise, since the set `*Min` implies the effect.
 #' @param h0 The null value of `propDiff`; only `0` is designed.
 #' @param alternative `"twoSided"` or `"greater"`; `"less"` is not designed
 #'   yet.
@@ -385,7 +389,9 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 #'   `bootObjNMean`. With `nBlocksPlan`: `designScenario = "2"`, `power`
 #'   (the worst case), `powerTwoSe`, `bootObjPower`. Both also carry
 #'   `worstCaseIndex`, `worstCaseThetaA`, `worstCaseThetaB`, `breakVector`
-#'   and `samplePaths`.
+#'   and `samplePaths`. With `power` and `nBlocksPlan` but no `*Min`:
+#'   `designScenario = "3"`, `esMin` the minimal detectable `effect`,
+#'   `power` as the target, and no simulation summaries.
 #' @noRd
 designSavi2x2 <- function(
   na, nb, nBlocksPlan = NULL,
@@ -393,6 +399,7 @@ designSavi2x2 <- function(
   alpha = 0.05, power = NULL, h0 = 0,
   alternative = c("twoSided", "greater"),
   eType = c("eBeta", "grow", "eGauss"),
+  effect = c("propDiff", "logOdds"),
   betaParameter = NULL,
   runningIntersection = NULL,
   nTheta = 8L, nSim = 1e3L, nBoot = nSim, nMax = 1e4L, seed = NULL,
@@ -400,6 +407,7 @@ designSavi2x2 <- function(
 ) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
+  effect <- match.arg(effect)
 
   result <- constructSaviDesignObj("Two Proportions")
 
@@ -413,23 +421,23 @@ designSavi2x2 <- function(
 
   result[["esMin"]] <- if (!is.null(propDiffMin)) propDiffMin else logOddsMin
 
-  # Dispatch (Decision 37). grow plugs in exactly one *Min and is the only
-  # eType with sampling: power alone plans the block count at the hardest
-  # baseline, nBlocksPlan alone evaluates the worst-case power there, both
-  # is contradictory, and the minimal effect from power and nBlocksPlan is
-  # not implemented. eBeta and eGauss take no *Min and no planning, and
-  # are twoSided only.
+  # Dispatch (Decisions 37, 42). grow is the only eType with sampling. With
+  # one *Min: power alone plans the block count at the hardest baseline,
+  # nBlocksPlan alone evaluates the worst-case power there, both is
+  # contradictory. Without a *Min: power and nBlocksPlan together find the
+  # minimal detectable effect. eBeta and eGauss take no *Min and no
+  # planning, and are twoSided only.
   if (!is.null(propDiffMin) && !is.null(logOddsMin)) {
     stop("supply propDiffMin or logOddsMin, not both")
   }
+  wantEsMin <- FALSE
   if (eType == "grow") {
     if (is.null(propDiffMin) && is.null(logOddsMin)) {
-      if (!is.null(power) || !is.null(nBlocksPlan)) {
-        stop("finding the minimal effect from power and nBlocksPlan is not implemented yet")
+      if (is.null(power) || is.null(nBlocksPlan)) {
+        stop("eType = 'grow' needs propDiffMin or logOddsMin, or both power and nBlocksPlan to find the minimal effect")
       }
-      stop("eType = 'grow' needs propDiffMin or logOddsMin")
-    }
-    if (!is.null(power) && !is.null(nBlocksPlan)) {
+      wantEsMin <- TRUE
+    } else if (!is.null(power) && !is.null(nBlocksPlan)) {
       stop("supply power (to find nBlocksPlan) or nBlocksPlan (to find power), not both")
     }
   } else {
@@ -443,7 +451,27 @@ designSavi2x2 <- function(
       warning("eType = '", eType, "' is twoSided; alternative = '", alternative, "' is ignored")
     }
   }
-  if (!is.null(power)) {
+  if (wantEsMin) {
+    esMin <- computeEsMinSavi2x2(
+      na = na, nb = nb, nBlocksPlan = nBlocksPlan, power = power,
+      alpha = alpha, alternative = alternative, effect = effect,
+      betaParameter = result[["betaParameter"]], nTheta = nTheta,
+      nSim = nSim, seed = seed, pb = pb
+    )
+    # NA: the worst-case power never reaches the target on the search
+    # bounds, so no minimal effect can be reported.
+    if (is.na(esMin)) {
+      bounds <- if (effect == "propDiff") c(0.01, 0.9) else c(0.01, 40)
+      stop(sprintf(paste(
+        "no minimal %s found: at nBlocksPlan = %g the worst-case power does",
+        "not reach %g for any value in (%g, %g); try a larger nBlocksPlan",
+        "or a smaller power"
+      ), effect, nBlocksPlan, power, bounds[1], bounds[2]))
+    }
+    result[["designScenario"]] <- "3"
+    result[["esMin"]] <- esMin
+    result[["power"]] <- power
+  } else if (!is.null(power)) {
     planning <- computeNPlanSavi2x2(
       propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
       power = power, alpha = alpha, alternative = alternative,
@@ -473,7 +501,7 @@ designSavi2x2 <- function(
     result[["powerTwoSe"]] <- 2 * planning[["bootObjPower"]][["bootSe"]]
     result[["bootObjPower"]] <- planning[["bootObjPower"]]
   }
-  if (!is.null(power) || !is.null(nBlocksPlan)) {
+  if (!wantEsMin && (!is.null(power) || !is.null(nBlocksPlan))) {
     worstCaseIndex <- planning[["worstCaseIndex"]]
     result[["worstCaseIndex"]] <- worstCaseIndex
     result[["worstCaseThetaA"]] <- planning[["thetaA"]][worstCaseIndex]
@@ -1377,7 +1405,7 @@ computeEsMinSavi2x2 <- function(
   alternative = c("twoSided", "less", "greater"),
   effect = c("propDiff", "logOdds"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, seed = NULL, pb = TRUE,
-  propDiffBounds = c(0.01, 0.9), logOddsBounds = c(0.01, 10), tol = 1e-5
+  propDiffBounds = c(0.01, 0.9), logOddsBounds = c(0.01, 40), tol = 1e-5
 ) {
   alternative <- match.arg(alternative)
   effect <- match.arg(effect)
