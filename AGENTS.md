@@ -1088,3 +1088,17 @@ bound); no rerun at the root and no bootstrap object. Not exported, and
 `designSavi2x2` does not call it yet; when it does (a `designScenario =
 "3"`: `nBlocksPlan` and `power` given, no `*Min`, reopening Decision 37),
 an `NA` makes the design stop with a warning.
+
+### 41. Minimal detectable logOdds
+
+`computeEsMinSavi2x2(..., effect = c("propDiff", "logOdds"),
+propDiffBounds = c(0.01, 0.9), logOddsBounds = c(0.01, 10), tol = 1e-5)`
+extends Decision 40 to `logOdds` grow. `effect` picks the measure whose
+minimal value is sought, since the output is the effect and the other
+wrappers' rule (whichever `*Min` is set) cannot apply; `"logOdds"` passes
+the candidate as `logOddsMin` to `computePowerSavi2x2` and searches
+`logOddsBounds` (the logit curve is feasible for every `thetaA`, so no
+rescaling; the outermost baselines drive the worst case, Decision 35).
+Everything else, the fixed seed, the sign-change check, the bare numeric
+return and `NA`, is as in Decision 40. `alternative` allows `"greater"` and
+`"twoSided"` for both effects (Decisions 34, 38).

@@ -1349,46 +1349,54 @@ computeNPlanSavi2x2 <- function(
 }
 
 
-#' Minimal detectable propDiff of the 2x2 grow test
+#' Minimal detectable effect of the 2x2 grow test
 #'
-#' Decision 40. The smallest `propDiffMin` at which the worst-case power of
-#' [computePowerSavi2x2()] at `nBlocks = nBlocksPlan` reaches `power`, found
-#' by [stats::uniroot()] on `propDiffBounds`. Every candidate is simulated
-#' with the same `seed`, so the target is a deterministic step function of
-#' the candidate. `propDiff` only; `logOdds` is not designed yet.
+#' Decisions 40, 41. The smallest `propDiffMin` or `logOddsMin` (chosen by
+#' `effect`) at which the worst-case power of [computePowerSavi2x2()] at
+#' `nBlocks = nBlocksPlan` reaches `power`, found by [stats::uniroot()] on
+#' `propDiffBounds` or `logOddsBounds`. Every candidate is simulated with
+#' the same `seed`, so the target is a deterministic step function of the
+#' candidate.
 #'
 #' @param nBlocksPlan Planned block count at which the test is evaluated.
+#' @param effect `"propDiff"` or `"logOdds"`, the effect measure whose
+#'   minimal detectable value is sought.
 #' @param propDiffBounds Search interval for `propDiffMin`, strictly inside
 #'   `(0, 1)`.
-#' @param tol Tolerance of the root on the `propDiff` scale.
+#' @param logOddsBounds Search interval for `logOddsMin`, positive.
+#' @param tol Tolerance of the root on the effect's scale.
 #' @inheritParams sampleStoppingTimesSavi2x2
 #'
-#' @return A single numeric: the minimal `propDiffMin`, or `NA` when the
-#'   worst-case power minus `power` has no sign change on `propDiffBounds`
-#'   (still below the target at the upper bound, or already above it at the
-#'   lower bound). No bootstrap object, as for [computeMinEsBatchSaviT()].
+#' @return A single numeric: the minimal effect, or `NA` when the worst-case
+#'   power minus `power` has no sign change on the bounds (still below the
+#'   target at the upper bound, or already above it at the lower bound). No
+#'   bootstrap object, as for [computeMinEsBatchSaviT()].
 #' @noRd
 computeEsMinSavi2x2 <- function(
   na, nb, nBlocksPlan, power = 0.8, alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
+  effect = c("propDiff", "logOdds"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, seed = NULL, pb = TRUE,
-  propDiffBounds = c(0.01, 0.9), tol = 1e-5
+  propDiffBounds = c(0.01, 0.9), logOddsBounds = c(0.01, 10), tol = 1e-5
 ) {
   alternative <- match.arg(alternative)
+  effect <- match.arg(effect)
+  bounds <- if (effect == "propDiff") propDiffBounds else logOddsBounds
   stopifnot(
     length(nBlocksPlan) == 1, is.finite(nBlocksPlan), nBlocksPlan >= 1,
-    power > 0, power < 1, length(propDiffBounds) == 2,
-    propDiffBounds[1] > 0, propDiffBounds[2] < 1,
-    propDiffBounds[1] < propDiffBounds[2]
+    power > 0, power < 1, length(bounds) == 2, bounds[1] > 0,
+    bounds[1] < bounds[2], effect == "logOdds" || bounds[2] < 1
   )
 
-  # Worst-case power minus the target, at a candidate propDiffMin. The same
-  # seed for every candidate makes this deterministic in the candidate; the
-  # baselines are rescaled to (0, 1 - propDiffMin) inside the sampler, so
-  # the worst case is taken afresh each time.
-  targetFunction <- function(propDiffMin) {
+  # Worst-case power minus the target, at a candidate minimal effect. The
+  # same seed for every candidate makes this deterministic in the candidate;
+  # for propDiff the baselines are rescaled to (0, 1 - propDiffMin) inside
+  # the sampler, so the worst case is taken afresh each time.
+  targetFunction <- function(esMin) {
     computePowerSavi2x2(
-      propDiffMin = propDiffMin, na = na, nb = nb, nBlocks = nBlocksPlan,
+      propDiffMin = if (effect == "propDiff") esMin else NULL,
+      logOddsMin = if (effect == "logOdds") esMin else NULL,
+      na = na, nb = nb, nBlocks = nBlocksPlan,
       alpha = alpha, alternative = alternative,
       betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
       seed = seed, pb = pb
@@ -1397,13 +1405,12 @@ computeEsMinSavi2x2 <- function(
 
   # No sign change means the target is out of reach on the bracket (or
   # already met at its lower end); report NA rather than a spurious edge.
-  targetAtBounds <- c(targetFunction(propDiffBounds[1]),
-                      targetFunction(propDiffBounds[2]))
+  targetAtBounds <- c(targetFunction(bounds[1]), targetFunction(bounds[2]))
   if (targetAtBounds[1] >= 0 || targetAtBounds[2] < 0) {
     return(NA_real_)
   }
 
-  stats::uniroot(targetFunction, interval = propDiffBounds,
+  stats::uniroot(targetFunction, interval = bounds,
     f.lower = targetAtBounds[1], f.upper = targetAtBounds[2], tol = tol
   )[["root"]]
 }
