@@ -52,14 +52,12 @@ savi2x2TestStatPropDiff <- function(ya, yb,
   na <- designObj[["nPlan"]][["na"]]
   nb <- designObj[["nPlan"]][["nb"]]
 
-
-
   nBlocks <- length(ya)
   if (length(na) == 1L) na <- rep(na, nBlocks)
   if (length(nb) == 1L) nb <- rep(nb, nBlocks)
 
   if (nBlocks == 1L) {
-    warnings("There is only 1 table, switched to conditional e-variable")
+    warnings("There is only 1 table, switched to UMP conditional e-variable")
   }
 
   # Data checks: one count and size per block, counts within their sizes.
@@ -281,7 +279,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
     confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
       dimnames = list(NULL, c("lowerBound", "upperBound"))
     )
-    domain <- c(-40, 40)
+    domain <- c(-40, 40) # TODO: maybe add bounds print or else
     for (i in seq_len(nBlocks)) {
       # The empty set is reported with a warning; here it is an NA row.
       row <- tryCatch(
@@ -333,6 +331,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 
 # Design functions ----
 # TODO: add "less" when direction is clean in `alternative`
+# TODO: add h0 != 0 situation
 
 #' Design a safe anytime-valid 2x2 test
 #'
@@ -1347,4 +1346,64 @@ computeNPlanSavi2x2 <- function(
     "samplePaths" = samplingResult[["samplePaths"]],
     "n1Vector" = samplingResult[["n1Vector"]]
   )
+}
+
+
+#' Minimal detectable propDiff of the 2x2 grow test
+#'
+#' Decision 40. The smallest `propDiffMin` at which the worst-case power of
+#' [computePowerSavi2x2()] at `nBlocks = nBlocksPlan` reaches `power`, found
+#' by [stats::uniroot()] on `propDiffBounds`. Every candidate is simulated
+#' with the same `seed`, so the target is a deterministic step function of
+#' the candidate. `propDiff` only; `logOdds` is not designed yet.
+#'
+#' @param nBlocksPlan Planned block count at which the test is evaluated.
+#' @param propDiffBounds Search interval for `propDiffMin`, strictly inside
+#'   `(0, 1)`.
+#' @param tol Tolerance of the root on the `propDiff` scale.
+#' @inheritParams sampleStoppingTimesSavi2x2
+#'
+#' @return A single numeric: the minimal `propDiffMin`, or `NA` when the
+#'   worst-case power minus `power` has no sign change on `propDiffBounds`
+#'   (still below the target at the upper bound, or already above it at the
+#'   lower bound). No bootstrap object, as for [computeMinEsBatchSaviT()].
+#' @noRd
+computeEsMinSavi2x2 <- function(
+  na, nb, nBlocksPlan, power = 0.8, alpha = 0.05,
+  alternative = c("twoSided", "less", "greater"),
+  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, seed = NULL, pb = TRUE,
+  propDiffBounds = c(0.01, 0.9), tol = 1e-5
+) {
+  alternative <- match.arg(alternative)
+  stopifnot(
+    length(nBlocksPlan) == 1, is.finite(nBlocksPlan), nBlocksPlan >= 1,
+    power > 0, power < 1, length(propDiffBounds) == 2,
+    propDiffBounds[1] > 0, propDiffBounds[2] < 1,
+    propDiffBounds[1] < propDiffBounds[2]
+  )
+
+  # Worst-case power minus the target, at a candidate propDiffMin. The same
+  # seed for every candidate makes this deterministic in the candidate; the
+  # baselines are rescaled to (0, 1 - propDiffMin) inside the sampler, so
+  # the worst case is taken afresh each time.
+  targetFunction <- function(propDiffMin) {
+    computePowerSavi2x2(
+      propDiffMin = propDiffMin, na = na, nb = nb, nBlocks = nBlocksPlan,
+      alpha = alpha, alternative = alternative,
+      betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
+      seed = seed, pb = pb
+    )[["power"]] - power
+  }
+
+  # No sign change means the target is out of reach on the bracket (or
+  # already met at its lower end); report NA rather than a spurious edge.
+  targetAtBounds <- c(targetFunction(propDiffBounds[1]),
+                      targetFunction(propDiffBounds[2]))
+  if (targetAtBounds[1] >= 0 || targetAtBounds[2] < 0) {
+    return(NA_real_)
+  }
+
+  stats::uniroot(targetFunction, interval = propDiffBounds,
+    f.lower = targetAtBounds[1], f.upper = targetAtBounds[2], tol = tol
+  )[["root"]]
 }

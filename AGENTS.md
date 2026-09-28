@@ -1065,3 +1065,26 @@ blocks `2..i` are unchanged. The sampler and the
 design inherit this. `savi2x2TestStatPropDiff(eType = "eBeta")` still
 multiplies the UMP factor into its whole e-process (Decision 32), the same
 invalid product, and is not yet changed.
+
+### 40. Minimal detectable propDiff from nBlocksPlan and power
+
+`computeEsMinSavi2x2(na, nb, nBlocksPlan, power = 0.8, alpha = 0.05,
+alternative = c("twoSided", "less", "greater"), betaParameter = NULL,
+nTheta = 8L, nSim = 1e3L, seed = NULL, pb = TRUE, propDiffBounds =
+c(0.01, 0.9), tol = 1e-5)`, under `# Sampling functions for design ----`,
+the third wrapper next to `computePowerSavi2x2` and `computeNPlanSavi2x2`.
+`propDiff` grow only; `logOdds` later. It finds the smallest `propDiffMin`
+at which the worst-case power of `computePowerSavi2x2(propDiffMin, ...,
+nBlocks = nBlocksPlan)` reaches `power`: `stats::uniroot()` on
+`propDiffBounds` with tolerance `tol` of the worst-case power minus
+`power`. Every candidate runs with the same `seed` (the sampler's
+`set.seed`, `2026` when `NULL`), so the target is a deterministic step
+function of the candidate; the baselines move with the candidate (Decision
+33's rescaling), so the worst case is taken afresh each time. Returns a
+single numeric like the t-test's `computeMinEsBatchSaviT`: the root, or
+`NA` when the target has no sign change on `propDiffBounds` (power still
+below the target at the upper bound, or already above it at the lower
+bound); no rerun at the root and no bootstrap object. Not exported, and
+`designSavi2x2` does not call it yet; when it does (a `designScenario =
+"3"`: `nBlocksPlan` and `power` given, no `*Min`, reopening Decision 37),
+an `NA` makes the design stop with a warning.
