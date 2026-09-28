@@ -804,3 +804,18 @@ or the eGauss grid mixture), and `logEValueVec` is their difference. The
 former `logPCum` (Decisions 18, 27, 28, 30) is
 `logLikelihoodAlternative`, so the logOdds interval receives
 `logLikelihoodAlternative[i]`. Same arithmetic, same output.
+
+### 32. UMP conditional e-factor for one block, both sides
+
+`savi2x2TestStatUmp(ya, yb, na, nb, alpha, alternative = c("twoSided",
+"greater", "less"))` returns the conditional e-factor of **one** block
+(scalar counts) at the UMP plug-in of Decision 8: `logOddsPositive =
+solveUmpLogOdds(na, nb, ya + yb, alpha, "greater")` and `logOddsNegative`
+likewise with `"less"`, each replaced by `0` (the trivial e-factor `1`)
+when the solver returns `NULL`. The e-factor is `exp(logLikelihoodFNCH(...,
+logOdds) - logLikelihoodNull)` with `logLikelihoodNull` the hypergeometric
+log likelihood given the block's total; `"twoSided"` is the plain average
+of the two one-sided e-factors (settling the rule left open in Decision
+8). `savi2x2TestStatPropDiff` multiplies block 1's factor, at the design's
+`alpha` and `alternative`, into its whole e-process; eGauss on `logOdds`
+keeps Decision 28's `"greater"` first block for now.

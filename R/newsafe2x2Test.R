@@ -9,10 +9,14 @@ savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
   alternative <- match.arg(alternative)
   logLikelihoodNull <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
 
-  # greater: the UMP logOdds on (0, Inf). TODO: find root in positive
-  logOddsPositive <- 1
-  # less: the UMP logOdds on (-Inf, 0). TODO: find root in negative
-  logOddsNegative <- -1
+  # UMP plug-in on each side (Decision 8): the logOdds at which the
+  # conditional KL against the null reaches log(1 / alpha), solved from the
+  # block's total only. NULL means the target is out of reach; the plug-in
+  # is then the null itself, logOdds = 0, i.e. the trivial e-factor 1.
+  logOddsPositive <- solveUmpLogOdds(na, nb, ya + yb, alpha, "greater")
+  if (is.null(logOddsPositive)) logOddsPositive <- 0
+  logOddsNegative <- solveUmpLogOdds(na, nb, ya + yb, alpha, "less")
+  if (is.null(logOddsNegative)) logOddsNegative <- 0
 
   logLikelihoodPositive <- logLikelihoodFNCH(ya, yb, na, nb, logOddsPositive)
   logLikelihoodNegative <- logLikelihoodFNCH(ya, yb, na, nb, logOddsNegative)
