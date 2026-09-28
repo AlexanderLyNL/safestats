@@ -860,3 +860,36 @@ the never-crossing percentage at the worst baseline, its `thetaA` and
 per path over all baselines. `logOddsMin`, `alternative` other than
 `"greater"`, `nBoot`, `wantEValuesAtNMax`, `wantSamplePaths` and
 `wantSimData` are accepted but not implemented: no bootstrap yet.
+
+### 34. Two-sided grow on propDiff, and the sampler on both curves
+
+Returns the two-sided average shelved in Decision 6, for `propDiff` only
+(`logOdds` grow stays `"greater"`, Decision 15).
+`logEProcess2x2PropDiffGrow(ya, yb, na, nb, betaParameter, propDiffMin,
+alpha, alternative = c("twoSided", "greater", "less"), earlyStopping =
+FALSE, nWeight = 1e3L)` uses `abs(propDiffMin)` as the effect size (the
+design still requires `propDiffMin > 0`; the `abs` is for a later signed
+`propDiffMin`). `"greater"` is Decision 33 unchanged. `"less"` errors, not
+designed yet. `"twoSided"` runs two complete one-sided processes and
+averages them as processes (Decision 6): the plus process is the
+`"greater"` one; the minus process lives on the curve `thetaB = thetaA -
+abs(propDiffMin)`, `thetaA` rescaled to its feasible interval
+`(abs(propDiffMin), 1)`, with its own grid posterior, its own pooled null
+per block, and its own block-1 UMP factor, `savi2x2TestStatUmp(...,
+"less")`, paired with it (each one-sided process is a self-contained
+one-sided test; the two-sided UMP average of Decision 32 is not used
+here). The returned vector is the log of the plain average of the two
+cumulative e-values, computed on the log scale by shifting with the
+elementwise max, inlined (no `logMeanExpPair`). `earlyStopping` checks
+the averaged process, so its length is the two-sided stopping time.
+
+`savi2x2TestStatPropDiff(eType = "grow")` passes the design's
+`alternative` through; `designSavi2x2` allows `"grow"` with
+`"twoSided"`. `sampleStoppingTimesSavi2x2(alternative = "twoSided")`
+simulates on both curves, since the test is not symmetric under a group
+swap when `na != nb` or the Beta priors differ: the `nTheta` baselines of
+Decision 33 on `thetaB = thetaA + propDiffMin`, then `nTheta` more on
+`thetaB = thetaA - propDiffMin` with `thetaA = propDiffMin + k / (nTheta
++ 1) * (1 - propDiffMin)`. `thetaA`, `thetaB` have length `2 nTheta`,
+`stoppingTimes` is `2 nTheta x nSim`, and `nPlan` and `worstCaseIndex`
+are taken over all rows. `"greater"` keeps the plus curve only.
