@@ -822,25 +822,25 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   logWeights <- matrix(logWeights - max(logWeights), nWeight, nSides)
 
   # Cumulative log likelihood of blocks 1..i under the null (denominator)
-  # and under the alternative (numerator), per side. Block 1's factor is
-  # its UMP conditional e-factor in that side's direction, in place of the
-  # plug-in ratio (which at block 1 is the prior mean, a wasted block): it
-  # starts each numerator and block 1 adds nothing else to either side.
+  # and under the alternative (numerator), per side.
   logLikelihoodNull <- numeric(nSides)
   logLikelihoodAlternative <- numeric(nSides)
-  for (s in seq_len(nSides)) {
-    eValueUmp <- savi2x2TestStatUmp(
-      ya[1], yb[1], na[1], nb[1], alpha,
-      if (signs[s] > 0) "greater" else "less"
-    )
-    logLikelihoodAlternative[s] <- log(eValueUmp)
-  }
   logEValueVec <- numeric(0)
 
   for (i in seq_len(nBlocks)) {
     for (s in seq_len(nSides)) {
-      # Block 1 is the UMP factor above; its plug-in ratio is not used.
-      if (i == 1) next
+      if (i == 1) {
+        # Block 1: its UMP conditional e-factor in this side's direction
+        # replaces the plug-in ratio, which at block 1 is only the prior
+        # mean. The conditional factor is already a likelihood ratio, so it
+        # goes into the numerator and the denominator gets nothing.
+        eValueUmp <- savi2x2TestStatUmp(
+          ya[1], yb[1], na[1], nb[1], alpha,
+          if (signs[s] > 0) "greater" else "less"
+        )
+        logLikelihoodAlternative[s] <- log(eValueUmp)
+        next
+      }
       # Numerator: posterior mean of thetaA given blocks 1..i-1, on the curve.
       weights <- exp(logWeights[, s])
       thetaA <- sum(thetaAGrid[, s] * weights) / sum(weights)
