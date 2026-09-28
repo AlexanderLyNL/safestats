@@ -1123,3 +1123,25 @@ only the effect. An `NA` root stops with an error naming `nBlocksPlan`,
 `power` and the search bounds, advising a larger `nBlocksPlan` or a
 smaller `power`. `"grow"` with `power` and `nBlocksPlan` **and** a `*Min`
 still errors (Decision 37).
+
+### 43. No planning on logOdds
+
+Removes `logOddsMin` from every sampling function and from the design's
+planning. The worst case over the logOdds baselines is not a property of
+`logOddsMin`: the logit curve keeps its feasible range for every
+`thetaA`, and as the outermost baseline `k / (nTheta + 1)` nears `0` or
+`1` the pair `(thetaA, thetaB)` approaches the null `thetaA = thetaB` on
+the probability scale, the conditional e-factor turns trivial and the
+stopping-time quantile grows without bound with `nTheta` (the edge study
+in `~/Downloads/local-run.R`). So `nPlan`, power and the minimal effect
+on logOdds are set by the grid, not by the effect, and are dropped.
+`sampleStoppingTimesSavi2x2(propDiffMin, na, nb, power, ...)`,
+`computePowerSavi2x2(propDiffMin, ...)`, `computeNPlanSavi2x2(propDiffMin,
+...)` and `computeEsMinSavi2x2(...)` take `propDiffMin` only (no
+`logOddsMin`, no `effect`, no `logOddsBounds`); the chunked logOdds branch
+of Decision 38 and the logOdds baselines of Decision 35 go. `designSavi2x2`
+loses `effect`; `logOddsMin` still gives the plain grow design on logOdds
+(Decisions 15, 38), and `logOddsMin` with `power` or `nBlocksPlan` errors:
+"no planning on logOdds, plan with propDiffMin". Scenario 3 is `propDiff`
+only. Decisions 35, 36, 38 (sampler part), 41 and 42 are superseded to
+that extent; the logOdds grow test is untouched.

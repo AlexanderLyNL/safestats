@@ -343,26 +343,27 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 #'   twoSided only; they take no `propDiffMin` or `logOddsMin` and no
 #'   planning, and a one-sided `alternative` is ignored with a warning.
 #' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
-#'   fixed alternative (Decisions 15, 34, 38), `"greater"` or `"twoSided"`,
-#'   and is the only `eType` with sampling (Decision 37): `power` alone
+#'   fixed alternative (Decisions 15, 34, 38), `"greater"` or `"twoSided"`.
+#'   Planning exists for `propDiff` only (Decisions 37, 43): `power` alone
 #'   plans the block count at the hardest baseline, `nBlocksPlan` alone
-#'   evaluates the worst-case power there, and both without a `*Min` find
-#'   the minimal detectable `effect` (Decision 42). Both with a `*Min`
-#'   errors; neither gives the design without simulation.
+#'   evaluates the worst-case power there, and both without `propDiffMin`
+#'   find the minimal detectable `propDiff` (Decision 42). Both with
+#'   `propDiffMin` errors; neither gives the design without simulation.
+#'   `logOddsMin` with `power` or `nBlocksPlan` errors: its worst case is
+#'   set by the baseline grid, not by the effect.
 #'
 #' @param na,nb Planned group sizes per block, one positive integer each.
 #' @param nBlocksPlan Planned block count at which the worst-case power, or
-#'   with `power` the minimal effect, is evaluated (`"grow"` only).
+#'   with `power` the minimal `propDiff`, is evaluated (`"grow"` on
+#'   `propDiff` only).
 #' @param propDiffMin,logOddsMin Minimal effect for `"grow"`, at most one of
 #'   them: `propDiffMin` strictly inside `(0, 1)`, `logOddsMin` finite and
-#'   `> 0`. Stored as `esMin`; found from `power` and `nBlocksPlan` when
-#'   both are `NULL`.
+#'   `> 0`. Stored as `esMin`; `propDiffMin` is found from `power` and
+#'   `nBlocksPlan` when both `*Min` are `NULL`.
 #' @param alpha Significance level; the test rejects at `1 / alpha`.
-#' @param power Target power (`"grow"` only). Plans `nBlocksPlan` when that
-#'   is `NULL`, the minimal effect when it is given.
-#' @param effect `"propDiff"` or `"logOdds"`, the effect whose minimal
-#'   detectable value is sought when neither `*Min` is given; ignored
-#'   otherwise, since the set `*Min` implies the effect.
+#' @param power Target power (`"grow"` on `propDiff` only). Plans
+#'   `nBlocksPlan` when that is `NULL`, the minimal `propDiff` when it is
+#'   given.
 #' @param h0 The null value of `propDiff`; only `0` is designed.
 #' @param alternative `"twoSided"` or `"greater"`; `"less"` is not designed
 #'   yet.
@@ -390,7 +391,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
 #'   (the worst case), `powerTwoSe`, `bootObjPower`. Both also carry
 #'   `worstCaseIndex`, `worstCaseThetaA`, `worstCaseThetaB`, `breakVector`
 #'   and `samplePaths`. With `power` and `nBlocksPlan` but no `*Min`:
-#'   `designScenario = "3"`, `esMin` the minimal detectable `effect`,
+#'   `designScenario = "3"`, `esMin` the minimal detectable `propDiff`,
 #'   `power` as the target, and no simulation summaries.
 #' @noRd
 designSavi2x2 <- function(
@@ -399,7 +400,6 @@ designSavi2x2 <- function(
   alpha = 0.05, power = NULL, h0 = 0,
   alternative = c("twoSided", "greater"),
   eType = c("eBeta", "grow", "eGauss"),
-  effect = c("propDiff", "logOdds"),
   betaParameter = NULL,
   runningIntersection = NULL,
   nTheta = 8L, nSim = 1e3L, nBoot = nSim, nMax = 1e4L, seed = NULL,
@@ -407,7 +407,6 @@ designSavi2x2 <- function(
 ) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
-  effect <- match.arg(effect)
 
   result <- constructSaviDesignObj("Two Proportions")
 
@@ -421,20 +420,26 @@ designSavi2x2 <- function(
 
   result[["esMin"]] <- if (!is.null(propDiffMin)) propDiffMin else logOddsMin
 
-  # Dispatch (Decisions 37, 42). grow is the only eType with sampling. With
-  # one *Min: power alone plans the block count at the hardest baseline,
-  # nBlocksPlan alone evaluates the worst-case power there, both is
-  # contradictory. Without a *Min: power and nBlocksPlan together find the
-  # minimal detectable effect. eBeta and eGauss take no *Min and no
-  # planning, and are twoSided only.
+  # Dispatch (Decisions 37, 42, 43). grow on propDiff is the only case with
+  # sampling. With propDiffMin: power alone plans the block count at the
+  # hardest baseline, nBlocksPlan alone evaluates the worst-case power
+  # there, both is contradictory. Without a *Min: power and nBlocksPlan
+  # together find the minimal detectable propDiff. logOddsMin takes no
+  # planning: its worst case over the baselines is set by how close the
+  # outermost baseline sits to 0 or 1, where the pair approaches the null,
+  # not by logOddsMin. eBeta and eGauss take no *Min and no planning, and
+  # are twoSided only.
   if (!is.null(propDiffMin) && !is.null(logOddsMin)) {
     stop("supply propDiffMin or logOddsMin, not both")
   }
   wantEsMin <- FALSE
   if (eType == "grow") {
+    if (!is.null(logOddsMin) && (!is.null(power) || !is.null(nBlocksPlan))) {
+      stop("no planning on logOdds, plan with propDiffMin")
+    }
     if (is.null(propDiffMin) && is.null(logOddsMin)) {
       if (is.null(power) || is.null(nBlocksPlan)) {
-        stop("eType = 'grow' needs propDiffMin or logOddsMin, or both power and nBlocksPlan to find the minimal effect")
+        stop("eType = 'grow' needs propDiffMin or logOddsMin, or both power and nBlocksPlan to find the minimal propDiff")
       }
       wantEsMin <- TRUE
     } else if (!is.null(power) && !is.null(nBlocksPlan)) {
@@ -454,26 +459,25 @@ designSavi2x2 <- function(
   if (wantEsMin) {
     esMin <- computeEsMinSavi2x2(
       na = na, nb = nb, nBlocksPlan = nBlocksPlan, power = power,
-      alpha = alpha, alternative = alternative, effect = effect,
+      alpha = alpha, alternative = alternative,
       betaParameter = result[["betaParameter"]], nTheta = nTheta,
       nSim = nSim, seed = seed, pb = pb
     )
     # NA: the worst-case power never reaches the target on the search
     # bounds, so no minimal effect can be reported.
     if (is.na(esMin)) {
-      bounds <- if (effect == "propDiff") c(0.01, 0.9) else c(0.01, 40)
       stop(sprintf(paste(
-        "no minimal %s found: at nBlocksPlan = %g the worst-case power does",
-        "not reach %g for any value in (%g, %g); try a larger nBlocksPlan",
-        "or a smaller power"
-      ), effect, nBlocksPlan, power, bounds[1], bounds[2]))
+        "no minimal propDiff found: at nBlocksPlan = %g the worst-case power",
+        "does not reach %g for any value in (0.01, 0.9); try a larger",
+        "nBlocksPlan or a smaller power"
+      ), nBlocksPlan, power))
     }
     result[["designScenario"]] <- "3"
     result[["esMin"]] <- esMin
     result[["power"]] <- power
   } else if (!is.null(power)) {
     planning <- computeNPlanSavi2x2(
-      propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+      propDiffMin = propDiffMin, na = na, nb = nb,
       power = power, alpha = alpha, alternative = alternative,
       betaParameter = result[["betaParameter"]], nTheta = nTheta,
       nSim = nSim, nBoot = nBoot, nMax = nMax, seed = seed,
@@ -490,7 +494,7 @@ designSavi2x2 <- function(
     result[["bootObjNMean"]] <- planning[["bootObjNMean"]]
   } else if (!is.null(nBlocksPlan)) {
     planning <- computePowerSavi2x2(
-      propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+      propDiffMin = propDiffMin, na = na, nb = nb,
       nBlocks = nBlocksPlan, alpha = alpha, alternative = alternative,
       betaParameter = result[["betaParameter"]], nTheta = nTheta,
       nSim = nSim, nBoot = nBoot, seed = seed,
@@ -1021,14 +1025,11 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 
 #' Simulate stopping times of the 2x2 grow test
 #'
-#' Decisions 29, 34, 35. Exactly one of `propDiffMin` (`> 0`) and
-#' `logOddsMin` (`> 0`) is the grow plug-in and the data-generating effect.
-#' `propDiffMin`: data lie on `thetaB = thetaA + propDiffMin` at `nTheta`
-#' baselines `thetaA`, and for `"twoSided"` on `thetaB = thetaA - propDiffMin`
-#' at `nTheta` more. `logOddsMin`: data lie on `thetaB =
-#' plogis(qlogis(thetaA) + logOddsMin)` at `nTheta` baselines, and for
-#' `"twoSided"` on `thetaB = plogis(qlogis(thetaA) - logOddsMin)` at `nTheta`
-#' more (Decision 38).
+#' Decisions 29, 34, 43. `propDiffMin` (`> 0`) is the grow plug-in and the
+#' data-generating effect: data lie on `thetaB = thetaA + propDiffMin` at
+#' `nTheta` baselines `thetaA`, and for `"twoSided"` on `thetaB = thetaA -
+#' propDiffMin` at `nTheta` more. There is no planning on `logOdds`
+#' (Decision 43).
 #' `nPlan` is the worst `power` quantile of the stopping time over all
 #' baselines; with `power = NULL` the quantile step is skipped and `nPlan`,
 #' `worstCaseIndex` are `NULL` (Decision 36).
@@ -1041,7 +1042,7 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
 #'   `worstCaseIndex`.
 #' @noRd
 sampleStoppingTimesSavi2x2 <- function(
-  propDiffMin = NULL, logOddsMin = NULL, na, nb, power = NULL, alpha = 0.05,
+  propDiffMin, na, nb, power = NULL, alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   eType = c("grow"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nMax = 1e4L, nBoot = 1e4L,
@@ -1051,19 +1052,12 @@ sampleStoppingTimesSavi2x2 <- function(
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
-  # Exactly one effect measure is planned; "less" is not designed yet.
-  if (is.null(propDiffMin) == is.null(logOddsMin)) {
-    stop("supply exactly one of propDiffMin and logOddsMin")
-  }
+  # "less" is not designed yet.
   if (alternative == "less") {
     stop("alternative = 'less' is not designed yet!")
   }
-  if (!is.null(propDiffMin)) {
-    stopifnot(propDiffMin > 0, propDiffMin < 1)
-  } else {
-    stopifnot(is.finite(logOddsMin), logOddsMin > 0)
-  }
   stopifnot(
+    length(propDiffMin) == 1, propDiffMin > 0, propDiffMin < 1,
     alpha > 0, alpha < 1, is.null(power) || (power > 0 && power < 1),
     na >= 1, nb >= 1, is.finite(nMax)
   )
@@ -1076,39 +1070,22 @@ sampleStoppingTimesSavi2x2 <- function(
 
   # TODO: a lot of time wasted near the boundary
   # Baselines: thetaA at nTheta equally spaced interior points of its
-  # feasible range. propDiff: the curve thetaB = thetaA + propDiffMin, thetaA
-  # over (0, 1 - propDiffMin); twoSided adds the curve thetaB = thetaA -
+  # feasible range on the curve thetaB = thetaA + propDiffMin, thetaA over
+  # (0, 1 - propDiffMin); twoSided adds the curve thetaB = thetaA -
   # propDiffMin, thetaA over (propDiffMin, 1), since the test is not
   # symmetric under a group swap when na != nb or the Beta priors differ.
-  # logOdds: the curve thetaB = plogis(qlogis(thetaA) + logOddsMin), feasible
-  # for every thetaA in (0, 1); the outermost baselines, where the
-  # conditional e-factor is nearly trivial, drive nPlan. twoSided adds the
-  # curve at -logOddsMin over the same thetaA.
   rhoTheta <- seq(1 / (nTheta + 1), nTheta / (nTheta + 1), length.out = nTheta)
-  if (!is.null(propDiffMin)) {
-    thetaATrue <- rhoTheta * (1 - propDiffMin)
-    thetaBTrue <- thetaATrue + propDiffMin
-    if (alternative == "twoSided") {
-      thetaATrue <- c(thetaATrue, propDiffMin + rhoTheta * (1 - propDiffMin))
-      thetaBTrue <- c(thetaBTrue, thetaATrue[-seq_len(nTheta)] - propDiffMin)
-    }
-  } else {
-    thetaATrue <- rhoTheta
-    thetaBTrue <- stats::plogis(stats::qlogis(thetaATrue) + logOddsMin)
-    if (alternative == "twoSided") {
-      thetaATrue <- c(thetaATrue, rhoTheta)
-      thetaBTrue <- c(thetaBTrue,
-                      stats::plogis(stats::qlogis(rhoTheta) - logOddsMin))
-    }
+  thetaATrue <- rhoTheta * (1 - propDiffMin)
+  thetaBTrue <- thetaATrue + propDiffMin
+  if (alternative == "twoSided") {
+    thetaATrue <- c(thetaATrue, propDiffMin + rhoTheta * (1 - propDiffMin))
+    thetaBTrue <- c(thetaBTrue, thetaATrue[-seq_len(nTheta)] - propDiffMin)
   }
   nBaselines <- length(thetaATrue)
 
   logThreshold <- log(1 / alpha)
   naVec <- rep(na, nMax)
   nbVec <- rep(nb, nMax)
-  # logOdds paths are drawn and evaluated chunkSize blocks at a time, so a
-  # path that stops early never touches all nMax blocks (Decision 38).
-  chunkSize <- min(nMax, 50L)
   stoppingTimes <- matrix(Inf, nrow = nBaselines, ncol = nSim)
   breakVector <- matrix(1L, nrow = nBaselines, ncol = nSim)
   eValuesStopped <- matrix(NA_real_, nrow = nBaselines, ncol = nSim)
@@ -1132,55 +1109,12 @@ sampleStoppingTimesSavi2x2 <- function(
       # The test's own grow e-process, cut at the first crossing of
       # 1 / alpha: the length of the vector is the stopping time, unless the
       # path ran through all nMax blocks without crossing.
-      if (!is.null(propDiffMin)) {
-        ya <- stats::rbinom(nMax, na, thetaATrue[k])
-        yb <- stats::rbinom(nMax, nb, thetaBTrue[k])
-        logEValueVec <- logEValueVec2x2PropDiffGrow(
-          ya, yb, naVec, nbVec, betaParameter, propDiffMin,
-          alpha, alternative, earlyStopping = TRUE
-        )
-      } else {
-        # Nothing is learned between blocks, so each chunk is a few
-        # vectorised lines: the running cumulative FNCH log likelihood at
-        # +logOddsMin (and -logOddsMin, averaged, for twoSided) minus the
-        # running hypergeometric log likelihood given each block's total.
-        logEValueVec <- numeric(0)
-        logCumNull <- 0
-        logCumPlus <- 0
-        logCumMinus <- 0
-        nDrawn <- 0L
-        while (nDrawn < nMax) {
-          nChunk <- min(chunkSize, nMax - nDrawn)
-          naChunk <- naVec[seq_len(nChunk)]
-          nbChunk <- nbVec[seq_len(nChunk)]
-          ya <- stats::rbinom(nChunk, na, thetaATrue[k])
-          yb <- stats::rbinom(nChunk, nb, thetaBTrue[k])
-          logNull <- logCumNull +
-            cumsum(stats::dhyper(yb, nbChunk, naChunk, ya + yb, log = TRUE))
-          logPlus <- logCumPlus +
-            cumsum(logLikelihoodFNCH(ya, yb, naChunk, nbChunk, logOddsMin))
-          if (alternative == "twoSided") {
-            logMinus <- logCumMinus +
-              cumsum(logLikelihoodFNCH(ya, yb, naChunk, nbChunk, -logOddsMin))
-            shift <- pmax(logPlus, logMinus)
-            logAlternative <- shift +
-              log(0.5 * (exp(logPlus - shift) + exp(logMinus - shift)))
-            logCumMinus <- logMinus[nChunk]
-          } else {
-            logAlternative <- logPlus
-          }
-          logCumNull <- logNull[nChunk]
-          logCumPlus <- logPlus[nChunk]
-          logEChunk <- logAlternative - logNull
-          firstCrossing <- which(logEChunk >= logThreshold)[1]
-          if (!is.na(firstCrossing)) {
-            logEValueVec <- c(logEValueVec, logEChunk[seq_len(firstCrossing)])
-            break
-          }
-          logEValueVec <- c(logEValueVec, logEChunk)
-          nDrawn <- nDrawn + nChunk
-        }
-      }
+      ya <- stats::rbinom(nMax, na, thetaATrue[k])
+      yb <- stats::rbinom(nMax, nb, thetaBTrue[k])
+      logEValueVec <- logEValueVec2x2PropDiffGrow(
+        ya, yb, naVec, nbVec, betaParameter, propDiffMin,
+        alpha, alternative, earlyStopping = TRUE
+      )
 
       nStopped <- length(logEValueVec)
       eValuesStopped[k, sim] <- exp(logEValueVec[nStopped])
@@ -1218,12 +1152,11 @@ sampleStoppingTimesSavi2x2 <- function(
 
   if (!is.null(nPlan) && !is.finite(nPlan)) {
     fractionNeverCrossed <- mean(!is.finite(stoppingTimes[worstCaseIndex, ]))
-    esMinName <- if (!is.null(propDiffMin)) "propDiffMin" else "logOddsMin"
     warning(sprintf(paste(
       "the %g quantile of the stopping time is Inf: %.1f%% of the paths at",
-      "thetaA = %.3f never cross 1/alpha at nMax = %g, try increasing nMax or %s"
-    ), power, 100 * fractionNeverCrossed, thetaATrue[worstCaseIndex], nMax,
-    esMinName))
+      "thetaA = %.3f never cross 1/alpha at nMax = %g, try increasing nMax",
+      "or propDiffMin"
+    ), power, 100 * fractionNeverCrossed, thetaATrue[worstCaseIndex], nMax))
   }
 
   list(
@@ -1256,7 +1189,7 @@ sampleStoppingTimesSavi2x2 <- function(
 #'   `samplePaths`, `n1Vector`.
 #' @noRd
 computePowerSavi2x2 <- function(
-  propDiffMin = NULL, logOddsMin = NULL, na, nb, nBlocks, alpha = 0.05,
+  propDiffMin, na, nb, nBlocks, alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nBoot = nSim,
   seed = NULL, wantSamplePaths = FALSE, pb = TRUE
@@ -1265,7 +1198,7 @@ computePowerSavi2x2 <- function(
   stopifnot(length(nBlocks) == 1, is.finite(nBlocks), nBlocks >= 1)
 
   samplingResult <- sampleStoppingTimesSavi2x2(
-    propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+    propDiffMin = propDiffMin, na = na, nb = nb,
     power = NULL, alpha = alpha, alternative = alternative,
     betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
     nMax = nBlocks, seed = seed, wantSamplePaths = wantSamplePaths, pb = pb
@@ -1318,7 +1251,7 @@ computePowerSavi2x2 <- function(
 #'   `n1Vector`.
 #' @noRd
 computeNPlanSavi2x2 <- function(
-  propDiffMin = NULL, logOddsMin = NULL, na, nb, power = 0.8, alpha = 0.05,
+  propDiffMin, na, nb, power = 0.8, alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nBoot = nSim,
   nMax = 1e4L, seed = NULL, wantSamplePaths = FALSE, pb = TRUE
@@ -1327,7 +1260,7 @@ computeNPlanSavi2x2 <- function(
   stopifnot(!is.null(power), power > 0, power < 1)
 
   samplingResult <- sampleStoppingTimesSavi2x2(
-    propDiffMin = propDiffMin, logOddsMin = logOddsMin, na = na, nb = nb,
+    propDiffMin = propDiffMin, na = na, nb = nb,
     power = power, alpha = alpha, alternative = alternative,
     betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
     nMax = nMax, seed = seed, wantSamplePaths = wantSamplePaths, pb = pb
@@ -1377,54 +1310,46 @@ computeNPlanSavi2x2 <- function(
 }
 
 
-#' Minimal detectable effect of the 2x2 grow test
+#' Minimal detectable propDiff of the 2x2 grow test
 #'
-#' Decisions 40, 41. The smallest `propDiffMin` or `logOddsMin` (chosen by
-#' `effect`) at which the worst-case power of [computePowerSavi2x2()] at
-#' `nBlocks = nBlocksPlan` reaches `power`, found by [stats::uniroot()] on
-#' `propDiffBounds` or `logOddsBounds`. Every candidate is simulated with
-#' the same `seed`, so the target is a deterministic step function of the
-#' candidate.
+#' Decisions 40, 43. The smallest `propDiffMin` at which the worst-case
+#' power of [computePowerSavi2x2()] at `nBlocks = nBlocksPlan` reaches
+#' `power`, found by [stats::uniroot()] on `propDiffBounds`. Every candidate
+#' is simulated with the same `seed`, so the target is a deterministic step
+#' function of the candidate. There is no planning on `logOdds`.
 #'
 #' @param nBlocksPlan Planned block count at which the test is evaluated.
-#' @param effect `"propDiff"` or `"logOdds"`, the effect measure whose
-#'   minimal detectable value is sought.
 #' @param propDiffBounds Search interval for `propDiffMin`, strictly inside
 #'   `(0, 1)`.
-#' @param logOddsBounds Search interval for `logOddsMin`, positive.
-#' @param tol Tolerance of the root on the effect's scale.
+#' @param tol Tolerance of the root on the `propDiff` scale.
 #' @inheritParams sampleStoppingTimesSavi2x2
 #'
-#' @return A single numeric: the minimal effect, or `NA` when the worst-case
-#'   power minus `power` has no sign change on the bounds (still below the
-#'   target at the upper bound, or already above it at the lower bound). No
-#'   bootstrap object, as for [computeMinEsBatchSaviT()].
+#' @return A single numeric: the minimal `propDiffMin`, or `NA` when the
+#'   worst-case power minus `power` has no sign change on `propDiffBounds`
+#'   (still below the target at the upper bound, or already above it at the
+#'   lower bound). No bootstrap object, as for [computeMinEsBatchSaviT()].
 #' @noRd
 computeEsMinSavi2x2 <- function(
   na, nb, nBlocksPlan, power = 0.8, alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
-  effect = c("propDiff", "logOdds"),
   betaParameter = NULL, nTheta = 8L, nSim = 1e3L, seed = NULL, pb = TRUE,
-  propDiffBounds = c(0.01, 0.9), logOddsBounds = c(0.01, 40), tol = 1e-5
+  propDiffBounds = c(0.01, 0.9), tol = 1e-5
 ) {
   alternative <- match.arg(alternative)
-  effect <- match.arg(effect)
-  bounds <- if (effect == "propDiff") propDiffBounds else logOddsBounds
+  bounds <- propDiffBounds
   stopifnot(
     length(nBlocksPlan) == 1, is.finite(nBlocksPlan), nBlocksPlan >= 1,
     power > 0, power < 1, length(bounds) == 2, bounds[1] > 0,
-    bounds[1] < bounds[2], effect == "logOdds" || bounds[2] < 1
+    bounds[1] < bounds[2], bounds[2] < 1
   )
 
-  # Worst-case power minus the target, at a candidate minimal effect. The
-  # same seed for every candidate makes this deterministic in the candidate;
-  # for propDiff the baselines are rescaled to (0, 1 - propDiffMin) inside
-  # the sampler, so the worst case is taken afresh each time.
-  targetFunction <- function(esMin) {
+  # Worst-case power minus the target, at a candidate propDiffMin. The same
+  # seed for every candidate makes this deterministic in the candidate; the
+  # baselines are rescaled to (0, 1 - propDiffMin) inside the sampler, so
+  # the worst case is taken afresh each time.
+  targetFunction <- function(propDiffMin) {
     computePowerSavi2x2(
-      propDiffMin = if (effect == "propDiff") esMin else NULL,
-      logOddsMin = if (effect == "logOdds") esMin else NULL,
-      na = na, nb = nb, nBlocks = nBlocksPlan,
+      propDiffMin = propDiffMin, na = na, nb = nb, nBlocks = nBlocksPlan,
       alpha = alpha, alternative = alternative,
       betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
       seed = seed, pb = pb
