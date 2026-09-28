@@ -676,11 +676,12 @@ now linear in `nBlocks`:
   `1e-3` is coarser than `sdMax`) the grid stays at 2000 and a warning
   says the bounds are conservative. `nGrid` is not a design field.
 - Cumulation: the log e-process against every candidate is held on the
-  grid and block `i` adds its term once. The null `thetaA` for all
-  candidates at once is the single root on the feasible interval of the
-  cubic `na (x - thetaA)(x + delta)(1 - x - delta) + nb (x + delta -
-  thetaB) x (1 - x)` (the KL derivative of `solveRIPr2x2PropDiff` times
-  `x (1 - x)(x + delta)(1 - x - delta)`), found by vectorised bisection.
+  grid and block `i` adds its term once. The null `thetaA` per candidate
+  is `solveRIPr2x2PropDiff` applied over the active candidates (chosen
+  for readability; a vectorised bisection on the cubic `na (x - thetaA)(x
+  + delta)(1 - x - delta) + nb (x + delta - thetaB) x (1 - x)`, the KL
+  derivative times `x (1 - x)(x + delta)(1 - x - delta)`, agrees to ~1e-13
+  and is 6 to 15 times faster, and can replace it later).
 - Bounds: the kept candidates form one run (convexity, Decision 13).
   Each bound is refined outward by the secant through the first rejected
   node and its outer neighbour: it lies below the convex `f` outside them,
@@ -694,7 +695,8 @@ now linear in `nBlocks`:
 
 Matches the root-finding rows of Decision 25 to ~3e-5 (`uniroot`'s
 tolerance) on ordinary tables, conservative by at most one grid step on
-extreme ones; about 3 s at 1000 blocks against ~7 min.
+extreme ones; about 3 s at 1000 blocks with the running intersection
+(36 s without) against ~7 min.
 
 ### 27. logOdds confidence interval isolated
 

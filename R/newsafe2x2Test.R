@@ -472,11 +472,6 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
   }
   grid <- seq(-1, 1, length.out = nGrid + 2L)[-c(1L, nGrid + 2L)]
 
-  # Feasible null thetaA per candidate: both thetaA and thetaA + delta in
-  # [0, 1].
-  gridLower <- pmax(0, -grid)
-  gridUpper <- pmin(1, 1 - grid)
-
   # Cumulative log e-process per candidate; which candidates may still be
   # kept, and which take part in the update (the same, plus two guard
   # nodes on each side for the secant under the running intersection).
@@ -492,21 +487,15 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
   for (i in seq_len(nBlocks)) {
     delta <- grid[active]
 
-    # Null thetaA for every active candidate: the KL derivative of
-    # solveRIPr2x2PropDiff() times x (1 - x)(x + delta)(1 - x - delta) is a
-    # cubic in x, negative then positive across its single root on the
-    # feasible interval. 52 bisection steps reach machine precision.
-    lower <- gridLower[active]
-    upper <- gridUpper[active]
-    for (step in seq_len(52L)) {
-      x <- (lower + upper) / 2
-      cubic <- na[i] * (x - thetaA[i]) * (x + delta) * (1 - x - delta) +
-        nb[i] * (x + delta - thetaB[i]) * x * (1 - x)
-      positive <- cubic > 0
-      upper[positive] <- x[positive]
-      lower[!positive] <- x[!positive]
-    }
-    nullThetaA <- (lower + upper) / 2
+    # Null thetaA for every active candidate, one uniroot call each. Could
+    # be replaced by a vectorised bisection over all candidates at once (the
+    # KL derivative times x (1 - x)(x + delta)(1 - x - delta) is a cubic in
+    # x with a single root on the feasible interval), which is 6 to 15
+    # times faster; kept as is for readability.
+    nullThetaA <- mapply(solveRIPr2x2PropDiff, delta,
+      MoreArgs = list(thetaA = thetaA[i], thetaB = thetaB[i],
+        na = na[i], nb = nb[i])
+    )
 
     # Block i's log likelihood ratio term against each active candidate.
     logEValues[active] <- logEValues[active] +
