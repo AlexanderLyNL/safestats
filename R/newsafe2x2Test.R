@@ -26,13 +26,66 @@ savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
 
 #' Safe anytime-valid 2x2 test for propDiff
 #'
-#' `eType = "eBeta"`: the unrestricted numerator of Decision 3 (`twoSided`
-#' only). `eType = "grow"`: the numerator restricted to
-#' `thetaB - thetaA = propDiffMin` (Decision 6), `"greater"` or the
-#' `"twoSided"` average with `-propDiffMin` (Decision 34). Only
-#' eBeta gets a confidence interval (Decision 23), on all blocks;
-#' `wantConfidenceSequence = TRUE` adds the blockwise `confSeqMatrix`
-#' (Decisions 24, 26).
+#' Tests `propDiff = 0` on a stream of 2x2 tables, one table per block, where
+#' `propDiff = thetaB - thetaA` (B minus A). The numerator for block `i`
+#' uses blocks `1..i-1` only. `designObj[["eType"]]` picks the e-process:
+#'
+#' - `"eBeta"`: two independent Beta posterior means for `thetaA` and
+#'   `thetaB`, tested against the pooled null mean. It is `"twoSided"` only.
+#'   The first table's UMP conditional e-value multiplies every cumulative
+#'   e-value.
+#' - `"grow"`: `thetaA` and `thetaB` are restricted to
+#'   `thetaB - thetaA = propDiffMin`. The alternative is `"greater"`, or
+#'   `"twoSided"`, which averages the cumulative e-values at `+propDiffMin`
+#'   and `-propDiffMin`. The first table's e-value is replaced by the UMP
+#'   conditional e-value.
+#'
+#' Only `"eBeta"` gives a confidence interval or sequence.
+#'
+#' @param ya,yb Successes in groups A and B, one nonnegative integer per
+#'   block, in observation order.
+#' @param designObj A `saviDesign` for `propDiff` from `designSavi2x2()`.
+#'   It supplies `alpha`, `alternative`, `eType`, `esMin`, `betaParameter`,
+#'   `runningIntersection` and the group sizes per block `nPlan$na` and
+#'   `nPlan$nb`. A scalar size is repeated for every block.
+#' @param wantCi `TRUE` for one confidence interval on all blocks
+#'   (`"eBeta"` only).
+#' @param wantConfidenceSequence `TRUE` for a confidence sequence with one
+#'   row per block (`"eBeta"` only). It takes precedence over `wantCi`.
+#' @param ciValue Confidence level; the default `NULL` gives `1 - alpha`,
+#'   with `alpha` from `designObj`.
+#'
+#' @return A `saviTest` list with `testName = "Two Proportions"`,
+#'   `testType = "2x2"` and:
+#'
+#' - `eValueVec`: the realised cumulative e-value after each block, on
+#'   blocks `1..i` for element `i` (not the blockwise e-factors).
+#' - `eValue`: the last element of `eValueVec`, the e-value on all blocks.
+#'   Reject when it is at least `1 / alpha`.
+#' - `n`: `c(na = sum(na), nb = sum(nb), nBlocks = length(ya))`.
+#' - `n1Vec`: `seq_len(nBlocks)`, the block index, used for plotting only.
+#' - `estimate`: `c(thetaA, thetaB)`, the pooled observed proportions
+#'   `sum(ya) / sum(na)` and `sum(yb) / sum(nb)`.
+#' - `confSeq`: named `c(lowerBound, upperBound)` for `propDiff` at level
+#'   `ciValue` on all blocks. With `wantConfidenceSequence`, this is the last
+#'   row of `confSeqMatrix`. Both bounds are `NA` when the set is empty. It
+#'   is `NULL` for `"grow"`, or when neither `wantCi` nor
+#'   `wantConfidenceSequence` is `TRUE`.
+#' - `confSeqMatrix`: an `nBlocks x 2` matrix of `lowerBound` and
+#'   `upperBound`. Row `i` is the interval on blocks `1..i`. With
+#'   `runningIntersection`, the rows are nested and stay `NA` after the first
+#'   empty row. It is present only with `wantConfidenceSequence` and
+#'   `"eBeta"`.
+#' - `ciValue`: the confidence level used.
+#' - `betaPrior`: `list(betaA1, betaA2, betaB1, betaB2)`, the design's Beta
+#'   prior updated with all blocks. This is the prior that a next block would
+#'   use.
+#' - `alternative`, `h0`, `designObj`: copied from the design.
+#' - `dataName`: the deparsed `ya` and `yb` arguments.
+#' - `call`: the matched call.
+#'
+#' The constructor's other fields (`statistic`, `eValueApproxError`,
+#' `note`) stay `NULL`.
 #' @noRd
 savi2x2TestStatPropDiff <- function(ya, yb,
                                     designObj = NULL, wantCi = TRUE,
