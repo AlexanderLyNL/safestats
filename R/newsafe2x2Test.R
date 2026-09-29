@@ -1,32 +1,27 @@
 # Test functions ----
 
-# Conditional e-factor of one block at a UMP plug-in logOdds: the log
-# likelihood of yb given the block's total under the alternative (FNCH with
-# odds exp(logOdds) on group B) minus the same under the null
-# (hypergeometric). twoSided averages the two one-sided e-factors.
+#' Computes Conditional E-Value with UMP Log Odds Ratio
 savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
                                alternative = c("twoSided", "greater", "less")) {
   alternative <- match.arg(alternative)
   logLikelihoodNull <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
 
-  # UMP plug-in on each side (Decision 8): the logOdds at which the
-  # conditional KL against the null reaches log(1 / alpha), solved from the
-  # block's total only. NULL means the target is out of reach; the plug-in
-  # is then the null itself, logOdds = 0, i.e. the trivial e-factor 1.
-  logOddsPositive <- solveUmpLogOdds(na, nb, ya + yb, alpha, "greater")
-  if (is.null(logOddsPositive)) logOddsPositive <- 0
-  logOddsNegative <- solveUmpLogOdds(na, nb, ya + yb, alpha, "less")
-  if (is.null(logOddsNegative)) logOddsNegative <- 0
-
-  logLikelihoodPositive <- logLikelihoodFNCH(ya, yb, na, nb, logOddsPositive)
-  logLikelihoodNegative <- logLikelihoodFNCH(ya, yb, na, nb, logOddsNegative)
-
-  switch(alternative,
-    "twoSided" = 0.5 * exp(logLikelihoodPositive - logLikelihoodNull) +
-      0.5 * exp(logLikelihoodNegative - logLikelihoodNull),
-    "greater" = exp(logLikelihoodPositive - logLikelihoodNull),
-    "less" = exp(logLikelihoodNegative - logLikelihoodNull)
+  # solve logOdds on each side with oneSided test
+  sides <- switch(alternative,
+    "twoSided" = c("greater", "less"),
+    "greater" = "greater",
+    "less" = "less"
   )
+  eValue <- 0
+  for (side in sides) {
+    logOdds <- solveUmpLogOdds(na, nb, ya + yb, alpha, side)
+    if (is.null(logOdds)) logOdds <- 0
+    logLikelihoodAlternative <- logLikelihoodFNCH(ya, yb, na, nb, logOdds)
+    eValue <- eValue + exp(logLikelihoodAlternative - logLikelihoodNull)
+  }
+
+  # twoSided: 1/2 less + 1/2 greater
+  eValue / length(sides)
 }
 
 #' Safe anytime-valid 2x2 test for propDiff
