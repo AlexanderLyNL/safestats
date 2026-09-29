@@ -987,9 +987,17 @@ fnchLogPartition <- function(na, nb, totalSuccesses, logOdds) {
 #           - fnchLogPartition(logOdds) + fnchLogPartition(nullLogOdds),
 # the mean E_logOdds[yb] taken from BiasedUrn (odds = exp(logOdds) on B). At
 # nullLogOdds = 0 the last term is lchoose(na + nb, ya + yb).
-# The KL is 0 at nullLogOdds and increases away from it, but is bounded by
-# -log P0(ya at its feasible extreme), so the equation may have no root:
-# then NULL is returned and the caller uses the trivial e-factor 1.
+#
+# Returns the root, or NULL when no logOdds on that side reaches the target.
+# The KL is 0 at nullLogOdds and increases away from it towards its
+# supremum -log P0(yb at its feasible extreme): yb = min(nb, totalSuccesses)
+# for "greater", yb = max(0, totalSuccesses - na) for "less". NULL is
+# returned exactly when that supremum is at most log(1 / alpha), i.e. when
+# even the most extreme table under this total has null probability at
+# least alpha, so no one-block test at level alpha can reject. Typical cases
+# are totalSuccesses = 0 or na + nb (one feasible table, KL = 0), and small
+# blocks: na = nb = 1 gives supremum log(2). The caller then uses the
+# trivial e-factor 1; this is by design, not a numerical failure.
 solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
                             alternative = c("greater", "less"),
                             nullLogOdds = 0,
