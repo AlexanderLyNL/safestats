@@ -9,3 +9,5 @@ Meta
 /Meta/
 .Rapp.history
 .positai
+# docs/ holds working notes, not a pkgdown site; override a global docs/ ignore
+!/docs/
