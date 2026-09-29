@@ -32,8 +32,7 @@ savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
 #'
 #' - `"eBeta"`: two independent Beta posterior means for `thetaA` and
 #'   `thetaB`, tested against the pooled null mean. It is `"twoSided"` only.
-#'   The first table's UMP conditional e-value multiplies every cumulative
-#'   e-value.
+#'   The first table's e-value is replaced by the UMP conditional e-value.
 #' - `"grow"`: `thetaA` and `thetaB` are restricted to
 #'   `thetaB - thetaA = propDiffMin`. The alternative is `"greater"`, or
 #'   `"twoSided"`, which averages the cumulative e-values at `+propDiffMin`
@@ -124,13 +123,11 @@ savi2x2TestStatPropDiff <- function(ya, yb,
 
   # Compute: eValueVec ----
   if (eType == "grow") {
-    # The blockwise e-process uses the UMP factor as block 1 itself and
-    # averages the two sides for twoSided.
     logEValueVec <- logEValueVec2x2PropDiffGrow(
       ya, yb, na, nb, betaParameter, propDiffMin, alpha, alternative
     )
   } else if (eType == "eBeta") {
-    # Block 1's UMP conditional e-factor multiplies the whole e-process.
+    # Block 1's UMP conditional e-factor replaces its plug-in factor.
     eValueUmp <- savi2x2TestStatUmp(
       ya[1], yb[1], na[1], nb[1], alpha, alternative
     )
@@ -154,7 +151,10 @@ savi2x2TestStatPropDiff <- function(ya, yb,
       stats::dbinom(ya, na, thetaA, log = TRUE) +
         stats::dbinom(yb, nb, thetaB, log = TRUE)
     )
-    logEValueVec <- logLikelihoodAlternative - logLikelihoodNull + log(eValueUmp)
+    # Replace block 1's plug-in factor by the UMP factor: blocks 2..i keep
+    # their predictable factors, so the product stays an e-process.
+    logEValueVec <- logLikelihoodAlternative - logLikelihoodNull
+    logEValueVec <- logEValueVec - logEValueVec[1] + log(eValueUmp)
   } else {
     stop("eType ", eType, " is not implemented for propDiff")
   }

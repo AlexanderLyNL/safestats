@@ -8,7 +8,6 @@ contract in the [current design](2x2-design.md) first.
 | ID | Priority | Finding | Status |
 | --- | --- | --- | --- |
 | [R1](#r1) | P1 | Assumed convexity causes confidence-interval undercoverage | Deferred |
-| [R2](#r2) | P1 | eBeta's first-block product can have null expectation above one | Deferred |
 | [R3](#r3) | P1 | FNCH density underflow corrupts intervals and e-values | Deferred |
 | [R4](#r4) | P1 | A grid can miss the entire accepted confidence set | Deferred |
 | [R5](#r5) | P2 | Minimal-effect search can return an effect below target power | Deferred |
@@ -64,31 +63,6 @@ noncoverage from simulation.
 appear in `computeConfidenceSequence2x2PropDiff()`.
 **Next design question.** Return every accepted component, or construct and
 justify a conservative hull without assuming convexity?
-
-</details>
-
-<a id="r2"></a>
-<details>
-<summary>R2 — Multiplying two first-block factors is not generally valid</summary>
-
-**Impact.** eBeta multiplies its UMP factor by a plug-in factor from the same
-observations. Equal prior means hide the problem because the first plug-in
-factor then equals one. Old Decision 39 already acknowledged this defect.
-
-```r
-d <- designSavi2x2(5, 3, eType = "eBeta",
-  betaParameter = list(betaA1 = 1, betaA2 = 4, betaB1 = 4, betaB2 = 1))
-tables <- expand.grid(a = 0:5, b = 0:3)
-e <- mapply(function(a, b) {
-  savi2x2TestStatPropDiff(a, b, designObj = d, wantCi = FALSE)$eValue
-}, tables$a, tables$b)
-sum(dbinom(tables$a, 5, .4) * dbinom(tables$b, 3, .4) * e)
-```
-
-**Observed.** Exact null expectation is `4.747317`, exceeding one.
-**Location.** `R/newsafe2x2Test.R:109`, `savi2x2TestStatPropDiff()`.
-**Next design question.** What valid first-block construction should eBeta use
-with unequal prior means? Resolve the contract before changing the product.
 
 </details>
 

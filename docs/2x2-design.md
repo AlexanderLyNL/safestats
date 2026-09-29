@@ -83,9 +83,8 @@ the last is the difference of cumulative log likelihoods.
 means using prior shapes, previous successes, and previous cumulative sizes.
 The denominator uses pooled probability
 `(na * thetaA + nb * thetaB) / (na + nb)`; sum the two binomial log-density
-ratios over blocks. The current test additionally multiplies the first
-UMP factor into every cumulative value. This same-block product is invalid
-for some priors and remains unresolved ([R2](2x2-review.md#r2)).
+ratios over blocks. Block 1's plug-in factor is **replaced** by the UMP
+conditional factor, as for grow; the posterior still absorbs block 1.
 
 **PropDiff grow.** `logEValueVec2x2PropDiffGrow` learns on
 `thetaB = thetaA + propDiffMin`: 1000 interior grid points in `thetaA`'s
@@ -132,7 +131,7 @@ Running intersection is optional; an empty row stays empty thereafter.
   observed vectors, `betaParameter`, `alpha`, `domain = c(-1,1)`.
   It inverts the predictable Beta numerator against per-block reverse
   information projections onto each candidate difference, excluding the
-  test's UMP multiplier. Current root finding uses one minimum and two roots;
+  test's UMP first-block factor. Current root finding uses one minimum and two roots;
   failure to find an interval warns and returns `[-1,1]`.
   The asserted convexity/single-interval justification is false
   ([R1](2x2-review.md#r1)); its replacement needs agreement.
