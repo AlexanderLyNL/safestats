@@ -1393,21 +1393,38 @@ solveUmpLogOdds <- function(
 #'   `worstCaseIndex`.
 #' @noRd
 sampleStoppingTimesSavi2x2 <- function(
-  propDiffMin, na, nb, power = NULL, alpha = 0.05,
+  propDiffMin,
+  na,
+  nb,
+  power = NULL,
+  alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   eType = c("grow"),
-  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nMax = 1e4L, nBoot = 1e4L,
-  seed = NULL, wantEValuesAtNMax = FALSE,
-  wantSamplePaths = FALSE, wantSimData = TRUE, pb = TRUE
+  betaParameter = NULL,
+  nTheta = 8L,
+  nSim = 1e3L,
+  nMax = 1e4L,
+  nBoot = 1e4L,
+  seed = NULL,
+  wantEValuesAtNMax = FALSE,
+  wantSamplePaths = FALSE,
+  wantSimData = TRUE,
+  pb = TRUE
 ) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
   propDiffMin <- abs(propDiffMin)
   stopifnot(
-    length(propDiffMin) == 1, propDiffMin > 0, propDiffMin < 1,
-    alpha > 0, alpha < 1, is.null(power) || (power > 0 && power < 1),
-    na >= 1, nb >= 1, is.finite(nMax)
+    length(propDiffMin) == 1,
+    propDiffMin > 0,
+    propDiffMin < 1,
+    alpha > 0,
+    alpha < 1,
+    is.null(power) || (power > 0 && power < 1),
+    na >= 1,
+    nb >= 1,
+    is.finite(nMax)
   )
   # One size per group is repeated over the nMax simulated blocks; one size
   # per block needs nMax equal to the block count.
@@ -1416,7 +1433,9 @@ sampleStoppingTimesSavi2x2 <- function(
   }
 
   if (is.null(betaParameter)) {
-    betaParameter <- constructSaviDesignObj("Two Proportions")[["betaParameter"]]
+    betaParameter <- constructSaviDesignObj("Two Proportions")[[
+      "betaParameter"
+    ]]
   }
   # Reproducible by default: 2026 unless a seed is given.
   set.seed(if (is.null(seed)) 2026 else seed)
@@ -1450,7 +1469,10 @@ sampleStoppingTimesSavi2x2 <- function(
   samplePaths <- if (wantSamplePaths) vector("list", nBaselines) else NULL
 
   if (pb) {
-    pbSavi <- utils::txtProgressBar(style = 3, title = "Sampling worst-case stopping time")
+    pbSavi <- utils::txtProgressBar(
+      style = 3,
+      title = "Sampling worst-case stopping time"
+    )
   }
 
   for (k in seq_len(nBaselines)) {
@@ -1460,7 +1482,9 @@ sampleStoppingTimesSavi2x2 <- function(
     for (sim in seq_len(nSim)) {
       if (pb) {
         utils::setTxtProgressBar(
-          pbSavi, "value" = ((k - 1) * nSim + sim) / (nBaselines * nSim), "title" = "Trials"
+          pbSavi,
+          "value" = ((k - 1) * nSim + sim) / (nBaselines * nSim),
+          "title" = "Trials"
         )
       }
 
@@ -1470,8 +1494,15 @@ sampleStoppingTimesSavi2x2 <- function(
       ya <- stats::rbinom(nMax, naVec, thetaATrue[k])
       yb <- stats::rbinom(nMax, nbVec, thetaBTrue[k])
       logEValueVec <- logEValueVec2x2PropDiffGrow(
-        ya, yb, naVec, nbVec, betaParameter, propDiffMin,
-        alpha, alternative, earlyStopping = TRUE
+        ya,
+        yb,
+        naVec,
+        nbVec,
+        betaParameter,
+        propDiffMin,
+        alpha,
+        alternative,
+        earlyStopping = TRUE
       )
 
       nStopped <- length(logEValueVec)
@@ -1491,7 +1522,9 @@ sampleStoppingTimesSavi2x2 <- function(
     }
   }
 
-  if (pb) close(pbSavi)
+  if (pb) {
+    close(pbSavi)
+  }
 
   # Planned block count: the power quantile of the stopping time at the
   # hardest baseline. type = 1 is an order statistic, so it is a realised
@@ -1501,8 +1534,13 @@ sampleStoppingTimesSavi2x2 <- function(
   nPlan <- NULL
   worstCaseIndex <- NULL
   if (!is.null(power)) {
-    quantiles <- apply(stoppingTimes, 1, stats::quantile, probs = power,
-      names = FALSE, type = 1
+    quantiles <- apply(
+      stoppingTimes,
+      1,
+      stats::quantile,
+      probs = power,
+      names = FALSE,
+      type = 1
     )
     worstCaseIndex <- which.max(quantiles)
     nPlan <- ceiling(quantiles[worstCaseIndex])
@@ -1510,15 +1548,22 @@ sampleStoppingTimesSavi2x2 <- function(
 
   if (!is.null(nPlan) && !is.finite(nPlan)) {
     fractionNeverCrossed <- mean(!is.finite(stoppingTimes[worstCaseIndex, ]))
-    warning(sprintf(paste(
-      "the %g quantile of the stopping time is Inf: %.1f%% of the paths at",
-      "thetaA = %.3f never cross 1/alpha at nMax = %g, try increasing nMax",
-      "or propDiffMin"
-    ), power, 100 * fractionNeverCrossed, thetaATrue[worstCaseIndex], nMax))
+    warning(sprintf(
+      paste(
+        "the %g quantile of the stopping time is Inf: %.1f%% of the paths at",
+        "thetaA = %.3f never cross 1/alpha at nMax = %g, try increasing nMax",
+        "or propDiffMin"
+      ),
+      power,
+      100 * fractionNeverCrossed,
+      thetaATrue[worstCaseIndex],
+      nMax
+    ))
   }
 
   list(
-    "thetaA" = thetaATrue, "thetaB" = thetaBTrue,
+    "thetaA" = thetaATrue,
+    "thetaB" = thetaBTrue,
     "stoppingTimes" = stoppingTimes,
     "breakVector" = breakVector,
     "eValuesStopped" = eValuesStopped,
