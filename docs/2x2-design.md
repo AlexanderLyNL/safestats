@@ -136,9 +136,11 @@ of `log(1 / alpha)`.
 FNCH has odds `exp(logOdds)` on A; the null is hypergeometric.
 `logLikelihoodFNCH` returns per-block conditional log densities.
 Grow uses the fixed signed `logOddsMin`, or for `twoSided` averages
-cumulative likelihoods at both signs of its magnitude. eGauss mixes cumulative likelihoods under Normal(0,1), normalized on
-2000 equally spaced log-odds values in `[-20,20]`; later factors use the
-grid posterior including block 1. For both eTypes `savi2x2TestStatLogOdds`
+cumulative likelihoods at both signs of its magnitude.
+`logEValueVec2x2LogOddsEGauss` returns the plain eGauss process: cumulative
+likelihoods mixed under Normal(0,1), normalized on 2000 equally spaced
+log-odds values in `[-20,20]`; later factors use the grid posterior
+including block 1. For both eTypes `savi2x2TestStatLogOdds`
 **replaces** block 1 of the cumulative process by `savi2x2TestStatUmp` at
 the design's `alternative`, exactly as on propDiff.
 
