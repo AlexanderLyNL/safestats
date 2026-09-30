@@ -1009,11 +1009,10 @@ computeConfidenceSequence2x2LogOdds <- function(
 
 # Helpers: propDiff ----
 
-# propDiff = thetaA - thetaB
+# propDiff = thetaA - thetaB always
 
-# Predictable plug-in for the numerator of the eBeta test, for block i given
-# the counts of blocks 1 to i - 1 only: the independent Beta posterior means
-# of thetaA and thetaB.
+# Learn the thetaA and thetaB with two independent Beta
+# TODO: is there a betaA1 * na term? check with Peter
 predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
   nBlocks <- length(ya)
   betaA1 <- betaParameter[["betaA1"]]
