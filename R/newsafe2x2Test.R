@@ -933,55 +933,6 @@ solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff, tol = 1e-12) 
   )[["root"]]
 }
 
-# Worst-case baseline of the propDiff grow test, without the block-1 UMP
-# factor: the thetaA at which the e-process grows slowest on the curve
-# thetaA = thetaB + propDiff (plus curve) or thetaA = thetaB - propDiff
-# (minus curve).
-#
-# The expected log e-increment per block is the KL divergence of the truth
-# from its pooled projection onto thetaA = thetaB, written in thetaA:
-#   R(theta) = na KL(theta || theta0) + nb KL(theta - d || theta0),
-#   theta0   = (na theta + nb (theta - d)) / (na + nb),
-# and the worst case is its minimiser, the root of
-#   na logit(theta) + nb logit(theta - d) = (na + nb) logit(theta0).
-# For na = nb the root is the midpoint (1 + d) / 2 of (d, 1) exactly. The
-# minus curve is the plus curve with successes and failures complemented,
-# so its worst case is 1 - thetaA* with thetaB* = thetaA* + d.
-#
-# Returns a data frame with one row per curve: curve, thetaA, thetaB.
-# "greater" gives the plus curve, "less" the minus curve, "twoSided" both.
-solveWorstCaseTheta <- function(propDiff, na, nb,
-                                alternative = c("twoSided", "greater", "less")) {
-  alternative <- match.arg(alternative)
-  stopifnot(length(propDiff) == 1, propDiff > 0, propDiff < 1, na >= 1, nb >= 1)
-  d <- propDiff
-
-  # Plus curve, thetaA = thetaB + d with thetaA in (d, 1): exact midpoint
-  # when balanced, else the stationarity root.
-  if (na == nb) {
-    thetaAPlus <- (1 + d) / 2
-  } else {
-    stationarity <- function(theta) {
-      theta0 <- (na * theta + nb * (theta - d)) / (na + nb)
-      na * stats::qlogis(theta) + nb * stats::qlogis(theta - d) -
-        (na + nb) * stats::qlogis(theta0)
-    }
-    # logit is infinite at the edges, so search just inside them.
-    thetaAPlus <- stats::uniroot(stationarity, c(d + 1e-9, 1 - 1e-9),
-                                 tol = 1e-10)[["root"]]
-  }
-
-  plus <- data.frame(curve = "plus", thetaA = thetaAPlus, thetaB = thetaAPlus - d)
-  minus <- data.frame(curve = "minus", thetaA = 1 - thetaAPlus, thetaB = 1 - thetaAPlus + d)
-
-  switch(alternative,
-         greater = plus,
-         less = minus,
-         twoSided = rbind(plus, minus)
-  )
-}
-
-
 # Helpers: logOdds ----
 
 # logOdds is always log(oddsA / oddsB) = logit(thetaA) - logit(thetaB)
