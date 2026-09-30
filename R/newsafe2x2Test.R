@@ -897,8 +897,15 @@ computeConfidenceSequence2x2PropDiff <- function(
 #'   when that edge is still inside, and the whole `domain` with a warning
 #'   when the set is empty.
 #' @noRd
-computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
-                                                alpha, domain = c(-40, 40)) {
+computeConfidenceInterval2x2LogOdds <- function(
+  ya,
+  yb,
+  na,
+  nb,
+  logPTotal,
+  alpha,
+  domain = c(-40, 40)
+) {
   # product of the conditional e-variable against H0: logOdds = delta
   # f: find zero points against 1 / alpha
   # f is convex in logOdds
@@ -912,18 +919,26 @@ computeConfidenceInterval2x2LogOdds <- function(ya, yb, na, nb, logPTotal,
 
   # min > 1 / alpha, no confidence interval found
   if (fLogOdds(minimiser) >= 0) {
-    warning("No confidence interval is found!")
+    warning(
+      "No confidence interval is found on (",
+      round(lowerBound, 4),
+      ",",
+      round(lowerBound, 4),
+      ")"
+    )
     return(c("lowerBound" = domain[1], "upperBound" = domain[2]))
   }
 
   # Still inside at the search edge: the bound is the domain edge.
   lowerBound <- if (fLogOdds(domain[1]) < 0) {
-    domain[1]
+    warning("Cannot find lowerBound for logOdds, return NA")
+    NA_real_
   } else {
     stats::uniroot(fLogOdds, lower = domain[1], upper = minimiser)[["root"]]
   }
   upperBound <- if (fLogOdds(domain[2]) < 0) {
-    domain[2]
+    warning("Cannot find upperBound for logOdds, return NA")
+    NA_real_
   } else {
     stats::uniroot(fLogOdds, lower = minimiser, upper = domain[2])[["root"]]
   }
