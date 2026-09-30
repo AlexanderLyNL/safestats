@@ -26,7 +26,7 @@ describes the alternative's direction, not a composite null.
 |---|---|---|---|---|---|
 | `propDiff` | `eBeta` | `twoSided` | None | Yes, defects R1/R4 | No |
 | `propDiff` | `grow` | `twoSided`, `greater`, `less` | signed `propDiffMin`, `0 < |propDiffMin| < 1` | No | Yes |
-| `logOdds` | `eGauss` | `twoSided` | None | Yes, defect R3 | No |
+| `logOdds` | `eGauss` | `twoSided`, `greater`, `less` | None | Yes, defect R3 | No |
 | `logOdds` | `grow` | `twoSided`, `greater`, `less` | signed finite `logOddsMin != 0` | No | No |
 
 **Sign rule for grow.** The minimal effect is a signed value on the
@@ -55,9 +55,12 @@ checks that `na`, `nb` are equal-length finite positive integers, `alpha`
 and `power` lie in `(0, 1)`, `nBlocksPlan` is a positive integer
 matching any size vectors, and `nTheta`, `nSim`, `nBoot`, `nMax` are
 positive integers with `nMax` at least `nBlocksPlan`; `betaParameter` is deferred and `runningIntersection` is not
-checked. A one-sided alternative supplied to eBeta/eGauss is supposed to
-warn and be ignored; eBeta currently retains its effect on the first
-factor ([R8](2x2-review.md#r8)).
+checked. A one-sided alternative supplied to eBeta is supposed to warn and
+be ignored; eBeta currently retains its effect on the first factor
+([R8](2x2-review.md#r8)). eGauss accepts every alternative (below).
+`gaussParameter` is `list(mean, sd)` with finite `mean` inside the grid
+`(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`, and
+the design stores the list it uses.
 
 ## Inputs and result objects
 
@@ -67,7 +70,7 @@ size, or one per block, which fixes `nBlocksPlan` at their length (a
 supplied `nBlocksPlan` must match; lists are rejected). It also takes
 optional `propDiffMin` or `logOddsMin` (never both), `alpha = .05`,
 `power = NULL`, `nBlocksPlan = NULL`, `h0 = 0`, `alternative`, `eType`,
-`betaParameter = NULL`, and `runningIntersection = NULL`.
+`betaParameter = NULL`, `gaussParameter = NULL`, and `runningIntersection = NULL`.
 Simulation settings are `nTheta = 8`, `nSim = 1000`, `nBoot = nSim`,
 `nMax = 10000`, `seed = NULL`, `wantSamplePaths = FALSE`, `pb = TRUE`.
 
@@ -78,6 +81,8 @@ The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
 - `esMin`, named by the supplied effect; no `effectMeasure` field.
 - `betaParameter = list(betaA1, betaA2, betaB1, betaB2)`: positive success
   and failure shapes, exactly these names; constructor defaults `.18` each.
+- `gaussParameter = list(mean, sd)`: the eGauss Normal prior on `logOdds`,
+  exactly these names; `NULL` stores `list(mean = 0, sd = 1)`.
 - `parameter`: named prior summary for printing. Constructor defaults
   `runningIntersection = FALSE`, `relevanceTest = FALSE`; `NULL` arguments
   preserve these defaults. `nMax` is a simulation cap, not a design field.
@@ -144,9 +149,11 @@ FNCH has odds `exp(logOdds)` on A; the null is hypergeometric.
 of `alternative`, or for `twoSided` averages the cumulative e-processes at
 both signs.
 `logEValueVec2x2LogOddsEGauss` returns the plain eGauss process: cumulative
-likelihoods mixed under Normal(0,1), normalized on 2000 equally spaced
-log-odds values in `[-20,20]`; later factors use the grid posterior
-including block 1. For both eTypes `savi2x2TestStat`
+likelihoods mixed under the design's `gaussParameter` prior Normal(mean, sd),
+restricted to the side of `alternative` (`greater`: log-odds above 0, `less`:
+below 0, `twoSided`: both) and normalized on 2000 equally spaced log-odds
+values in `[-20,20]`; later factors use the grid posterior including
+block 1. For both eTypes `savi2x2TestStat`
 **replaces** block 1 of the cumulative process by `savi2x2TestStatUmp` at
 the design's `alternative`, exactly as on propDiff.
 
@@ -184,7 +191,8 @@ Running intersection is optional; an empty row stays empty thereafter.
   premise fails, and a grid can miss an entire accepted set
   ([R4](2x2-review.md#r4)).
 - **LogOdds:** `computeConfidenceInterval2x2LogOdds(..., logPTotal, alpha,
-  domain = c(-40,40))` inverts the test's own numerator minus candidate
+  domain = c(-40,40))` inverts the test's own numerator, the eGauss process
+  at the design's `gaussParameter` and `alternative`, minus candidate
   conditional log likelihood. It uses `optimize` and `uniroot`, reports
   domain edges when accepted, and warns/returns the domain when empty.
   `computeConfidenceSequence2x2LogOdds` repeats this on prefixes,

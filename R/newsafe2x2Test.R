@@ -49,9 +49,9 @@ savi2x2TestStatUmp <- function(
 #'   holds): the alternative is restricted to the signed minimal effect,
 #'   positive with `"greater"`, negative with `"less"`. `"twoSided"` averages
 #'   the cumulative e-values at both signs of its magnitude.
-#' - `"eGauss"` (logOdds): the conditional FNCH likelihood mixed under a
-#'   N(0, 1) prior on a logOdds grid, against the hypergeometric null.
-#'   `"twoSided"` only.
+#' - `"eGauss"` (logOdds): the conditional FNCH likelihood mixed under the
+#'   design's `gaussParameter` Normal prior on a logOdds grid, restricted to
+#'   the side of a one-sided `alternative`, against the hypergeometric null.
 #'
 #' In every case the first table's e-value is replaced by the UMP
 #' conditional e-value. Only `"eBeta"` and `"eGauss"` give a confidence
@@ -109,6 +109,7 @@ savi2x2TestStat <- function(
   esMin <- unname(designObj[["esMin"]])
   alternative <- designObj[["alternative"]]
   betaParameter <- designObj[["betaParameter"]]
+  gaussParameter <- designObj[["gaussParameter"]]
   runningIntersection <- designObj[["runningIntersection"]]
   alpha <- designObj[["alpha"]]
   eType <- designObj[["eType"]]
@@ -192,7 +193,14 @@ savi2x2TestStat <- function(
       esMin,
       alternative
     ),
-    "eGauss logOdds" = logEValueVec2x2LogOddsEGauss(ya, yb, na, nb)
+    "eGauss logOdds" = logEValueVec2x2LogOddsEGauss(
+      ya,
+      yb,
+      na,
+      nb,
+      gaussParameter,
+      alternative
+    )
   )
   # Replace block 1 by the UMP e-value
   # logEValueVec[1] should be log(1) = 0 but write it out for clarity
@@ -226,7 +234,9 @@ savi2x2TestStat <- function(
         na,
         nb,
         1 - ciValue,
-        runningIntersection
+        runningIntersection,
+        gaussParameter,
+        alternative
       )
     }
     result[["confSeqMatrix"]] <- confSeqMatrix
@@ -244,7 +254,14 @@ savi2x2TestStat <- function(
       )
     } else {
       # The eGauss numerator on all blocks, without the UMP replacement
-      logNumerator <- logEValueVec2x2LogOddsEGauss(ya, yb, na, nb) +
+      logNumerator <- logEValueVec2x2LogOddsEGauss(
+        ya,
+        yb,
+        na,
+        nb,
+        gaussParameter,
+        alternative
+      ) +
         cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
       computeConfidenceInterval2x2LogOdds(
         ya,
@@ -302,9 +319,11 @@ savi2x2TestStat <- function(
 #' `"greater"` means group A has the larger proportion, as `x - y > 0`
 #' does in [stats::t.test()].
 #'
-#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted and
-#'   twoSided only; they take no `propDiffMin` or `logOddsMin` and no
-#'   planning, and a one-sided `alternative` is ignored with a warning.
+#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted; they take
+#'   no `propDiffMin` or `logOddsMin` and no planning. `"eBeta"` is twoSided
+#'   only and a one-sided `alternative` is ignored with a warning; `"eGauss"`
+#'   restricts its `gaussParameter` prior to the side of a one-sided
+#'   `alternative`.
 #' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
 #'   fixed alternative.
 #'   `"greater"` needs a positive value, `"less"` a negative one, or the
@@ -333,6 +352,9 @@ savi2x2TestStat <- function(
 #' @param betaParameter `list(betaA1, betaA2, betaB1, betaB2)`, the Beta
 #'   prior shapes on `thetaA` and `thetaB`; `NULL` keeps the constructor's
 #'   default of `0.18` each.
+#' @param gaussParameter `list(mean, sd)`, the Normal prior on `logOdds` for
+#'   `"eGauss"`, restricted to the grid `(-20, 20)` and to the side of a
+#'   one-sided `alternative`; `NULL` means `list(mean = 0, sd = 1)`.
 #' @param runningIntersection `TRUE` to intersect each row of the blockwise
 #'   confidence sequence with the previous one; `NULL` keeps the
 #'   constructor's `FALSE`.
@@ -344,7 +366,7 @@ savi2x2TestStat <- function(
 #'
 #' @return A `saviDesign` with `testName = "Two Proportions"`, `testType =
 #'   "2x2"`, `h0 = c(propDiff = h0)`, `esMin`, `eType`, `alpha`,
-#'   `alternative`, `betaParameter`, `parameter` (the prior summarised for
+#'   `alternative`, `betaParameter`, `gaussParameter`, `parameter` (the prior summarised for
 #'   printing), `runningIntersection` and `nPlan = list(na, nb)`, with a
 #'   third element `nBlocksPlan` when planned or given. With `power`:
 #'   `designScenario = "1a"`, `power` as the target, `nPlanTwoSe = c(NA,
@@ -368,6 +390,7 @@ designSavi2x2 <- function(
   alternative = c("twoSided", "greater", "less"),
   eType = c("eBeta", "grow", "eGauss"),
   betaParameter = NULL,
+  gaussParameter = NULL,
   runningIntersection = NULL,
   nTheta = 8L,
   nSim = 1e3L,
@@ -455,6 +478,27 @@ designSavi2x2 <- function(
   } else {
     stop("na nb are vectors")
   }
+  # Gaussian prior on logOdds for eGauss: N(mean, sd), restricted to the
+  # helper's grid (-20, 20) and to the side of a one-sided alternative.
+  if (is.null(gaussParameter)) {
+    gaussParameter <- list("mean" = 0, "sd" = 1)
+  }
+  if (
+    !is.list(gaussParameter) ||
+      !all(c("mean", "sd") %in% names(gaussParameter)) ||
+      length(gaussParameter[["mean"]]) != 1L ||
+      length(gaussParameter[["sd"]]) != 1L ||
+      !is.finite(gaussParameter[["mean"]]) ||
+      !is.finite(gaussParameter[["sd"]]) ||
+      abs(gaussParameter[["mean"]]) >= 20 ||
+      gaussParameter[["sd"]] <= 0
+  ) {
+    stop(
+      "gaussParameter must be list(mean, sd) with a finite mean in (-20, 20) ",
+      "and a finite sd > 0"
+    )
+  }
+  result[["gaussParameter"]] <- gaussParameter
   # Simulation settings: positive integers, and the cap nMax at least the
   # planned block count. Checked here so a bad value fails before sampling.
   for (setting in c("nTheta", "nSim", "nBoot", "nMax")) {
@@ -658,12 +702,16 @@ designSavi2x2 <- function(
     result[["samplePaths"]] <- planning[["samplePaths"]]
   }
 
-  result[["parameter"]] <- c(
-    "Beta hyperparameters" = paste(
-      unlist(result[["betaParameter"]]),
-      collapse = " "
+  result[["parameter"]] <- if (eType == "eGauss") {
+    c("Gaussian prior (mean, sd)" = paste(unlist(gaussParameter), collapse = " "))
+  } else {
+    c(
+      "Beta hyperparameters" = paste(
+        unlist(result[["betaParameter"]]),
+        collapse = " "
+      )
     )
-  )
+  }
 
   result[["nPlan"]] <- list("na" = na, "nb" = nb)
   if (!is.null(nBlocksPlan)) {
@@ -723,7 +771,7 @@ computeConfidenceInterval2x2PropDiff <- function(
 
   # min > 1 / alpha, no confidence interval found
   if (fPropDiff(minimiser) >= 0) {
-    warning("No confidence interval is found!")
+    warning("No confidence interval is found! return a non-informative CI: (-1,1)")
     return(c("lowerBound" = -1, "upperBound" = 1))
   }
 
@@ -944,6 +992,8 @@ computeConfidenceInterval2x2LogOdds <- function(
 #'
 #' @param runningIntersection `TRUE` searches each row inside the previous
 #'   one; an empty row stays empty thereafter.
+#' @param gaussParameter,alternative The design's eGauss prior and side, passed
+#'   to [logEValueVec2x2LogOddsEGauss()].
 #' @return An `nBlocks x 2` matrix of `lowerBound` and `upperBound`; an
 #'   empty set is an `NA` row.
 #' @noRd
@@ -953,11 +1003,21 @@ computeConfidenceSequence2x2LogOdds <- function(
   na,
   nb,
   alpha,
-  runningIntersection
+  runningIntersection,
+  gaussParameter = NULL,
+  alternative = c("twoSided", "greater", "less")
 ) {
+  alternative <- match.arg(alternative)
   nBlocks <- length(ya)
   # The eGauss numerator on blocks 1..i, without the UMP replacement
-  logNumerator <- logEValueVec2x2LogOddsEGauss(ya, yb, na, nb) +
+  logNumerator <- logEValueVec2x2LogOddsEGauss(
+    ya,
+    yb,
+    na,
+    nb,
+    gaussParameter,
+    alternative
+  ) +
     cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
 
   confSeqMatrix <- matrix(
@@ -1254,16 +1314,38 @@ logEValueVec2x2LogOddsEGauss <- function(
   yb,
   na,
   nb,
+  gaussParameter = NULL,
+  alternative = c("twoSided", "greater", "less"),
   logOddsGrid = seq(-20, 20, length.out = 2000)
 ) {
+  alternative <- match.arg(alternative)
+  if (is.null(gaussParameter)) {
+    gaussParameter <- list("mean" = 0, "sd" = 1)
+  }
   nBlocks <- length(ya)
+  nGrid <- length(logOddsGrid)
 
-  # Discrete prior on the grid, normalised on the log scale
-  logPrior <- stats::dnorm(logOddsGrid, log = TRUE)
+  # logPrior: length nGrid. N(mean, sd) on the grid, restricted to the side of
+  # the alternative (greater: logOdds > 0, less: logOdds < 0, twoSided: all),
+  # normalised on the log scale; an excluded point has weight exp(-Inf) = 0.
+  logPrior <- stats::dnorm(
+    logOddsGrid,
+    gaussParameter[["mean"]],
+    gaussParameter[["sd"]],
+    log = TRUE
+  )
+  onSide <- switch(alternative,
+    "twoSided" = rep(TRUE, nGrid),
+    "greater" = logOddsGrid > 0,
+    "less" = logOddsGrid < 0
+  )
+  logPrior[!onSide] <- -Inf
   logPrior <- logPrior - max(logPrior) - log(sum(exp(logPrior - max(logPrior))))
 
   # nBlocks x grid: FNCH log density of ya at every grid logOdds, the
   # odds exp(logOdds) on group A; k runs over the feasible ya.
+  # compute all the likelihood for all nBlocks and all
+  # logPGrid: nBlocks x nGrid, block i's conditional log likelihood at grid point k
   logPGrid <- t(mapply(
     function(ya, yb, na, nb) {
       k <- max(0, ya + yb - nb):min(na, ya + yb)
@@ -1286,16 +1368,18 @@ logEValueVec2x2LogOddsEGauss <- function(
   # every row of its column: sweep(x, 2, v, "+") adds v[j] to column j.
   # Row i then holds log(prior * likelihood of blocks 1..i) on the grid,
   # mixed over the grid by the log-sum-exp below.
+  # logMix: nBlocks x nGrid, log(prior_k * likelihood of blocks 1..i at k)
   logMix <- sweep(
     matrix(apply(logPGrid, 2, cumsum), nrow = nBlocks),
     2,
     logPrior,
     "+"
   )
+  # shift: length nBlocks, the row maxima; logNumerator: length nBlocks, the
+  # log of each row's sum over the grid
   shift <- apply(logMix, 1, max)
   logNumerator <- shift + log(rowSums(exp(logMix - shift)))
 
-  # Null: cumulative hypergeometric log likelihood
   logLikelihoodNull <- cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
 
   logNumerator - logLikelihoodNull
