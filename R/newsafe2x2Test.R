@@ -1674,27 +1674,51 @@ computePowerSavi2x2 <- function(
 #'   `n1Vector`.
 #' @noRd
 computeNPlanSavi2x2 <- function(
-  propDiffMin, na, nb, power = 0.8, alpha = 0.05,
+  propDiffMin,
+  na,
+  nb,
+  power = 0.8,
+  alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
-  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nBoot = nSim,
-  nMax = 1e4L, seed = NULL, wantSamplePaths = FALSE, pb = TRUE
+  betaParameter = NULL,
+  nTheta = 8L,
+  nSim = 1e3L,
+  nBoot = nSim,
+  nMax = 1e4L,
+  seed = NULL,
+  wantSamplePaths = FALSE,
+  pb = TRUE
 ) {
   alternative <- match.arg(alternative)
   stopifnot(!is.null(power), power > 0, power < 1)
 
   samplingResult <- sampleStoppingTimesSavi2x2(
-    propDiffMin = propDiffMin, na = na, nb = nb,
-    power = power, alpha = alpha, alternative = alternative,
-    betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
-    nMax = nMax, seed = seed, wantSamplePaths = wantSamplePaths, pb = pb
+    propDiffMin = propDiffMin,
+    na = na,
+    nb = nb,
+    power = power,
+    alpha = alpha,
+    alternative = alternative,
+    betaParameter = betaParameter,
+    nTheta = nTheta,
+    nSim = nSim,
+    nMax = nMax,
+    seed = seed,
+    wantSamplePaths = wantSamplePaths,
+    pb = pb
   )
 
   stoppingTimes <- samplingResult[["stoppingTimes"]]
   nPlan <- samplingResult[["nPlan"]]
   worstCaseIndex <- samplingResult[["worstCaseIndex"]]
   # The same order-statistic quantile per baseline as the sampler's nPlan.
-  nPlanVec <- apply(stoppingTimes, 1, stats::quantile, probs = power,
-    names = FALSE, type = 1
+  nPlanVec <- apply(
+    stoppingTimes,
+    1,
+    stats::quantile,
+    probs = power,
+    names = FALSE,
+    type = 1
   )
 
   # Simulation uncertainty at the worst baseline only: the bootstrap
@@ -1705,12 +1729,16 @@ computeNPlanSavi2x2 <- function(
   nMean <- NA_real_
   if (is.finite(nPlan)) {
     bootObjNPlan <- computeBootObj(
-      values = stoppingTimes[worstCaseIndex, ], objType = "nPlan",
-      power = power, nBoot = nBoot
+      values = stoppingTimes[worstCaseIndex, ],
+      objType = "nPlan",
+      power = power,
+      nBoot = nBoot
     )
     bootObjNMean <- computeBootObj(
-      values = stoppingTimes[worstCaseIndex, ], objType = "nMean",
-      nPlan = nPlan, nBoot = nBoot
+      values = stoppingTimes[worstCaseIndex, ],
+      objType = "nMean",
+      nPlan = nPlan,
+      nBoot = nBoot
     )
     nMean <- ceiling(bootObjNMean[["t0"]])
   }
