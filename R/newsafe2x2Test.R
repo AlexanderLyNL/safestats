@@ -959,14 +959,23 @@ computeConfidenceInterval2x2LogOdds <- function(
 #' @return An `nBlocks x 2` matrix of `lowerBound` and `upperBound`; an
 #'   empty set is an `NA` row.
 #' @noRd
-computeConfidenceSequence2x2LogOdds <- function(ya, yb, na, nb, alpha,
-                                                runningIntersection) {
+computeConfidenceSequence2x2LogOdds <- function(
+  ya,
+  yb,
+  na,
+  nb,
+  alpha,
+  runningIntersection
+) {
   nBlocks <- length(ya)
   # The eGauss numerator on blocks 1..i, without the UMP replacement
   logNumerator <- logEValueVec2x2LogOddsEGauss(ya, yb, na, nb) +
     cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
 
-  confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
+  confSeqMatrix <- matrix(
+    NA_real_,
+    nBlocks,
+    2,
     dimnames = list(NULL, c("lowerBound", "upperBound"))
   )
   domain <- c(-40, 40) # TODO: maybe add bounds print or else
@@ -974,14 +983,21 @@ computeConfidenceSequence2x2LogOdds <- function(ya, yb, na, nb, alpha,
     # The empty set is reported with a warning; here it is an NA row.
     row <- tryCatch(
       computeConfidenceInterval2x2LogOdds(
-        ya[1:i], yb[1:i], na[1:i], nb[1:i], logNumerator[i], alpha,
+        ya[1:i],
+        yb[1:i],
+        na[1:i],
+        nb[1:i],
+        logNumerator[i],
+        alpha,
         domain = domain
       ),
       warning = function(w) c("lowerBound" = NA_real_, "upperBound" = NA_real_)
     )
     if (runningIntersection) {
       # if NA is found in previous confSeq, break
-      if (anyNA(row)) break
+      if (anyNA(row)) {
+        break
+      }
       # update the domain for logOdds for next table
       domain <- row
     }
