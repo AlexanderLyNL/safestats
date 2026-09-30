@@ -4,7 +4,7 @@
 savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
                                alternative = c("twoSided", "greater", "less")) {
   alternative <- match.arg(alternative)
-  logLikelihoodNull <- stats::dhyper(yb, nb, na, ya + yb, log = TRUE)
+  logLikelihoodNull <- stats::dhyper(ya, na, nb, ya + yb, log = TRUE)
 
   # solve logOdds on each side with oneSided test
   sides <- switch(alternative,
@@ -255,7 +255,7 @@ savi2x2TestStatLogOdds <- function(ya, yb,
   # Cumulative log likelihood of blocks 1..i under the null (denominator,
   # hypergeometric given each block's total) and under the alternative
   # (numerator).
-  logLikelihoodNull <- cumsum(stats::dhyper(yb, nb, na, ya + yb, log = TRUE))
+  logLikelihoodNull <- cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
   logLikelihoodAlternative <- switch(eType,
     # grow: the fixed alternative logOddsMin (Decision 15); twoSided is
     # the log of the plain average of the cumulative likelihoods at
@@ -1006,13 +1006,13 @@ solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff) {
 
 # Helpers: logOdds ----
 
-# Per-block conditional log likelihood at one logOdds (B minus A): given the
-# block's total ya + yb, yb is Fisher's noncentral hypergeometric with odds
-# exp(logOdds) on group B. A vector of length nBlocks; dFNCHypergeo() takes
-# scalar sizes, hence the loop over blocks.
+# Per-block conditional log likelihood of ya at one logOdds (A minus B):
+# given the block's total ya + yb, ya is Fisher's noncentral hypergeometric
+# with odds exp(logOdds) on group A. A vector of length nBlocks;
+# dFNCHypergeo() takes scalar sizes, hence the loop over blocks.
 logLikelihoodFNCH <- function(ya, yb, na, nb, logOdds) {
   mapply(function(ya, yb, na, nb) {
-    log(BiasedUrn::dFNCHypergeo(yb, nb, na, ya + yb, exp(logOdds)))
+    log(BiasedUrn::dFNCHypergeo(ya, na, nb, ya + yb, exp(logOdds)))
   }, ya = ya, yb = yb, na = na, nb = nb)
 }
 
