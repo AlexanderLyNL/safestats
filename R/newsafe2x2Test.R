@@ -278,14 +278,15 @@ savi2x2TestStatLogOdds <- function(ya, yb,
       logPrior <- stats::dnorm(logOddsGrid, log = TRUE)
       logPrior <- logPrior - max(logPrior) -
         log(sum(exp(logPrior - max(logPrior))))
-      # nBlocks x grid: FNCH log density of yb at every grid logOdds.
+      # nBlocks x grid: FNCH log density of ya at every grid logOdds, the
+      # odds exp(logOdds) on group A; k runs over the feasible ya.
       logPGrid <- t(mapply(function(ya, yb, na, nb) {
-        k <- max(0, ya + yb - na):min(nb, ya + yb)
+        k <- max(0, ya + yb - nb):min(na, ya + yb)
         logTerms <- outer(logOddsGrid, k) +
-          rep(lchoose(nb, k) + lchoose(na, ya + yb - k),
+          rep(lchoose(na, k) + lchoose(nb, ya + yb - k),
               each = length(logOddsGrid))
         shift <- apply(logTerms, 1, max)
-        logTerms[, yb - k[1] + 1] - shift - log(rowSums(exp(logTerms - shift)))
+        logTerms[, ya - k[1] + 1] - shift - log(rowSums(exp(logTerms - shift)))
       }, ya = ya, yb = yb, na = na, nb = nb))
       # Cumulate over blocks (cumsum down each grid column; matrix() keeps
       # a single block as a 1-row matrix), then add the log prior weight to
