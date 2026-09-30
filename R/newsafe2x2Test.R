@@ -1213,13 +1213,15 @@ logLikelihoodFNCH <- function(ya, yb, na, nb, logOdds) {
   )
 }
 
-# Compute the plain log e-process of the grow logOdds test: cumulative
-# conditional FNCH log likelihood at the signed logOddsMin against the
-# hypergeometric null. twoSided averages the cumulative e-processes at both
-# signs of its magnitude. Element i is the cumulative log e-value of
-# blocks 1..i.
-logEValueVec2x2LogOddsGrow <- function(ya, yb, na, nb, logOddsMin,
-                                       alternative = c("twoSided", "greater", "less")) {
+# a vector of logEValue that is the cumsum of likelihood ratio process
+logEValueVec2x2LogOddsGrow <- function(
+  ya,
+  yb,
+  na,
+  nb,
+  logOddsMin,
+  alternative = c("twoSided", "greater", "less")
+) {
   alternative <- match.arg(alternative)
   logLikelihoodNull <- cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
 
