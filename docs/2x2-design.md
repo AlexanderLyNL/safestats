@@ -82,10 +82,13 @@ The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
   `runningIntersection = FALSE`, `relevanceTest = FALSE`; `NULL` arguments
   preserve these defaults. `nMax` is a simulation cap, not a design field.
 
-The two effect-specific entry points are `savi2x2TestStatPropDiff` and
-`savi2x2TestStatLogOdds`, currently both taking
-`(ya, yb, designObj = NULL, wantCi = TRUE,
-wantConfidenceSequence = FALSE, ciValue = NULL)`.
+The single entry point is `savi2x2TestStat(ya, yb, designObj = NULL,
+wantCi = TRUE, wantConfidenceSequence = FALSE, ciValue = NULL)`. It reads
+the effect from the design: `propDiff` for eBeta, `logOdds` for eGauss, and
+for grow the name of `esMin`. The shared checks, the UMP replacement of
+block 1, and the result fill are written once; each of the four e-processes
+is a helper returning the plain cumulative log e-process, and the
+confidence code dispatches on the effect.
 Counts are finite nonnegative integers, one per block in observation order,
 and no larger than that block's positive integer group size.
 
@@ -110,7 +113,8 @@ All prediction for block `i` uses blocks `1..i-1` only. Shared names are
 `logLikelihoodAlternative`, `logLikelihoodNull`, and `logEValueVec`;
 the last is the difference of cumulative log likelihoods.
 
-**PropDiff eBeta.** `predictiveThetas2x2` computes independent Beta posterior
+**PropDiff eBeta.** `logEValueVec2x2PropDiffEBeta` returns the plain
+process. `predictiveThetas2x2` computes independent Beta posterior
 means using prior shapes, previous successes, and previous cumulative sizes.
 The denominator uses pooled probability
 `(na * thetaA + nb * thetaB) / (na + nb)`; sum the two binomial log-density
@@ -125,7 +129,7 @@ Only A's prior shapes are used. Each block uses the grid posterior mean,
 the pooled denominator, then updates weights on the log scale.
 Two-sided grow runs separate positive/negative curves and averages their
 **cumulative processes**, not their blockwise factors. The helper returns
-the plain plug-in process; `savi2x2TestStatPropDiff` then **replaces**
+the plain plug-in process; `savi2x2TestStat` then **replaces**
 block 1 of that (averaged) process by `savi2x2TestStatUmp` at the test's
 `alternative`, as for eBeta; the posterior still absorbs block 1.
 Multiplying the two factors was invalid. `earlyStopping = TRUE` cuts the
@@ -135,12 +139,12 @@ of `log(1 / alpha)`.
 **Conditional logOdds.** Given `ya + yb`, the weighted count is `ya`:
 FNCH has odds `exp(logOdds)` on A; the null is hypergeometric.
 `logLikelihoodFNCH` returns per-block conditional log densities.
-Grow uses the fixed signed `logOddsMin`, or for `twoSided` averages
-cumulative likelihoods at both signs of its magnitude.
+`logEValueVec2x2LogOddsGrow` uses the fixed signed `logOddsMin`, or for
+`twoSided` averages cumulative likelihoods at both signs of its magnitude.
 `logEValueVec2x2LogOddsEGauss` returns the plain eGauss process: cumulative
 likelihoods mixed under Normal(0,1), normalized on 2000 equally spaced
 log-odds values in `[-20,20]`; later factors use the grid posterior
-including block 1. For both eTypes `savi2x2TestStatLogOdds`
+including block 1. For both eTypes `savi2x2TestStat`
 **replaces** block 1 of the cumulative process by `savi2x2TestStatUmp` at
 the design's `alternative`, exactly as on propDiff.
 
@@ -181,8 +185,9 @@ Running intersection is optional; an empty row stays empty thereafter.
   domain = c(-40,40))` inverts the test's own numerator minus candidate
   conditional log likelihood. It uses `optimize` and `uniroot`, reports
   domain edges when accepted, and warns/returns the domain when empty.
-  The sequence repeats this on prefixes, optionally restricting the next
-  domain to the previous row; empty rows are `NA`. Runtime is quadratic.
+  `computeConfidenceSequence2x2LogOdds` repeats this on prefixes,
+  optionally restricting the next domain to the previous row; empty rows
+  are `NA`. Runtime is quadratic.
 
 Grow's interval construction is deferred; code nevertheless assigns its
 `ciValue` metadata, contrary to the earlier no-`ciValue` agreement.

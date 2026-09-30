@@ -76,9 +76,9 @@ the mathematical log density is finite. Two-sided averaging can then encounter
 
 ```r
 d <- designSavi2x2(300, 300, eType = "eGauss")
-savi2x2TestStatLogOdds(150, 150, designObj = d)$confSeq
+savi2x2TestStat(150, 150, designObj = d)$confSeq
 d <- designSavi2x2(1000, 1000, logOddsMin = 5, eType = "grow")
-savi2x2TestStatLogOdds(500, 500, designObj = d, wantCi = FALSE)$eValue
+savi2x2TestStat(500, 500, designObj = d, wantCi = FALSE)$eValue
 
 # Stable one-block reference, evaluated directly on the log scale.
 logP <- function(eta) {
@@ -96,7 +96,7 @@ c(uniroot(f, c(-40, 0))$root, uniroot(f, c(0, 40))$root)
 reference gives approximately `[-0.566224, 0.566224]`. The grow call gives
 `NaN`. The reference is diagnostic evidence, not an implemented replacement.
 **Location.** `R/newsafe2x2Test.R:965–968`, `logLikelihoodFNCH()`;
-`savi2x2TestStatLogOdds()` also needs explicit infinite-term handling.
+`savi2x2TestStat()` also needs explicit infinite-term handling.
 **Next design question.** Which stable log-density method and boundary
 conventions should the public calculation use?
 
@@ -112,9 +112,9 @@ the bounds as conservative.
 
 ```r
 d <- designSavi2x2(1e8, 1e8, eType = "eBeta")
-savi2x2TestStatPropDiff(0, 0, designObj = d,
+savi2x2TestStat(0, 0, designObj = d,
   wantConfidenceSequence = TRUE)$confSeq
-savi2x2TestStatPropDiff(0, 0, designObj = d)$confSeq
+savi2x2TestStat(0, 0, designObj = d)$confSeq
 ```
 
 **Observed.** The sequence gives `NA` bounds, while root finding gives
@@ -209,14 +209,14 @@ several? Reconcile planned block-count fields when agreeing plotting behavior.
 greater <- designSavi2x2(10, 10, eType = "eBeta", alternative = "greater")
 twoSided <- designSavi2x2(10, 10, eType = "eBeta")
 greater$alternative
-savi2x2TestStatPropDiff(c(1, 1), c(9, 9), greater, wantCi = FALSE)$eValue
-savi2x2TestStatPropDiff(c(1, 1), c(9, 9), twoSided, wantCi = FALSE)$eValue
+savi2x2TestStat(c(1, 1), c(9, 9), greater, wantCi = FALSE)$eValue
+savi2x2TestStat(c(1, 1), c(9, 9), twoSided, wantCi = FALSE)$eValue
 ```
 
 **Observed.** The warning says ignored, but stored alternative is `"greater"`;
 e-values are approximately `563324.7` and `281662.3`, respectively.
 **Location.** `R/newsafe2x2Test.R:460–461`, `designSavi2x2()`;
-`savi2x2TestStatPropDiff()` consumes the retained alternative.
+`savi2x2TestStat()` consumes the retained alternative.
 **Next design question.** Normalize the value or reject the unsupported input?
 
 </details>
