@@ -1294,14 +1294,25 @@ logEValueVec2x2LogOddsEGauss <- function(
   logNumerator - logLikelihoodNull
 }
 
-# Log partition function of Fisher's noncentral hypergeometric distribution
+#
+#
+#' Log partition function of Fisher's noncentral hypergeometric distribution
+#'
+#' @param na nonnegative integer, group size of A
+#' @param nb nonnegative integer, group size of B
+#' @param totalSuccesses nonnegative integer, the total successes ya + yb in the table, at most na + nb
+#'
+#' @return a numeric
+#' @noRd
 fnchLogPartition <- function(na, nb, totalSuccesses, logOdds) {
   if (logOdds == 0) {
     return(lchoose(na + nb, totalSuccesses))
   }
 
-  feasibleSuccesses <-
-    max(0, totalSuccesses - nb):min(na, totalSuccesses)
+  # k: number of success is group A
+  feasibleSuccesses <- max(0, totalSuccesses - nb):min(na, totalSuccesses)
+
+  # sum: choose(na, k) * choose(nb, totalSuccesses - k) * exp(logOdds * k)
   logTerms <- lchoose(na, feasibleSuccesses) +
     lchoose(nb, totalSuccesses - feasibleSuccesses) +
     logOdds * feasibleSuccesses
