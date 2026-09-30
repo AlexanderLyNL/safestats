@@ -1242,25 +1242,37 @@ logEValueVec2x2LogOddsGrow <- function(
 # N(0, 1) prior normalised on a fixed logOdds grid, so later factors use
 # the grid posterior including block 1. Element i mixes blocks 1..i.
 # TODO: add args for the bounds and the grid size
-logEValueVec2x2LogOddsEGauss <- function(ya, yb, na, nb,
-                                         logOddsGrid = seq(-20, 20, length.out = 2000)) {
+logEValueVec2x2LogOddsEGauss <- function(
+  ya,
+  yb,
+  na,
+  nb,
+  logOddsGrid = seq(-20, 20, length.out = 2000)
+) {
   nBlocks <- length(ya)
 
   # Discrete prior on the grid, normalised on the log scale
   logPrior <- stats::dnorm(logOddsGrid, log = TRUE)
-  logPrior <- logPrior - max(logPrior) -
-    log(sum(exp(logPrior - max(logPrior))))
+  logPrior <- logPrior - max(logPrior) - log(sum(exp(logPrior - max(logPrior))))
 
   # nBlocks x grid: FNCH log density of ya at every grid logOdds, the
   # odds exp(logOdds) on group A; k runs over the feasible ya.
-  logPGrid <- t(mapply(function(ya, yb, na, nb) {
-    k <- max(0, ya + yb - nb):min(na, ya + yb)
-    logTerms <- outer(logOddsGrid, k) +
-      rep(lchoose(na, k) + lchoose(nb, ya + yb - k),
-          each = length(logOddsGrid))
-    shift <- apply(logTerms, 1, max)
-    logTerms[, ya - k[1] + 1] - shift - log(rowSums(exp(logTerms - shift)))
-  }, ya = ya, yb = yb, na = na, nb = nb))
+  logPGrid <- t(mapply(
+    function(ya, yb, na, nb) {
+      k <- max(0, ya + yb - nb):min(na, ya + yb)
+      logTerms <- outer(logOddsGrid, k) +
+        rep(
+          lchoose(na, k) + lchoose(nb, ya + yb - k),
+          each = length(logOddsGrid)
+        )
+      shift <- apply(logTerms, 1, max)
+      logTerms[, ya - k[1] + 1] - shift - log(rowSums(exp(logTerms - shift)))
+    },
+    ya = ya,
+    yb = yb,
+    na = na,
+    nb = nb
+  ))
 
   # Cumulate over blocks (cumsum down each grid column; matrix() keeps
   # a single block as a 1-row matrix), then add the log prior weight to
@@ -1268,7 +1280,10 @@ logEValueVec2x2LogOddsEGauss <- function(ya, yb, na, nb,
   # Row i then holds log(prior * likelihood of blocks 1..i) on the grid,
   # mixed over the grid by the log-sum-exp below.
   logMix <- sweep(
-    matrix(apply(logPGrid, 2, cumsum), nrow = nBlocks), 2, logPrior, "+"
+    matrix(apply(logPGrid, 2, cumsum), nrow = nBlocks),
+    2,
+    logPrior,
+    "+"
   )
   shift <- apply(logMix, 1, max)
   logNumerator <- shift + log(rowSums(exp(logMix - shift)))
