@@ -1323,50 +1323,50 @@ fnchLogPartition <- function(na, nb, totalSuccesses, logOdds) {
 }
 
 #' Compute the Log Odds Ratio that is Uniformly Most Powerful for One Sided Test
-# UMP plug-in for one table: the logOdds on the side of the alternative at which
-#   KL(FNCH(logOdds) || FNCH(nullLogOdds)) = log(1 / alpha),
-# with KL = (logOdds - nullLogOdds) * E_logOdds[ya]
-#           - fnchLogPartition(logOdds) + fnchLogPartition(nullLogOdds),
-# the mean E_logOdds[ya] taken from BiasedUrn (odds = exp(logOdds) on A). At
-# nullLogOdds = 0 the last term is lchoose(na + nb, ya + yb).
-#
-# Returns the root, or NULL when no logOdds on that side reaches the target.
-# The KL is 0 at nullLogOdds and increases away from it towards its
-# supremum -log P0(ya at its feasible extreme): ya = min(na, totalSuccesses)
-# for "greater", ya = max(0, totalSuccesses - nb) for "less". NULL is
-# returned exactly when that supremum is at most log(1 / alpha), i.e. when
-# even the most extreme table under this total has null probability at
-# least alpha, so no one-block test at level alpha can reject. Typical cases
-# are totalSuccesses = 0 or na + nb (one feasible table, KL = 0), and small
-# blocks: na = nb = 1 gives supremum log(2). The caller then uses the
-# trivial e-factor 1; this is by design, not a numerical failure.
-solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
-                            alternative = c("greater", "less"),
-                            nullLogOdds = 0,
-                            searchBound = 100) {
+solveUmpLogOdds <- function(
+  na,
+  nb,
+  totalSuccesses,
+  alpha,
+  alternative = c("greater", "less"),
+  logOddsNull = 0,
+  searchBound = 100
+) {
   alternative <- match.arg(alternative)
 
-  # logOdds is A minus B, so the weighted count is ya: group A goes first.
+  # f: KL(logOdds || logOddsNull) - log(1/alpha) is convex
+  # logOdds is logOddsA - logOddsB
   klMinusTarget <- function(logOdds) {
-    (logOdds - nullLogOdds) *
+    (logOdds - logOddsNull) *
       BiasedUrn::meanFNCHypergeo(na, nb, totalSuccesses, exp(logOdds)) -
       fnchLogPartition(na, nb, totalSuccesses, logOdds) +
-      fnchLogPartition(na, nb, totalSuccesses, nullLogOdds) + log(alpha)
+      fnchLogPartition(na, nb, totalSuccesses, logOddsNull) +
+      log(alpha)
   }
 
-  # The KL is bounded, so the target may be unreachable within the search
-  # interval; uniroot() would error on equal signs, hence the explicit check.
+  # greater, root should be on + side, logOddsA > logOddsB
   bounds <- if (alternative == "greater") {
-    c(nullLogOdds, nullLogOdds + searchBound)
+    c(logOddsNull, logOddsNull + searchBound)
   } else {
-    c(nullLogOdds - searchBound, nullLogOdds)
+  # less, root should be on - side, logOddsA < logOddsB
+    c(logOddsNull - searchBound, logOddsNull)
   }
+
+  # uniroot() would error on equal signs
   if (klMinusTarget(bounds[1]) * klMinusTarget(bounds[2]) > 0) {
+    msg <- sprintf(
+      "No root for UMP logOdds at alpha = %s on bounds (%.3f, %.3f).
+      Try decreasing alpha or increasing searchBound!",
+      alpha, bounds[1], bounds[2]
+    )
+    warning(msg, call. = FALSE)
     return(NULL)
   }
 
-  stats::uniroot(klMinusTarget,
-    lower = bounds[1], upper = bounds[2],
+  stats::uniroot(
+    klMinusTarget,
+    lower = bounds[1],
+    upper = bounds[2],
     tol = 1e-10
   )[["root"]]
 }

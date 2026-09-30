@@ -151,7 +151,7 @@ the design's `alternative`, exactly as on propDiff.
 `savi2x2TestStatUmp(ya, yb, na, nb, alpha, alternative)` returns one plain
 conditional e-factor, averaging the two one-sided factors for `twoSided`.
 `solveUmpLogOdds` solves conditional KL equal to `log(1/alpha)`, searching
-up to 100 from `nullLogOdds = 0` in the chosen direction. It returns
+up to 100 from `logOddsNull = 0` in the chosen direction. It returns
 `NULL` (factor 1) exactly when the target is unreachable: the KL's supremum,
 `-log P0(yb at its extreme)` for that side, is at most `log(1/alpha)`, e.g.
 totals `0` or `na + nb`, or `na = nb = 1`. Dependence on the current total is
