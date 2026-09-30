@@ -1,8 +1,10 @@
 # Test functions ----
 
 #' Computes Conditional E-Value with UMP Log Odds Ratio
-savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
-                               alternative = c("twoSided", "greater", "less")) {
+savi2x2TestStatUmp <- function(
+  ya, yb, na, nb, alpha,
+  alternative = c("twoSided", "greater", "less")
+) {
   alternative <- match.arg(alternative)
   logLikelihoodNull <- stats::dhyper(ya, na, nb, ya + yb, log = TRUE)
 
@@ -16,8 +18,12 @@ savi2x2TestStatUmp <- function(ya, yb, na, nb, alpha,
   for (side in sides) {
     logOdds <- solveUmpLogOdds(na, nb, ya + yb, alpha, side)
     if (is.null(logOdds)) {
-      stop("No UMP logOdds found for the given alpha = ", alpha,
-           " and alternative = ", alternative)
+      stop(
+        "No UMP logOdds found for the given alpha = ",
+        alpha,
+        " and alternative = ",
+        alternative
+      )
     }
     logLikelihoodAlternative <- logLikelihoodFNCH(ya, yb, na, nb, logOdds)
     eValue <- eValue + exp(logLikelihoodAlternative - logLikelihoodNull)
