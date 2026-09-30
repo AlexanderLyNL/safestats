@@ -1168,7 +1168,14 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
 # Find the means that minimize the KL between the alternative and null
 # The null is H0: thetaA - thetaB = propDiff
 # TODO: this can be a cubic function solver
-solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff, tol = 1e-12) {
+solveRIPr2x2PropDiff <- function(
+  thetaA,
+  thetaB,
+  na,
+  nb,
+  propDiff,
+  tol = 1e-12
+) {
   derivativeKL <- function(nullThetaA) {
     nullThetaB <- nullThetaA - propDiff
     na * ((1 - thetaA) / (1 - nullThetaA) - thetaA / nullThetaA) +
@@ -1177,8 +1184,10 @@ solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff, tol = 1e-12) 
 
   # nullThetaA must keep both nullThetaA and nullThetaA - propDiff in
   # (0, 1); the derivative is infinite at the edges, so search just inside.
-  stats::uniroot(derivativeKL,
-    lower = max(0, propDiff) + tol, upper = min(1, 1 + propDiff) - tol,
+  stats::uniroot(
+    derivativeKL,
+    lower = max(0, propDiff) + tol,
+    upper = min(1, 1 + propDiff) - tol,
     tol = tol
   )[["root"]]
 }
