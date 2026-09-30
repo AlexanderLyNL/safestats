@@ -692,9 +692,15 @@ designSavi2x2 <- function(
 
 #' Computes the savi confidence interval for propDiff
 #' @noRd
-computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
-                                                 betaParameter, alpha,
-                                                 domain = c(-1, 1)) {
+computeConfidenceInterval2x2PropDiff <- function(
+  ya,
+  yb,
+  na,
+  nb,
+  betaParameter,
+  alpha,
+  domain = c(-1, 1)
+) {
   thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
   thetaA <- thetas[["thetaA"]]
   thetaB <- thetas[["thetaB"]]
@@ -703,8 +709,12 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
   # f: find zero points against 1/alpha
   # this is a convex function
   fPropDiff <- function(propDiff) {
-    nullThetaA <- mapply(solveRIPr2x2PropDiff,
-      thetaA = thetaA, thetaB = thetaB, na = na, nb = nb,
+    nullThetaA <- mapply(
+      solveRIPr2x2PropDiff,
+      thetaA = thetaA,
+      thetaB = thetaB,
+      na = na,
+      nb = nb,
       MoreArgs = list(propDiff = propDiff)
     )
     sum(
@@ -712,7 +722,8 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
         stats::dbinom(yb, nb, thetaB, log = TRUE) -
         stats::dbinom(ya, na, nullThetaA, log = TRUE) -
         stats::dbinom(yb, nb, nullThetaA - propDiff, log = TRUE)
-    ) - log(1 / alpha)
+    ) -
+      log(1 / alpha)
   }
 
   # The projection needs thetaA strictly inside its range, so stay just
@@ -720,9 +731,7 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
   eps <- 1e-9
   lower <- max(domain[1], -1 + eps)
   upper <- min(domain[2], 1 - eps)
-  minimiser <- stats::optimize(fPropDiff,
-    interval = c(lower, upper)
-  )[["minimum"]]
+  minimiser <- stats::optimize(fPropDiff, interval = c(lower, upper))[["minimum"]]
 
   # min > 1 / alpha, no confidence interval found
   if (fPropDiff(minimiser) >= 0) {
