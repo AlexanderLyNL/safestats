@@ -1592,19 +1592,37 @@ sampleStoppingTimesSavi2x2 <- function(
 #'   `samplePaths`, `n1Vector`.
 #' @noRd
 computePowerSavi2x2 <- function(
-  propDiffMin, na, nb, nBlocks, alpha = 0.05,
+  propDiffMin,
+  na,
+  nb,
+  nBlocks,
+  alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
-  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, nBoot = nSim,
-  seed = NULL, wantSamplePaths = FALSE, pb = TRUE
+  betaParameter = NULL,
+  nTheta = 8L,
+  nSim = 1e3L,
+  nBoot = nSim,
+  seed = NULL,
+  wantSamplePaths = FALSE,
+  pb = TRUE
 ) {
   alternative <- match.arg(alternative)
   stopifnot(length(nBlocks) == 1, is.finite(nBlocks), nBlocks >= 1)
 
   samplingResult <- sampleStoppingTimesSavi2x2(
-    propDiffMin = propDiffMin, na = na, nb = nb,
-    power = NULL, alpha = alpha, alternative = alternative,
-    betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
-    nMax = nBlocks, seed = seed, wantSamplePaths = wantSamplePaths, pb = pb
+    propDiffMin = propDiffMin,
+    na = na,
+    nb = nb,
+    power = NULL,
+    alpha = alpha,
+    alternative = alternative,
+    betaParameter = betaParameter,
+    nTheta = nTheta,
+    nSim = nSim,
+    nMax = nBlocks,
+    seed = seed,
+    wantSamplePaths = wantSamplePaths,
+    pb = pb
   )
 
   # Power per baseline: the fraction of paths that crossed 1 / alpha within
@@ -1615,8 +1633,10 @@ computePowerSavi2x2 <- function(
   worstCaseIndex <- which.min(powerVec)
 
   bootObjPower <- computeBootObj(
-    values = stoppingTimes[worstCaseIndex, ], objType = "power",
-    nPlan = nBlocks, nBoot = nBoot
+    values = stoppingTimes[worstCaseIndex, ],
+    objType = "power",
+    nPlan = nBlocks,
+    nBoot = nBoot
   )
 
   list(
