@@ -98,9 +98,14 @@ savi2x2TestStatUmp <- function(
 #' The constructor's other fields (`statistic`, `eValueApproxError`,
 #' `note`) stay `NULL`.
 #' @noRd
-savi2x2TestStat <- function(ya, yb,
-                            designObj = NULL, wantCi = TRUE,
-                            wantConfidenceSequence = FALSE, ciValue = NULL) {
+savi2x2TestStat <- function(
+  ya,
+  yb,
+  designObj = NULL,
+  wantCi = TRUE,
+  wantConfidenceSequence = FALSE,
+  ciValue = NULL
+) {
   esMin <- unname(designObj[["esMin"]])
   alternative <- designObj[["alternative"]]
   betaParameter <- designObj[["betaParameter"]]
@@ -118,28 +123,43 @@ savi2x2TestStat <- function(ya, yb,
   )
 
   nBlocks <- length(ya)
-  if (length(na) == 1L) na <- rep(na, nBlocks)
-  if (length(nb) == 1L) nb <- rep(nb, nBlocks)
+  if (length(na) == 1L) {
+    na <- rep(na, nBlocks)
+  }
+  if (length(nb) == 1L) {
+    nb <- rep(nb, nBlocks)
+  }
 
   # Checking: data ----
   # design handle all the other argument
   if (nBlocks == 1L) {
     warnings("There is only 1 table, switched to UMP conditional e-variable")
   }
-  if (!is.null(designObj[["nPlan"]][["nBlocksPlan"]]) &&
-      designObj[["nPlan"]][["nBlocksPlan"]] != nBlocks) {
-    stop("nBlocksPlan = ", designObj[["nPlan"]][["nBlocksPlan"]],
-         " does not match the ", nBlocks, " blocks in ya and yb")
+  if (
+    !is.null(designObj[["nPlan"]][["nBlocksPlan"]]) &&
+      designObj[["nPlan"]][["nBlocksPlan"]] != nBlocks
+  ) {
+    stop(
+      "nBlocksPlan = ",
+      designObj[["nPlan"]][["nBlocksPlan"]],
+      " does not match the ",
+      nBlocks,
+      " blocks in ya and yb"
+    )
   }
 
-  if (length(yb) != nBlocks || length(na) != nBlocks ||
-      length(nb) != nBlocks) {
+  if (length(yb) != nBlocks || length(na) != nBlocks || length(nb) != nBlocks) {
     stop("ya, yb, na and nb must have one value per block")
   }
   counts <- c(ya, yb, na, nb)
-  if (!all(is.finite(counts)) || any(counts %% 1 != 0) ||
-      any(c(ya, yb) < 0) || any(c(na, nb) < 1) ||
-      any(ya > na) || any(yb > nb)) {
+  if (
+    !all(is.finite(counts)) ||
+      any(counts %% 1 != 0) ||
+      any(c(ya, yb) < 0) ||
+      any(c(na, nb) < 1) ||
+      any(ya > na) ||
+      any(yb > nb)
+  ) {
     stop("ya, yb must be integers in 0..na, 0..nb; na, nb positive integers")
   }
 
@@ -148,20 +168,41 @@ savi2x2TestStat <- function(ya, yb,
   # Compute: eValueVec ----
   # UMP conditional e-value for block 1
   eValueUmp <- savi2x2TestStatUmp(
-    ya[1], yb[1], na[1], nb[1], alpha, alternative
+    ya[1],
+    yb[1],
+    na[1],
+    nb[1],
+    alpha,
+    alternative
   )
 
   # The plain cumulative log e-process of the chosen e-variable, block 1
   # included; each helper is a self-contained construction.
   logEValueVec <- switch(paste(eType, effect),
     "eBeta propDiff" = logEValueVec2x2PropDiffEBeta(
-      ya, yb, na, nb, betaParameter
+      ya,
+      yb,
+      na,
+      nb,
+      betaParameter
     ),
     "grow propDiff" = logEValueVec2x2PropDiffGrow(
-      ya, yb, na, nb, betaParameter, esMin, alpha, alternative
+      ya,
+      yb,
+      na,
+      nb,
+      betaParameter,
+      esMin,
+      alpha,
+      alternative
     ),
     "grow logOdds" = logEValueVec2x2LogOddsGrow(
-      ya, yb, na, nb, esMin, alternative
+      ya,
+      yb,
+      na,
+      nb,
+      esMin,
+      alternative
     ),
     "eGauss logOdds" = logEValueVec2x2LogOddsEGauss(ya, yb, na, nb)
   )
@@ -175,16 +216,29 @@ savi2x2TestStat <- function(ya, yb,
   result[["ciValue"]] <- ciValue
 
   if (eType == "grow") {
-    warning("Confidence interval/sequences only available for eType = ",
-            "'eBeta' or 'eGauss'")
+    warning(
+      "Confidence interval/sequences only available for eType = ",
+      "'eBeta' or 'eGauss'"
+    )
   } else if (wantConfidenceSequence) {
     confSeqMatrix <- if (effect == "propDiff") {
       computeConfidenceSequence2x2PropDiff(
-        ya, yb, na, nb, betaParameter, 1 - ciValue, runningIntersection
+        ya,
+        yb,
+        na,
+        nb,
+        betaParameter,
+        1 - ciValue,
+        runningIntersection
       )
     } else {
       computeConfidenceSequence2x2LogOdds(
-        ya, yb, na, nb, 1 - ciValue, runningIntersection
+        ya,
+        yb,
+        na,
+        nb,
+        1 - ciValue,
+        runningIntersection
       )
     }
     result[["confSeqMatrix"]] <- confSeqMatrix
@@ -193,14 +247,24 @@ savi2x2TestStat <- function(ya, yb,
     # One confidence interval on all blocks
     result[["confSeq"]] <- if (effect == "propDiff") {
       computeConfidenceInterval2x2PropDiff(
-        ya, yb, na, nb, betaParameter, 1 - ciValue
+        ya,
+        yb,
+        na,
+        nb,
+        betaParameter,
+        1 - ciValue
       )
     } else {
       # The eGauss numerator on all blocks, without the UMP replacement
       logNumerator <- logEValueVec2x2LogOddsEGauss(ya, yb, na, nb) +
         cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
       computeConfidenceInterval2x2LogOdds(
-        ya, yb, na, nb, logNumerator[nBlocks], 1 - ciValue
+        ya,
+        yb,
+        na,
+        nb,
+        logNumerator[nBlocks],
+        1 - ciValue
       )
     }
   }
@@ -230,7 +294,8 @@ savi2x2TestStat <- function(ya, yb,
   result[["alternative"]] <- alternative
   result[["h0"]] <- designObj[["h0"]]
   result[["dataName"]] <- paste(
-    deparse1(substitute(ya)), "and",
+    deparse1(substitute(ya)),
+    "and",
     deparse1(substitute(yb))
   )
   result[["call"]] <- sys.call()
