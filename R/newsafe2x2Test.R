@@ -1230,18 +1230,34 @@ logEValueVec2x2LogOddsGrow <- function(
   alternative = c("twoSided", "greater", "less")
 ) {
   alternative <- match.arg(alternative)
+  nBlocks <- length(ya)
+
+  logOddsMin <- abs(logOddsMin)
+  signs <- switch(alternative,
+    "twoSided" = c(1, -1),
+    "greater" = 1,
+    "less" = -1
+  )
+
   logLikelihoodNull <- cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
 
-  logPlus <- cumsum(logLikelihoodFNCH(ya, yb, na, nb, logOddsMin))
-  logLikelihoodAlternative <- if (alternative == "twoSided") {
-    logMinus <- cumsum(logLikelihoodFNCH(ya, yb, na, nb, -logOddsMin))
-    shift <- pmax(logPlus, logMinus)
-    shift + log(0.5 * (exp(logPlus - shift) + exp(logMinus - shift)))
-  } else {
-    logPlus
-  }
+  # nBlocks x nSides: cumulative conditional log likelihood at sign * logOddsMin
+  logLikelihoodSides <- matrix(
+    vapply(
+      signs,
+      function(sign) cumsum(logLikelihoodFNCH(ya, yb, na, nb, sign * logOddsMin)),
+      numeric(nBlocks)
+    ),
+    nrow = nBlocks
+  )
+  logEValueSides <- logLikelihoodSides - logLikelihoodNull
 
-  logLikelihoodAlternative - logLikelihoodNull
+  # row maximum over the sides, for the log-mean-exp below
+  logEValueMax <- do.call(
+    pmax,
+    lapply(seq_len(ncol(logEValueSides)), function(j) logEValueSides[, j])
+  )
+  logEValueMax + log(rowMeans(exp(logEValueSides - logEValueMax)))
 }
 
 # a vector of logEValue that is the cumsum of conditional likelihood ratio process

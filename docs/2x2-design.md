@@ -140,8 +140,9 @@ of `log(1 / alpha)`.
 **Conditional logOdds.** Given `ya + yb`, the weighted count is `ya`:
 FNCH has odds `exp(logOdds)` on A; the null is hypergeometric.
 `logLikelihoodFNCH` returns per-block conditional log densities.
-`logEValueVec2x2LogOddsGrow` uses the fixed signed `logOddsMin`, or for
-`twoSided` averages cumulative likelihoods at both signs of its magnitude.
+`logEValueVec2x2LogOddsGrow` uses the magnitude of `logOddsMin` with the sign
+of `alternative`, or for `twoSided` averages the cumulative e-processes at
+both signs.
 `logEValueVec2x2LogOddsEGauss` returns the plain eGauss process: cumulative
 likelihoods mixed under Normal(0,1), normalized on 2000 equally spaced
 log-odds values in `[-20,20]`; later factors use the grid posterior
