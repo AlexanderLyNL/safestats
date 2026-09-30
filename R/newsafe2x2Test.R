@@ -1060,18 +1060,16 @@ logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
 }
 
 # Compute the log evalue restricted to propDiffMin
-# if earlyStopping is TRUE, break the for loop as soon as it crosses in simulation
 logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
-                                       propDiffMin, alpha,
-                                       alternative = c("twoSided", "greater", "less"),
-                                       earlyStopping = FALSE,
-                                       nWeight = 1e3L) {
+  propDiffMin, alpha, alternative = c("twoSided", "greater", "less"),
+  earlyStopping = FALSE,
+  nWeight = 1e3L
+) {
   alternative <- match.arg(alternative)
   nBlocks <- length(ya)
   logThreshold <- log(1 / alpha)
-  # The design guarantees the sign of propDiffMin matches a one-sided
-  # alternative, so the alternative alone selects the curve(s) below and
-  # only the magnitude is needed here.
+
+  # use only the magnitude
   propDiffMin <- abs(propDiffMin)
 
   # One-sided processes to run: the plus curve for "greater", the minus
@@ -1084,17 +1082,14 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   )
   nSides <- length(signs)
 
-  # Only the thetaA prior is used: rho = thetaA rescaled to (0, 1).
+  # Only update thetaA
   betaA1 <- betaParameter[["betaA1"]]
   betaA2 <- betaParameter[["betaA2"]]
 
-  # Grid on each curve, one column per side: on the plus curve
-  # thetaA = thetaB + propDiffMin, so thetaA is restricted to
-  # (propDiffMin, 1); on the minus curve thetaA = thetaB - propDiffMin, so
-  # thetaA is restricted to (0, 1 - propDiffMin). Both are the same rho
-  # rescaled, so "less" on (ya, yb) equals "greater" on (yb, ya) with
-  # sizes swapped.
   rho <- seq(1 / nWeight, 1 - 1 / nWeight, length.out = nWeight)
+  # greater, d > 0
+  # thetaA in rho * (1 - abs(d)) = (0, d)
+  # thetaB in thetaA - abs(d) = ?
   thetaAGrid <- matrix(rho * (1 - propDiffMin), nWeight, nSides)
   thetaAGrid[, signs > 0] <- propDiffMin + thetaAGrid[, signs > 0]
   thetaBGrid <- thetaAGrid - rep(signs * propDiffMin, each = nWeight)
@@ -1149,8 +1144,10 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
     # Only now add block i to each posterior, so block i + 1 is predicted
     # from the past alone.
     logWeights <- logWeights +
-      ya[i] * logThetaA + (na[i] - ya[i]) * logOneMinusThetaA +
-      yb[i] * logThetaB + (nb[i] - yb[i]) * logOneMinusThetaB
+      ya[i] * logThetaA +
+      (na[i] - ya[i]) * logOneMinusThetaA +
+      yb[i] * logThetaB +
+      (nb[i] - yb[i]) * logOneMinusThetaB
     # Re-centre each side's column at its maximum (sweep(x, 2, v) subtracts
     # v[j] from column j): the largest weight is again exactly 1, so the
     # posterior mean's exp() and sum() cannot underflow however many
