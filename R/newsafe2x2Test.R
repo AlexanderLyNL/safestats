@@ -1069,7 +1069,9 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   nBlocks <- length(ya)
   logThreshold <- log(1 / alpha)
 
-  # use only the magnitude
+  # The design matches the sign of propDiffMin to a one-sided alternative,
+  # and the curves below are chosen by alternative, so only the magnitude
+  # is needed here.
   propDiffMin <- abs(propDiffMin)
 
   # One-sided processes to run: the plus curve for "greater", the minus
@@ -1082,26 +1084,40 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   )
   nSides <- length(signs)
 
-  # Only update thetaA
-  betaA1 <- betaParameter[["betaA1"]]
-  betaA2 <- betaParameter[["betaA2"]]
-
+  # One grid serves both curves. On either curve the two proportions are
+  # exactly propDiffMin apart, so the smaller one ranges over
+  # (0, 1 - propDiffMin) and the larger one over (propDiffMin, 1). rho in
+  # (0, 1) is the smaller proportion rescaled to the unit interval:
+  #   thetaSmall = rho * (1 - propDiffMin),  thetaLarge = thetaSmall + propDiffMin
   rho <- seq(1 / nWeight, 1 - 1 / nWeight, length.out = nWeight)
-  # greater, d > 0
-  # thetaA in rho * (1 - abs(d)) = (0, d)
-  # thetaB in thetaA - abs(d) = ?
-  thetaAGrid <- matrix(rho * (1 - propDiffMin), nWeight, nSides)
-  thetaAGrid[, signs > 0] <- propDiffMin + thetaAGrid[, signs > 0]
-  thetaBGrid <- thetaAGrid - rep(signs * propDiffMin, each = nWeight)
+  thetaSmall <- rho * (1 - propDiffMin)
+  thetaLarge <- thetaSmall + propDiffMin
+
+  # nWeight x nSides grids, column s for side s. On the plus curve
+  # ("greater") A is the larger group: thetaA = thetaB + propDiffMin. On the
+  # minus curve ("less") B is the larger group: thetaA = thetaB - propDiffMin.
+  thetaAGrid <- vapply(
+    signs,
+    function(sign) if (sign > 0) thetaLarge else thetaSmall,
+    numeric(nWeight)
+  )
+  thetaBGrid <- vapply(
+    signs,
+    function(sign) if (sign > 0) thetaSmall else thetaLarge,
+    numeric(nWeight)
+  )
   logThetaA <- log(thetaAGrid)
   logOneMinusThetaA <- log1p(-thetaAGrid)
   logThetaB <- log(thetaBGrid)
   logOneMinusThetaB <- log1p(-thetaBGrid)
 
-  # Un-normalised log posterior weights, shifted so their maximum is 0: the
-  # largest weight is then exactly 1 and the sum can neither underflow nor
-  # overflow, however many blocks have been seen. The prior on rho is the
-  # same on both curves.
+  # Prior: Beta(betaA1, betaA2) on rho, which is thetaA rescaled to (0, 1)
+  # on either curve; only the A shapes are used, and every side starts from
+  # the same column. Un-normalised log weights, shifted so their maximum is
+  # 0: the largest weight is then exactly 1 and the sum can neither
+  # underflow nor overflow, however many blocks have been seen.
+  betaA1 <- betaParameter[["betaA1"]]
+  betaA2 <- betaParameter[["betaA2"]]
   logWeights <- (betaA1 - 1) * log(rho) + (betaA2 - 1) * log1p(-rho)
   logWeights <- matrix(logWeights - max(logWeights), nWeight, nSides)
 
@@ -1115,10 +1131,13 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
 
   for (i in seq_len(nBlocks)) {
     for (s in seq_len(nSides)) {
-      # Numerator: posterior mean of thetaA given blocks 1..i-1, on the curve.
+      # Numerator: posterior means of thetaA and thetaB given blocks 1..i-1.
+      # Both use the same weights on the same rho, so they stay propDiffMin
+      # apart, on the curve.
       weights <- exp(logWeights[, s])
-      thetaA <- sum(thetaAGrid[, s] * weights) / sum(weights)
-      thetaB <- thetaA - signs[s] * propDiffMin
+      weights <- weights / sum(weights)
+      thetaA <- sum(thetaAGrid[, s] * weights)
+      thetaB <- sum(thetaBGrid[, s] * weights)
       # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
       thetaNull <- (na[i] * thetaA + nb[i] * thetaB) / (na[i] + nb[i])
 
