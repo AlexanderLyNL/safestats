@@ -1310,8 +1310,6 @@ logEValueVec2x2LogOddsEGauss <- function(
   logNumerator - logLikelihoodNull
 }
 
-#
-#
 #' Log partition function of Fisher's noncentral hypergeometric distribution
 #'
 #' @param na nonnegative integer, group size of A
@@ -1350,7 +1348,7 @@ solveUmpLogOdds <- function(
 ) {
   alternative <- match.arg(alternative)
 
-  # f: KL(logOdds || logOddsNull) - log(1/alpha) is convex
+  # f: KL(logOdds || logOddsNull) - log(1/alpha) is uniroot on each side
   # logOdds is logOddsA - logOddsB
   klMinusTarget <- function(logOdds) {
     (logOdds - logOddsNull) *
