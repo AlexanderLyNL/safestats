@@ -756,9 +756,16 @@ computeConfidenceInterval2x2PropDiff <- function(
 
 #' Computes the savi confidence sequences for propDiff using a fixed grid
 #' @noRd
-computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
-                                                 betaParameter, alpha,
-                                                 runningIntersection, nGrid = 2000L) {
+computeConfidenceSequence2x2PropDiff <- function(
+  ya,
+  yb,
+  na,
+  nb,
+  betaParameter,
+  alpha,
+  runningIntersection,
+  nGrid = 2000L
+) {
   nBlocks <- length(ya)
   thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
   thetaA <- thetas[["thetaA"]]
@@ -770,9 +777,13 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
   nGrid <- nGrid
   sdMax <- sqrt(1 / (4 * sum(na)) + 1 / (4 * sum(nb)))
   if (ceiling(2 / sdMax) > nGrid) {
-    warning("The confidence sequence grid step ", 2 / nGrid,
-      " is coarser than the standard deviation scale ", signif(sdMax, 3),
-      " of propDiff on these totals; the bounds are conservative")
+    warning(
+      "The confidence sequence grid step ",
+      2 / nGrid,
+      " is coarser than the standard deviation scale ",
+      signif(sdMax, 3),
+      " of propDiff on these totals; the bounds are conservative"
+    )
   }
   grid <- seq(-1, 1, length.out = nGrid + 2L)[-c(1L, nGrid + 2L)]
 
@@ -784,7 +795,10 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
   active <- rep(TRUE, nGrid)
   previous <- c(-1, 1)
 
-  confSeqMatrix <- matrix(NA_real_, nBlocks, 2,
+  confSeqMatrix <- matrix(
+    NA_real_,
+    nBlocks,
+    2,
     dimnames = list(NULL, c("lowerBound", "upperBound"))
   )
 
@@ -792,9 +806,15 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
     delta <- grid[active]
 
     # find RIPr thetaA for all active delta
-    nullThetaA <- mapply(solveRIPr2x2PropDiff, delta,
-      MoreArgs = list(thetaA = thetaA[i], thetaB = thetaB[i],
-        na = na[i], nb = nb[i])
+    nullThetaA <- mapply(
+      solveRIPr2x2PropDiff,
+      delta,
+      MoreArgs = list(
+        thetaA = thetaA[i],
+        thetaB = thetaB[i],
+        na = na[i],
+        nb = nb[i]
+      )
     )
 
     # Block i's log likelihood ratio term against each active candidate
@@ -808,7 +828,9 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
     f <- logEValues - logThreshold
     kept <- candidate & f < 0
     if (!any(kept)) {
-      if (runningIntersection) break
+      if (runningIntersection) {
+        break
+      }
       next
     }
     keptRange <- range(which(kept))
@@ -848,7 +870,9 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
         seq_len(nGrid) <= keptRange[2] + 2L
       lowerBound <- max(lowerBound, previous[1])
       upperBound <- min(upperBound, previous[2])
-      if (lowerBound > upperBound) break
+      if (lowerBound > upperBound) {
+        break
+      }
       previous <- c(lowerBound, upperBound)
     }
     confSeqMatrix[i, ] <- c(lowerBound, upperBound)
