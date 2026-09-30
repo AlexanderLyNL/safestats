@@ -1133,16 +1133,16 @@ sampleStoppingTimesSavi2x2 <- function(
 
   # TODO: a lot of time wasted near the boundary
   # Baselines: thetaA at nTheta equally spaced interior points of its
-  # feasible range on the curve thetaB = thetaA + propDiffMin, thetaA over
-  # (0, 1 - propDiffMin); twoSided adds the curve thetaB = thetaA -
-  # propDiffMin, thetaA over (propDiffMin, 1), since the test is not
+  # feasible range on the curve thetaA = thetaB + propDiffMin, thetaA over
+  # (propDiffMin, 1); twoSided adds the curve thetaA = thetaB -
+  # propDiffMin, thetaA over (0, 1 - propDiffMin), since the test is not
   # symmetric under a group swap when na != nb or the Beta priors differ.
   rhoTheta <- seq(1 / (nTheta + 1), nTheta / (nTheta + 1), length.out = nTheta)
-  thetaATrue <- rhoTheta * (1 - propDiffMin)
-  thetaBTrue <- thetaATrue + propDiffMin
+  thetaATrue <- propDiffMin + rhoTheta * (1 - propDiffMin)
+  thetaBTrue <- thetaATrue - propDiffMin
   if (alternative == "twoSided") {
-    thetaATrue <- c(thetaATrue, propDiffMin + rhoTheta * (1 - propDiffMin))
-    thetaBTrue <- c(thetaBTrue, thetaATrue[-seq_len(nTheta)] - propDiffMin)
+    thetaATrue <- c(thetaATrue, rhoTheta * (1 - propDiffMin))
+    thetaBTrue <- c(thetaBTrue, thetaATrue[-seq_len(nTheta)] + propDiffMin)
   }
   nBaselines <- length(thetaATrue)
 
