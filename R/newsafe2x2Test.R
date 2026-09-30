@@ -896,8 +896,8 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   # minus curve.
   rho <- seq(1 / nWeight, 1 - 1 / nWeight, length.out = nWeight)
   thetaAGrid <- matrix(rho * (1 - propDiffMin), nWeight, nSides)
-  thetaAGrid[, signs < 0] <- propDiffMin + thetaAGrid[, signs < 0]
-  thetaBGrid <- thetaAGrid + rep(signs * propDiffMin, each = nWeight)
+  thetaAGrid[, signs > 0] <- propDiffMin + thetaAGrid[, signs > 0]
+  thetaBGrid <- thetaAGrid - rep(signs * propDiffMin, each = nWeight)
   logThetaA <- log(thetaAGrid)
   logOneMinusThetaA <- log1p(-thetaAGrid)
   logThetaB <- log(thetaBGrid)
@@ -934,7 +934,7 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
       # Numerator: posterior mean of thetaA given blocks 1..i-1, on the curve.
       weights <- exp(logWeights[, s])
       thetaA <- sum(thetaAGrid[, s] * weights) / sum(weights)
-      thetaB <- thetaA + signs[s] * propDiffMin
+      thetaB <- thetaA - signs[s] * propDiffMin
       # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
       thetaNull <- (na[i] * thetaA + nb[i] * thetaB) / (na[i] + nb[i])
 
