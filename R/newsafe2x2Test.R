@@ -462,7 +462,7 @@ designSavi2x2 <- function(
       "betaA1" = 1 / (2 * na),
       "betaA2" = 1 / (2 * na),
       "betaB1" = 1 / (2 * nb),
-      "betaB2" = 1 / (2 * na)
+      "betaB2" = 1 / (2 * nb)
     )
   } else {
     stop("na nb are vectors")
