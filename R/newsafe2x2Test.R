@@ -1032,12 +1032,8 @@ predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
   ))
 }
 
-# Compute the plain log e-process of the eBeta test: block i plugs in the
-# independent Beta posterior means of thetaA and thetaB given blocks 1..i-1
-# against their size-weighted pooled mean, the projection onto the null
-# thetaA = thetaB. Element i is the cumulative log e-value of blocks 1..i.
+# a vector of logEValue that is the cumsum of likelihood ratio process
 logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
-  # two vectors of length nBlocks, the posterior means of thetaA and thetaB
   thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
   thetaA <- thetas[["thetaA"]]
   thetaB <- thetas[["thetaB"]]
@@ -1048,6 +1044,7 @@ logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
   # Cumulative log likelihood ratio
   # we use dbinom instead na * log(theta) + (na - ya) * log(1 - theta)
   # to avoid manually handle NaNs
+  # binom terms cancels out in logLikelihoodNull and logLikelihoodAlternative
   # TODO: future might switch to y * log(theta) + (n - y) * log1p(-theta)
   # once theta is guarded
   logLikelihoodNull <- cumsum(
