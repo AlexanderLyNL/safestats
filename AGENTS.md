@@ -35,9 +35,10 @@ Distinguish proofs, exact checks, and simulation evidence.
 
 - Groups are A and B; `ya`, `yb` are successes and `na`, `nb` are group sizes.
   Counts are finite nonnegative integers no larger than their positive sizes.
-- Effects are exactly `propDiff` and `logOdds`, both B minus A, anchored on A:
-  `thetaB = thetaA + propDiff`; `thetaB = plogis(qlogis(thetaA) + logOdds)`.
-  Do not introduce legacy effect spellings in new code.
+- Effects are exactly `propDiff` and `logOdds`, both A minus B, anchored on B:
+  `thetaA = thetaB + propDiff`; `thetaA = plogis(qlogis(thetaB) + logOdds)`.
+  As in `t.test`, `greater` means A is larger. Do not introduce legacy
+  effect spellings or the legacy B-minus-A direction in new code.
 - Order alternatives as `twoSided`, `greater`, `less` wherever supported.
   The design specifies which combinations are currently available.
 - Distinguish blockwise e-factors from cumulative e-processes. Predictive

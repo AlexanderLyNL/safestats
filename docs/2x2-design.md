@@ -14,26 +14,57 @@ finding or design question, whose replacement contract is agreed here first.
 
 ## Supported modes
 
-Both effects are **B minus A**, anchored on `thetaA`:
-`thetaB = thetaA + propDiff`, or
-`thetaB = plogis(qlogis(thetaA) + logOdds)`.
+Both effects are **A minus B**, anchored on `thetaB`:
+`thetaA = thetaB + propDiff`, or
+`thetaA = plogis(qlogis(thetaB) + logOdds)`.
+This follows `t.test(x, y)`, where `"greater"` means `x - y > 0`: here
+`"greater"` means group A has the larger proportion or odds.
 The testing null is equality of proportions (`h0 = 0`). `"greater"`
 describes the alternative's direction, not a composite null.
 
 | Effect | `eType` | Alternative | Minimal effect | Interval / sequence | Planning |
 |---|---|---|---|---|---|
 | `propDiff` | `eBeta` | `twoSided` | None | Yes, defects R1/R4 | No |
-| `propDiff` | `grow` | `greater`, `twoSided` | `0 < propDiffMin < 1` | No | Yes |
+| `propDiff` | `grow` | `twoSided`, `greater`, `less` | signed `propDiffMin`, `0 < |propDiffMin| < 1` | No | Yes |
 | `logOdds` | `eGauss` | `twoSided` | None | Yes, defect R3 | No |
-| `logOdds` | `grow` | `greater`, `twoSided` | Finite `logOddsMin > 0` | No | No |
+| `logOdds` | `grow` | `twoSided`, `greater`, `less` | signed finite `logOddsMin != 0` | No | No |
 
-`"less"` is supported by the one-block UMP helper only. A one-sided
-alternative supplied to eBeta/eGauss is supposed to warn and be ignored;
-eBeta currently retains its effect on the first factor ([R8](2x2-review.md#r8)).
+**Sign rule for grow.** The minimal effect is a signed value on the
+A-minus-B scale of its effect. A one-sided alternative must have the same
+sign: `greater` needs a positive value and learns on `thetaA` above
+`thetaB`; `less` needs a negative value and learns on `thetaA` below
+`thetaB`. The other two pairs (`less` with a positive value, `greater` with
+a negative one) describe a region that contains the null `h0 = 0`, so no
+GROW e-variable exists; `designSavi2x2` rejects them with an error naming
+the congruent pair and noting that a null at the given value is `h0 != 0`,
+which is not designed. The sign is not flipped silently. `twoSided`
+requires a positive value and runs both signs of it, so the stored `esMin`
+always shows the sign of the direction tested and a negative value with
+`twoSided` is an error. Zero is an error that points to the unrestricted
+eType. The legacy `safe2x2Test.R` inferred the alternative from the sign
+of `delta` and measured B minus A; the sign check is kept, the direction is
+not. `less` on `(ya, yb, na, nb)` with effect `d` equals `greater` on
+`(yb, ya, nb, na)` with `-d`: exactly on logOdds, and on propDiff because
+both curves rescale the same `rho` under A's prior. The direction is
+validated once, in the constructor; the test, helper and sampler code
+apply it through group A only, so `greater`, a positive `signs` entry, a
+positive `logOdds`, and odds `exp(logOdds)` on A all mean the same thing
+and no formula negates the effect except the `twoSided` mirror. The
+constructor also
+checks that `na`, `nb` are equal-length finite positive integers, `alpha`
+and `power` lie in `(0, 1)`, `nBlocksPlan` is a positive integer
+matching any size vectors, and `nTheta`, `nSim`, `nBoot`, `nMax` are
+positive integers with `nMax` at least `nBlocksPlan`; `betaParameter` is deferred and `runningIntersection` is not
+checked. A one-sided alternative supplied to eBeta/eGauss is supposed to
+warn and be ignored; eBeta currently retains its effect on the first
+factor ([R8](2x2-review.md#r8)).
 
 ## Inputs and result objects
 
-`designSavi2x2(na, nb, ...)` takes planned positive integer block sizes,
+`designSavi2x2(na, nb, ...)` takes planned finite positive integer block
+sizes as numeric vectors of equal length: one value each for a constant
+size, or one per block, which fixes `nBlocksPlan` at their length (a
+supplied `nBlocksPlan` must match; lists are rejected). It also takes
 optional `propDiffMin` or `logOddsMin` (never both), `alpha = .05`,
 `power = NULL`, `nBlocksPlan = NULL`, `h0 = 0`, `alternative`, `eType`,
 `betaParameter = NULL`, and `runningIntersection = NULL`.
@@ -87,26 +118,29 @@ ratios over blocks. Block 1's plug-in factor is **replaced** by the UMP
 conditional factor, as for grow; the posterior still absorbs block 1.
 
 **PropDiff grow.** `logEValueVec2x2PropDiffGrow` learns on
-`thetaB = thetaA + propDiffMin`: 1000 interior grid points in `thetaA`'s
-feasible interval, with `Beta(betaA1, betaA2)` on its rescaling to `(0,1)`.
+`thetaA = thetaB + propDiffMin` with the signed value: 1000 interior grid
+points in `thetaA`'s feasible interval, `(d, 1)` for `d > 0` and
+`(0, 1 + d)` for `d < 0`, with `Beta(betaA1, betaA2)` on its rescaling to `(0,1)`.
 Only A's prior shapes are used. Each block uses the grid posterior mean,
 the pooled denominator, then updates weights on the log scale.
-Block 1's plug-in factor is **replaced** by the corresponding UMP factor;
-the posterior still absorbs block 1. Multiplying the two factors was invalid.
 Two-sided grow runs separate positive/negative curves and averages their
-**cumulative processes**, not their blockwise factors. `earlyStopping = TRUE`
-cuts the returned log vector at the replaced, averaged process's first
-crossing of `log(1 / alpha)`.
+**cumulative processes**, not their blockwise factors. The helper returns
+the plain plug-in process; `savi2x2TestStatPropDiff` then **replaces**
+block 1 of that (averaged) process by `savi2x2TestStatUmp` at the test's
+`alternative`, as for eBeta; the posterior still absorbs block 1.
+Multiplying the two factors was invalid. `earlyStopping = TRUE` cuts the
+helper's returned log vector at the plain averaged process's first crossing
+of `log(1 / alpha)`.
 
-**Conditional logOdds.** Given `ya + yb`, the weighted count is `yb`:
-FNCH has odds `exp(logOdds)` on B; the null is hypergeometric.
+**Conditional logOdds.** Given `ya + yb`, the weighted count is `ya`:
+FNCH has odds `exp(logOdds)` on A; the null is hypergeometric.
 `logLikelihoodFNCH` returns per-block conditional log densities.
-Grow uses a fixed `logOddsMin`, or averages cumulative likelihoods at both
-signs; it has no first-block UMP modification.
-eGauss mixes cumulative likelihoods under Normal(0,1), normalized on 2000
-equally spaced log-odds values in `[-20,20]`. Its first predictive factor
-is replaced by UMP `"greater"` even though the mode is two-sided; later
-factors use the grid posterior including block 1.
+Grow uses the fixed signed `logOddsMin`, or for `twoSided` averages
+cumulative likelihoods at both signs of its magnitude. eGauss mixes cumulative likelihoods under Normal(0,1), normalized on
+2000 equally spaced log-odds values in `[-20,20]`; later factors use the
+grid posterior including block 1. For both eTypes `savi2x2TestStatLogOdds`
+**replaces** block 1 of the cumulative process by `savi2x2TestStatUmp` at
+the design's `alternative`, exactly as on propDiff.
 
 `savi2x2TestStatUmp(ya, yb, na, nb, alpha, alternative)` returns one plain
 conditional e-factor, averaging the two one-sided factors for `twoSided`.
@@ -160,9 +194,10 @@ Grow's interval construction is deferred; code nevertheless assigns its
 | `propDiffMin`, `nBlocksPlan` | `2` | Worst-baseline power |
 | `power`, `nBlocksPlan`, no minimal effect | `3` | Minimal detectable `propDiff` |
 
-All three together error. `sampleStoppingTimesSavi2x2` simulates grow on
-`nTheta` equally spaced interior baselines of the feasible positive curve;
-two-sided adds the negative curve. Both curves matter with unequal group
+All three together error. Per-block size vectors supply `nBlocksPlan`, so
+they run scenarios 2 and 3 on exactly those sizes and make `1a` an error. `sampleStoppingTimesSavi2x2` simulates grow on
+`nTheta` equally spaced interior baselines of the feasible curve with the
+sign of `propDiffMin`; two-sided runs both curves. Both curves matter with unequal group
 sizes or priors. “Worst case” means worst **on this finite grid**.
 Paths stop at `E >= 1/alpha`; noncrossing times are `Inf`, not `nMax`.
 `seed = NULL` means 2026. Outputs include baseline probabilities and
@@ -178,9 +213,9 @@ Scenarios 1a/2 store their bootstrap objects, relevant `*TwoSe` fields,
 worst-baseline identifiers, `breakVector`, and optional paths. Finite-sample
 quantile/bootstrap disagreement is deferred ([R6](2x2-review.md#r6)).
 
-`computeEsMinSavi2x2` searches `(0.01,0.9)` with fixed simulation seed and
-`uniroot(tol = 1e-5)`; no suitable bracket returns `NA`, which the design
-turns into an error. Scenario 3 stores the effect and targets, no simulation
+`computeEsMinSavi2x2` searches magnitudes in `(0.01,0.9)` with fixed
+simulation seed and `uniroot(tol = 1e-5)`, returning the negative value for
+`less`; no suitable bracket returns `NA`, which the design turns into an error. Scenario 3 stores the effect and targets, no simulation
 summaries. The discrete objective does not guarantee a passing/minimal
 answer ([R5](2x2-review.md#r5)).
 
