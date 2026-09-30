@@ -318,8 +318,7 @@ savi2x2TestStat <- function(
 #'   twoSided only; they take no `propDiffMin` or `logOddsMin` and no
 #'   planning, and a one-sided `alternative` is ignored with a warning.
 #' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
-#'   fixed alternative (Decisions 15, 34, 38). The minimal effect is signed
-#'   A minus B and must point the way of a one-sided `alternative`:
+#'   fixed alternative.
 #'   `"greater"` needs a positive value, `"less"` a negative one, or the
 #'   alternative would contain the null and no GROW e-variable exists.
 #'   `"twoSided"` uses the magnitude.
@@ -370,54 +369,103 @@ savi2x2TestStat <- function(
 #'   `power` as the target, and no simulation summaries.
 #' @noRd
 designSavi2x2 <- function(
-  na, nb, nBlocksPlan = NULL,
-  propDiffMin = NULL, logOddsMin = NULL,
-  alpha = 0.05, power = NULL, h0 = 0,
+  na,
+  nb,
+  nBlocksPlan = NULL,
+  propDiffMin = NULL,
+  logOddsMin = NULL,
+  alpha = 0.05,
+  power = NULL,
+  h0 = 0,
   alternative = c("twoSided", "greater", "less"),
   eType = c("eBeta", "grow", "eGauss"),
   betaParameter = NULL,
   runningIntersection = NULL,
-  nTheta = 8L, nSim = 1e3L, nBoot = 1e3L, nMax = 1e4L, seed = NULL,
-  wantSamplePaths = FALSE, pb = TRUE
+  nTheta = 8L,
+  nSim = 1e3L,
+  nBoot = 1e3L,
+  nMax = 1e4L,
+  seed = NULL,
+  wantSamplePaths = FALSE,
+  pb = TRUE
 ) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
   result <- constructSaviDesignObj("Two Proportions")
 
-  if (!is.null(betaParameter)) result[["betaParameter"]] <- betaParameter
-  if (!is.null(runningIntersection)) result[["runningIntersection"]] <- runningIntersection
+  # Fill: result ----
+  if (!is.null(runningIntersection)) {
+    result[["runningIntersection"]] <- runningIntersection
+  }
+  result[["eType"]] <- eType
+  result[["alpha"]] <- alpha
+  result[["alternative"]] <- alternative
+  result[["h0"]] <- 0
 
   # Checking: arg ----
   if (length(alpha) != 1L || !is.finite(alpha) || alpha <= 0 || alpha >= 1) {
     stop("alpha must be a single number in (0, 1)")
   }
-  if (!is.null(power) &&
-      (length(power) != 1L || !is.finite(power) || power <= 0 || power >= 1)) {
+  if (
+    !is.null(power) &&
+      (length(power) != 1L || !is.finite(power) || power <= 0 || power >= 1)
+  ) {
     stop("power must be a single number in (0, 1)")
   }
 
   # na nb are finite positive integer
   # must be same length, if length > 1, then that is the nBlocksPlan
-  if (!is.numeric(na) || !is.numeric(nb) || length(na) < 1L ||
-      length(nb) < 1L || !all(is.finite(c(na, nb))) ||
-      any(c(na, nb) %% 1 != 0) || any(c(na, nb) < 1)) {
+  if (
+    !is.numeric(na) ||
+      !is.numeric(nb) ||
+      length(na) < 1L ||
+      length(nb) < 1L ||
+      !all(is.finite(c(na, nb))) ||
+      any(c(na, nb) %% 1 != 0) ||
+      any(c(na, nb) < 1)
+  ) {
     stop("na and nb must be finite positive integers")
   }
   if (length(na) != length(nb)) {
-    stop("na and nb must have the same length: one value each, or one per block")
+    stop(
+      "na and nb must have the same length: one value each, or one per block"
+    )
   }
-  if (!is.null(nBlocksPlan) &&
-      (length(nBlocksPlan) != 1L || !is.finite(nBlocksPlan) ||
-         nBlocksPlan %% 1 != 0 || nBlocksPlan < 1)) {
+  if (
+    !is.null(nBlocksPlan) &&
+      (length(nBlocksPlan) != 1L ||
+        !is.finite(nBlocksPlan) ||
+        nBlocksPlan %% 1 != 0 ||
+        nBlocksPlan < 1)
+  ) {
     stop("nBlocksPlan must be a single positive integer")
   }
   if (length(na) > 1L) {
     if (!is.null(nBlocksPlan) && nBlocksPlan != length(na)) {
-      stop("nBlocksPlan = ", nBlocksPlan, " does not match the ", length(na),
-           " blocks given by na and nb")
+      stop(
+        "nBlocksPlan = ",
+        nBlocksPlan,
+        " does not match the ",
+        length(na),
+        " blocks given by na and nb"
+      )
     }
     nBlocksPlan <- length(na)
+  }
+
+  # TODO: add parameter for eGauss
+  if (!is.null(betaParameter)) {
+    result[["betaParameter"]] <- betaParameter
+  } else if (length(na) == 1L) {
+    result[["betaParameter"]] <- list(
+      "betaA1" = 1 / (2 * na),
+      "betaA2" = 1 / (2 * na),
+      "betaB1" = 1 / (2 * nb),
+      "betaB2" = 1 / (2 * na)
+    )
+  } else {
+    stop("na nb are vectors")
   }
   # Simulation settings: positive integers, and the cap nMax at least the
   # planned block count. Checked here so a bad value fails before sampling.
@@ -437,13 +485,18 @@ designSavi2x2 <- function(
   if (!is.null(propDiffMin) && !is.null(logOddsMin)) {
     stop("supply propDiffMin or logOddsMin, not both")
   }
-  if (!is.null(propDiffMin) &&
-      (length(propDiffMin) != 1L || !is.finite(propDiffMin) ||
-         abs(propDiffMin) >= 1)) {
+  if (
+    !is.null(propDiffMin) &&
+      (length(propDiffMin) != 1L ||
+        !is.finite(propDiffMin) ||
+        abs(propDiffMin) >= 1)
+  ) {
     stop("propDiffMin must be a single number in (-1, 1)")
   }
-  if (!is.null(logOddsMin) &&
-      (length(logOddsMin) != 1L || !is.finite(logOddsMin))) {
+  if (
+    !is.null(logOddsMin) &&
+      (length(logOddsMin) != 1L || !is.finite(logOddsMin))
+  ) {
     stop("logOddsMin must be a single finite number")
   }
   # Named so print() and plot() show which effect the minimal value is on.
@@ -455,31 +508,69 @@ designSavi2x2 <- function(
   effect <- names(esMin)
   # 0 is no restriction, pls use eBeta or eGauss
   if (!is.null(esMin) && esMin == 0) {
-    stop(effect, "Min = 0 is no restriction; use eType = '",
-         if (effect == "propDiff") "eBeta" else "eGauss", "'")
+    stop(
+      effect,
+      "Min = 0 is no restriction; use eType = '",
+      if (effect == "propDiff") "eBeta" else "eGauss",
+      "'"
+    )
   }
 
   # esMin must < 0 for alternative == "less"
   if (!is.null(esMin) && alternative == "less" && esMin > 0) {
-    stop(effect, "Min = ", esMin, " with alternative = 'less' puts the null ",
-         effect, " = 0 inside the alternative ", effect, " <= ", esMin,
-         "; for 'less' supply ", effect, "Min < 0, or use alternative = ",
-         "'greater'. A null at ", effect, " = ", esMin,
-         " is h0 != 0, which is not designed")
+    stop(
+      effect,
+      "Min = ",
+      esMin,
+      " with alternative = 'less' puts the null ",
+      effect,
+      " = 0 inside the alternative ",
+      effect,
+      " <= ",
+      esMin,
+      "; for 'less' supply ",
+      effect,
+      "Min < 0, or use alternative = ",
+      "'greater'. A null at ",
+      effect,
+      " = ",
+      esMin,
+      " is h0 != 0, which is not designed"
+    )
   }
   # esMin must > 0 for alternative == "greater"
   if (!is.null(esMin) && alternative == "greater" && esMin < 0) {
-    stop(effect, "Min = ", esMin, " with alternative = 'greater' puts the null ",
-         effect, " = 0 inside the alternative ", effect, " >= ", esMin,
-         "; for 'greater' supply ", effect, "Min > 0, or use alternative = ",
-         "'less'. A null at ", effect, " = ", esMin,
-         " is h0 != 0, which is not designed")
+    stop(
+      effect,
+      "Min = ",
+      esMin,
+      " with alternative = 'greater' puts the null ",
+      effect,
+      " = 0 inside the alternative ",
+      effect,
+      " >= ",
+      esMin,
+      "; for 'greater' supply ",
+      effect,
+      "Min > 0, or use alternative = ",
+      "'less'. A null at ",
+      effect,
+      " = ",
+      esMin,
+      " is h0 != 0, which is not designed"
+    )
   }
   # twoSided tests both signs of the value, so require the positive one:
   # the stored esMin then always carries the sign of the direction tested
   if (!is.null(esMin) && alternative == "twoSided" && esMin < 0) {
-    stop(effect, "Min = ", esMin, " with alternative = 'twoSided'; supply ",
-         effect, "Min > 0, both signs of it are tested")
+    stop(
+      effect,
+      "Min = ",
+      esMin,
+      " with alternative = 'twoSided'; supply ",
+      effect,
+      "Min > 0, both signs of it are tested"
+    )
   }
   result[["esMin"]] <- esMin
 
@@ -488,17 +579,30 @@ designSavi2x2 <- function(
   if (eType == "grow" && !is.null(propDiffMin) && !is.null(power)) {
     # Scenario 1: propDiffMin + power -> worst-case stopping time
     planning <- computeNPlanSavi2x2(
-      propDiffMin = propDiffMin, na = na, nb = nb,
-      power = power, alpha = alpha, alternative = alternative,
-      betaParameter = result[["betaParameter"]], nTheta = nTheta,
-      nSim = nSim, nBoot = nBoot, nMax = nMax, seed = seed,
-      wantSamplePaths = wantSamplePaths, pb = pb
+      propDiffMin = propDiffMin,
+      na = na,
+      nb = nb,
+      power = power,
+      alpha = alpha,
+      alternative = alternative,
+      betaParameter = result[["betaParameter"]],
+      nTheta = nTheta,
+      nSim = nSim,
+      nBoot = nBoot,
+      nMax = nMax,
+      seed = seed,
+      wantSamplePaths = wantSamplePaths,
+      pb = pb
     )
     result[["designScenario"]] <- "1a"
     result[["power"]] <- power
     nBlocksPlan <- planning[["nPlan"]]
     # na, nb are planned, not simulated: no standard error for them.
-    result[["nPlanTwoSe"]] <- c(NA, NA, 2 * planning[["bootObjNPlan"]][["bootSe"]])
+    result[["nPlanTwoSe"]] <- c(
+      NA,
+      NA,
+      2 * planning[["bootObjNPlan"]][["bootSe"]]
+    )
     result[["bootObjNBlocksPlan"]] <- planning[["bootObjNPlan"]]
     result[["nMean"]] <- c("nMean" = planning[["nMean"]])
     result[["nMeanTwoSe"]] <- 2 * planning[["bootObjNMean"]][["bootSe"]]
@@ -506,11 +610,19 @@ designSavi2x2 <- function(
   } else if (eType == "grow" && !is.null(propDiffMin) && !is.null(nBlocksPlan)) {
     # Scenario 2: propDiffMin + nBlocksPlan -> worst-case power
     planning <- computePowerSavi2x2(
-      propDiffMin = propDiffMin, na = na, nb = nb,
-      nBlocks = nBlocksPlan, alpha = alpha, alternative = alternative,
-      betaParameter = result[["betaParameter"]], nTheta = nTheta,
-      nSim = nSim, nBoot = nBoot, seed = seed,
-      wantSamplePaths = wantSamplePaths, pb = pb
+      propDiffMin = propDiffMin,
+      na = na,
+      nb = nb,
+      nBlocks = nBlocksPlan,
+      alpha = alpha,
+      alternative = alternative,
+      betaParameter = result[["betaParameter"]],
+      nTheta = nTheta,
+      nSim = nSim,
+      nBoot = nBoot,
+      seed = seed,
+      wantSamplePaths = wantSamplePaths,
+      pb = pb
     )
     result[["designScenario"]] <- "2"
     result[["power"]] <- planning[["power"]]
@@ -519,19 +631,30 @@ designSavi2x2 <- function(
   } else if (eType == "grow" && is.null(esMin)) {
     # Scenario 3: power + nBlocksPlan -> the minimal detectable propDiff,
     esMin <- computeEsMinSavi2x2(
-      na = na, nb = nb, nBlocksPlan = nBlocksPlan, power = power,
-      alpha = alpha, alternative = alternative,
-      betaParameter = result[["betaParameter"]], nTheta = nTheta,
-      nSim = nSim, seed = seed, pb = pb
+      na = na,
+      nb = nb,
+      nBlocksPlan = nBlocksPlan,
+      power = power,
+      alpha = alpha,
+      alternative = alternative,
+      betaParameter = result[["betaParameter"]],
+      nTheta = nTheta,
+      nSim = nSim,
+      seed = seed,
+      pb = pb
     )
     # NA: the worst-case power never reaches the target on the search
     # bounds, so no minimal effect can be reported.
     if (is.na(esMin)) {
-      stop(sprintf(paste(
-        "no minimal propDiff found: at nBlocksPlan = %g the worst-case power",
-        "does not reach %g for any magnitude in (0.01, 0.9); try a larger",
-        "nBlocksPlan or a smaller power"
-      ), nBlocksPlan, power))
+      stop(sprintf(
+        paste(
+          "no minimal propDiff found: at nBlocksPlan = %g the worst-case power",
+          "does not reach %g for any magnitude in (0.01, 0.9); try a larger",
+          "nBlocksPlan or a smaller power"
+        ),
+        nBlocksPlan,
+        power
+      ))
     }
     result[["designScenario"]] <- "3"
     result[["esMin"]] <- c("propDiff" = esMin)
@@ -548,13 +671,12 @@ designSavi2x2 <- function(
   }
 
   result[["parameter"]] <- c(
-    "Beta hyperparameters" =
-      paste(unlist(result[["betaParameter"]]), collapse = " ")
+    "Beta hyperparameters" = paste(
+      unlist(result[["betaParameter"]]),
+      collapse = " "
+    )
   )
-  result[["eType"]] <- eType
-  result[["alpha"]] <- alpha
-  result[["alternative"]] <- alternative
-  result[["h0"]] <- 0
+
   result[["nPlan"]] <- list("na" = na, "nb" = nb)
   if (!is.null(nBlocksPlan)) {
     result[["nPlan"]][["nBlocksPlan"]] <- unname(nBlocksPlan)

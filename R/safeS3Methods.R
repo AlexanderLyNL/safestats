@@ -74,7 +74,7 @@ constructSaviDesignObj <- function(testName) {
     testSpecificList <- list("exact"=NULL)
   } else if (testName=="Two Proportions") {
     testSpecificList <- list(
-      "betaParameter"=list("betaA1"=0.18, "betaA2"=0.18,"betaB1"=0.18, "betaB2"=0.18),
+      "betaParameter"=NULL,
       "relevanceTest"=FALSE,
       "runningIntersection"=FALSE,
       "testName"=testName)
