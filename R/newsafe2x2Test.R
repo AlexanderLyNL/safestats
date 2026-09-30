@@ -1782,17 +1782,32 @@ computeNPlanSavi2x2 <- function(
 #'   [computeMinEsBatchSaviT()].
 #' @noRd
 computeEsMinSavi2x2 <- function(
-  na, nb, nBlocksPlan, power = 0.8, alpha = 0.05,
+  na,
+  nb,
+  nBlocksPlan,
+  power = 0.8,
+  alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
-  betaParameter = NULL, nTheta = 8L, nSim = 1e3L, seed = NULL, pb = TRUE,
-  propDiffBounds = c(0.01, 0.9), tol = 1e-5
+  betaParameter = NULL,
+  nTheta = 8L,
+  nSim = 1e3L,
+  seed = NULL,
+  pb = TRUE,
+  propDiffBounds = c(0.01, 0.9),
+  tol = 1e-5
 ) {
   alternative <- match.arg(alternative)
   bounds <- propDiffBounds
   stopifnot(
-    length(nBlocksPlan) == 1, is.finite(nBlocksPlan), nBlocksPlan >= 1,
-    power > 0, power < 1, length(bounds) == 2, bounds[1] > 0,
-    bounds[1] < bounds[2], bounds[2] < 1
+    length(nBlocksPlan) == 1,
+    is.finite(nBlocksPlan),
+    nBlocksPlan >= 1,
+    power > 0,
+    power < 1,
+    length(bounds) == 2,
+    bounds[1] > 0,
+    bounds[1] < bounds[2],
+    bounds[2] < 1
   )
 
   # Worst-case power minus the target, at a candidate propDiffMin. The same
@@ -1801,11 +1816,19 @@ computeEsMinSavi2x2 <- function(
   # the sampler, so the worst case is taken afresh each time.
   targetFunction <- function(propDiffMin) {
     computePowerSavi2x2(
-      propDiffMin = propDiffMin, na = na, nb = nb, nBlocks = nBlocksPlan,
-      alpha = alpha, alternative = alternative,
-      betaParameter = betaParameter, nTheta = nTheta, nSim = nSim,
-      seed = seed, pb = pb
-    )[["power"]] - power
+      propDiffMin = propDiffMin,
+      na = na,
+      nb = nb,
+      nBlocks = nBlocksPlan,
+      alpha = alpha,
+      alternative = alternative,
+      betaParameter = betaParameter,
+      nTheta = nTheta,
+      nSim = nSim,
+      seed = seed,
+      pb = pb
+    )[["power"]] -
+      power
   }
 
   # No sign change means the target is out of reach on the bracket (or
@@ -1815,8 +1838,12 @@ computeEsMinSavi2x2 <- function(
     return(NA_real_)
   }
 
-  esMin <- stats::uniroot(targetFunction, interval = bounds,
-    f.lower = targetAtBounds[1], f.upper = targetAtBounds[2], tol = tol
+  esMin <- stats::uniroot(
+    targetFunction,
+    interval = bounds,
+    f.lower = targetAtBounds[1],
+    f.upper = targetAtBounds[2],
+    tol = tol
   )[["root"]]
   # The search is on the magnitude; the sign follows the alternative.
   if (alternative == "less") -esMin else esMin
