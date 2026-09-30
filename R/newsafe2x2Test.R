@@ -1196,16 +1196,21 @@ solveRIPr2x2PropDiff <- function(
 
 # logOdds is always log(oddsA / oddsB) = logit(thetaA) - logit(thetaB)
 # it tells the difference between odds in group A against group B.
-# given the ya + yb, ya is Fisher's noncentral hypergeometric with odds
+# conditioning on ya + yb, ya is Fisher's noncentral hypergeometric with odds
 # exp(logOdds) on group A.
 
-# Per-block conditional log likelihood of ya at one logOdds: given the
-# total ya + yb, ya is FNCH with odds exp(logOdds) on group A.
-# dFNCHypergeo() takes scalar sizes, hence the loop over blocks
+# A vector of conditional log likelihood at one logOdds
+# TODO: what if ya, yb, na, nb are vector
 logLikelihoodFNCH <- function(ya, yb, na, nb, logOdds) {
-  mapply(function(ya, yb, na, nb) {
-    log(BiasedUrn::dFNCHypergeo(ya, na, nb, ya + yb, exp(logOdds)))
-  }, ya = ya, yb = yb, na = na, nb = nb)
+  mapply(
+    function(ya, yb, na, nb) {
+      log(BiasedUrn::dFNCHypergeo(ya, na, nb, ya + yb, exp(logOdds)))
+    },
+    ya = ya,
+    yb = yb,
+    na = na,
+    nb = nb
+  )
 }
 
 # Compute the plain log e-process of the grow logOdds test: cumulative
