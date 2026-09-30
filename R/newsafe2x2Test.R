@@ -1454,7 +1454,7 @@ sampleStoppingTimesSavi2x2 <- function(
       "betaParameter"
     ]]
   }
-  # Reproducible by default: 2026 unless a seed is given.
+
   set.seed(if (is.null(seed)) 2026 else seed)
 
   # TODO: a lot of time wasted near the boundary
