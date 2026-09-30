@@ -921,9 +921,9 @@ computeConfidenceInterval2x2LogOdds <- function(
   if (fLogOdds(minimiser) >= 0) {
     warning(
       "No confidence interval is found on (",
-      round(lowerBound, 4),
+      round(domain[1], 4),
       ",",
-      round(lowerBound, 4),
+      round(domain[2], 4),
       ")"
     )
     return(c("lowerBound" = domain[1], "upperBound" = domain[2]))
