@@ -621,7 +621,7 @@ computeConfidenceInterval2x2PropDiff <- function(ya, yb, na, nb,
       stats::dbinom(ya, na, thetaA, log = TRUE) +
         stats::dbinom(yb, nb, thetaB, log = TRUE) -
         stats::dbinom(ya, na, nullThetaA, log = TRUE) -
-        stats::dbinom(yb, nb, nullThetaA + propDiff, log = TRUE)
+        stats::dbinom(yb, nb, nullThetaA - propDiff, log = TRUE)
     ) - log(1 / alpha)
   }
 
@@ -724,7 +724,7 @@ computeConfidenceSequence2x2PropDiff <- function(ya, yb, na, nb,
       stats::dbinom(ya[i], na[i], thetaA[i], log = TRUE) +
       stats::dbinom(yb[i], nb[i], thetaB[i], log = TRUE) -
       stats::dbinom(ya[i], na[i], nullThetaA, log = TRUE) -
-      stats::dbinom(yb[i], nb[i], nullThetaA + delta, log = TRUE)
+      stats::dbinom(yb[i], nb[i], nullThetaA - delta, log = TRUE)
 
     # Kept candidates; one run by convexity.
     f <- logEValues - logThreshold
@@ -993,14 +993,15 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
 # TODO: this can be a cubic function solver
 solveRIPr2x2PropDiff <- function(thetaA, thetaB, na, nb, propDiff) {
   derivativeKL <- function(nullThetaA) {
-    nullThetaB <- nullThetaA + propDiff
+    nullThetaB <- nullThetaA - propDiff
     na * ((1 - thetaA) / (1 - nullThetaA) - thetaA / nullThetaA) +
       nb * ((1 - thetaB) / (1 - nullThetaB) - thetaB / nullThetaB)
   }
 
-  # The derivative is infinite at the edges, so search just inside them.
+  # nullThetaA must keep both nullThetaA and nullThetaA - propDiff in
+  # (0, 1); the derivative is infinite at the edges, so search just inside.
   stats::uniroot(derivativeKL,
-    lower = max(0, -propDiff) + 1e-12, upper = min(1, 1 - propDiff) - 1e-12,
+    lower = max(0, propDiff) + 1e-12, upper = min(1, 1 + propDiff) - 1e-12,
     tol = 1e-12
   )[["root"]]
 }
