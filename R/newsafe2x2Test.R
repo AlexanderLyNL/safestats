@@ -1060,9 +1060,9 @@ solveUmpLogOdds <- function(na, nb, totalSuccesses, alpha,
   # logOdds is B minus A, so the weighted count is yb: group B goes first.
   klMinusTarget <- function(logOdds) {
     (logOdds - nullLogOdds) *
-      BiasedUrn::meanFNCHypergeo(nb, na, totalSuccesses, exp(logOdds)) -
-      fnchLogPartition(nb, na, totalSuccesses, logOdds) +
-      fnchLogPartition(nb, na, totalSuccesses, nullLogOdds) + log(alpha)
+      BiasedUrn::meanFNCHypergeo(na, nb, totalSuccesses, exp(logOdds)) -
+      fnchLogPartition(na, nb, totalSuccesses, logOdds) +
+      fnchLogPartition(na, nb, totalSuccesses, nullLogOdds) + log(alpha)
   }
 
   # The KL is bounded, so the target may be unreachable within the search
