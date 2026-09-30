@@ -1059,7 +1059,11 @@ logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
   logLikelihoodAlternative - logLikelihoodNull
 }
 
-# Compute the log evalue restricted to propDiffMin
+# Cumulative log e-process of the grow propDiff test. The alternative is
+# restricted to the curve thetaA = thetaB + propDiffMin (sign from
+# alternative), which leaves one free parameter; a grid posterior on it gives
+# the predictable plug-in for each block. Element i covers blocks 1..i;
+# earlyStopping cuts the vector at the first crossing of 1 / alpha.
 logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   propDiffMin, alpha, alternative = c("twoSided", "greater", "less"),
   earlyStopping = FALSE,
@@ -1069,14 +1073,12 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   nBlocks <- length(ya)
   logThreshold <- log(1 / alpha)
 
-  # The design matches the sign of propDiffMin to a one-sided alternative,
-  # and the curves below are chosen by alternative, so only the magnitude
-  # is needed here.
+  # Only the magnitude is used; the sign comes from alternative below.
   propDiffMin <- abs(propDiffMin)
 
-  # One-sided processes to run: the plus curve for "greater", the minus
-  # curve for "less", both for "twoSided". Each side keeps its own grid
-  # posterior and likelihoods.
+  # One process per side: +1 is the plus curve thetaA = thetaB + propDiffMin
+  # ("greater"), -1 the minus curve thetaA = thetaB - propDiffMin ("less").
+  # twoSided runs both and averages them at the end.
   signs <- switch(alternative,
     "twoSided" = c(1, -1),
     "greater" = 1,
@@ -1084,18 +1086,16 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   )
   nSides <- length(signs)
 
-  # One grid serves both curves. On either curve the two proportions are
-  # exactly propDiffMin apart, so the smaller one ranges over
-  # (0, 1 - propDiffMin) and the larger one over (propDiffMin, 1). rho in
-  # (0, 1) is the smaller proportion rescaled to the unit interval:
+  # On either curve the two proportions are propDiffMin apart: the smaller
+  # one lies in (0, 1 - propDiffMin), the larger in (propDiffMin, 1). The
+  # free parameter rho in (0, 1) is the smaller one rescaled:
   #   thetaSmall = rho * (1 - propDiffMin),  thetaLarge = thetaSmall + propDiffMin
   rho <- seq(1 / nWeight, 1 - 1 / nWeight, length.out = nWeight)
   thetaSmall <- rho * (1 - propDiffMin)
   thetaLarge <- thetaSmall + propDiffMin
 
-  # nWeight x nSides grids, column s for side s. On the plus curve
-  # ("greater") A is the larger group: thetaA = thetaB + propDiffMin. On the
-  # minus curve ("less") B is the larger group: thetaA = thetaB - propDiffMin.
+  # nWeight x nSides grids, one column per side. Plus curve: A is the larger
+  # group. Minus curve: B is the larger group.
   thetaAGrid <- vapply(
     signs,
     function(sign) if (sign > 0) thetaLarge else thetaSmall,
@@ -1111,34 +1111,33 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
   logThetaB <- log(thetaBGrid)
   logOneMinusThetaB <- log1p(-thetaBGrid)
 
-  # Prior: Beta(betaA1, betaA2) on rho, which is thetaA rescaled to (0, 1)
-  # on either curve; only the A shapes are used, and every side starts from
-  # the same column. Un-normalised log weights, shifted so their maximum is
-  # 0: the largest weight is then exactly 1 and the sum can neither
-  # underflow nor overflow, however many blocks have been seen.
-  betaA1 <- betaParameter[["betaA1"]]
-  betaA2 <- betaParameter[["betaA2"]]
-  logWeights <- (betaA1 - 1) * log(rho) + (betaA2 - 1) * log1p(-rho)
+  # Prior: Beta(betaA1, betaA2) on rho, the same column for every side. Only
+  # relative weights matter, so the log density is centred at its maximum:
+  # the largest weight is exactly 1 and exp() can neither overflow nor
+  # underflow.
+  logWeights <- stats::dbeta(
+    rho,
+    betaParameter[["betaA1"]],
+    betaParameter[["betaA2"]],
+    log = TRUE
+  )
   logWeights <- matrix(logWeights - max(logWeights), nWeight, nSides)
 
-  # The plain plug-in process, Bayesian updating from start to finish:
-  # every block, block 1 included, takes the posterior-mean plug-in given
-  # blocks 1..i-1 and is added to the posterior afterwards. Row i holds
-  # the cumulative log e-value of blocks 1..i per side.
+  # Cumulative log likelihoods per side. Block i plugs in the posterior mean
+  # given blocks 1..i-1 (block 1 uses the prior) and joins the posterior
+  # afterwards. Row i holds the cumulative log e-value of blocks 1..i.
   logLikelihoodNull <- numeric(nSides)
   logLikelihoodAlternative <- numeric(nSides)
   logEValueSides <- matrix(NA_real_, nBlocks, nSides)
 
   for (i in seq_len(nBlocks)) {
     for (s in seq_len(nSides)) {
-      # Numerator: posterior means of thetaA and thetaB given blocks 1..i-1.
-      # Both use the same weights on the same rho, so they stay propDiffMin
-      # apart, on the curve.
-      weights <- exp(logWeights[, s])
-      weights <- weights / sum(weights)
-      thetaA <- sum(thetaAGrid[, s] * weights)
-      thetaB <- sum(thetaBGrid[, s] * weights)
-      # Null: projection onto thetaA = thetaB, the size-weighted pooled mean.
+      # Numerator: posterior mean of thetaA on the grid; thetaB follows on
+      # the curve.
+      thetaA <- stats::weighted.mean(thetaAGrid[, s], exp(logWeights[, s]))
+      thetaB <- thetaA - signs[s] * propDiffMin
+      # Denominator: the KL projection onto the null thetaA = thetaB is the
+      # size-weighted pooled mean.
       thetaNull <- (na[i] * thetaA + nb[i] * thetaB) / (na[i] + nb[i])
 
       logLikelihoodNull[s] <- logLikelihoodNull[s] +
@@ -1150,38 +1149,36 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
     }
     logEValueSides[i, ] <- logLikelihoodAlternative - logLikelihoodNull
 
-    # Early stopping looks at the cumulative e-value averaged over the
-    # sides on the log scale.
+    # Early stopping tests the side-averaged cumulative e-value, computed on
+    # the log scale.
     if (earlyStopping) {
       logEValueMax <- max(logEValueSides[i, ])
-      if (logEValueMax + log(mean(exp(logEValueSides[i, ] - logEValueMax))) >= logThreshold) {
+      logEValue <- logEValueMax +
+        log(mean(exp(logEValueSides[i, ] - logEValueMax)))
+      if (logEValue >= logThreshold) {
         logEValueSides <- logEValueSides[seq_len(i), , drop = FALSE]
         break
       }
     }
 
     # Only now add block i to each posterior, so block i + 1 is predicted
-    # from the past alone.
+    # from the past alone. Binomial coefficients are constant over the grid
+    # and are left out.
     logWeights <- logWeights +
       ya[i] * logThetaA +
       (na[i] - ya[i]) * logOneMinusThetaA +
       yb[i] * logThetaB +
       (nb[i] - yb[i]) * logOneMinusThetaB
-    # Re-centre each side's column at its maximum (sweep(x, 2, v) subtracts
-    # v[j] from column j): the largest weight is again exactly 1, so the
-    # posterior mean's exp() and sum() cannot underflow however many
-    # blocks have been seen. A per-column constant leaves the mean unchanged.
+    # Re-centre each column at its maximum (a per-column constant leaves the
+    # posterior mean unchanged) so exp() stays safe as blocks accumulate.
     logWeights <- sweep(logWeights, 2, apply(logWeights, 2, max))
   }
 
-  # Average of the one-sided cumulative e-values per block, on the log
-  # scale shifted by the larger one so exp() cannot overflow. One side:
-  # the value itself.
+  # twoSided: average the two cumulative e-values, on the log scale so exp()
+  # cannot overflow. One side: the value itself.
   logEValueMax <- apply(logEValueSides, 1, max)
-  logEValueVec <- logEValueMax +
+  logEValueMax +
     log(rowMeans(exp(logEValueSides - logEValueMax)))
-
-  logEValueVec
 }
 
 # Find the means that minimize the KL between the alternative and null
