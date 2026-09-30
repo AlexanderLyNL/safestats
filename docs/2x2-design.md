@@ -124,9 +124,10 @@ conditional factor, as for grow; the posterior still absorbs block 1.
 **PropDiff grow.** `logEValueVec2x2PropDiffGrow` learns on
 `thetaA = thetaB + propDiffMin` with the signed value: 1000 interior grid
 points in `thetaA`'s feasible interval, `(d, 1)` for `d > 0` and
-`(0, 1 + d)` for `d < 0`, with `Beta(betaA1, betaA2)` on its rescaling to `(0,1)`.
-Only A's prior shapes are used. Each block uses the grid posterior mean,
-the pooled denominator, then updates weights on the log scale.
+`(0, 1 + d)` for `d < 0`, with a uniform prior, `Beta(1, 1)`, on its rescaling
+to `(0,1)`; the design's `betaParameter` shapes are not used by grow. Each
+block uses the grid posterior mean, the pooled denominator, then updates
+weights on the log scale.
 Two-sided grow runs separate positive/negative curves and averages their
 **cumulative processes**, not their blockwise factors. The helper returns
 the plain plug-in process; `savi2x2TestStat` then **replaces**
