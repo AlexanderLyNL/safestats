@@ -135,18 +135,6 @@ savi2x2TestStat <- function(
   if (nBlocks == 1L) {
     warnings("There is only 1 table, switched to UMP conditional e-variable")
   }
-  if (
-    !is.null(designObj[["nPlan"]][["nBlocksPlan"]]) &&
-      designObj[["nPlan"]][["nBlocksPlan"]] != nBlocks
-  ) {
-    stop(
-      "nBlocksPlan = ",
-      designObj[["nPlan"]][["nBlocksPlan"]],
-      " does not match the ",
-      nBlocks,
-      " blocks in ya and yb"
-    )
-  }
 
   if (length(yb) != nBlocks || length(na) != nBlocks || length(nb) != nBlocks) {
     stop("ya, yb, na and nb must have one value per block")
