@@ -166,10 +166,12 @@ the design's `alternative`, exactly as on propDiff.
 conditional e-factor, averaging the two one-sided factors for `twoSided`.
 `solveUmpLogOdds` solves conditional KL equal to `log(1/alpha)`, searching
 up to 100 from `logOddsNull = 0` in the chosen direction. It returns
-`NULL` (factor 1) exactly when the target is unreachable: the KL's supremum,
+`NULL` exactly when the target is unreachable: the KL's supremum,
 `-log P0(yb at its extreme)` for that side, is at most `log(1/alpha)`, e.g.
 totals `0` or `na + nb`, or `na = nb = 1`. Dependence on the current total is
-allowed because the conditional test conditions on it. Numerical FNCH
+allowed because the conditional test conditions on it. On `NULL` for any
+side, `savi2x2TestStatUmp` returns `NULL` and `savi2x2TestStat` keeps block 1
+of the plain process instead of replacing it, with a warning. Numerical FNCH
 underflow remains unresolved ([R3](2x2-review.md#r3)).
 
 ## Confidence intervals and sequences

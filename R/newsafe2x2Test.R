@@ -18,12 +18,9 @@ savi2x2TestStatUmp <- function(
   for (side in sides) {
     logOdds <- solveUmpLogOdds(na, nb, ya + yb, alpha, side)
     if (is.null(logOdds)) {
-      stop(
-        "No UMP logOdds found for the given alpha = ",
-        alpha,
-        " and alternative = ",
-        alternative
-      )
+      # No one-block test at level alpha can reject on this side, so there
+      # is no UMP e-value; the caller keeps block 1 of the plain process.
+      return(NULL)
     }
     logLikelihoodAlternative <- logLikelihoodFNCH(ya, yb, na, nb, logOdds)
     eValue <- eValue + exp(logLikelihoodAlternative - logLikelihoodNull)
@@ -54,7 +51,8 @@ savi2x2TestStatUmp <- function(
 #'   the side of a one-sided `alternative`, against the hypergeometric null.
 #'
 #' In every case the first table's e-value is replaced by the UMP
-#' conditional e-value. Only `"eBeta"` and `"eGauss"` give a confidence
+#' conditional e-value when one exists at level `alpha`; otherwise block 1
+#' keeps its plain factor. Only `"eBeta"` and `"eGauss"` give a confidence
 #' interval or sequence, on their own effect.
 #'
 #' @param ya Successes in groups A, a numeric vector of nonnegative integers.
@@ -204,7 +202,16 @@ savi2x2TestStat <- function(
   )
   # Replace block 1 by the UMP e-value
   # logEValueVec[1] should be log(1) = 0 but write it out for clarity
-  logEValueVec <- logEValueVec - logEValueVec[1] + log(eValueUmp)
+  # No UMP e-value at this alpha (NULL): block 1 keeps its plain factor.
+  if (!is.null(eValueUmp)) {
+    logEValueVec <- logEValueVec - logEValueVec[1] + log(eValueUmp)
+  } else {
+    warning(
+      "no UMP e-value exists for the first block at alpha = ",
+      alpha,
+      "; block 1 keeps the plain e-value"
+    )
+  }
 
   # Compute: confSeq ----
   # Only for eBeta and eGauss, use 1 - alpha unless specified
