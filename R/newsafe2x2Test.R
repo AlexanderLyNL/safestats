@@ -218,7 +218,7 @@ savi2x2TestStat <- function(
   ciValue <- ifelse(is.null(ciValue), 1 - designObj[["alpha"]], ciValue)
   result[["ciValue"]] <- ciValue
 
-  if (eType == "grow") {
+  if (eType == "grow" && (wantCi || wantConfidenceSequence)) {
     warning(
       "Confidence interval/sequences only available for eType = ",
       "'eBeta' or 'eGauss'"
@@ -1051,6 +1051,7 @@ computeConfidenceSequence2x2LogOdds <- function(
   gaussParameter = NULL,
   alternative = c("twoSided", "greater", "less")
 ) {
+  # THIS IS SLOW, WE MIGHT WANT TO STOP EARLY!
   alternative <- match.arg(alternative)
   nBlocks <- length(ya)
   # The eGauss numerator on blocks 1..i, without the UMP replacement
