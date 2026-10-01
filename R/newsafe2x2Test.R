@@ -1,6 +1,18 @@
 # Test functions ----
 
-#' Computes Conditional E-Value with UMP Log Odds Ratio
+#' UMP conditional e-value of one 2x2 table
+#'
+#' The e-value of the conditional test on one table: the likelihood of
+#' [logLikelihoodFNCH()] at the uniformly most powerful log odds ratio of
+#' [solveUmpLogOdds()] over the hypergeometric null. `"twoSided"` averages
+#' the two one-sided e-values. The test uses it in place of block 1's
+#' plain factor.
+#'
+#' @inheritParams savi2x2TestStat
+#' @inheritParams designSavi2x2
+#'
+#' @return A numeric, or `NULL` when no one-sided UMP log odds ratio exists
+#'   at level `alpha`.
 savi2x2TestStatUmp <- function(
   ya, yb, na, nb, alpha,
   alternative = c("twoSided", "greater", "less")
@@ -30,72 +42,90 @@ savi2x2TestStatUmp <- function(
   eValue / length(sides)
 }
 
-#' Safe anytime-valid 2x2 test for propDiff or logOdds
+#' Safe Anytime-Valid Test of Two Proportions
 #'
-#' Tests a null of no effect on a sequence of 2x2 tables, one table per
-#' block. `designObj[["eType"]]` picks the e-process and, with it, the effect.
-#' Both effects are signed A minus B: `propDiff = thetaA - thetaB` and
-#' `logOdds = logit(thetaA) - logit(thetaB)`, so `"greater"` means group A
-#' has the larger proportion. The numerator for block `i` uses blocks
-#' `1..i-1` only, except that eGauss mixes over the grid posterior including
-#' block `i`, which is valid because it conditions on the block's total.
+#' Tests `thetaA = thetaB` on a stream of 2x2 tables, one per block, with
+#' the e-process chosen by `designObj[["eType"]]`. Both effects are A
+#' minus B, `propDiff = thetaA - thetaB` and `logOdds = logit(thetaA) -
+#' logit(thetaB)`, so `"greater"` means group A has the larger proportion,
+#' as in [stats::t.test()]. Block 1 of every e-process is replaced by the
+#' UMP conditional e-value of [savi2x2TestStatUmp()] when one exists at
+#' level `alpha`; otherwise it keeps its plain factor, with a warning.
 #'
-#' - `"eBeta"` (propDiff): two independent Beta posterior means for `thetaA`
-#'   and `thetaB`, tested against the pooled null mean. `"twoSided"` only.
-#' - `"grow"` (propDiff or logOdds, whichever minimal effect the design
-#'   holds): the alternative is restricted to the signed minimal effect,
-#'   positive with `"greater"`, negative with `"less"`. `"twoSided"` averages
-#'   the cumulative e-values at both signs of its magnitude.
-#' - `"eGauss"` (logOdds): the conditional FNCH likelihood mixed under the
-#'   design's `gaussParameter` Normal prior on a logOdds grid, restricted to
-#'   the side of a one-sided `alternative`, against the hypergeometric null.
+#' - `"eBeta"` (`propDiff`): independent Beta posterior means of `thetaA`
+#'   and `thetaB` from the previous blocks, against the pooled null mean.
+#' - `"grow"` (`propDiff` or `logOdds`, whichever minimal effect the design
+#'   holds): the alternative restricted to the signed minimal effect;
+#'   `"twoSided"` averages the cumulative e-processes of both signs.
+#' - `"eGauss"` (`logOdds`): the conditional likelihood of Fisher's
+#'   noncentral hypergeometric distribution mixed under the design's Normal
+#'   prior on a `logOdds` grid, against the hypergeometric null. The
+#'   mixture may include the current block because it conditions on the
+#'   block's total.
 #'
-#' In every case the first table's e-value is replaced by the UMP
-#' conditional e-value when one exists at level `alpha`; otherwise block 1
-#' keeps its plain factor. Only `"eBeta"` and `"eGauss"` give a confidence
-#' interval or sequence, on their own effect.
+#' Only `"eBeta"` and `"eGauss"` give a confidence interval or sequence,
+#' each on its own effect.
 #'
-#' @param ya Successes in groups A, a numeric vector of nonnegative integers.
-#' @param yb Successes in groups B, a numeric vector of nonnegative integers.
-#' @param designObj an object obtained from \code{\link{designSavi2x2}}.
-#' @param wantCi default `TRUE` a confidence interval on the last block
-#' @param wantConfidenceSequence `TRUE` for a confidence sequence with one
-#'   row per block (`"eBeta"` and `"eGauss"` only). It takes precedence over
-#'   `wantCi`.
-#' @param ciValue Confidence level; the default `NULL` gives `1 - alpha`,
-#'   with `alpha` from `designObj`.
+#' @param ya positive observations/ events per data block in group A: a
+#'   numeric with integer values between (and including) 0 and `na`, the
+#'   number of observations in group A per block.
+#' @param yb positive observations/ events per data block in group B: a
+#'   numeric with integer values between (and including) 0 and `nb`, the
+#'   number of observations in group B per block.
+#' @param designObj an object obtained from [designSavi2x2()], which also
+#'   supplies `na` and `nb`.
+#' @param wantCi default `TRUE`, also compute a savi confidence interval on
+#'   all blocks.
+#' @param wantConfidenceSequence logical that can be set to true when the
+#'   user wants a savi confidence sequence to be estimated, one row per
+#'   block; takes precedence over `wantCi`.
+#' @param ciValue numeric representing the confidence level.
+#'   Default ciValue=NULL yields ciValue = 1 - alpha
 #'
-#' @return A `saviTest` list with `testName = "Two Proportions"`,
-#'   `testType = "2x2"` and:
+#' @return Returns an object of class 'saviTest'. An object of class 'saviTest'
+#' is a list containing at least the following components:
 #'
-#' - `eValueVec`: the realised cumulative e-value after each block, on
-#'   blocks `1..i` for element `i` (not the blockwise e-factors).
-#' - `eValue`: the last element of `eValueVec`, the e-value on all blocks.
-#'   Reject when it is at least `1 / alpha`.
-#' - `n`: `c(na = sum(na), nb = sum(nb), nBlocks = length(ya))`.
-#' - `n1Vec`: `seq_len(nBlocks)`, the block index, used for plotting only.
-#' - `estimate`: `c(thetaA, thetaB)`, the pooled observed proportions
-#'   `sum(ya) / sum(na)` and `sum(yb) / sum(nb)`.
-#' - `confSeq`: named `c(lowerBound, upperBound)` for the design's effect
-#'   at level `ciValue` on all blocks. With `wantConfidenceSequence`, this is
-#'   the last row of `confSeqMatrix`. Both bounds are `NA` when the set is
-#'   empty. It is `NULL` for `"grow"`, or when neither `wantCi` nor
-#'   `wantConfidenceSequence` is `TRUE`.
-#' - `confSeqMatrix`: an `nBlocks x 2` matrix of `lowerBound` and
-#'   `upperBound`. Row `i` is the interval on blocks `1..i`. With
-#'   `runningIntersection`, the rows are nested and stay `NA` after the first
-#'   empty row. It is present only with `wantConfidenceSequence`.
-#' - `ciValue`: the confidence level used.
-#' - `betaParameter` (`"eBeta"` only): `list(betaA1, betaA2, betaB1,
-#'   betaB2)`, the design's Beta prior updated with all blocks. This is the
-#'   prior that a next block would use.
-#' - `alternative`, `h0`, `designObj`: copied from the design.
-#' - `dataName`: the deparsed `ya` and `yb` arguments.
-#' - `call`: the matched call.
+#' \describe{
+#'   \item{n}{The realised sample size(s):
+#'   `c(na = sum(na), nb = sum(nb), nBlocks = length(ya))`.}
+#'   \item{eValue}{the e-value of the savi test on all blocks; reject when
+#'   it is at least `1 / alpha`.}
+#'   \item{eValueVec}{the realised e-values after each block, element `i`
+#'   on blocks `1..i`.}
+#'   \item{n1Vec}{the block index, used for plotting.}
+#'   \item{estimate}{the estimated proportions `c(thetaA, thetaB)`, pooled
+#'   over all blocks.}
+#'   \item{confSeq}{a savi confidence interval for the design's effect at
+#'   level `ciValue` on all blocks; `NA` when the set is empty, `NULL` for
+#'   "grow" or when no interval was requested.}
+#'   \item{confSeqMatrix}{with `wantConfidenceSequence`, the savi confidence
+#'   sequence as an `nBlocks x 2` matrix, row `i` the interval on blocks
+#'   `1..i`; `confSeq` is its last row. With `runningIntersection` the
+#'   rows are nested and stay `NA` after the first empty row.}
+#'   \item{ciValue}{the confidence level used.}
+#'   \item{betaParameter}{for "eBeta" only, `list(betaA1, betaA2, betaB1,
+#'   betaB2)`, the Beta prior updated with all blocks.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" copied from
+#'   the design.}
+#'   \item{h0}{the null value copied from the design.}
+#'   \item{dataName}{a character string giving the name(s) of the data.}
+#'   \item{designObj}{an object of class "saviDesign" described in
+#'   [designSavi2x2()].}
+#'   \item{call}{the expression with which this function is called.}
+#' }
 #'
-#' The constructor's other fields (`statistic`, `eValueApproxError`,
-#' `note`) stay `NULL`.
-#' @noRd
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(turner2024generic)`
+#'   `r addCite(turner2023exact)`
+#'
+#' @export
+#'
+#' @examples
+#' designObj <- designSavi2x2(na = 10, nb = 10, eType = "eBeta")
+#' ya <- c(8, 7, 9, 6)
+#' yb <- c(4, 5, 3, 5)
+#' savi2x2TestStat(ya, yb, designObj = designObj)
 savi2x2TestStat <- function(
   ya,
   yb,
@@ -315,86 +345,137 @@ savi2x2TestStat <- function(
 # Design functions ----
 # TODO: add h0 != 0 situation
 
-#' Design a safe anytime-valid 2x2 test
+#' Design a Safe Anytime-Valid Experiment to Test Two Proportions
 #'
-#' `eType` picks the e-variable and, with it, the effect measure. Both
-#' effects are signed A minus B and anchored on `thetaB`: `propDiff =
-#' thetaA - thetaB` and `logOdds = logit(thetaA) - logit(thetaB)`, so
-#' `"greater"` means group A has the larger proportion, as `x - y > 0`
-#' does in [stats::t.test()].
+#' A designed experiment requires (1) a number of data blocks nBlocksPlan
+#' to plan for, and (2) a savi test defining parameter: `eType` and, with
+#' it, the effect measure. Both effects are A minus B and anchored on
+#' `thetaB`: `propDiff = thetaA - thetaB` and `logOdds = logit(thetaA) -
+#' logit(thetaB)`, so `"greater"` means group A has the larger proportion,
+#' as `x - y > 0` does in [stats::t.test()].
 #'
-#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted: a
-#'   `propDiffMin` or `logOddsMin` is an error, a `power` is dropped with a
-#'   warning, and `nBlocksPlan` is kept as the planned block count. Each
-#'   reads one prior, `betaParameter` for `"eBeta"` and `gaussParameter` for
-#'   `"eGauss"`, filled with its default when `NULL`; the other prior is
-#'   ignored. Both accept every `alternative`, used in the UMP first block;
-#'   `"eGauss"` also restricts its `gaussParameter` prior to the side of a
-#'   one-sided `alternative`.
+#' - `"eBeta"` (`propDiff`) and `"eGauss"` (`logOdds`) are unrestricted: a
+#'   minimal effect is an error, a `power` is dropped with a warning, and
+#'   `nBlocksPlan` is kept as the planned block count. Each reads one
+#'   prior, `betaParameter` or `gaussParameter`, filled with its default
+#'   when `NULL`. A one-sided `alternative` acts in the UMP first block,
+#'   and for `"eGauss"` also restricts the prior to that side.
 #' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
 #'   fixed alternative and reads no prior. As in [designSaviZ()], a value
 #'   whose sign contradicts a one-sided `alternative` is flipped with a
-#'   warning, so `"greater"` tests a positive and `"less"` a negative value;
-#'   `"twoSided"` uses the magnitude. Zero is an error.
-#'   Planning exists for `propDiff` only (Decisions 37, 43): `power` alone
-#'   plans the block count at the hardest baseline, `nBlocksPlan` alone
-#'   evaluates the worst-case power there, and both without a minimal
-#'   effect find the minimal detectable `propDiff` (Decision 42). A minimal
-#'   effect alone designs without simulation. Any other combination is an
-#'   error, except that `logOddsMin` drops a `power` with a warning, as its
-#'   worst case is set by the baseline grid, not by the effect, and keeps
-#'   `nBlocksPlan` as the planned count.
+#'   warning; `"twoSided"` uses the magnitude. Zero is an error.
 #'
-#' Arguments are otherwise taken as given: only `alpha` and `power` in
-#' `(0, 1)`, equal lengths of `na` and `nb`, `nBlocksPlan` against per-block
-#' sizes, at most one minimal effect, and the minimal effects' ranges are
-#' checked.
-#' @param na number of observations in group a per data block
-#' @param nb number of observations in group b per data block
-#' @param nBlocksPlan planned number of data blocks collected
-#' @param propDiffMin minimal difference in proportions: `thetaA - thetaB`
-#' @param logOddsMin minimal log odds ratio: `logOddsA - logOddsB`, that is
-#'   `logit(thetaA) - logit(thetaB)`
+#' For `"grow"` on `propDiff` the design involves alpha and the three
+#' quantities: (1) nBlocksPlan, (2) power, and (3) a minimal relevant
+#' difference in proportions propDiffMin, simulated at the worst-case
+#' baseline of [sampleStoppingTimesSavi2x2()].
+#' \describe{
+#'   \item{Scenario 1a}{Goal: "nBlocksPlan" and optimal E-variable. Given: propDiffMin and power.}
+#'   \item{Scenario 2}{Goal: "power" and optimal E-variable. Given: propDiffMin and nBlocksPlan.}
+#'   \item{Scenario 3}{Goal: "propDiffMin" and optimal E-variable. Given: power and nBlocksPlan.}
+#' }
+#' A minimal effect alone designs without simulation. Any other
+#' combination is an error, except that `logOddsMin` drops a `power` with
+#' a warning. Per-block size vectors supply `nBlocksPlan` when it is `NULL`.
+#' Other arguments are taken as given; only `alpha` and `power` in
+#' `(0, 1)`, equal lengths of `na` and `nb`, at most one minimal effect,
+#' and the minimal effects' ranges are checked.
+#'
+#' @param na number of observations in group A per data block, one value
+#'   or one per block.
+#' @param nb number of observations in group B per data block, one value
+#'   or one per block.
+#' @param nBlocksPlan planned number of data blocks collected, see
+#'   scenario 2 and 3 above.
+#' @param propDiffMin numeric in (-1, 1) that defines the minimal relevant
+#'   difference in proportions `thetaA - thetaB`, the smallest difference
+#'   that we would like to detect (with sufficient power).
+#' @param logOddsMin numeric that defines the minimal relevant log odds
+#'   ratio `logit(thetaA) - logit(thetaB)`.
 #' @param alpha numeric in (0, 1) that specifies the tolerable type I error
-#' @param power numeric in (0, 1) that specifies the desired power
-#' @param h0 0
-#' @param alternative `"twoSided"`, `"greater"` or `"less"`, the direction
-#'   of the effect A minus B under the alternative.
-#' @param eType `"eBeta"`, `"grow"` or `"eGauss"`, see Details.
+#'   and the null rejection rule e >= 1/alpha.
+#' @param power numeric in (0, 1) that specifies the desired power, that
+#'   is, the targetted chance to stop in favour of the alternative over the
+#'   null hypothesis, when the alternative holds true.
+#' @param h0 numeric, representing the null value, default h0=0. Only
+#'   `h0 = 0` is currently supported.
+#' @param alternative a character string specifying the alternative
+#'   hypothesis. Must be one of "twoSided" (default), "greater" or "less",
+#'   where "greater" means that group A has the larger proportion.
+#' @param eType character one of "eBeta", "grow", and "eGauss". "eBeta" is
+#'   default and uses a Beta prior on each proportion, "grow" uses a point
+#'   prior at the minimal effect, "eGauss" a normal prior on the log odds
+#'   ratio.
 #' @param betaParameter `list(betaA1, betaA2, betaB1, betaB2)`, the Beta
-#'   prior shapes on `thetaA` and `thetaB` for `"eBeta"`, each a single
+#'   prior shapes on `thetaA` and `thetaB` for "eBeta", each a single
 #'   finite positive number; `NULL` means `1 / (2 * na)` and `1 / (2 * nb)`,
 #'   taking block 1's sizes with a warning when they vary by block.
-#' @param gaussParameter `list(mean, sd)`, the Normal prior on `logOdds` for
-#'   `"eGauss"`, restricted to the grid `(-20, 20)` and to the side of a
+#' @param gaussParameter `list(mean, sd)`, the Normal prior on `logOdds`
+#'   for "eGauss", restricted to the grid `(-20, 20)` and to the side of a
 #'   one-sided `alternative`; `NULL` means `list(mean = 0, sd = 1)`.
-#' @param runningIntersection `TRUE` to intersect each row of the blockwise
-#'   confidence sequence with the previous one; `NULL` keeps the
-#'   constructor's `FALSE`.
-#' @param nSim,nBoot,nMax,seed,wantSamplePaths,pb Simulation settings
-#'   passed to [sampleStoppingTimesSavi2x2()] via [computeNPlanSavi2x2()] or
-#'   [computePowerSavi2x2()]: paths per baseline,
-#'   bootstrap resamples, block cap per path, seed (`NULL` is `2026`),
-#'   whether to keep the e-value paths, and the progress bar.
+#' @param runningIntersection logical, if `TRUE` then intersect each row
+#'   of the blockwise confidence sequence with the previous one; `NULL`
+#'   keeps the constructor's `FALSE`.
+#' @param nSim integer > 0, the number of simulations needed to compute
+#'   power or the number of samples paths for the savi 2x2 test under
+#'   continuous monitoring.
+#' @param nBoot integer > 0 representing the number of bootstrap samples
+#'   to assess the accuracy of the approximations of the power, or the
+#'   number of blocks for the savi 2x2 test under continuous monitoring.
+#' @param nMax integer > 0, maximum number of data blocks in each sample path.
+#' @param seed integer, seed number. Default seed=NULL yields seed=2026.
+#' @param wantSamplePaths logical, if `TRUE` then also outputs the sample paths.
+#' @param pb logical, if `TRUE`, then show progress bar.
 #'
-#' @return A `saviDesign` with `testName = "Two Proportions"`, `testType =
-#'   "2x2"`, `h0 = c(propDiff = h0)`, `esMin`, `eType`, `alpha`,
-#'   `alternative`, the prior its eType reads (`betaParameter` for
-#'   `"eBeta"`, `gaussParameter` for `"eGauss"`, neither for `"grow"`),
-#'   `parameter` (for printing: that prior as one named string, its names
-#'   and values comma-separated, or for `"grow"` the signed minimal effect
-#'   named `propDiffMin` or `logOddsMin`),
-#'   `runningIntersection` and `nPlan = list(na, nb)`, with a
-#'   third element `nBlocksPlan` when planned or given. With `power`:
-#'   `designScenario = "1a"`, `power` as the target, `nPlanTwoSe = c(NA,
-#'   NA, 2 * bootSe)`, `bootObjNBlocksPlan`, `nMean`, `nMeanTwoSe`,
-#'   `bootObjNMean`. With `nBlocksPlan`: `designScenario = "2"`, `power`
-#'   (the worst case), `powerTwoSe`, `bootObjPower`. Both also carry
-#'   `worstCaseThetaA`, `worstCaseThetaB`, `breakVector`
-#'   and `samplePaths`. With `power` and `nBlocksPlan` but no `*Min`:
-#'   `designScenario = "3"`, `esMin` the minimal detectable `propDiff`,
-#'   `power` as the target, and no simulation summaries.
-#' @noRd
+#' @return Returns a saviDesign object that includes:
+#'
+#' \describe{
+#'   \item{nPlan}{the planned sample size(s): `list(na, nb)`, with
+#'   `nBlocksPlan` when given or planned.}
+#'   \item{parameter}{the savi test defining parameter: the prior in use as
+#'   one named string for "eBeta" and "eGauss", or the minimal effect named
+#'   `propDiffMin` or `logOddsMin` for "grow".}
+#'   \item{esMin}{the minimal relevant effect size provided by the user, or
+#'   found in scenario 3, signed and named `propDiff` or `logOdds`; `NULL`
+#'   for "eBeta" and "eGauss".}
+#'   \item{alpha}{the tolerable type I error provided by the user.}
+#'   \item{power}{the desired power provided by the user, or the worst-case
+#'   power found in scenario 2.}
+#'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
+#'   \item{eType}{any of "eBeta", "grow", "eGauss" provided by the user.}
+#'   \item{h0}{the null value, 0.}
+#'   \item{betaParameter}{for "eBeta", the Beta prior in use.}
+#'   \item{gaussParameter}{for "eGauss", the Normal prior in use.}
+#'   \item{runningIntersection}{logical, as provided by the user.}
+#'   \item{designScenario}{"1a", "2" or "3" when planned.}
+#'   \item{nPlanTwoSe, bootObjNBlocksPlan, nMean, nMeanTwoSe, bootObjNMean}{
+#'   scenario 1a: the bootstrap summaries of the planned block count and of
+#'   the mean stopping time.}
+#'   \item{powerTwoSe, bootObjPower}{scenario 2: the bootstrap summaries of
+#'   the power.}
+#'   \item{worstCaseThetaA, worstCaseThetaB, breakVector, samplePaths}{
+#'   scenarios 1a and 2: the worst baseline and its simulated paths.}
+#'   \item{testType}{here 2x2}
+#'   \item{testName}{"Two Proportions".}
+#'   \item{call}{the expression with which this function is called.}
+#' }
+#'
+#' @references
+#'   `r addCite(grunwald2024safe)`
+#'   `r addCite(turner2024generic)`
+#'
+#' @export
+#'
+#' @examples
+#' # Unrestricted test on propDiff with the default Beta prior
+#' designSavi2x2(na = 10, nb = 10, eType = "eBeta")
+#'
+#' # Grow on a minimal difference, no planning
+#' designSavi2x2(na = 10, nb = 10, propDiffMin = 0.2, eType = "grow")
+#'
+#' # Scenario 2: worst-case power at a planned block count
+#' designSavi2x2(na = 10, nb = 10, propDiffMin = 0.3, nBlocksPlan = 8,
+#'               eType = "grow", nSim = 50, pb = FALSE)
 designSavi2x2 <- function(
   na,
   nb,
@@ -649,8 +730,23 @@ designSavi2x2 <- function(
 
 # Confidence Interval ----
 
-#' Computes the savi confidence interval for propDiff
-#' @noRd
+#' Helper function: Computes the savi confidence interval for propDiff
+#'
+#' Inverts the eBeta e-process: the predictive Beta numerator of
+#' [predictiveThetas2x2()] against, per block, the reverse information
+#' projection of [solveRIPr2x2PropDiff()] onto each candidate `propDiff`.
+#' The interval is the set of candidates whose e-value stays below
+#' `1 / alpha`, found by one minimum and two roots on `domain`.
+#'
+#' @inheritParams savi2x2TestStat
+#' @inheritParams designSavi2x2
+#' @param alpha numeric in (0, 1), one minus the confidence level.
+#' @param domain `c(lower, upper)`, the candidates searched.
+#'
+#' @return numeric vector that contains the lower and upper bound of the
+#'   savi confidence interval, named `lowerBound`, `upperBound`; the
+#'   `domain` edge when that edge is still inside, and `c(-1, 1)` with a
+#'   warning when the set is empty.
 computeConfidenceInterval2x2PropDiff <- function(
   ya,
   yb,
@@ -713,8 +809,21 @@ computeConfidenceInterval2x2PropDiff <- function(
   return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
 }
 
-#' Computes the savi confidence sequences for propDiff using a fixed grid
-#' @noRd
+#' Helper function: Computes the savi confidence sequence for propDiff
+#'
+#' Row `i` is the interval of [computeConfidenceInterval2x2PropDiff()] on
+#' blocks `1..i`, found by advancing one e-process per grid candidate and
+#' reading off the run of candidates below `1 / alpha`, each bound refined
+#' outward by a secant.
+#'
+#' @inheritParams computeConfidenceInterval2x2PropDiff
+#' @inheritParams designSavi2x2
+#' @param nGrid integer > 0, the number of candidates strictly inside `(-1, 1)`.
+#'
+#' @return an `nBlocks x 2` matrix that contains the lower and upper bound
+#'   of the savi confidence sequence per block; an empty set is an `NA`
+#'   row, and with `runningIntersection` the rows are nested and stay `NA`
+#'   after the first empty row.
 computeConfidenceSequence2x2PropDiff <- function(
   ya,
   yb,
@@ -840,22 +949,22 @@ computeConfidenceSequence2x2PropDiff <- function(
   return(confSeqMatrix)
 }
 
-#' Anytime-valid confidence interval for logOdds on all blocks
+#' Helper function: Computes the savi confidence interval for logOdds
 #'
-#' Find the confidence interval by conditional likelihood ratio between the
-#' alternative and the null (logOdds in domain)
-#' The confidence interval is the set of logOdds values for which the
-#' conditional likelihood ratio is below 1 / alpha.
+#' Inverts the eGauss numerator: the interval is the set of `logOdds`
+#' values at which the numerator over the conditional likelihood of
+#' [logLikelihoodFNCH()] stays below `1 / alpha`, found by one minimum and
+#' two roots on `domain`.
 #'
-#' @param logPTotal The numerator's cumulative log likelihood after the
-#'   last block: the eGauss log numerator, the log e-value plus the
-#'   cumulative hypergeometric log likelihood.
-#' @param domain `c(lower, upper)`, the candidates searched; a previous
-#'   interval gives the running intersection.
-#' @return Named numeric `c(lowerBound, upperBound)`; the `domain` edge
-#'   when that edge is still inside, and the whole `domain` with a warning
-#'   when the set is empty.
-#' @noRd
+#' @inheritParams computeConfidenceInterval2x2PropDiff
+#' @param logPTotal numeric, the eGauss log numerator on all blocks: the
+#'   plain cumulative log e-value plus the cumulative hypergeometric log
+#'   likelihood.
+#'
+#' @return numeric vector that contains the lower and upper bound of the
+#'   savi confidence interval, named `lowerBound`, `upperBound`; `NA` with
+#'   a warning for a bound that lies beyond `domain`, and the whole
+#'   `domain` with a warning when the set is empty.
 computeConfidenceInterval2x2LogOdds <- function(
   ya,
   yb,
@@ -905,23 +1014,25 @@ computeConfidenceInterval2x2LogOdds <- function(
   return(c("lowerBound" = lowerBound, "upperBound" = upperBound))
 }
 
-#' Compute the eGauss confidence sequence for logOdds
+#' Helper function: Computes the savi confidence sequence for logOdds
 #'
-#' Row i inverts the e-process on blocks 1..i: every numerator factor is
-#' fixed given its block's total or predictable, so the eGauss numerator at
-#' block i is the numerator of the test on blocks 1..i just as its last
-#' element is at the end (Decision 30). The numerator comes from the test's
-#' plain e-process; each row's root finding is on its prefix, quadratic in
-#' nBlocks.
+#' Row `i` is the interval of [computeConfidenceInterval2x2LogOdds()] on
+#' blocks `1..i`. The eGauss numerator at block `i` is that of the test on
+#' blocks `1..i`, as every factor is fixed given its block's total or
+#' predictable, so the test's numerator vector serves all rows; the root
+#' finding is repeated per prefix.
 #'
-#' @param logNumerator The eGauss log numerator on blocks `1..i`: the plain
-#'   cumulative log e-process, without the UMP replacement of block 1, plus
-#'   the cumulative hypergeometric log likelihood.
-#' @param runningIntersection `TRUE` searches each row inside the previous
-#'   one; an empty row stays empty thereafter.
-#' @return An `nBlocks x 2` matrix of `lowerBound` and `upperBound`; an
-#'   empty set is an `NA` row.
-#' @noRd
+#' @inheritParams computeConfidenceInterval2x2LogOdds
+#' @inheritParams designSavi2x2
+#' @param logNumerator numeric vector, the eGauss log numerator on blocks
+#'   `1..i` for element `i`: the plain cumulative log e-process, before the
+#'   UMP replacement of block 1, plus the cumulative hypergeometric log
+#'   likelihood.
+#'
+#' @return an `nBlocks x 2` matrix that contains the lower and upper bound
+#'   of the savi confidence sequence per block; an empty set is an `NA`
+#'   row, and with `runningIntersection` the rows stay `NA` after the first
+#'   empty row.
 computeConfidenceSequence2x2LogOdds <- function(
   ya,
   yb,
@@ -972,8 +1083,18 @@ computeConfidenceSequence2x2LogOdds <- function(
 
 # propDiff = thetaA - thetaB always
 
-# Learn the thetaA and thetaB with two independent Beta
 # TODO: is there a betaA1 * na term? check with Peter
+
+#' Predictive Beta posterior means of thetaA and thetaB
+#'
+#' Independent Beta posteriors on `thetaA` and `thetaB` with prior shapes
+#' `betaParameter`, updated with the blocks before each block: block `i`
+#' uses blocks `1..i-1` only, and block 1 the prior.
+#'
+#' @inheritParams savi2x2TestStat
+#' @inheritParams designSavi2x2
+#'
+#' @return A list of numeric vectors `thetaA` and `thetaB`, one value per block.
 predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
   nBlocks <- length(ya)
   betaA1 <- betaParameter[["betaA1"]]
@@ -993,7 +1114,15 @@ predictiveThetas2x2 <- function(ya, yb, na, nb, betaParameter) {
   ))
 }
 
-# a vector of logEValue that is the cumsum of likelihood ratio process
+#' Plain eBeta e-process for propDiff
+#'
+#' The cumulative log likelihood ratio of the predictive Beta means of
+#' [predictiveThetas2x2()] over the pooled null mean
+#' `(na * thetaA + nb * thetaB) / (na + nb)`, block 1 included.
+#'
+#' @inheritParams predictiveThetas2x2
+#'
+#' @return A numeric vector, element `i` the log e-value on blocks `1..i`.
 logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
   thetas <- predictiveThetas2x2(ya, yb, na, nb, betaParameter)
   thetaA <- thetas[["thetaA"]]
@@ -1020,11 +1149,22 @@ logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
   logLikelihoodAlternative - logLikelihoodNull
 }
 
-# Cumulative log e-process of the grow propDiff test. The alternative is
-# restricted to the curve thetaA = thetaB + propDiffMin (sign from
-# alternative), which leaves one free parameter; a grid posterior on it gives
-# the predictable plug-in for each block. Element i covers blocks 1..i;
-# earlyStopping cuts the vector at the first crossing of 1 / alpha.
+#' Plain grow e-process for propDiff
+#'
+#' The alternative is restricted to the curve `thetaA = thetaB +
+#' propDiffMin`, signed by `alternative`, which leaves one free parameter;
+#' its posterior on a grid of `nWeight` points under a uniform prior gives
+#' the predictable plug-in for each block, against the pooled null mean.
+#' `"twoSided"` runs both signs of the magnitude and averages their
+#' cumulative e-processes.
+#'
+#' @inheritParams savi2x2TestStat
+#' @inheritParams designSavi2x2
+#' @param earlyStopping logical, if `TRUE` cut the vector at the first
+#'   crossing of `1 / alpha`.
+#' @param nWeight integer > 0, the number of grid points.
+#'
+#' @return A numeric vector, element `i` the log e-value on blocks `1..i`.
 logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb,
   propDiffMin, alpha, alternative = c("twoSided", "greater", "less"),
   earlyStopping = FALSE,
@@ -1133,9 +1273,21 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb,
     log(rowMeans(exp(logEValueSides - logEValueMax)))
 }
 
-# Find the means that minimize the KL between the alternative and null
-# The null is H0: thetaA - thetaB = propDiff
 # TODO: this can be a cubic function solver
+
+#' Reverse information projection onto a fixed propDiff
+#'
+#' The null pair `(nullThetaA, nullThetaA - propDiff)` closest in KL
+#' divergence to `(thetaA, thetaB)` for one block: the root of the
+#' derivative of `na KL(thetaA || nullThetaA) + nb KL(thetaB || nullThetaB)`.
+#'
+#' @inheritParams designSavi2x2
+#' @param thetaA,thetaB numeric in (0, 1), the alternative's proportions.
+#' @param propDiff numeric in (-1, 1), the null difference `thetaA - thetaB`.
+#' @param tol numeric > 0, the tolerance of [stats::uniroot()], also kept
+#'   from the edges of the search interval.
+#'
+#' @return A numeric, `nullThetaA`.
 solveRIPr2x2PropDiff <- function(
   thetaA,
   thetaB,
@@ -1160,25 +1312,34 @@ solveRIPr2x2PropDiff <- function(
   )[["root"]]
 }
 
-# Worst-case baseline of the propDiff grow test: the pair on the curve of
-# each alternative at which the e-process grows slowest, so a block count
-# planned there holds for every baseline. The expected log e-increment per
-# block is the KL divergence of the truth from its pooled null projection,
-#   R(theta) = nLow KL(theta || theta0) + nHigh KL(theta + d || theta0),
-#   theta0   = theta + nHigh d / (nLow + nHigh),
-# with theta the lower proportion, nLow its group size and nHigh the size
-# of the group at theta + d. Its minimiser is the root of
-#   nLow logit(theta) + nHigh logit(theta + d) = (nLow + nHigh) logit(theta0),
-# summed over blocks when the sizes vary per block. Equal sizes give exactly
-# the midpoint (1 - d) / 2; in general the root is
-# (1 - d) / 2 + d (nHigh - nLow) / (6 (nLow + nHigh)) + O(d^3). The rate
-# ignores the first-block UMP factor, which moves the simulated worst case
-# when one group is very small (2x2-review.md, R9).
-#
-# "greater": thetaA = thetaB + d, so thetaB is the lower proportion and
-# nLow = nb. "less": thetaA = thetaB - d, so thetaA is the lower one and
-# nLow = na. "twoSided" gives both, greater first. One row per curve with
-# columns thetaA, thetaB.
+#' Worst-case baseline of the propDiff grow test
+#'
+#' The pair on the curve of each alternative at which the e-process grows
+#' slowest, so a block count planned there holds for every baseline. The
+#' expected log e-increment per block is the KL divergence of the truth
+#' from its pooled null projection,
+#' ```
+#' R(theta) = nLow KL(theta || theta0) + nHigh KL(theta + d || theta0),
+#' theta0   = theta + nHigh d / (nLow + nHigh),
+#' ```
+#' with `theta` the lower proportion, `nLow` its group size and `nHigh` the
+#' size of the group at `theta + d`. Its minimiser is the root of
+#' ```
+#' nLow logit(theta) + nHigh logit(theta + d) = (nLow + nHigh) logit(theta0),
+#' ```
+#' summed over blocks when the sizes vary per block. Equal sizes give
+#' exactly the midpoint `(1 - d) / 2`; in general the root is
+#' `(1 - d) / 2 + d (nHigh - nLow) / (6 (nLow + nHigh)) + O(d^3)`. The rate
+#' ignores the first-block UMP factor, which moves the simulated worst case
+#' when one group is very small (2x2-review.md, R9).
+#'
+#' `"greater"`: `thetaA = thetaB + d`, so `thetaB` is the lower proportion
+#' and `nLow = nb`. `"less"`: `thetaA = thetaB - d`, so `thetaA` is the
+#' lower one and `nLow = na`. `"twoSided"` gives both, greater first.
+#'
+#' @inheritParams designSavi2x2
+#'
+#' @return A data frame with one row per curve and columns `thetaA`, `thetaB`.
 solveWorstCaseTheta2x2PropDiff <- function(
   propDiffMin,
   na,
@@ -1225,8 +1386,19 @@ solveWorstCaseTheta2x2PropDiff <- function(
 # conditioning on ya + yb, ya is Fisher's noncentral hypergeometric with odds
 # exp(logOdds) on group A.
 
-# A vector of conditional log likelihood at one logOdds
 # TODO: what if ya, yb, na, nb are vector
+
+#' Conditional log likelihood of 2x2 tables at one logOdds
+#'
+#' Given its total `ya + yb`, `ya` is Fisher's noncentral hypergeometric
+#' with odds `exp(logOdds)` on group A; `logOdds = 0` is the hypergeometric
+#' null.
+#'
+#' @inheritParams savi2x2TestStat
+#' @inheritParams designSavi2x2
+#' @param logOdds numeric, one log odds ratio `logit(thetaA) - logit(thetaB)`.
+#'
+#' @return A numeric vector, one log density per block.
 logLikelihoodFNCH <- function(ya, yb, na, nb, logOdds) {
   mapply(
     function(ya, yb, na, nb) {
@@ -1239,7 +1411,17 @@ logLikelihoodFNCH <- function(ya, yb, na, nb, logOdds) {
   )
 }
 
-# a vector of logEValue that is the cumsum of likelihood ratio process
+#' Plain grow e-process for logOdds
+#'
+#' The cumulative conditional log likelihood ratio of [logLikelihoodFNCH()]
+#' at `logOddsMin`, signed by `alternative`, over the hypergeometric null.
+#' `"twoSided"` runs both signs of the magnitude and averages their
+#' cumulative e-processes.
+#'
+#' @inheritParams savi2x2TestStat
+#' @inheritParams designSavi2x2
+#'
+#' @return A numeric vector, element `i` the log e-value on blocks `1..i`.
 logEValueVec2x2LogOddsGrow <- function(
   ya,
   yb,
@@ -1279,7 +1461,20 @@ logEValueVec2x2LogOddsGrow <- function(
   logEValueMax + log(rowMeans(exp(logEValueSides - logEValueMax)))
 }
 
-# a vector of logEValue that is the cumsum of conditional likelihood ratio process
+#' Plain eGauss e-process for logOdds
+#'
+#' The conditional likelihood of Fisher's noncentral hypergeometric
+#' distribution on blocks `1..i`, mixed under the Normal prior
+#' `gaussParameter` on `logOddsGrid` restricted to the side of a one-sided
+#' `alternative`, over the hypergeometric null. The mixture for block `i`
+#' includes block `i`, which is valid because each factor conditions on
+#' its block's total.
+#'
+#' @inheritParams savi2x2TestStat
+#' @inheritParams designSavi2x2
+#' @param logOddsGrid numeric vector, the grid the prior is normalised on.
+#'
+#' @return A numeric vector, element `i` the log e-value on blocks `1..i`.
 logEValueVec2x2LogOddsEGauss <- function(
   ya,
   yb,
@@ -1358,12 +1553,13 @@ logEValueVec2x2LogOddsEGauss <- function(
 
 #' Log partition function of Fisher's noncentral hypergeometric distribution
 #'
-#' @param na nonnegative integer, group size of A
-#' @param nb nonnegative integer, group size of B
-#' @param totalSuccesses nonnegative integer, the total successes ya + yb in the table, at most na + nb
+#' @inheritParams designSavi2x2
+#' @inheritParams logLikelihoodFNCH
+#' @param totalSuccesses nonnegative integer, the total successes `ya + yb`
+#'   in the table, at most `na + nb`.
 #'
-#' @return a numeric
-#' @noRd
+#' @return A numeric, the log of the sum over the feasible `k` of
+#'   `choose(na, k) * choose(nb, totalSuccesses - k) * exp(logOdds * k)`.
 fnchLogPartition <- function(na, nb, totalSuccesses, logOdds) {
   if (logOdds == 0) {
     return(lchoose(na + nb, totalSuccesses))
@@ -1382,7 +1578,20 @@ fnchLogPartition <- function(na, nb, totalSuccesses, logOdds) {
   maxLogTerm + log(sum(exp(logTerms - maxLogTerm)))
 }
 
-#' Compute the Log Odds Ratio that is Uniformly Most Powerful for One Sided Test
+#' Uniformly most powerful log odds ratio of a one-sided conditional test
+#'
+#' Solves the conditional KL divergence of the alternative at `logOdds`
+#' from `logOddsNull` equal to `log(1 / alpha)`, searching up to
+#' `searchBound` from `logOddsNull` in the direction of `alternative`.
+#'
+#' @inheritParams designSavi2x2
+#' @inheritParams fnchLogPartition
+#' @param alternative `"greater"` or `"less"`, the side searched.
+#' @param logOddsNull numeric, the null log odds ratio.
+#' @param searchBound numeric > 0, the width of the search interval.
+#'
+#' @return A numeric, or `NULL` with a warning when the target is not
+#'   reached on the search interval.
 solveUmpLogOdds <- function(
   na,
   nb,
@@ -1433,25 +1642,35 @@ solveUmpLogOdds <- function(
 
 # Sampling functions for design ----
 
-#' Simulate stopping times of the 2x2 grow test
+#' Simulate stopping times for the savi 2x2 test
 #'
-#' `propDiffMin` is the grow plug-in.
-#' `alternative`: data lie on `thetaA = thetaB + |propDiffMin|` for
-#' `"greater"`, on `thetaA = thetaB - |propDiffMin|` for `"less"`, and on
-#' both curves for `"twoSided"`, at the worst-case baseline of each curve
-#' from [solveWorstCaseTheta2x2PropDiff()]. There is no planning on
-#' `logOdds` for now.
+#' Draws `nSim` streams of tables on the curve `thetaA = thetaB +
+#' |propDiffMin|` for `"greater"`, `thetaA = thetaB - |propDiffMin|` for
+#' `"less"`, and on both curves for `"twoSided"`, at the worst-case
+#' baseline of each curve from [solveWorstCaseTheta2x2PropDiff()], and
+#' records when the plain grow e-process first crosses `1 / alpha`.
 #' `nPlan` is the worst `power` quantile of the stopping time over the
-#' curves; with `power = NULL` the quantile step is skipped and `nPlan`,
-#' `worstCaseThetaA`, `worstCaseThetaB` are `NULL` (Decision 36).
+#' curves; with `power = NULL` it is skipped. There is no planning on
+#' `logOdds`.
 #'
-#' @return A list: `thetaA`, `thetaB`, and one row per baseline in
-#'   `stoppingTimes` (`Inf` when a path never crosses `1 / alpha`),
-#'   `breakVector` (`0` crossed, `1` reached `nMax`), `eValuesStopped`;
-#'   `samplePaths` (a list of `nSim x nMax` sparse matrices, or `NULL`),
-#'   `n1Vector` (the block index), `nPlan`, and the baseline it was taken
-#'   at, `worstCaseThetaA`, `worstCaseThetaB`.
+#' @inheritParams designSavi2x2
+#' @param eType "grow", the only e-variable with planning.
+#' @param nBoot integer > 0, the number of bootstrap samples; not used by
+#'   the sampler itself, see [computePowerSavi2x2()] and
+#'   [computeNPlanSavi2x2()].
+#' @param wantEValuesAtNMax logical. If `TRUE`, then compute eValues at
+#'   nMax. Default `FALSE`. Not yet implemented.
+#' @param wantSimData logical. If `TRUE`, then output the simulated data.
+#'   Not yet implemented.
 #'
+#' @return a list with `thetaA`, `thetaB` (one per curve) and, one row per
+#'   curve, `stoppingTimes` and `breakVector`. Entries of `breakVector` are
+#'   0, 1. A 1 represents stopping due to exceeding `nMax`, which implies
+#'   that the corresponding stopping time is `Inf`, and 0 due to `1/alpha`
+#'   threshold crossing. Further `eValuesStopped`, `samplePaths` (a list of
+#'   `nSim x nMax` sparse matrices, or `NULL`), `n1Vector` (the block
+#'   index), `nPlan`, and the baseline it was taken at, `worstCaseThetaA`,
+#'   `worstCaseThetaB`.
 sampleStoppingTimesSavi2x2 <- function(
   propDiffMin,
   na,
@@ -1614,23 +1833,22 @@ sampleStoppingTimesSavi2x2 <- function(
 }
 
 
-#' Worst-case power of the 2x2 grow test at a planned block count
+#' Helper function: Computes the power of the savi 2x2 test based on propDiffMin and nBlocks
 #'
-#' Runs [sampleStoppingTimesSavi2x2()] with `nMax = nBlocks`
-#' and reports, per baseline, the fraction of paths that cross `1 / alpha`
-#' within `nBlocks`; the worst case is the smallest of these, since the
-#' test must meet its target whatever `thetaA` is.
+#' Runs [sampleStoppingTimesSavi2x2()] with `nMax = nBlocks` and reports,
+#' per curve, the fraction of paths that cross `1 / alpha` within
+#' `nBlocks`; the worst case is the smallest, since the test must meet its
+#' target whatever the baseline is.
 #'
-#' @param nBlocks Planned block count at which the test is evaluated.
-#' @inheritParams sampleStoppingTimesSavi2x2
+#' @inheritParams designSavi2x2
+#' @param nBlocks integer > 0, the planned number of data blocks.
 #'
-#' @return A list: `power` (the worst-case power), `powerVec` (one per
-#'   curve), `worstCaseThetaA`, `worstCaseThetaB` (its baseline),
-#'   `bootObjPower` (a [boot::boot()] object on that baseline, with
-#'   `bootSe`), `nBlocks`, and the sampler's
+#' @return a list which contains at least `power` (the worst case over the
+#'   curves) and an adapted bootObject `bootObjPower` of class
+#'   [boot::boot()] on that baseline; further `powerVec` (one per curve),
+#'   `worstCaseThetaA`, `worstCaseThetaB`, `nBlocks`, and the sampler's
 #'   `thetaA`, `thetaB`, `stoppingTimes`, `breakVector`, `eValuesStopped`,
 #'   `samplePaths`, `n1Vector`.
-#' @noRd
 computePowerSavi2x2 <- function(
   propDiffMin,
   na,
@@ -1695,24 +1913,23 @@ computePowerSavi2x2 <- function(
 }
 
 
-#' Worst-case planned block count of the 2x2 grow test
+#' Helper function: Computes nBlocksPlan based on propDiffMin, alpha and power
 #'
-#' Runs [sampleStoppingTimesSavi2x2()] and reports its `nPlan`,
-#' the `power` quantile of the stopping time at the hardest baseline
-#' with a bootstrap SE and the mean stopping time of paths
-#' capped at `nPlan`, both at that baseline.
+#' Runs [sampleStoppingTimesSavi2x2()] and reports its `nPlan`, the
+#' `power` quantile of the stopping time at the hardest baseline, with a
+#' bootstrap SE and the mean stopping time of paths capped at `nPlan`,
+#' both at that baseline.
 #'
-#' @inheritParams sampleStoppingTimesSavi2x2
+#' @inheritParams designSavi2x2
 #'
-#' @return A list: `nPlan` (the worst-case block count, `Inf` with a warning
-#'   when the worst baseline crossed too rarely), `nPlanVec` (the quantile
-#'   per curve), `worstCaseThetaA`, `worstCaseThetaB` (the worst baseline),
-#'   `bootObjNPlan`, `nMean`,
-#'   `bootObjNMean` ([boot::boot()] objects on the worst baseline, `NULL`
-#'   when `nPlan` is `Inf`), and the sampler's `thetaA`, `thetaB`,
-#'   `stoppingTimes`, `breakVector`, `eValuesStopped`, `samplePaths`,
-#'   `n1Vector`.
-#' @noRd
+#' @return a list which contains at least `nPlan` (the worst-case block
+#'   count, `Inf` with a warning when the worst baseline crossed too
+#'   rarely) and adapted bootObjects `bootObjNPlan` and `bootObjNMean` of
+#'   class [boot::boot()] on the worst baseline (`NULL` when `nPlan` is
+#'   `Inf`); further `nPlanVec` (the quantile per curve), `nMean`,
+#'   `worstCaseThetaA`, `worstCaseThetaB`, and the sampler's `thetaA`,
+#'   `thetaB`, `stoppingTimes`, `breakVector`, `eValuesStopped`,
+#'   `samplePaths`, `n1Vector`.
 computeNPlanSavi2x2 <- function(
   propDiffMin,
   na,
@@ -1799,26 +2016,22 @@ computeNPlanSavi2x2 <- function(
 }
 
 
-#' Minimal detectable propDiff of the 2x2 grow test
+#' Computes the smallest detectable propDiffMin with power probability, for the provided number of blocks
 #'
-#' The smallest `propDiffMin` at which the worst-case
-#' power of [computePowerSavi2x2()] at `nBlocks = nBlocksPlan` reaches
-#' `power`, found by [stats::uniroot()] on `propDiffBounds`. Every candidate
-#' is simulated with the same `seed`, so the target is a deterministic step
+#' The smallest `propDiffMin` at which the worst-case power of
+#' [computePowerSavi2x2()] at `nBlocks = nBlocksPlan` reaches `power`,
+#' found by [stats::uniroot()] on `propDiffBounds`. Every candidate is
+#' simulated with the same `seed`, so the target is a deterministic step
 #' function of the candidate. There is no planning on `logOdds`.
+# FIXME: should i use different seed?
 #'
-#' @param nBlocksPlan Planned block count at which the test is evaluated.
-#' @param propDiffBounds Search interval for the magnitude of `propDiffMin`,
+#' @inheritParams designSavi2x2
+#' @param propDiffBounds search interval for the magnitude of `propDiffMin`,
 #'   strictly inside `(0, 1)`.
-#' @param tol Tolerance of the root on the `propDiff` scale.
-#' @inheritParams sampleStoppingTimesSavi2x2
+#' @param tol tolerance of the root on the `propDiff` scale.
 #'
-#' @return A single numeric: the minimal `propDiffMin`, negative for
-#'   `"less"`, or `NA` when the worst-case power minus `power` has no sign
-#'   change on `propDiffBounds` (still below the target at the upper bound,
-#'   or already above it at the lower bound). No bootstrap object, as for
-#'   [computeMinEsBatchSaviT()].
-#' @noRd
+#' @return numeric that represents the minimal detectable difference in
+#'   proportions, negative for "less", or `NA` when not found.
 computeEsMinSavi2x2 <- function(
   na,
   nb,
