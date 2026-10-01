@@ -1626,14 +1626,10 @@ sampleStoppingTimesSavi2x2 <- function(
 
   set.seed(if (is.null(seed)) 2026 else seed)
 
-  # Baselines: one per curve the test runs, the worst case where the grow
-  # e-process grows slowest. "greater": thetaA = thetaB + propDiffMin.
-  # "less": thetaA = thetaB - propDiffMin. twoSided runs both, since the
-  # test is not symmetric under a group swap when na != nb or the Beta
-  # priors differ.
-  worstCase <- solveWorstCaseTheta2x2PropDiff(propDiffMin, na, nb, alternative)
-  thetaATrue <- worstCase[["thetaA"]]
-  thetaBTrue <- worstCase[["thetaB"]]
+  # given propDiffMin, worstCaseTheta make stopping time largest
+  worstCaseTheta <- solveWorstCaseTheta2x2PropDiff(propDiffMin, na, nb, alternative)
+  thetaATrue <- worstCaseTheta[["thetaA"]]
+  thetaBTrue <- worstCaseTheta[["thetaB"]]
   nBaselines <- length(thetaATrue)
 
   logThreshold <- log(1 / alpha)
@@ -1666,9 +1662,7 @@ sampleStoppingTimesSavi2x2 <- function(
         )
       }
 
-      # The test's own grow e-process, cut at the first crossing of
-      # 1 / alpha: the length of the vector is the stopping time, unless the
-      # path ran through all nMax blocks without crossing.
+      # stop at the first time crossing 1/alpha
       ya <- stats::rbinom(nMax, naVec, thetaATrue[k])
       yb <- stats::rbinom(nMax, nbVec, thetaBTrue[k])
       logEValueVec <- logEValueVec2x2PropDiffGrow(
@@ -1704,11 +1698,7 @@ sampleStoppingTimesSavi2x2 <- function(
     close(pbSavi)
   }
 
-  # Planned block count: the power quantile of the stopping time at the
-  # hardest of the curves run. type = 1 is an order statistic, so it is a realised
-  # stopping time, finite exactly when at least a fraction power of that
-  # baseline's paths crossed 1 / alpha within nMax (never-crossing paths are
-  # Inf).
+  # Finding percentage of stopping times according to power
   nPlan <- NULL
   worstCaseThetaA <- NULL
   worstCaseThetaB <- NULL
@@ -1721,9 +1711,8 @@ sampleStoppingTimesSavi2x2 <- function(
       names = FALSE,
       type = 1
     )
-    # The hardest curve, as the row of its baseline (greater first, then
-    # less): its quantile is nPlan, its baseline is reported, and its paths
-    # feed the warning below.
+
+    # For twoSided, find the worst of "less" and "greater"
     worstSign <- which.max(quantiles)
     nPlan <- ceiling(quantiles[worstSign])
     worstCaseThetaA <- thetaATrue[worstSign]
@@ -1810,12 +1799,14 @@ computePowerSavi2x2 <- function(
   )
 
   # Power per curve: the fraction of paths that crossed 1 / alpha within
-  # nBlocks (a never-crossing path has stopping time Inf). The worst case is
-  # the smallest; the row index only selects its paths for the bootstrap.
+  # nBlocks (a never-crossing path has stopping time Inf).
+  # The worst case is the smallest
   stoppingTimes <- samplingResult[["stoppingTimes"]]
   powerVec <- rowMeans(stoppingTimes <= nBlocks)
+  # find the worst case for twoSided: "less" or "greater"
   worstSign <- which.min(powerVec)
 
+  # the row index only selects its paths for the bootstrap.
   bootObjPower <- computeBootObj(
     values = stoppingTimes[worstSign, ],
     objType = "power",
