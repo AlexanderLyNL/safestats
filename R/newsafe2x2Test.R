@@ -1575,13 +1575,12 @@ solveUmpLogOdds <- function(
 
 #' Simulate stopping times of the 2x2 grow test
 #'
-#' Decisions 29, 34, 43. `propDiffMin` is the grow plug-in and the
-#' data-generating effect; only its magnitude is used, the curve(s) follow
+#' `propDiffMin` is the grow plug-in.
 #' `alternative`: data lie on `thetaA = thetaB + |propDiffMin|` for
 #' `"greater"`, on `thetaA = thetaB - |propDiffMin|` for `"less"`, and on
 #' both curves for `"twoSided"`, at the worst-case baseline of each curve
 #' from [solveWorstCaseTheta2x2PropDiff()]. There is no planning on
-#' `logOdds` (Decision 43).
+#' `logOdds` for now.
 #' `nPlan` is the worst `power` quantile of the stopping time over the
 #' curves; with `power = NULL` the quantile step is skipped and `nPlan`,
 #' `worstCaseThetaA`, `worstCaseThetaB` are `NULL` (Decision 36).
