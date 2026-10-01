@@ -53,7 +53,7 @@ and no formula negates the effect except the `twoSided` mirror. The
 constructor also
 checks that `na`, `nb` are equal-length finite positive integers, `alpha`
 and `power` lie in `(0, 1)`, `nBlocksPlan` is a positive integer
-matching any size vectors, and `nTheta`, `nSim`, `nBoot`, `nMax` are
+matching any size vectors, and `nSim`, `nBoot`, `nMax` are
 positive integers with `nMax` at least `nBlocksPlan`; `betaParameter` is deferred and `runningIntersection` is not
 checked. Effect and planning must fit `eType`: eBeta and eGauss stop on a
 `propDiffMin`, `logOddsMin` or `power` (`nBlocksPlan` is kept as the planned
@@ -76,7 +76,7 @@ supplied `nBlocksPlan` must match; lists are rejected). It also takes
 optional `propDiffMin` or `logOddsMin` (never both), `alpha = .05`,
 `power = NULL`, `nBlocksPlan = NULL`, `h0 = 0`, `alternative`, `eType`,
 `betaParameter = NULL`, `gaussParameter = NULL`, and `runningIntersection = NULL`.
-Simulation settings are `nTheta = 8`, `nSim = 1000`, `nBoot = nSim`,
+Simulation settings are `nSim = 1000`, `nBoot = nSim`,
 `nMax = 10000`, `seed = NULL`, `wantSamplePaths = FALSE`, `pb = TRUE`.
 
 The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
@@ -219,10 +219,24 @@ Grow's interval construction is deferred; code nevertheless assigns its
 | `power`, `nBlocksPlan`, no minimal effect | `3` | Minimal detectable `propDiff` |
 
 All three together error. Per-block size vectors supply `nBlocksPlan`, so
-they run scenarios 2 and 3 on exactly those sizes and make `1a` an error. `sampleStoppingTimesSavi2x2` simulates grow on
-`nTheta` equally spaced interior baselines of the feasible curve with the
-sign of `propDiffMin`; two-sided runs both curves. Both curves matter with unequal group
-sizes or priors. “Worst case” means worst **on this finite grid**.
+they run scenarios 2 and 3 on exactly those sizes and make `1a` an error. `sampleStoppingTimesSavi2x2` simulates grow at
+one baseline per curve the test runs: the worst case from
+`solveWorstCaseTheta2x2PropDiff`, the root of
+`nLow logit(theta) + nHigh logit(theta + d) = n logit(theta0)` with `theta`
+the lower proportion, `theta0` its pooled null projection and `d = |propDiffMin|`,
+summed over blocks for per-block sizes; equal sizes give exactly
+`(1 - d) / 2`, and in general `(1 - d) / 2 + d (nHigh - nLow) / (6 n) + O(d^3)`.
+This minimises the asymptotic growth rate `R(theta) = nLow KL(theta || theta0)
++ nHigh KL(theta + d || theta0)`; simulation of the plain plug-in process
+(no UMP block) on fine `thetaA` grids found its stopping-time mean and
+80/90% quantiles at this root within noise of the grid maximum for size
+ratios up to 100:1 and `d` up to 0.5, with a flat plateau of width about
+0.2 to 0.3 around it. Two-sided runs both curves, which differ with unequal
+sizes or priors. The rate ignores the block-1 UMP factor; with it, the
+simulated worst case moves for very small unequal groups at small `d`
+([R9](2x2-review.md#r9)). Agreed next step: double-check against an analytic
+stopping-time approximation, `E[tau] ~ log(1 / alpha) n / (2 d^2 na nb)` plus
+the plug-in learning cost.
 Paths stop at `E >= 1/alpha`; noncrossing times are `Inf`, not `nMax`.
 `seed = NULL` means 2026. Outputs include baseline probabilities and
 baseline-by-path matrices `stoppingTimes`, `breakVector` (0 crossed,
@@ -234,7 +248,7 @@ matrices, with crossed values repeated through the cap.
 warning when infinite. Bootstrap summaries use the selected worst baseline;
 the planned-count and capped-mean bootstraps are omitted when `nPlan = Inf`.
 Scenarios 1a/2 store their bootstrap objects, relevant `*TwoSe` fields,
-worst-baseline identifiers, `breakVector`, and optional paths. Finite-sample
+the worst baseline (`worstCaseThetaA`, `worstCaseThetaB`), `breakVector`, and optional paths. Finite-sample
 quantile/bootstrap disagreement is deferred ([R6](2x2-review.md#r6)).
 
 `computeEsMinSavi2x2` searches magnitudes in `(0.01,0.9)` with fixed

@@ -367,9 +367,9 @@ savi2x2TestStat <- function(
 #' @param runningIntersection `TRUE` to intersect each row of the blockwise
 #'   confidence sequence with the previous one; `NULL` keeps the
 #'   constructor's `FALSE`.
-#' @param nTheta,nSim,nBoot,nMax,seed,wantSamplePaths,pb Simulation settings
+#' @param nSim,nBoot,nMax,seed,wantSamplePaths,pb Simulation settings
 #'   passed to [sampleStoppingTimesSavi2x2()] via [computeNPlanSavi2x2()] or
-#'   [computePowerSavi2x2()]: baselines per curve, paths per baseline,
+#'   [computePowerSavi2x2()]: paths per baseline,
 #'   bootstrap resamples, block cap per path, seed (`NULL` is `2026`),
 #'   whether to keep the e-value paths, and the progress bar.
 #'
@@ -382,7 +382,7 @@ savi2x2TestStat <- function(
 #'   NA, 2 * bootSe)`, `bootObjNBlocksPlan`, `nMean`, `nMeanTwoSe`,
 #'   `bootObjNMean`. With `nBlocksPlan`: `designScenario = "2"`, `power`
 #'   (the worst case), `powerTwoSe`, `bootObjPower`. Both also carry
-#'   `worstCaseIndex`, `worstCaseThetaA`, `worstCaseThetaB`, `breakVector`
+#'   `worstCaseThetaA`, `worstCaseThetaB`, `breakVector`
 #'   and `samplePaths`. With `power` and `nBlocksPlan` but no `*Min`:
 #'   `designScenario = "3"`, `esMin` the minimal detectable `propDiff`,
 #'   `power` as the target, and no simulation summaries.
@@ -401,7 +401,6 @@ designSavi2x2 <- function(
   betaParameter = NULL,
   gaussParameter = NULL,
   runningIntersection = NULL,
-  nTheta = 8L,
   nSim = 1e3L,
   nBoot = 1e3L,
   nMax = 1e4L,
@@ -510,7 +509,7 @@ designSavi2x2 <- function(
   result[["gaussParameter"]] <- gaussParameter
   # Simulation settings: positive integers, and the cap nMax at least the
   # planned block count. Checked here so a bad value fails before sampling.
-  for (setting in c("nTheta", "nSim", "nBoot", "nMax")) {
+  for (setting in c("nSim", "nBoot", "nMax")) {
     value <- get(setting)
     if (length(value) != 1L || !is.finite(value) || value %% 1 != 0 || value < 1) {
       stop(setting, " must be a single positive integer")
@@ -662,7 +661,6 @@ designSavi2x2 <- function(
       alpha = alpha,
       alternative = alternative,
       betaParameter = result[["betaParameter"]],
-      nTheta = nTheta,
       nSim = nSim,
       nBoot = nBoot,
       nMax = nMax,
@@ -693,7 +691,6 @@ designSavi2x2 <- function(
       alpha = alpha,
       alternative = alternative,
       betaParameter = result[["betaParameter"]],
-      nTheta = nTheta,
       nSim = nSim,
       nBoot = nBoot,
       seed = seed,
@@ -714,7 +711,6 @@ designSavi2x2 <- function(
       alpha = alpha,
       alternative = alternative,
       betaParameter = result[["betaParameter"]],
-      nTheta = nTheta,
       nSim = nSim,
       seed = seed,
       pb = pb
@@ -738,10 +734,8 @@ designSavi2x2 <- function(
   }
   # Scenarios 1 and 2 keep the worst baseline and its simulated paths.
   if (!is.null(planning)) {
-    worstCaseIndex <- planning[["worstCaseIndex"]]
-    result[["worstCaseIndex"]] <- worstCaseIndex
-    result[["worstCaseThetaA"]] <- planning[["thetaA"]][worstCaseIndex]
-    result[["worstCaseThetaB"]] <- planning[["thetaB"]][worstCaseIndex]
+    result[["worstCaseThetaA"]] <- planning[["worstCaseThetaA"]]
+    result[["worstCaseThetaB"]] <- planning[["worstCaseThetaB"]]
     result[["breakVector"]] <- planning[["breakVector"]]
     result[["samplePaths"]] <- planning[["samplePaths"]]
   }
@@ -1292,6 +1286,64 @@ solveRIPr2x2PropDiff <- function(
   )[["root"]]
 }
 
+# Worst-case baseline of the propDiff grow test: the pair on the curve of
+# each alternative at which the e-process grows slowest, so a block count
+# planned there holds for every baseline. The expected log e-increment per
+# block is the KL divergence of the truth from its pooled null projection,
+#   R(theta) = nLow KL(theta || theta0) + nHigh KL(theta + d || theta0),
+#   theta0   = theta + nHigh d / (nLow + nHigh),
+# with theta the lower proportion, nLow its group size and nHigh the size
+# of the group at theta + d. Its minimiser is the root of
+#   nLow logit(theta) + nHigh logit(theta + d) = (nLow + nHigh) logit(theta0),
+# summed over blocks when the sizes vary per block. Equal sizes give exactly
+# the midpoint (1 - d) / 2; in general the root is
+# (1 - d) / 2 + d (nHigh - nLow) / (6 (nLow + nHigh)) + O(d^3). The rate
+# ignores the first-block UMP factor, which moves the simulated worst case
+# when one group is very small (2x2-review.md, R9).
+#
+# "greater": thetaA = thetaB + d, so thetaB is the lower proportion and
+# nLow = nb. "less": thetaA = thetaB - d, so thetaA is the lower one and
+# nLow = na. "twoSided" gives both, greater first. One row per curve with
+# columns thetaA, thetaB.
+solveWorstCaseTheta2x2PropDiff <- function(
+  propDiffMin,
+  na,
+  nb,
+  alternative = c("twoSided", "greater", "less")
+) {
+  alternative <- match.arg(alternative)
+  d <- abs(propDiffMin)
+  stopifnot(length(d) == 1, d > 0, d < 1, all(na >= 1), all(nb >= 1))
+
+  lowerProportion <- function(nLow, nHigh) {
+    if (all(nLow == nHigh)) {
+      return((1 - d) / 2)
+    }
+    stationarity <- function(theta) {
+      theta0 <- theta + nHigh * d / (nLow + nHigh)
+      sum(
+        nLow * stats::qlogis(theta) +
+          nHigh * stats::qlogis(theta + d) -
+          (nLow + nHigh) * stats::qlogis(theta0)
+      )
+    }
+    # logit is infinite at the edges, so search just inside them.
+    stats::uniroot(stationarity, c(1e-9, 1 - d - 1e-9), tol = 1e-10)[["root"]]
+  }
+
+  greater <- NULL
+  less <- NULL
+  if (alternative != "less") {
+    thetaB <- lowerProportion(nb, na)
+    greater <- data.frame("thetaA" = thetaB + d, "thetaB" = thetaB)
+  }
+  if (alternative != "greater") {
+    thetaA <- lowerProportion(na, nb)
+    less <- data.frame("thetaA" = thetaA, "thetaB" = thetaA + d)
+  }
+  rbind(greater, less)
+}
+
 # Helpers: logOdds ----
 
 # logOdds is always log(oddsA / oddsB) = logit(thetaA) - logit(thetaB)
@@ -1511,20 +1563,21 @@ solveUmpLogOdds <- function(
 #'
 #' Decisions 29, 34, 43. `propDiffMin` is the grow plug-in and the
 #' data-generating effect; only its magnitude is used, the curve(s) follow
-#' `alternative`: data lie on `thetaA = thetaB + |propDiffMin|` at `nTheta`
-#' baselines `thetaA` for `"greater"`, on `thetaA = thetaB - |propDiffMin|`
-#' at `nTheta` baselines for `"less"`, and on both for `"twoSided"`. There
-#' is no planning on `logOdds` (Decision 43).
-#' `nPlan` is the worst `power` quantile of the stopping time over all
-#' baselines; with `power = NULL` the quantile step is skipped and `nPlan`,
-#' `worstCaseIndex` are `NULL` (Decision 36).
+#' `alternative`: data lie on `thetaA = thetaB + |propDiffMin|` for
+#' `"greater"`, on `thetaA = thetaB - |propDiffMin|` for `"less"`, and on
+#' both curves for `"twoSided"`, at the worst-case baseline of each curve
+#' from [solveWorstCaseTheta2x2PropDiff()]. There is no planning on
+#' `logOdds` (Decision 43).
+#' `nPlan` is the worst `power` quantile of the stopping time over the
+#' curves; with `power = NULL` the quantile step is skipped and `nPlan`,
+#' `worstCaseThetaA`, `worstCaseThetaB` are `NULL` (Decision 36).
 #'
 #' @return A list: `thetaA`, `thetaB`, and one row per baseline in
 #'   `stoppingTimes` (`Inf` when a path never crosses `1 / alpha`),
 #'   `breakVector` (`0` crossed, `1` reached `nMax`), `eValuesStopped`;
 #'   `samplePaths` (a list of `nSim x nMax` sparse matrices, or `NULL`),
-#'   `n1Vector` (the block index), `nPlan`,
-#'   `worstCaseIndex`.
+#'   `n1Vector` (the block index), `nPlan`, and the baseline it was taken
+#'   at, `worstCaseThetaA`, `worstCaseThetaB`.
 #' @noRd
 sampleStoppingTimesSavi2x2 <- function(
   propDiffMin,
@@ -1535,7 +1588,6 @@ sampleStoppingTimesSavi2x2 <- function(
   alternative = c("twoSided", "less", "greater"),
   eType = c("grow"),
   betaParameter = NULL,
-  nTheta = 8L,
   nSim = 1e3L,
   nMax = 1e4L,
   nBoot = 1e4L,
@@ -1574,24 +1626,14 @@ sampleStoppingTimesSavi2x2 <- function(
 
   set.seed(if (is.null(seed)) 2026 else seed)
 
-  # TODO: a lot of time wasted near the boundary
-  # Baselines: thetaA at nTheta equally spaced interior points of its
-  # feasible range on each curve the test runs. "greater": thetaA = thetaB
-  # + propDiffMin, thetaA over (propDiffMin, 1). "less": thetaA = thetaB
-  # - propDiffMin, thetaA over (0, 1 - propDiffMin). twoSided runs both,
-  # since the test is not symmetric under a group swap when na != nb or
-  # the Beta priors differ.
-  rhoTheta <- seq(1 / (nTheta + 1), nTheta / (nTheta + 1), length.out = nTheta)
-  thetaATrue <- numeric(0)
-  thetaBTrue <- numeric(0)
-  if (alternative != "less") {
-    thetaATrue <- c(thetaATrue, propDiffMin + rhoTheta * (1 - propDiffMin))
-    thetaBTrue <- c(thetaBTrue, rhoTheta * (1 - propDiffMin))
-  }
-  if (alternative != "greater") {
-    thetaATrue <- c(thetaATrue, rhoTheta * (1 - propDiffMin))
-    thetaBTrue <- c(thetaBTrue, rhoTheta * (1 - propDiffMin) + propDiffMin)
-  }
+  # Baselines: one per curve the test runs, the worst case where the grow
+  # e-process grows slowest. "greater": thetaA = thetaB + propDiffMin.
+  # "less": thetaA = thetaB - propDiffMin. twoSided runs both, since the
+  # test is not symmetric under a group swap when na != nb or the Beta
+  # priors differ.
+  worstCase <- solveWorstCaseTheta2x2PropDiff(propDiffMin, na, nb, alternative)
+  thetaATrue <- worstCase[["thetaA"]]
+  thetaBTrue <- worstCase[["thetaB"]]
   nBaselines <- length(thetaATrue)
 
   logThreshold <- log(1 / alpha)
@@ -1661,12 +1703,14 @@ sampleStoppingTimesSavi2x2 <- function(
   }
 
   # Planned block count: the power quantile of the stopping time at the
-  # hardest baseline. type = 1 is an order statistic, so it is a realised
+  # hardest of the curves run. type = 1 is an order statistic, so it is a realised
   # stopping time, finite exactly when at least a fraction power of that
   # baseline's paths crossed 1 / alpha within nMax (never-crossing paths are
   # Inf).
   nPlan <- NULL
   worstCaseIndex <- NULL
+  worstCaseThetaA <- NULL
+  worstCaseThetaB <- NULL
   if (!is.null(power)) {
     quantiles <- apply(
       stoppingTimes,
@@ -1678,6 +1722,8 @@ sampleStoppingTimesSavi2x2 <- function(
     )
     worstCaseIndex <- which.max(quantiles)
     nPlan <- ceiling(quantiles[worstCaseIndex])
+    worstCaseThetaA <- thetaATrue[worstCaseIndex]
+    worstCaseThetaB <- thetaBTrue[worstCaseIndex]
   }
 
   if (!is.null(nPlan) && !is.finite(nPlan)) {
@@ -1704,7 +1750,8 @@ sampleStoppingTimesSavi2x2 <- function(
     "samplePaths" = samplePaths,
     "n1Vector" = seq_len(nMax),
     "nPlan" = nPlan,
-    "worstCaseIndex" = worstCaseIndex
+    "worstCaseThetaA" = worstCaseThetaA,
+    "worstCaseThetaB" = worstCaseThetaB
   )
 }
 
@@ -1720,8 +1767,9 @@ sampleStoppingTimesSavi2x2 <- function(
 #' @inheritParams sampleStoppingTimesSavi2x2
 #'
 #' @return A list: `power` (the worst-case power), `powerVec` (one per
-#'   baseline), `worstCaseIndex`, `bootObjPower` (a [boot::boot()] object
-#'   on the worst baseline, with `bootSe`), `nBlocks`, and the sampler's
+#'   curve), `worstCaseThetaA`, `worstCaseThetaB` (its baseline),
+#'   `bootObjPower` (a [boot::boot()] object on that baseline, with
+#'   `bootSe`), `nBlocks`, and the sampler's
 #'   `thetaA`, `thetaB`, `stoppingTimes`, `breakVector`, `eValuesStopped`,
 #'   `samplePaths`, `n1Vector`.
 #' @noRd
@@ -1733,7 +1781,6 @@ computePowerSavi2x2 <- function(
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   betaParameter = NULL,
-  nTheta = 8L,
   nSim = 1e3L,
   nBoot = nSim,
   seed = NULL,
@@ -1751,7 +1798,6 @@ computePowerSavi2x2 <- function(
     alpha = alpha,
     alternative = alternative,
     betaParameter = betaParameter,
-    nTheta = nTheta,
     nSim = nSim,
     nMax = nBlocks,
     seed = seed,
@@ -1759,9 +1805,9 @@ computePowerSavi2x2 <- function(
     pb = pb
   )
 
-  # Power per baseline: the fraction of paths that crossed 1 / alpha within
+  # Power per curve: the fraction of paths that crossed 1 / alpha within
   # nBlocks (a never-crossing path has stopping time Inf). The worst case is
-  # the smallest.
+  # the smallest; the row index only selects its paths for the bootstrap.
   stoppingTimes <- samplingResult[["stoppingTimes"]]
   powerVec <- rowMeans(stoppingTimes <= nBlocks)
   worstCaseIndex <- which.min(powerVec)
@@ -1776,7 +1822,8 @@ computePowerSavi2x2 <- function(
   list(
     "power" = powerVec[worstCaseIndex],
     "powerVec" = powerVec,
-    "worstCaseIndex" = worstCaseIndex,
+    "worstCaseThetaA" = samplingResult[["thetaA"]][worstCaseIndex],
+    "worstCaseThetaB" = samplingResult[["thetaB"]][worstCaseIndex],
     "bootObjPower" = bootObjPower,
     "nBlocks" = nBlocks,
     "thetaA" = samplingResult[["thetaA"]],
@@ -1801,7 +1848,8 @@ computePowerSavi2x2 <- function(
 #'
 #' @return A list: `nPlan` (the worst-case block count, `Inf` with a warning
 #'   when the worst baseline crossed too rarely), `nPlanVec` (the quantile
-#'   per baseline), `worstCaseIndex`, `bootObjNPlan`, `nMean`,
+#'   per curve), `worstCaseThetaA`, `worstCaseThetaB` (the worst baseline),
+#'   `bootObjNPlan`, `nMean`,
 #'   `bootObjNMean` ([boot::boot()] objects on the worst baseline, `NULL`
 #'   when `nPlan` is `Inf`), and the sampler's `thetaA`, `thetaB`,
 #'   `stoppingTimes`, `breakVector`, `eValuesStopped`, `samplePaths`,
@@ -1815,7 +1863,6 @@ computeNPlanSavi2x2 <- function(
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   betaParameter = NULL,
-  nTheta = 8L,
   nSim = 1e3L,
   nBoot = nSim,
   nMax = 1e4L,
@@ -1834,7 +1881,6 @@ computeNPlanSavi2x2 <- function(
     alpha = alpha,
     alternative = alternative,
     betaParameter = betaParameter,
-    nTheta = nTheta,
     nSim = nSim,
     nMax = nMax,
     seed = seed,
@@ -1844,8 +1890,8 @@ computeNPlanSavi2x2 <- function(
 
   stoppingTimes <- samplingResult[["stoppingTimes"]]
   nPlan <- samplingResult[["nPlan"]]
-  worstCaseIndex <- samplingResult[["worstCaseIndex"]]
-  # The same order-statistic quantile per baseline as the sampler's nPlan.
+  # The same order-statistic quantile per curve as the sampler's nPlan; its
+  # largest row holds the worst baseline's paths for the bootstraps.
   nPlanVec <- apply(
     stoppingTimes,
     1,
@@ -1854,6 +1900,7 @@ computeNPlanSavi2x2 <- function(
     names = FALSE,
     type = 1
   )
+  worstCaseIndex <- which.max(nPlanVec)
 
   # Simulation uncertainty at the worst baseline only: the bootstrap
   # quantile, and the mean stopping time with paths capped at nPlan. A
@@ -1880,7 +1927,8 @@ computeNPlanSavi2x2 <- function(
   list(
     "nPlan" = nPlan,
     "nPlanVec" = nPlanVec,
-    "worstCaseIndex" = worstCaseIndex,
+    "worstCaseThetaA" = samplingResult[["worstCaseThetaA"]],
+    "worstCaseThetaB" = samplingResult[["worstCaseThetaB"]],
     "bootObjNPlan" = bootObjNPlan,
     "nMean" = nMean,
     "bootObjNMean" = bootObjNMean,
@@ -1923,7 +1971,6 @@ computeEsMinSavi2x2 <- function(
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   betaParameter = NULL,
-  nTheta = 8L,
   nSim = 1e3L,
   seed = NULL,
   pb = TRUE,
@@ -1946,8 +1993,8 @@ computeEsMinSavi2x2 <- function(
 
   # Worst-case power minus the target, at a candidate propDiffMin. The same
   # seed for every candidate makes this deterministic in the candidate; the
-  # baselines are rescaled to the feasible thetaA range of each curve inside
-  # the sampler, so the worst case is taken afresh each time.
+  # worst-case baseline of each curve is solved afresh inside the sampler
+  # for each candidate.
   targetFunction <- function(propDiffMin) {
     computePowerSavi2x2(
       propDiffMin = propDiffMin,
@@ -1957,7 +2004,6 @@ computeEsMinSavi2x2 <- function(
       alpha = alpha,
       alternative = alternative,
       betaParameter = betaParameter,
-      nTheta = nTheta,
       nSim = nSim,
       seed = seed,
       pb = pb

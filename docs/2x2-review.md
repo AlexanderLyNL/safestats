@@ -14,6 +14,7 @@ contract in the [current design](2x2-design.md) first.
 | [R6](#r6) | P2 | Planning and bootstrap use different quantiles | Deferred |
 | [R7](#r7) | P2 | Design plotting cannot consume the new sample-path structure | Deferred |
 | [R8](#r8) | P2 | An alternative described as ignored still changes the test | Deferred |
+| [R9](#r9) | P2 | The block-1 UMP factor moves the worst case off the analytic baseline | Deferred |
 
 P1 affects statistical validity or numerical correctness; P2 affects planning
 or API behavior. Expand a finding for reproduction details. Run snippets from
@@ -218,6 +219,41 @@ e-values are approximately `563324.7` and `281662.3`, respectively.
 **Location.** `R/newsafe2x2Test.R:460–461`, `designSavi2x2()`;
 `savi2x2TestStat()` consumes the retained alternative.
 **Next design question.** Normalize the value or reject the unsupported input?
+
+</details>
+
+<a id="r9"></a>
+<details>
+<summary>R9 — The block-1 UMP factor moves the worst case off the analytic baseline</summary>
+
+**Impact.** Planning simulates one baseline per curve, the minimiser of the
+asymptotic growth rate (`solveWorstCaseTheta2x2PropDiff`). The test replaces
+block 1 by the UMP conditional e-factor, whose expected log value under the
+alternative is negative and depends on the baseline: about −1.8 nats for
+10:2 and −2.2 nats for 5:5 at `d = 0.1` against a threshold of `log 20 ≈ 3`.
+For very small unequal groups that handicap peaks away from the analytic
+baseline, so the single-baseline plan is short.
+
+**Evidence (2026-09-29/10-01, 300–600 paths, `alpha = 0.05`, B-minus-A
+convention of that date, mirrored here).** With the UMP block, the 80%
+stopping-time quantile at the analytic baseline versus the worst of an
+11-point grid: 10:2 and 2:10 at `d = 0.1` are 30% short (158 vs 226; 149 vs
+214), 20:5 is 16% short (109 vs 129); 3:7, all balanced designs and every
+design at `d = 0.3` agree within noise. The fine-grid worst case sits at
+`thetaLow ≈ 0.31` for 10:2 (analytic 0.46). Without the UMP replacement the
+same designs agree within noise everywhere, with the same stopping-time
+quantile in both group orders. The prior (0.18, Jeffreys, uniform, skewed)
+has no visible effect. The exact adjustment that reproduced the shifted peak
+was `argmax (log(1/alpha) − E[log UMP_1]) / R(theta)`, with the expectation
+an exact sum over block-1 tables.
+
+**Location.** `sampleStoppingTimesSavi2x2()` and
+`solveWorstCaseTheta2x2PropDiff()`; the UMP replacement in
+`savi2x2TestStat()`.
+
+**Next design question.** Add the block-1 term to the baseline objective, fall
+back to a grid when `min(na, nb)` is small, or revisit the UMP replacement,
+whose expected cost is a large fraction of the threshold at small effects.
 
 </details>
 
