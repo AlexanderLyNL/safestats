@@ -50,7 +50,7 @@ odds `exp(logOdds)` on A all mean the same thing and no formula negates the
 effect except the `twoSided` mirror.
 The constructor takes arguments as given and checks only cheap
 inconsistencies: `alpha` and `power` lie in `(0, 1)`, `na` and `nb` have
-equal length, `nBlocksPlan` matches any per-block sizes, at most one minimal
+equal length, at most one minimal
 effect is given, `propDiffMin` is nonzero in `(-1, 1)` and `logOddsMin` is
 nonzero; `nSim`, `nBoot`, `nMax`, the priors and `runningIntersection` are
 not checked. The flow is linear: fix `nBlocksPlan` from per-block sizes,
@@ -77,7 +77,7 @@ the design stores the list it uses.
 `designSavi2x2(na, nb, ...)` takes planned finite positive integer block
 sizes as numeric vectors of equal length: one value each for a constant
 size, or one per block, which fixes `nBlocksPlan` at their length (a
-supplied `nBlocksPlan` must match; lists are rejected). It also takes
+supplied `nBlocksPlan` is taken as given; lists are rejected). It also takes
 optional `propDiffMin` or `logOddsMin` (never both), `alpha = .05`,
 `power = NULL`, `nBlocksPlan = NULL`, `h0 = 0`, `alternative`, `eType`,
 `betaParameter = NULL`, `gaussParameter = NULL`, and `runningIntersection = NULL`.
@@ -115,6 +115,8 @@ is a helper returning the plain cumulative log e-process, and the
 confidence code dispatches on the effect.
 Counts are finite nonnegative integers, one per block in observation order,
 and no larger than that block's positive integer group size.
+`designSavi2x2` and `savi2x2TestStat` are exported; every helper has a
+roxygen page but stays internal.
 
 **Unresolved API mismatch:** the approved observed-size contract allows
 `na` and `nb` independently as `NULL` (planned size), a broadcast scalar,
@@ -283,7 +285,7 @@ grid rather than the effect. `logOddsMin` with planning arguments errors.
 
 ## Remaining boundaries
 
-General type/restriction checks, `h0 != 0`, public S3 wrappers/exports,
+General type/restriction checks, `h0 != 0`, public S3 wrappers,
 and grow effect dispatch are unfinished. Do not infer support from an
 argument being accepted. Sampler-level `nBoot` and data/e-value-at-cap flags
 remain unimplemented. `plot.saviTest` uses block indices and `confSeqMatrix`;
