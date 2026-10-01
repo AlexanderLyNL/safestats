@@ -87,7 +87,8 @@ Simulation settings are `nSim = 1000`, `nBoot = nSim`,
 The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
 `h0 = c(propDiff = h0)`, and:
 
-- `nPlan = list(na, nb)`, adding named `nBlocksPlan` when given or planned.
+- `nPlan = list(na, nb)`, adding named `nBlocksPlan` when given or planned;
+  the print methods show per-block size vectors as `mean na`, `mean nb`.
 - `esMin`, named by the supplied effect; no `effectMeasure` field.
 - `betaParameter = list(betaA1, betaA2, betaB1, betaB2)`, eBeta only:
   positive success and failure shapes, exactly these names; `NULL` means
@@ -97,8 +98,11 @@ The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
   The prior the eType does not read is absent (`NULL`).
 - `parameter`, for printing: the e-variable's defining quantity beyond
   `eType` and `alternative`. eBeta and eGauss store their prior as one named
-  string; grow stores the signed `esMin` named `propDiffMin` or `logOddsMin`,
-  as `phiS` is for the z grow test. Constructor defaults
+  string formatted in the constructor, names and values comma-separated
+  (`betaA1, betaA2, betaB1, betaB2 = 0.05, 0.05, 0.05, 0.05`), so the shared
+  print methods need no 2x2 branch; grow stores the signed `esMin` named
+  `propDiffMin` or `logOddsMin`, as `phiS` is for the z grow test.
+  Constructor defaults
   `runningIntersection = FALSE`, `relevanceTest = FALSE`; `NULL` arguments
   preserve these defaults. `nMax` is a simulation cap, not a design field.
 

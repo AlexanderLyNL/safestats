@@ -381,8 +381,9 @@ savi2x2TestStat <- function(
 #'   "2x2"`, `h0 = c(propDiff = h0)`, `esMin`, `eType`, `alpha`,
 #'   `alternative`, the prior its eType reads (`betaParameter` for
 #'   `"eBeta"`, `gaussParameter` for `"eGauss"`, neither for `"grow"`),
-#'   `parameter` (for printing: that prior summarised, or for `"grow"` the
-#'   signed minimal effect named `propDiffMin` or `logOddsMin`),
+#'   `parameter` (for printing: that prior as one named string, its names
+#'   and values comma-separated, or for `"grow"` the signed minimal effect
+#'   named `propDiffMin` or `logOddsMin`),
 #'   `runningIntersection` and `nPlan = list(na, nb)`, with a
 #'   third element `nBlocksPlan` when planned or given. With `power`:
 #'   `designScenario = "1a"`, `power` as the target, `nPlanTwoSe = c(NA,
@@ -747,23 +748,22 @@ designSavi2x2 <- function(
   }
 
   # The e-variable's defining quantity beyond eType and alternative, for
-  # printing: the prior in use, or for grow the signed minimal effect, as
-  # phiS is for the z grow test. Scenario 3 has found esMin by now.
-  result[["parameter"]] <- switch(eType,
-    "eBeta" = c(
-      "Beta hyperparameters" = paste(
-        unlist(result[["betaParameter"]]),
-        collapse = " "
-      )
-    ),
-    "eGauss" = c(
-      "Gaussian prior (mean, sd)" = paste(unlist(gaussParameter), collapse = " ")
-    ),
-    "grow" = stats::setNames(
+  # printing. grow stores the signed minimal effect, as phiS is for the z
+  # grow test; scenario 3 has found esMin by now. eBeta and eGauss store
+  # the prior in use as one named string, names and values comma-separated,
+  # so the shared print methods show it side by side as they do nPlan.
+  if (eType == "grow") {
+    result[["parameter"]] <- stats::setNames(
       unname(result[["esMin"]]),
       paste0(names(result[["esMin"]]), "Min")
     )
-  )
+  } else {
+    prior <- if (eType == "eBeta") result[["betaParameter"]] else gaussParameter
+    result[["parameter"]] <- stats::setNames(
+      paste(vapply(prior, format, character(1)), collapse = ", "),
+      paste(names(prior), collapse = ", ")
+    )
+  }
 
   result[["nPlan"]] <- list("na" = na, "nb" = nb)
   if (!is.null(nBlocksPlan)) {
