@@ -26,7 +26,7 @@ describes the alternative's direction, not a composite null.
 |---|---|---|---|---|---|
 | `propDiff` | `eBeta` | `twoSided`, `greater`, `less` | None | Yes, defects R1/R4 | No |
 | `propDiff` | `grow` | `twoSided`, `greater`, `less` | signed `propDiffMin`, `0 < |propDiffMin| < 1` | No | Yes |
-| `logOdds` | `eGauss` | `twoSided`, `greater`, `less` | None | Yes, defect R3 | No |
+| `logOdds` | `eGauss` | `twoSided`, `greater`, `less` | None | Yes | No |
 | `logOdds` | `grow` | `twoSided`, `greater`, `less` | signed finite `logOddsMin != 0` | No | No |
 
 **Sign rule for grow.** The minimal effect is a signed value on the
@@ -166,7 +166,10 @@ of `log(1 / alpha)`.
 
 **Conditional logOdds.** Given `ya + yb`, the weighted count is `ya`:
 FNCH has odds `exp(logOdds)` on A; the null is hypergeometric.
-`logLikelihoodFNCH` returns per-block conditional log densities.
+`logLikelihoodFNCH` returns per-block conditional log densities, evaluated
+on the log scale (binomial coefficients plus `logOdds` times the feasible
+count, normalized by log-sum-exp), so they are finite at every finite
+`logOdds`.
 `logEValueVec2x2LogOddsGrow` uses the magnitude of `logOddsMin` with the sign
 of `alternative`, or for `twoSided` averages the cumulative e-processes at
 both signs.
@@ -188,8 +191,7 @@ up to 100 from `logOddsNull = 0` in the chosen direction. It returns
 totals `0` or `na + nb`, or `na = nb = 1`. Dependence on the current total is
 allowed because the conditional test conditions on it. On `NULL` for any
 side, `savi2x2TestStatUmp` returns `NULL` and `savi2x2TestStat` keeps block 1
-of the plain process instead of replacing it, with a warning. Numerical FNCH
-underflow remains unresolved ([R3](2x2-review.md#r3)).
+of the plain process instead of replacing it, with a warning.
 
 ## Confidence intervals and sequences
 

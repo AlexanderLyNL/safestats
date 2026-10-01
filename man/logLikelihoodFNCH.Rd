@@ -29,5 +29,7 @@ A numeric vector, one log density per block.
 \description{
 Given its total \code{ya + yb}, \code{ya} is Fisher's noncentral hypergeometric
 with odds \code{exp(logOdds)} on group A; \code{logOdds = 0} is the hypergeometric
-null.
+null. Evaluated on the log scale, binomial coefficients plus \code{logOdds}
+times the feasible count normalised by log-sum-exp, so extreme \code{logOdds}
+give finite values where the plain density underflows to 0.
 }

@@ -1392,7 +1392,9 @@ solveWorstCaseTheta2x2PropDiff <- function(
 #'
 #' Given its total `ya + yb`, `ya` is Fisher's noncentral hypergeometric
 #' with odds `exp(logOdds)` on group A; `logOdds = 0` is the hypergeometric
-#' null.
+#' null. Evaluated on the log scale, binomial coefficients plus `logOdds`
+#' times the feasible count normalised by log-sum-exp, so extreme `logOdds`
+#' give finite values where the plain density underflows to 0.
 #'
 #' @inheritParams savi2x2TestStat
 #' @inheritParams designSavi2x2
@@ -1402,7 +1404,10 @@ solveWorstCaseTheta2x2PropDiff <- function(
 logLikelihoodFNCH <- function(ya, yb, na, nb, logOdds) {
   mapply(
     function(ya, yb, na, nb) {
-      log(BiasedUrn::dFNCHypergeo(ya, na, nb, ya + yb, exp(logOdds)))
+      k <- max(0, ya + yb - nb):min(na, ya + yb)
+      logTerms <- lchoose(na, k) + lchoose(nb, ya + yb - k) + logOdds * k
+      shift <- max(logTerms)
+      logTerms[ya - k[1] + 1] - shift - log(sum(exp(logTerms - shift)))
     },
     ya = ya,
     yb = yb,

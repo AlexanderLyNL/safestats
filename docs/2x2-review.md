@@ -1,14 +1,15 @@
 # 2×2 review: deferred findings
 
 Reviewed **2026-09-28**, against commit **`e4464b587ea6`**; documented
-**2026-09-29**. All findings are **unresolved and deferred by the user**.
+**2026-09-29**. Findings are **unresolved and deferred by the user** unless
+marked resolved.
 This record does not authorize fixes or tests. Agree any changed statistical
 contract in the [current design](2x2-design.md) first.
 
 | ID | Priority | Finding | Status |
 | --- | --- | --- | --- |
 | [R1](#r1) | P1 | Assumed convexity causes confidence-interval undercoverage | Deferred |
-| [R3](#r3) | P1 | FNCH density underflow corrupts intervals and e-values | Deferred |
+| [R3](#r3) | P1 | FNCH density underflow corrupts intervals and e-values | Resolved 2026-10-01 |
 | [R4](#r4) | P1 | A grid can miss the entire accepted confidence set | Deferred |
 | [R5](#r5) | P2 | Minimal-effect search can return an effect below target power | Deferred |
 | [R6](#r6) | P2 | Planning and bootstrap use different quantiles | Deferred |
@@ -68,11 +69,11 @@ justify a conservative hull without assuming convexity?
 
 <a id="r3"></a>
 <details>
-<summary>R3 — Taking log after the density has underflowed loses information</summary>
+<summary>R3 — Taking log after the density has underflowed loses information (resolved)</summary>
 
-**Impact.** `log(BiasedUrn::dFNCHypergeo(...))` can become `-Inf` even when
-the mathematical log density is finite. Two-sided averaging can then encounter
-`-Inf - -Inf`; interval optimization can return the full search domain.
+**Impact.** `log(BiasedUrn::dFNCHypergeo(...))` could become `-Inf` even when
+the mathematical log density is finite. Two-sided averaging could then encounter
+`-Inf - -Inf`; interval optimization could return the full search domain.
 
 ```r
 d <- designSavi2x2(300, 300, eType = "eGauss")
@@ -92,13 +93,23 @@ f <- function(delta) logP(eta) - logP(delta) - log(20)
 c(uniroot(f, c(-40, 0))$root, uniroot(f, c(0, 40))$root)
 ```
 
-**Observed.** eGauss reports `[-40, 40]` with numerical warnings; the stable
-reference gives approximately `[-0.566224, 0.566224]`. The grow call gives
-`NaN`. The reference is diagnostic evidence, not an implemented replacement.
-**Location.** `R/newsafe2x2Test.R:965–968`, `logLikelihoodFNCH()`;
-`savi2x2TestStat()` also needs explicit infinite-term handling.
-**Next design question.** Which stable log-density method and boundary
-conventions should the public calculation use?
+**Observed before the fix.** eGauss reported `[-40, 40]` with numerical
+warnings; the stable reference gives approximately `[-0.566224, 0.566224]`
+for the one-block UMP factor it inverts. The grow call gave `NaN`. The same
+underflow made `uniroot` warn on an infinite edge value, and
+`computeConfidenceSequence2x2LogOdds()` read every warning as an empty row:
+on 100 blocks of 50/50 at true logOdds 3.58, all 100 rows were `NA`.
+**Resolution (2026-10-01).** `logLikelihoodFNCH()` evaluates the FNCH log
+density on the log scale, the eGauss grid helper's formula at one `logOdds`,
+picked from `2ab69ba7c981` without that commit's interval and sequence
+contract change. It agrees with BiasedUrn to 1e-10 where that is finite and
+is finite at every finite `logOdds`. The eGauss snippet now gives
+`[-0.5073, 0.5073]`, inverting the eGauss numerator rather than the UMP
+reference; the grow call gives `0.0499`; the 100-block sequence has no `NA`
+rows and no warnings. `computeConfidenceInterval2x2LogOdds()` still warns
+and returns `NA` for a bound beyond `domain` and the whole domain for an
+empty set, and the sequence still reads a warning as an `NA` row; those two
+cases are now the only ones that produce `NA` rows.
 
 </details>
 
