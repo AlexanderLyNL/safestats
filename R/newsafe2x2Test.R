@@ -319,8 +319,9 @@ savi2x2TestStat <- function(
 #' `"greater"` means group A has the larger proportion, as `x - y > 0`
 #' does in [stats::t.test()].
 #'
-#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted; they take
-#'   no `propDiffMin` or `logOddsMin` and no planning. `"eBeta"` is twoSided
+#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted; a
+#'   `propDiffMin`, `logOddsMin` or `power` is an error for them, while
+#'   `nBlocksPlan` is kept as the planned block count. `"eBeta"` is twoSided
 #'   only and a one-sided `alternative` is ignored with a warning; `"eGauss"`
 #'   restricts its `gaussParameter` prior to the side of a one-sided
 #'   `alternative`.
@@ -333,9 +334,10 @@ savi2x2TestStat <- function(
 #'   plans the block count at the hardest baseline, `nBlocksPlan` alone
 #'   evaluates the worst-case power there, and both without `propDiffMin`
 #'   find the minimal detectable `propDiff` (Decision 42). Both with
-#'   `propDiffMin` errors; neither gives the design without simulation.
-#'   `logOddsMin` with `power` or `nBlocksPlan` errors: its worst case is
-#'   set by the baseline grid, not by the effect.
+#'   `propDiffMin` errors. Without a minimal effect and without both, grow
+#'   warns and continues as `"eBeta"`, dropping a lone `power`.
+#'   `logOddsMin` with `power` errors: its worst case is set by the baseline
+#'   grid, not by the effect; `nBlocksPlan` is kept as the planned count.
 #'
 #' @param na number of observations in group a per data block
 #' @param nb number of observations in group b per data block
@@ -605,6 +607,41 @@ designSavi2x2 <- function(
     )
   }
   result[["esMin"]] <- esMin
+
+  # Effect and planning must fit eType (design: checks). eBeta and eGauss
+  # take no minimal effect and no planning; grow needs a minimal effect, or
+  # both power and nBlocksPlan to find one, else it continues as eBeta.
+  if (eType != "grow" && !is.null(esMin)) {
+    stop(
+      effect,
+      "Min needs eType = 'grow'; eType = '",
+      eType,
+      "' has no minimal effect"
+    )
+  }
+  if (eType != "grow" && !is.null(power)) {
+    stop(
+      "power needs eType = 'grow' with propDiffMin; eType = '",
+      eType,
+      "' has no planning"
+    )
+  }
+  if (eType == "grow" && is.null(esMin) && (is.null(power) || is.null(nBlocksPlan))) {
+    warning(
+      "eType = 'grow' needs propDiffMin or logOddsMin, or both power and ",
+      "nBlocksPlan to find the minimal propDiff; using eType = 'eBeta'",
+      if (!is.null(power)) " and dropping power"
+    )
+    eType <- "eBeta"
+    result[["eType"]] <- eType
+    power <- NULL
+  }
+  if (eType == "grow" && !is.null(propDiffMin) && !is.null(power) && !is.null(nBlocksPlan)) {
+    stop("with propDiffMin supply power or nBlocksPlan, not both")
+  }
+  if (eType == "grow" && !is.null(logOddsMin) && !is.null(power)) {
+    stop("no planning on logOdds: power needs propDiffMin")
+  }
 
   # Planning only for propDiffMin
   planning <- NULL

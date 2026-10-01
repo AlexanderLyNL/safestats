@@ -55,8 +55,13 @@ checks that `na`, `nb` are equal-length finite positive integers, `alpha`
 and `power` lie in `(0, 1)`, `nBlocksPlan` is a positive integer
 matching any size vectors, and `nTheta`, `nSim`, `nBoot`, `nMax` are
 positive integers with `nMax` at least `nBlocksPlan`; `betaParameter` is deferred and `runningIntersection` is not
-checked. A one-sided alternative supplied to eBeta is supposed to warn and
-be ignored; eBeta currently retains its effect on the first factor
+checked. Effect and planning must fit `eType`: eBeta and eGauss stop on a
+`propDiffMin`, `logOddsMin` or `power` (`nBlocksPlan` is kept as the planned
+count: stored and printed, read only by scenarios 2 and 3); grow without a minimal effect and without both `power` and
+`nBlocksPlan` warns and continues as eBeta, dropping a lone `power`; grow with
+`propDiffMin` stops when `power` and `nBlocksPlan` are both given; grow with
+`logOddsMin` stops on `power`. A one-sided alternative supplied to eBeta is
+supposed to warn and be ignored; eBeta currently retains its effect on the first factor
 ([R8](2x2-review.md#r8)). eGauss accepts every alternative (below).
 `gaussParameter` is `list(mean, sd)` with finite `mean` inside the grid
 `(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`, and
