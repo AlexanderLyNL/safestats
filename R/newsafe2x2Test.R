@@ -86,9 +86,9 @@ savi2x2TestStatUmp <- function(
 #'   `runningIntersection`, the rows are nested and stay `NA` after the first
 #'   empty row. It is present only with `wantConfidenceSequence`.
 #' - `ciValue`: the confidence level used.
-#' - `betaParameter`: `list(betaA1, betaA2, betaB1, betaB2)`, the design's
-#'   Beta prior updated with all blocks. This is the prior that a next block
-#'   would use.
+#' - `betaParameter` (`"eBeta"` only): `list(betaA1, betaA2, betaB1,
+#'   betaB2)`, the design's Beta prior updated with all blocks. This is the
+#'   prior that a next block would use.
 #' - `alternative`, `h0`, `designObj`: copied from the design.
 #' - `dataName`: the deparsed `ya` and `yb` arguments.
 #' - `call`: the matched call.
@@ -178,7 +178,6 @@ savi2x2TestStat <- function(
       yb,
       na,
       nb,
-      betaParameter,
       esMin,
       alpha,
       alternative
@@ -292,14 +291,16 @@ savi2x2TestStat <- function(
   )
   # x-axis of plot.saviTest(): the block index.
   result[["n"]] <- c("na" = sum(na), "nb" = sum(nb), "nBlocks" = nBlocks)
-  # Beta posterior of the observed blocks, the prior a further block would use.
-  # TODO: should I update the prior when eType = "grow"?
-  result[["betaParameter"]] <- list(
-    "betaA1" = betaParameter[["betaA1"]] + sum(ya),
-    "betaA2" = betaParameter[["betaA2"]] + sum(na) - sum(ya),
-    "betaB1" = betaParameter[["betaB1"]] + sum(yb),
-    "betaB2" = betaParameter[["betaB2"]] + sum(nb) - sum(yb)
-  )
+  # eBeta only: the Beta posterior of the observed blocks, the prior a further
+  # block would use. grow and eGauss hold no Beta prior.
+  if (!is.null(betaParameter)) {
+    result[["betaParameter"]] <- list(
+      "betaA1" = betaParameter[["betaA1"]] + sum(ya),
+      "betaA2" = betaParameter[["betaA2"]] + sum(na) - sum(ya),
+      "betaB1" = betaParameter[["betaB1"]] + sum(yb),
+      "betaB2" = betaParameter[["betaB2"]] + sum(nb) - sum(yb)
+    )
+  }
   result[["designObj"]] <- designObj
   result[["n1Vec"]] <- seq_len(nBlocks)
   result[["testType"]] <- "2x2"
@@ -328,15 +329,17 @@ savi2x2TestStat <- function(
 #'
 #' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted; a
 #'   `propDiffMin`, `logOddsMin` or `power` is an error for them, while
-#'   `nBlocksPlan` is kept as the planned block count. `"eBeta"` is twoSided
+#'   `nBlocksPlan` is kept as the planned block count. Each reads one prior,
+#'   `betaParameter` for `"eBeta"` and `gaussParameter` for `"eGauss"`; a
+#'   prior the eType does not read is an error. `"eBeta"` is twoSided
 #'   only and a one-sided `alternative` is ignored with a warning; `"eGauss"`
 #'   restricts its `gaussParameter` prior to the side of a one-sided
 #'   `alternative`.
 #' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
-#'   fixed alternative.
-#'   `"greater"` needs a positive value, `"less"` a negative one, or the
-#'   alternative would contain the null and no GROW e-variable exists.
-#'   `"twoSided"` uses the magnitude.
+#'   fixed alternative and reads no prior. As in [designSaviZ()], a value
+#'   whose sign contradicts a one-sided `alternative` is flipped with a
+#'   warning, so `"greater"` tests a positive and `"less"` a negative value;
+#'   `"twoSided"` uses the magnitude. Zero is an error.
 #'   Planning exists for `propDiff` only (Decisions 37, 43): `power` alone
 #'   plans the block count at the hardest baseline, `nBlocksPlan` alone
 #'   evaluates the worst-case power there, and both without `propDiffMin`
@@ -359,8 +362,9 @@ savi2x2TestStat <- function(
 #'   of the effect A minus B under the alternative.
 #' @param eType `"eBeta"`, `"grow"` or `"eGauss"`, see Details.
 #' @param betaParameter `list(betaA1, betaA2, betaB1, betaB2)`, the Beta
-#'   prior shapes on `thetaA` and `thetaB`; `NULL` keeps the constructor's
-#'   default of `0.18` each.
+#'   prior shapes on `thetaA` and `thetaB` for `"eBeta"`, each a single
+#'   finite positive number; `NULL` means `1 / (2 * na)` and `1 / (2 * nb)`,
+#'   taking block 1's sizes with a warning when they vary by block.
 #' @param gaussParameter `list(mean, sd)`, the Normal prior on `logOdds` for
 #'   `"eGauss"`, restricted to the grid `(-20, 20)` and to the side of a
 #'   one-sided `alternative`; `NULL` means `list(mean = 0, sd = 1)`.
@@ -375,8 +379,11 @@ savi2x2TestStat <- function(
 #'
 #' @return A `saviDesign` with `testName = "Two Proportions"`, `testType =
 #'   "2x2"`, `h0 = c(propDiff = h0)`, `esMin`, `eType`, `alpha`,
-#'   `alternative`, `betaParameter`, `gaussParameter`, `parameter` (the prior summarised for
-#'   printing), `runningIntersection` and `nPlan = list(na, nb)`, with a
+#'   `alternative`, the prior its eType reads (`betaParameter` for
+#'   `"eBeta"`, `gaussParameter` for `"eGauss"`, neither for `"grow"`),
+#'   `parameter` (for printing: that prior summarised, or for `"grow"` the
+#'   signed minimal effect named `propDiffMin` or `logOddsMin`),
+#'   `runningIntersection` and `nPlan = list(na, nb)`, with a
 #'   third element `nBlocksPlan` when planned or given. With `power`:
 #'   `designScenario = "1a"`, `power` as the target, `nPlanTwoSe = c(NA,
 #'   NA, 2 * bootSe)`, `bootObjNBlocksPlan`, `nMean`, `nMeanTwoSe`,
@@ -473,40 +480,6 @@ designSavi2x2 <- function(
     nBlocksPlan <- length(na)
   }
 
-  # TODO: add parameter for eGauss
-  if (!is.null(betaParameter)) {
-    result[["betaParameter"]] <- betaParameter
-  } else if (length(na) == 1L) {
-    result[["betaParameter"]] <- list(
-      "betaA1" = 1 / (2 * na),
-      "betaA2" = 1 / (2 * na),
-      "betaB1" = 1 / (2 * nb),
-      "betaB2" = 1 / (2 * nb)
-    )
-  } else {
-    stop("na nb are vectors")
-  }
-  # Gaussian prior on logOdds for eGauss: N(mean, sd), restricted to the
-  # helper's grid (-20, 20) and to the side of a one-sided alternative.
-  if (is.null(gaussParameter)) {
-    gaussParameter <- list("mean" = 0, "sd" = 1)
-  }
-  if (
-    !is.list(gaussParameter) ||
-      !all(c("mean", "sd") %in% names(gaussParameter)) ||
-      length(gaussParameter[["mean"]]) != 1L ||
-      length(gaussParameter[["sd"]]) != 1L ||
-      !is.finite(gaussParameter[["mean"]]) ||
-      !is.finite(gaussParameter[["sd"]]) ||
-      abs(gaussParameter[["mean"]]) >= 20 ||
-      gaussParameter[["sd"]] <= 0
-  ) {
-    stop(
-      "gaussParameter must be list(mean, sd) with a finite mean in (-20, 20) ",
-      "and a finite sd > 0"
-    )
-  }
-  result[["gaussParameter"]] <- gaussParameter
   # Simulation settings: positive integers, and the cap nMax at least the
   # planned block count. Checked here so a bad value fails before sampling.
   for (setting in c("nSim", "nBoot", "nMax")) {
@@ -519,99 +492,51 @@ designSavi2x2 <- function(
     stop("nMax = ", nMax, " is below the planned block count ", nBlocksPlan)
   }
 
-  # At most one minimal effect
-  # propDiffMin in (-1, 1) = thetaA - thetaB
-  # logOddsMin finite = log(oddsA / oddsB) = logit(thetaA) - logit(thetaB)
+  # At most one minimal effect: propDiffMin in (-1, 1) is thetaA - thetaB,
+  # logOddsMin is finite logit(thetaA) - logit(thetaB). Zero is no
+  # restriction. A one-sided alternative with the wrong sign is flipped with
+  # a warning and twoSided takes the magnitude, as for the z and t designs.
   if (!is.null(propDiffMin) && !is.null(logOddsMin)) {
     stop("supply propDiffMin or logOddsMin, not both")
   }
-  if (
-    !is.null(propDiffMin) &&
-      (length(propDiffMin) != 1L ||
+  esMin <- NULL
+  if (!is.null(propDiffMin)) {
+    if (
+      length(propDiffMin) != 1L ||
         !is.finite(propDiffMin) ||
-        abs(propDiffMin) >= 1)
-  ) {
-    stop("propDiffMin must be a single number in (-1, 1)")
+        propDiffMin == 0 ||
+        abs(propDiffMin) >= 1
+    ) {
+      stop(
+        "propDiffMin must be a single nonzero number in (-1, 1); ",
+        "for no restriction use eType = 'eBeta'"
+      )
+    }
+    propDiffMin <- checkAndReturnEsMinParameterSide(
+      propDiffMin,
+      alternative,
+      "propDiffMin"
+    )
+    # Named so print() and plot() show which effect the minimal value is on.
+    esMin <- c("propDiff" = propDiffMin)
   }
-  if (
-    !is.null(logOddsMin) &&
-      (length(logOddsMin) != 1L || !is.finite(logOddsMin))
-  ) {
-    stop("logOddsMin must be a single finite number")
-  }
-  # Named so print() and plot() show which effect the minimal value is on.
-  esMin <- if (!is.null(propDiffMin)) {
-    c("propDiff" = propDiffMin)
-  } else if (!is.null(logOddsMin)) {
-    c("logOdds" = logOddsMin)
+  if (!is.null(logOddsMin)) {
+    if (
+      length(logOddsMin) != 1L || !is.finite(logOddsMin) || logOddsMin == 0
+    ) {
+      stop(
+        "logOddsMin must be a single nonzero finite number; ",
+        "for no restriction use eType = 'eGauss'"
+      )
+    }
+    logOddsMin <- checkAndReturnEsMinParameterSide(
+      logOddsMin,
+      alternative,
+      "logOddsMin"
+    )
+    esMin <- c("logOdds" = logOddsMin)
   }
   effect <- names(esMin)
-  # 0 is no restriction, pls use eBeta or eGauss
-  if (!is.null(esMin) && esMin == 0) {
-    stop(
-      effect,
-      "Min = 0 is no restriction; use eType = '",
-      if (effect == "propDiff") "eBeta" else "eGauss",
-      "'"
-    )
-  }
-
-  # esMin must < 0 for alternative == "less"
-  if (!is.null(esMin) && alternative == "less" && esMin > 0) {
-    stop(
-      effect,
-      "Min = ",
-      esMin,
-      " with alternative = 'less' puts the null ",
-      effect,
-      " = 0 inside the alternative ",
-      effect,
-      " <= ",
-      esMin,
-      "; for 'less' supply ",
-      effect,
-      "Min < 0, or use alternative = ",
-      "'greater'. A null at ",
-      effect,
-      " = ",
-      esMin,
-      " is h0 != 0, which is not designed"
-    )
-  }
-  # esMin must > 0 for alternative == "greater"
-  if (!is.null(esMin) && alternative == "greater" && esMin < 0) {
-    stop(
-      effect,
-      "Min = ",
-      esMin,
-      " with alternative = 'greater' puts the null ",
-      effect,
-      " = 0 inside the alternative ",
-      effect,
-      " >= ",
-      esMin,
-      "; for 'greater' supply ",
-      effect,
-      "Min > 0, or use alternative = ",
-      "'less'. A null at ",
-      effect,
-      " = ",
-      esMin,
-      " is h0 != 0, which is not designed"
-    )
-  }
-  # twoSided tests both signs of the value, so require the positive one:
-  # the stored esMin then always carries the sign of the direction tested
-  if (!is.null(esMin) && alternative == "twoSided" && esMin < 0) {
-    stop(
-      effect,
-      "Min = ",
-      esMin,
-      " with alternative = 'twoSided'; supply ",
-      effect,
-      "Min > 0, both signs of it are tested"
-    )
-  }
   result[["esMin"]] <- esMin
 
   # Effect and planning must fit eType (design: checks). eBeta and eGauss
@@ -649,6 +574,90 @@ designSavi2x2 <- function(
     stop("no planning on logOdds: power needs propDiffMin")
   }
 
+  # A prior must fit eType (design: checks). eBeta reads betaParameter and
+  # eGauss reads gaussParameter; grow reads neither. A prior the final eType
+  # never reads is an error, and only the prior in use is stored.
+  if (eType != "eBeta" && !is.null(betaParameter)) {
+    stop(
+      "betaParameter needs eType = 'eBeta'; eType = '",
+      eType,
+      "' reads no Beta prior"
+    )
+  }
+  if (eType != "eGauss" && !is.null(gaussParameter)) {
+    stop(
+      "gaussParameter needs eType = 'eGauss'; eType = '",
+      eType,
+      "' reads no Gaussian prior"
+    )
+  }
+  if (eType == "eBeta") {
+    # Default shapes 1 / (2 n): a vague prior on the scale of one block. The
+    # prior only acts before block 1's data, so varying sizes take block 1's.
+    if (is.null(betaParameter)) {
+      if (length(na) > 1L) {
+        warning(
+          "betaParameter defaults to 1 / (2 * na[1]) and 1 / (2 * nb[1]) on ",
+          "the first block's sizes na = ",
+          na[1],
+          ", nb = ",
+          nb[1]
+        )
+      }
+      betaParameter <- list(
+        "betaA1" = 1 / (2 * na[1]),
+        "betaA2" = 1 / (2 * na[1]),
+        "betaB1" = 1 / (2 * nb[1]),
+        "betaB2" = 1 / (2 * nb[1])
+      )
+    }
+    shapeNames <- c("betaA1", "betaA2", "betaB1", "betaB2")
+    if (
+      !is.list(betaParameter) ||
+        length(betaParameter) != 4L ||
+        !setequal(names(betaParameter), shapeNames) ||
+        !all(vapply(
+          betaParameter,
+          function(shape) {
+            length(shape) == 1L &&
+              is.numeric(shape) &&
+              is.finite(shape) &&
+              shape > 0
+          },
+          logical(1)
+        ))
+    ) {
+      stop(
+        "betaParameter must be list(betaA1, betaA2, betaB1, betaB2) of ",
+        "single finite positive numbers"
+      )
+    }
+    result[["betaParameter"]] <- betaParameter[shapeNames]
+  }
+  if (eType == "eGauss") {
+    # Gaussian prior on logOdds: N(mean, sd), restricted to the helper's grid
+    # (-20, 20) and to the side of a one-sided alternative.
+    if (is.null(gaussParameter)) {
+      gaussParameter <- list("mean" = 0, "sd" = 1)
+    }
+    if (
+      !is.list(gaussParameter) ||
+        !all(c("mean", "sd") %in% names(gaussParameter)) ||
+        length(gaussParameter[["mean"]]) != 1L ||
+        length(gaussParameter[["sd"]]) != 1L ||
+        !is.finite(gaussParameter[["mean"]]) ||
+        !is.finite(gaussParameter[["sd"]]) ||
+        abs(gaussParameter[["mean"]]) >= 20 ||
+        gaussParameter[["sd"]] <= 0
+    ) {
+      stop(
+        "gaussParameter must be list(mean, sd) with a finite mean in (-20, 20) ",
+        "and a finite sd > 0"
+      )
+    }
+    result[["gaussParameter"]] <- gaussParameter
+  }
+
   # Planning only for propDiffMin
   planning <- NULL
   if (eType == "grow" && !is.null(propDiffMin) && !is.null(power)) {
@@ -660,7 +669,6 @@ designSavi2x2 <- function(
       power = power,
       alpha = alpha,
       alternative = alternative,
-      betaParameter = result[["betaParameter"]],
       nSim = nSim,
       nBoot = nBoot,
       nMax = nMax,
@@ -690,7 +698,6 @@ designSavi2x2 <- function(
       nBlocks = nBlocksPlan,
       alpha = alpha,
       alternative = alternative,
-      betaParameter = result[["betaParameter"]],
       nSim = nSim,
       nBoot = nBoot,
       seed = seed,
@@ -710,7 +717,6 @@ designSavi2x2 <- function(
       power = power,
       alpha = alpha,
       alternative = alternative,
-      betaParameter = result[["betaParameter"]],
       nSim = nSim,
       seed = seed,
       pb = pb
@@ -740,16 +746,24 @@ designSavi2x2 <- function(
     result[["samplePaths"]] <- planning[["samplePaths"]]
   }
 
-  result[["parameter"]] <- if (eType == "eGauss") {
-    c("Gaussian prior (mean, sd)" = paste(unlist(gaussParameter), collapse = " "))
-  } else {
-    c(
+  # The e-variable's defining quantity beyond eType and alternative, for
+  # printing: the prior in use, or for grow the signed minimal effect, as
+  # phiS is for the z grow test. Scenario 3 has found esMin by now.
+  result[["parameter"]] <- switch(eType,
+    "eBeta" = c(
       "Beta hyperparameters" = paste(
         unlist(result[["betaParameter"]]),
         collapse = " "
       )
+    ),
+    "eGauss" = c(
+      "Gaussian prior (mean, sd)" = paste(unlist(gaussParameter), collapse = " ")
+    ),
+    "grow" = stats::setNames(
+      unname(result[["esMin"]]),
+      paste0(names(result[["esMin"]]), "Min")
     )
-  }
+  )
 
   result[["nPlan"]] <- list("na" = na, "nb" = nb)
   if (!is.null(nBlocksPlan)) {
@@ -1151,7 +1165,7 @@ logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
 # alternative), which leaves one free parameter; a grid posterior on it gives
 # the predictable plug-in for each block. Element i covers blocks 1..i;
 # earlyStopping cuts the vector at the first crossing of 1 / alpha.
-logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb, betaParameter,
+logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb,
   propDiffMin, alpha, alternative = c("twoSided", "greater", "less"),
   earlyStopping = FALSE,
   nWeight = 1e3L
@@ -1587,7 +1601,6 @@ sampleStoppingTimesSavi2x2 <- function(
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
   eType = c("grow"),
-  betaParameter = NULL,
   nSim = 1e3L,
   nMax = 1e4L,
   nBoot = 1e4L,
@@ -1616,12 +1629,6 @@ sampleStoppingTimesSavi2x2 <- function(
   # per block needs nMax equal to the block count.
   if (length(na) > 1L || length(nb) > 1L) {
     stopifnot(length(na) == length(nb), nMax == length(na))
-  }
-
-  if (is.null(betaParameter)) {
-    betaParameter <- constructSaviDesignObj("Two Proportions")[[
-      "betaParameter"
-    ]]
   }
 
   set.seed(if (is.null(seed)) 2026 else seed)
@@ -1670,7 +1677,6 @@ sampleStoppingTimesSavi2x2 <- function(
         yb,
         naVec,
         nbVec,
-        betaParameter,
         propDiffMin,
         alpha,
         alternative,
@@ -1773,7 +1779,6 @@ computePowerSavi2x2 <- function(
   nBlocks,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
-  betaParameter = NULL,
   nSim = 1e3L,
   nBoot = nSim,
   seed = NULL,
@@ -1790,7 +1795,6 @@ computePowerSavi2x2 <- function(
     power = NULL,
     alpha = alpha,
     alternative = alternative,
-    betaParameter = betaParameter,
     nSim = nSim,
     nMax = nBlocks,
     seed = seed,
@@ -1857,7 +1861,6 @@ computeNPlanSavi2x2 <- function(
   power = 0.8,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
-  betaParameter = NULL,
   nSim = 1e3L,
   nBoot = nSim,
   nMax = 1e4L,
@@ -1875,7 +1878,6 @@ computeNPlanSavi2x2 <- function(
     power = power,
     alpha = alpha,
     alternative = alternative,
-    betaParameter = betaParameter,
     nSim = nSim,
     nMax = nMax,
     seed = seed,
@@ -1965,7 +1967,6 @@ computeEsMinSavi2x2 <- function(
   power = 0.8,
   alpha = 0.05,
   alternative = c("twoSided", "less", "greater"),
-  betaParameter = NULL,
   nSim = 1e3L,
   seed = NULL,
   pb = TRUE,
@@ -1998,7 +1999,6 @@ computeEsMinSavi2x2 <- function(
       nBlocks = nBlocksPlan,
       alpha = alpha,
       alternative = alternative,
-      betaParameter = betaParameter,
       nSim = nSim,
       seed = seed,
       pb = pb

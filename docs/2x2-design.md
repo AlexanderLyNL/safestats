@@ -30,42 +30,47 @@ describes the alternative's direction, not a composite null.
 | `logOdds` | `grow` | `twoSided`, `greater`, `less` | signed finite `logOddsMin != 0` | No | No |
 
 **Sign rule for grow.** The minimal effect is a signed value on the
-A-minus-B scale of its effect. A one-sided alternative must have the same
-sign: `greater` needs a positive value and learns on `thetaA` above
-`thetaB`; `less` needs a negative value and learns on `thetaA` below
-`thetaB`. The other two pairs (`less` with a positive value, `greater` with
-a negative one) describe a region that contains the null `h0 = 0`, so no
-GROW e-variable exists; `designSavi2x2` rejects them with an error naming
-the congruent pair and noting that a null at the given value is `h0 != 0`,
-which is not designed. The sign is not flipped silently. `twoSided`
-requires a positive value and runs both signs of it, so the stored `esMin`
-always shows the sign of the direction tested and a negative value with
-`twoSided` is an error. Zero is an error that points to the unrestricted
-eType. The legacy `safe2x2Test.R` inferred the alternative from the sign
-of `delta` and measured B minus A; the sign check is kept, the direction is
-not. `less` on `(ya, yb, na, nb)` with effect `d` equals `greater` on
+A-minus-B scale of its effect. `greater` tests a positive value and learns
+on `thetaA` above `thetaB`; `less` tests a negative value and learns on
+`thetaA` below `thetaB`. The constructor passes `propDiffMin` or
+`logOddsMin` through `checkAndReturnEsMinParameterSide`, as the z and t
+designs do: a value whose sign contradicts a one-sided alternative is
+flipped with a warning naming the effect, and `twoSided` takes the
+magnitude and runs both signs of it, so the stored `esMin` always shows the
+sign of the direction tested. Zero is an error (no restriction), as is a
+value outside `(-1, 1)` for propDiff or a non-finite one for logOdds. The
+legacy `safe2x2Test.R` inferred the alternative from the sign of `delta` and
+measured B minus A; here the alternative sets the sign and the effect is A
+minus B. `less` on `(ya, yb, na, nb)` with effect `d` equals `greater` on
 `(yb, ya, nb, na)` with `-d`: exactly on logOdds, and on propDiff because
-both curves rescale the same `rho` under A's prior. The direction is
-validated once, in the constructor; the test, helper and sampler code
-apply it through group A only, so `greater`, a positive `signs` entry, a
-positive `logOdds`, and odds `exp(logOdds)` on A all mean the same thing
-and no formula negates the effect except the `twoSided` mirror. The
-constructor also
-checks that `na`, `nb` are equal-length finite positive integers, `alpha`
-and `power` lie in `(0, 1)`, `nBlocksPlan` is a positive integer
-matching any size vectors, and `nSim`, `nBoot`, `nMax` are
-positive integers with `nMax` at least `nBlocksPlan`; `betaParameter` is deferred and `runningIntersection` is not
-checked. Effect and planning must fit `eType`: eBeta and eGauss stop on a
-`propDiffMin`, `logOddsMin` or `power` (`nBlocksPlan` is kept as the planned
-count: stored and printed, read only by scenarios 2 and 3); grow without a minimal effect and without both `power` and
-`nBlocksPlan` warns and continues as eBeta, dropping a lone `power`; grow with
-`propDiffMin` stops when `power` and `nBlocksPlan` are both given; grow with
-`logOddsMin` stops on `power`. A one-sided alternative supplied to eBeta is
-supposed to warn and be ignored; eBeta currently retains its effect on the first factor
-([R8](2x2-review.md#r8)). eGauss accepts every alternative (below).
-`gaussParameter` is `list(mean, sd)` with finite `mean` inside the grid
-`(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`, and
-the design stores the list it uses.
+both curves rescale the same `rho`. The direction is validated once, in the
+constructor; the test, helper and sampler code apply it through group A
+only, so `greater`, a positive `signs` entry, a positive `logOdds`, and
+odds `exp(logOdds)` on A all mean the same thing and no formula negates the
+effect except the `twoSided` mirror. The constructor also checks that `na`,
+`nb` are equal-length finite positive integers, `alpha` and `power` lie in
+`(0, 1)`, `nBlocksPlan` is a positive integer matching any size vectors,
+and `nSim`, `nBoot`, `nMax` are positive integers with `nMax` at
+least `nBlocksPlan`; `runningIntersection` is not checked. Effect and
+planning must fit `eType`: eBeta and eGauss stop on a `propDiffMin`,
+`logOddsMin` or `power` (`nBlocksPlan` is kept as the planned count: stored
+and printed, read only by scenarios 2 and 3); grow without a minimal effect
+and without both `power` and `nBlocksPlan` warns and continues as eBeta,
+dropping a lone `power`; grow with `propDiffMin` stops when `power` and
+`nBlocksPlan` are both given; grow with `logOddsMin` stops on `power`. A
+prior must fit the final `eType` too: eBeta reads `betaParameter`, eGauss
+reads `gaussParameter`, grow reads neither, and a supplied prior the eType
+does not read is an error; the check runs after grow's fallback to eBeta,
+so a `betaParameter` given with that fallback is accepted. Only the prior in
+use is stored. `betaParameter` is `list(betaA1, betaA2, betaB1, betaB2)`,
+exactly these names, each a single finite positive number; `NULL` means
+`1 / (2 * na)` and `1 / (2 * nb)`, taking block 1's sizes with a warning
+when sizes vary by block. A one-sided alternative supplied to eBeta is
+supposed to warn and be ignored; eBeta currently retains its effect on the
+first factor ([R8](2x2-review.md#r8)). eGauss accepts every alternative
+(below). `gaussParameter` is `list(mean, sd)` with finite `mean` inside the
+grid `(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`,
+and the design stores the list it uses.
 
 ## Inputs and result objects
 
@@ -84,11 +89,16 @@ The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
 
 - `nPlan = list(na, nb)`, adding named `nBlocksPlan` when given or planned.
 - `esMin`, named by the supplied effect; no `effectMeasure` field.
-- `betaParameter = list(betaA1, betaA2, betaB1, betaB2)`: positive success
-  and failure shapes, exactly these names; constructor defaults `.18` each.
-- `gaussParameter = list(mean, sd)`: the eGauss Normal prior on `logOdds`,
-  exactly these names; `NULL` stores `list(mean = 0, sd = 1)`.
-- `parameter`: named prior summary for printing. Constructor defaults
+- `betaParameter = list(betaA1, betaA2, betaB1, betaB2)`, eBeta only:
+  positive success and failure shapes, exactly these names; `NULL` means
+  `1 / (2 na)`, `1 / (2 nb)` on block 1's sizes (a warning when sizes vary).
+- `gaussParameter = list(mean, sd)`, eGauss only: the Normal prior on
+  `logOdds`, exactly these names; `NULL` stores `list(mean = 0, sd = 1)`.
+  The prior the eType does not read is absent (`NULL`).
+- `parameter`, for printing: the e-variable's defining quantity beyond
+  `eType` and `alternative`. eBeta and eGauss store their prior as one named
+  string; grow stores the signed `esMin` named `propDiffMin` or `logOddsMin`,
+  as `phiS` is for the z grow test. Constructor defaults
   `runningIntersection = FALSE`, `relevanceTest = FALSE`; `NULL` arguments
   preserve these defaults. `nMax` is a simulation cap, not a design field.
 
@@ -112,7 +122,7 @@ These implementation gaps do not cancel the approved contracts.
 Results are `saviTest` objects with cumulative `eValueVec`, its last value
 `eValue`, `n = c(na = sum(na), nb = sum(nb), nBlocks = length(ya))`,
 `estimate = c(thetaA, thetaB)` of pooled observed proportions, and
-`n1Vec = seq_len(nBlocks)` for plotting. PropDiff also stores `betaPrior`,
+`n1Vec = seq_len(nBlocks)` for plotting. eBeta also stores `betaParameter`,
 the posterior shapes after all blocks and hence the prior for a next block.
 Do not store per-block sizes, `sumStats`, or `eFactorVec`. A `NULL` constructor
 placeholder may be absent because `modifyList()` drops it.
@@ -135,7 +145,8 @@ conditional factor, as for grow; the posterior still absorbs block 1.
 `thetaA = thetaB + propDiffMin` with the signed value: 1000 interior grid
 points in `thetaA`'s feasible interval, `(d, 1)` for `d > 0` and
 `(0, 1 + d)` for `d < 0`, with a uniform prior, `Beta(1, 1)`, on its rescaling
-to `(0,1)`; the design's `betaParameter` shapes are not used by grow. Each
+to `(0,1)`; grow reads no prior, and neither the helper nor the sampler and
+planners take a prior argument. Each
 block uses the grid posterior mean, the pooled denominator, then updates
 weights on the log scale.
 Two-sided grow runs separate positive/negative curves and averages their
@@ -232,7 +243,7 @@ This minimises the asymptotic growth rate `R(theta) = nLow KL(theta || theta0)
 80/90% quantiles at this root within noise of the grid maximum for size
 ratios up to 100:1 and `d` up to 0.5, with a flat plateau of width about
 0.2 to 0.3 around it. Two-sided runs both curves, which differ with unequal
-sizes or priors. The rate ignores the block-1 UMP factor; with it, the
+sizes. The rate ignores the block-1 UMP factor; with it, the
 simulated worst case moves for very small unequal groups at small `d`
 ([R9](2x2-review.md#r9)). Agreed next step: double-check against an analytic
 stopping-time approximation, `E[tau] ~ log(1 / alpha) n / (2 d^2 na nb)` plus
