@@ -217,9 +217,13 @@ Running intersection is optional; an empty row stays empty thereafter.
   at the design's `gaussParameter` and `alternative`, minus candidate
   conditional log likelihood. It uses `optimize` and `uniroot`, reports
   domain edges when accepted, and warns/returns the domain when empty.
-  `computeConfidenceSequence2x2LogOdds` repeats this on prefixes,
-  optionally restricting the next domain to the previous row; empty rows
-  are `NA`. Runtime is quadratic.
+  `computeConfidenceSequence2x2LogOdds(..., logNumerator, alpha,
+  runningIntersection)` repeats this on prefixes, optionally restricting
+  the next domain to the previous row; empty rows are `NA`. The test
+  computes `logNumerator` once, the plain cumulative log e-process kept
+  before the UMP replacement of block 1 plus the cumulative hypergeometric
+  log likelihood, and passes the vector to the sequence and its last
+  element to the interval. Runtime is quadratic in the root finding.
 
 Grow's interval construction is deferred; code nevertheless assigns its
 `ciValue` metadata, contrary to the earlier no-`ciValue` agreement.

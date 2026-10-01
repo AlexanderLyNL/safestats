@@ -199,6 +199,13 @@ savi2x2TestStat <- function(
       alternative
     )
   )
+  # eGauss only: the numerator of the plain process on blocks 1..i, the
+  # log e-process plus the hypergeometric log likelihood it was divided by.
+  # The logOdds interval and sequence invert it, so it is kept before the
+  # UMP replacement of block 1.
+  logNumerator <- if (eType == "eGauss") {
+    logEValueVec + cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
+  }
   # Replace block 1 by the UMP e-value
   # logEValueVec[1] should be log(1) = 0 but write it out for clarity
   # No UMP e-value at this alpha (NULL): block 1 keeps its plain factor.
@@ -239,10 +246,9 @@ savi2x2TestStat <- function(
         yb,
         na,
         nb,
+        logNumerator,
         1 - ciValue,
-        runningIntersection,
-        gaussParameter,
-        alternative
+        runningIntersection
       )
     }
     result[["confSeqMatrix"]] <- confSeqMatrix
@@ -259,16 +265,6 @@ savi2x2TestStat <- function(
         1 - ciValue
       )
     } else {
-      # The eGauss numerator on all blocks, without the UMP replacement
-      logNumerator <- logEValueVec2x2LogOddsEGauss(
-        ya,
-        yb,
-        na,
-        nb,
-        gaussParameter,
-        alternative
-      ) +
-        cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
       computeConfidenceInterval2x2LogOdds(
         ya,
         yb,
@@ -1039,13 +1035,15 @@ computeConfidenceInterval2x2LogOdds <- function(
 #' Row i inverts the e-process on blocks 1..i: every numerator factor is
 #' fixed given its block's total or predictable, so the eGauss numerator at
 #' block i is the numerator of the test on blocks 1..i just as its last
-#' element is at the end (Decision 30). Recomputed from scratch per block,
-#' quadratic in nBlocks.
+#' element is at the end (Decision 30). The numerator comes from the test's
+#' plain e-process; each row's root finding is on its prefix, quadratic in
+#' nBlocks.
 #'
+#' @param logNumerator The eGauss log numerator on blocks `1..i`: the plain
+#'   cumulative log e-process, without the UMP replacement of block 1, plus
+#'   the cumulative hypergeometric log likelihood.
 #' @param runningIntersection `TRUE` searches each row inside the previous
 #'   one; an empty row stays empty thereafter.
-#' @param gaussParameter,alternative The design's eGauss prior and side, passed
-#'   to [logEValueVec2x2LogOddsEGauss()].
 #' @return An `nBlocks x 2` matrix of `lowerBound` and `upperBound`; an
 #'   empty set is an `NA` row.
 #' @noRd
@@ -1054,25 +1052,12 @@ computeConfidenceSequence2x2LogOdds <- function(
   yb,
   na,
   nb,
+  logNumerator,
   alpha,
-  runningIntersection,
-  gaussParameter = NULL,
-  alternative = c("twoSided", "greater", "less")
+  runningIntersection
 ) {
   # THIS IS SLOW, WE MIGHT WANT TO STOP EARLY!
-  alternative <- match.arg(alternative)
   nBlocks <- length(ya)
-  # The eGauss numerator on blocks 1..i, without the UMP replacement
-  logNumerator <- logEValueVec2x2LogOddsEGauss(
-    ya,
-    yb,
-    na,
-    nb,
-    gaussParameter,
-    alternative
-  ) +
-    cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
-
   confSeqMatrix <- matrix(
     NA_real_,
     nBlocks,
