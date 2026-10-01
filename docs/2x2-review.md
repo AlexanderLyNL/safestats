@@ -13,7 +13,6 @@ contract in the [current design](2x2-design.md) first.
 | [R5](#r5) | P2 | Minimal-effect search can return an effect below target power | Deferred |
 | [R6](#r6) | P2 | Planning and bootstrap use different quantiles | Deferred |
 | [R7](#r7) | P2 | Design plotting cannot consume the new sample-path structure | Deferred |
-| [R8](#r8) | P2 | An alternative described as ignored still changes the test | Deferred |
 | [R9](#r9) | P2 | The block-1 UMP factor moves the worst case off the analytic baseline | Deferred |
 
 P1 affects statistical validity or numerical correctness; P2 affects planning
@@ -199,28 +198,6 @@ several? Reconcile planned block-count fields when agreeing plotting behavior.
 
 </details>
 
-<a id="r8"></a>
-<details>
-<summary>R8 — An “ignored” alternative still changes the result</summary>
-
-**Impact.** The design warns that eBeta is two-sided but stores the supplied
-`"greater"`; the test then uses it for the first UMP factor.
-
-```r
-greater <- designSavi2x2(10, 10, eType = "eBeta", alternative = "greater")
-twoSided <- designSavi2x2(10, 10, eType = "eBeta")
-greater$alternative
-savi2x2TestStat(c(1, 1), c(9, 9), greater, wantCi = FALSE)$eValue
-savi2x2TestStat(c(1, 1), c(9, 9), twoSided, wantCi = FALSE)$eValue
-```
-
-**Observed.** The warning says ignored, but stored alternative is `"greater"`;
-e-values are approximately `563324.7` and `281662.3`, respectively.
-**Location.** `R/newsafe2x2Test.R:460–461`, `designSavi2x2()`;
-`savi2x2TestStat()` consumes the retained alternative.
-**Next design question.** Normalize the value or reject the unsupported input?
-
-</details>
 
 <a id="r9"></a>
 <details>

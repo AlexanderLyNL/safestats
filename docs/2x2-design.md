@@ -24,7 +24,7 @@ describes the alternative's direction, not a composite null.
 
 | Effect | `eType` | Alternative | Minimal effect | Interval / sequence | Planning |
 |---|---|---|---|---|---|
-| `propDiff` | `eBeta` | `twoSided` | None | Yes, defects R1/R4 | No |
+| `propDiff` | `eBeta` | `twoSided`, `greater`, `less` | None | Yes, defects R1/R4 | No |
 | `propDiff` | `grow` | `twoSided`, `greater`, `less` | signed `propDiffMin`, `0 < |propDiffMin| < 1` | No | Yes |
 | `logOdds` | `eGauss` | `twoSided`, `greater`, `less` | None | Yes, defect R3 | No |
 | `logOdds` | `grow` | `twoSided`, `greater`, `less` | signed finite `logOddsMin != 0` | No | No |
@@ -47,30 +47,30 @@ both curves rescale the same `rho`. The direction is validated once, in the
 constructor; the test, helper and sampler code apply it through group A
 only, so `greater`, a positive `signs` entry, a positive `logOdds`, and
 odds `exp(logOdds)` on A all mean the same thing and no formula negates the
-effect except the `twoSided` mirror. The constructor also checks that `na`,
-`nb` are equal-length finite positive integers, `alpha` and `power` lie in
-`(0, 1)`, `nBlocksPlan` is a positive integer matching any size vectors,
-and `nSim`, `nBoot`, `nMax` are positive integers with `nMax` at
-least `nBlocksPlan`; `runningIntersection` is not checked. Effect and
-planning must fit `eType`: eBeta and eGauss stop on a `propDiffMin`,
-`logOddsMin` or `power` (`nBlocksPlan` is kept as the planned count: stored
-and printed, read only by scenarios 2 and 3); grow without a minimal effect
-and without both `power` and `nBlocksPlan` warns and continues as eBeta,
-dropping a lone `power`; grow with `propDiffMin` stops when `power` and
-`nBlocksPlan` are both given; grow with `logOddsMin` stops on `power`. A
-prior must fit the final `eType` too: eBeta reads `betaParameter`, eGauss
-reads `gaussParameter`, grow reads neither, and a supplied prior the eType
-does not read is an error; the check runs after grow's fallback to eBeta,
-so a `betaParameter` given with that fallback is accepted. Only the prior in
-use is stored. `betaParameter` is `list(betaA1, betaA2, betaB1, betaB2)`,
-exactly these names, each a single finite positive number; `NULL` means
-`1 / (2 * na)` and `1 / (2 * nb)`, taking block 1's sizes with a warning
-when sizes vary by block. A one-sided alternative supplied to eBeta is
-supposed to warn and be ignored; eBeta currently retains its effect on the
-first factor ([R8](2x2-review.md#r8)). eGauss accepts every alternative
-(below). `gaussParameter` is `list(mean, sd)` with finite `mean` inside the
-grid `(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`,
-and the design stores the list it uses.
+effect except the `twoSided` mirror.
+The constructor takes arguments as given and checks only cheap
+inconsistencies: `alpha` and `power` lie in `(0, 1)`, `na` and `nb` have
+equal length, `nBlocksPlan` matches any per-block sizes, at most one minimal
+effect is given, `propDiffMin` is nonzero in `(-1, 1)` and `logOddsMin` is
+nonzero; `nSim`, `nBoot`, `nMax`, the priors and `runningIntersection` are
+not checked. The flow is linear: fix `nBlocksPlan` from per-block sizes,
+sign the minimal effect, then apply the eType's rules. eBeta and eGauss stop
+on a minimal effect, drop a `power` with a warning, keep `nBlocksPlan` as
+the planned count (stored and printed, read only by scenarios 2 and 3), and
+read one prior each, `betaParameter` for eBeta and `gaussParameter` for
+eGauss, filled with its default when `NULL`; the prior the eType does not
+read is ignored and not stored. grow reads no prior and ignores a supplied
+one; it plans as in the planning table below, and any other combination of
+`power` and `nBlocksPlan` is an error, except that `logOddsMin` drops a
+`power` with a warning. `betaParameter` is
+`list(betaA1, betaA2, betaB1, betaB2)`, exactly these names, each a single
+finite positive number; `NULL` means `1 / (2 * na)` and `1 / (2 * nb)`,
+taking block 1's sizes with a warning when sizes vary by block. All three
+eTypes accept every `alternative`; eBeta and eGauss use a one-sided one in
+the UMP first block, and eGauss also restricts its prior to that side.
+`gaussParameter` is `list(mean, sd)` with finite `mean` inside the grid
+`(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`, and
+the design stores the list it uses.
 
 ## Inputs and result objects
 

@@ -327,14 +327,14 @@ savi2x2TestStat <- function(
 #' `"greater"` means group A has the larger proportion, as `x - y > 0`
 #' does in [stats::t.test()].
 #'
-#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted; a
-#'   `propDiffMin`, `logOddsMin` or `power` is an error for them, while
-#'   `nBlocksPlan` is kept as the planned block count. Each reads one prior,
-#'   `betaParameter` for `"eBeta"` and `gaussParameter` for `"eGauss"`; a
-#'   prior the eType does not read is an error. `"eBeta"` is twoSided
-#'   only and a one-sided `alternative` is ignored with a warning; `"eGauss"`
-#'   restricts its `gaussParameter` prior to the side of a one-sided
-#'   `alternative`.
+#' - `"eBeta"` (propDiff) and `"eGauss"` (logOdds) are unrestricted: a
+#'   `propDiffMin` or `logOddsMin` is an error, a `power` is dropped with a
+#'   warning, and `nBlocksPlan` is kept as the planned block count. Each
+#'   reads one prior, `betaParameter` for `"eBeta"` and `gaussParameter` for
+#'   `"eGauss"`, filled with its default when `NULL`; the other prior is
+#'   ignored. Both accept every `alternative`, used in the UMP first block;
+#'   `"eGauss"` also restricts its `gaussParameter` prior to the side of a
+#'   one-sided `alternative`.
 #' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
 #'   fixed alternative and reads no prior. As in [designSaviZ()], a value
 #'   whose sign contradicts a one-sided `alternative` is flipped with a
@@ -342,13 +342,17 @@ savi2x2TestStat <- function(
 #'   `"twoSided"` uses the magnitude. Zero is an error.
 #'   Planning exists for `propDiff` only (Decisions 37, 43): `power` alone
 #'   plans the block count at the hardest baseline, `nBlocksPlan` alone
-#'   evaluates the worst-case power there, and both without `propDiffMin`
-#'   find the minimal detectable `propDiff` (Decision 42). Both with
-#'   `propDiffMin` errors. Without a minimal effect and without both, grow
-#'   warns and continues as `"eBeta"`, dropping a lone `power`.
-#'   `logOddsMin` with `power` errors: its worst case is set by the baseline
-#'   grid, not by the effect; `nBlocksPlan` is kept as the planned count.
+#'   evaluates the worst-case power there, and both without a minimal
+#'   effect find the minimal detectable `propDiff` (Decision 42). A minimal
+#'   effect alone designs without simulation. Any other combination is an
+#'   error, except that `logOddsMin` drops a `power` with a warning, as its
+#'   worst case is set by the baseline grid, not by the effect, and keeps
+#'   `nBlocksPlan` as the planned count.
 #'
+#' Arguments are otherwise taken as given: only `alpha` and `power` in
+#' `(0, 1)`, equal lengths of `na` and `nb`, `nBlocksPlan` against per-block
+#' sizes, at most one minimal effect, and the minimal effects' ranges are
+#' checked.
 #' @param na number of observations in group a per data block
 #' @param nb number of observations in group b per data block
 #' @param nBlocksPlan planned number of data blocks collected
@@ -419,6 +423,23 @@ designSavi2x2 <- function(
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
 
+  # Arguments are taken as given; only cheap inconsistencies are caught.
+  stopifnot(
+    "alpha must lie in (0, 1)" = alpha > 0 && alpha < 1,
+    "power must lie in (0, 1)" = is.null(power) || (power > 0 && power < 1),
+    "na and nb must have the same length" = length(na) == length(nb),
+    "supply propDiffMin or logOddsMin, not both" =
+      is.null(propDiffMin) || is.null(logOddsMin),
+    "propDiffMin must be nonzero in (-1, 1)" =
+      is.null(propDiffMin) || (propDiffMin != 0 && abs(propDiffMin) < 1),
+    "logOddsMin must be a nonzero finite number" =
+      is.null(logOddsMin) || (is.finite(logOddsMin) && logOddsMin != 0)
+  )
+  # Fix nBlocksPlan if not
+  if (length(na) > 1L && is.null(nBlocksPlan)) {
+    nBlocksPlan <- length(na)
+  }
+
   result <- constructSaviDesignObj("Two Proportions")
 
   # Fill: result ----
@@ -430,106 +451,19 @@ designSavi2x2 <- function(
   result[["alternative"]] <- alternative
   result[["h0"]] <- 0
 
-  # Checking: arg ----
-  if (length(alpha) != 1L || !is.finite(alpha) || alpha <= 0 || alpha >= 1) {
-    stop("alpha must be a single number in (0, 1)")
-  }
-  if (
-    !is.null(power) &&
-      (length(power) != 1L || !is.finite(power) || power <= 0 || power >= 1)
-  ) {
-    stop("power must be a single number in (0, 1)")
-  }
-
-  # na nb are finite positive integer
-  # must be same length, if length > 1, then that is the nBlocksPlan
-  if (
-    !is.numeric(na) ||
-      !is.numeric(nb) ||
-      length(na) < 1L ||
-      length(nb) < 1L ||
-      !all(is.finite(c(na, nb))) ||
-      any(c(na, nb) %% 1 != 0) ||
-      any(c(na, nb) < 1)
-  ) {
-    stop("na and nb must be finite positive integers")
-  }
-  if (length(na) != length(nb)) {
-    stop(
-      "na and nb must have the same length: one value each, or one per block"
-    )
-  }
-  if (
-    !is.null(nBlocksPlan) &&
-      (length(nBlocksPlan) != 1L ||
-        !is.finite(nBlocksPlan) ||
-        nBlocksPlan %% 1 != 0 ||
-        nBlocksPlan < 1)
-  ) {
-    stop("nBlocksPlan must be a single positive integer")
-  }
-  if (length(na) > 1L) {
-    if (!is.null(nBlocksPlan) && nBlocksPlan != length(na)) {
-      stop(
-        "nBlocksPlan = ",
-        nBlocksPlan,
-        " does not match the ",
-        length(na),
-        " blocks given by na and nb"
-      )
-    }
-    nBlocksPlan <- length(na)
-  }
-
-  # Simulation settings: positive integers, and the cap nMax at least the
-  # planned block count. Checked here so a bad value fails before sampling.
-  for (setting in c("nSim", "nBoot", "nMax")) {
-    value <- get(setting)
-    if (length(value) != 1L || !is.finite(value) || value %% 1 != 0 || value < 1) {
-      stop(setting, " must be a single positive integer")
-    }
-  }
-  if (!is.null(nBlocksPlan) && nMax < nBlocksPlan) {
-    stop("nMax = ", nMax, " is below the planned block count ", nBlocksPlan)
-  }
-
-  # At most one minimal effect: propDiffMin in (-1, 1) is thetaA - thetaB,
-  # logOddsMin is finite logit(thetaA) - logit(thetaB). Zero is no
-  # restriction. A one-sided alternative with the wrong sign is flipped with
-  # a warning and twoSided takes the magnitude, as for the z and t designs.
-  if (!is.null(propDiffMin) && !is.null(logOddsMin)) {
-    stop("supply propDiffMin or logOddsMin, not both")
-  }
+  # Minimal effect: signed by the alternative. A sign contradicting a
+  # one-sided alternative is flipped with a warning, twoSided takes the
+  # magnitude. Named so print() and plot() show which effect it is on.
   esMin <- NULL
   if (!is.null(propDiffMin)) {
-    if (
-      length(propDiffMin) != 1L ||
-        !is.finite(propDiffMin) ||
-        propDiffMin == 0 ||
-        abs(propDiffMin) >= 1
-    ) {
-      stop(
-        "propDiffMin must be a single nonzero number in (-1, 1); ",
-        "for no restriction use eType = 'eBeta'"
-      )
-    }
     propDiffMin <- checkAndReturnEsMinParameterSide(
       propDiffMin,
       alternative,
       "propDiffMin"
     )
-    # Named so print() and plot() show which effect the minimal value is on.
     esMin <- c("propDiff" = propDiffMin)
   }
   if (!is.null(logOddsMin)) {
-    if (
-      length(logOddsMin) != 1L || !is.finite(logOddsMin) || logOddsMin == 0
-    ) {
-      stop(
-        "logOddsMin must be a single nonzero finite number; ",
-        "for no restriction use eType = 'eGauss'"
-      )
-    }
     logOddsMin <- checkAndReturnEsMinParameterSide(
       logOddsMin,
       alternative,
@@ -537,66 +471,25 @@ designSavi2x2 <- function(
     )
     esMin <- c("logOdds" = logOddsMin)
   }
-  effect <- names(esMin)
   result[["esMin"]] <- esMin
 
-  # Effect and planning must fit eType (design: checks). eBeta and eGauss
-  # take no minimal effect and no planning; grow needs a minimal effect, or
-  # both power and nBlocksPlan to find one, else it continues as eBeta.
+  # eBeta and eGauss: unrestricted, no planning, one prior each ----
   if (eType != "grow" && !is.null(esMin)) {
     stop(
-      effect,
-      "Min needs eType = 'grow'; eType = '",
+      "a minimal effect needs eType = 'grow'; eType = '",
       eType,
-      "' has no minimal effect"
+      "' is unrestricted"
     )
   }
   if (eType != "grow" && !is.null(power)) {
-    stop(
-      "power needs eType = 'grow' with propDiffMin; eType = '",
-      eType,
-      "' has no planning"
-    )
-  }
-  if (eType == "grow" && is.null(esMin) && (is.null(power) || is.null(nBlocksPlan))) {
-    warning(
-      "eType = 'grow' needs propDiffMin or logOddsMin, or both power and ",
-      "nBlocksPlan to find the minimal propDiff; using eType = 'eBeta'",
-      if (!is.null(power)) " and dropping power"
-    )
-    eType <- "eBeta"
-    result[["eType"]] <- eType
+    warning("eType = '", eType, "' has no planning: power is dropped")
     power <- NULL
-  }
-  if (eType == "grow" && !is.null(propDiffMin) && !is.null(power) && !is.null(nBlocksPlan)) {
-    stop("with propDiffMin supply power or nBlocksPlan, not both")
-  }
-  if (eType == "grow" && !is.null(logOddsMin) && !is.null(power)) {
-    stop("no planning on logOdds: power needs propDiffMin")
-  }
-
-  # A prior must fit eType (design: checks). eBeta reads betaParameter and
-  # eGauss reads gaussParameter; grow reads neither. A prior the final eType
-  # never reads is an error, and only the prior in use is stored.
-  if (eType != "eBeta" && !is.null(betaParameter)) {
-    stop(
-      "betaParameter needs eType = 'eBeta'; eType = '",
-      eType,
-      "' reads no Beta prior"
-    )
-  }
-  if (eType != "eGauss" && !is.null(gaussParameter)) {
-    stop(
-      "gaussParameter needs eType = 'eGauss'; eType = '",
-      eType,
-      "' reads no Gaussian prior"
-    )
   }
   if (eType == "eBeta") {
     # Default shapes 1 / (2 n): a vague prior on the scale of one block. The
     # prior only acts before block 1's data, so varying sizes take block 1's.
     if (is.null(betaParameter)) {
-      if (length(na) > 1L) {
+      if (any(na != na[1]) || any(nb != nb[1])) {
         warning(
           "betaParameter defaults to 1 / (2 * na[1]) and 1 / (2 * nb[1]) on ",
           "the first block's sizes na = ",
@@ -612,28 +505,7 @@ designSavi2x2 <- function(
         "betaB2" = 1 / (2 * nb[1])
       )
     }
-    shapeNames <- c("betaA1", "betaA2", "betaB1", "betaB2")
-    if (
-      !is.list(betaParameter) ||
-        length(betaParameter) != 4L ||
-        !setequal(names(betaParameter), shapeNames) ||
-        !all(vapply(
-          betaParameter,
-          function(shape) {
-            length(shape) == 1L &&
-              is.numeric(shape) &&
-              is.finite(shape) &&
-              shape > 0
-          },
-          logical(1)
-        ))
-    ) {
-      stop(
-        "betaParameter must be list(betaA1, betaA2, betaB1, betaB2) of ",
-        "single finite positive numbers"
-      )
-    }
-    result[["betaParameter"]] <- betaParameter[shapeNames]
+    result[["betaParameter"]] <- betaParameter
   }
   if (eType == "eGauss") {
     # Gaussian prior on logOdds: N(mean, sd), restricted to the helper's grid
@@ -641,110 +513,113 @@ designSavi2x2 <- function(
     if (is.null(gaussParameter)) {
       gaussParameter <- list("mean" = 0, "sd" = 1)
     }
-    if (
-      !is.list(gaussParameter) ||
-        !all(c("mean", "sd") %in% names(gaussParameter)) ||
-        length(gaussParameter[["mean"]]) != 1L ||
-        length(gaussParameter[["sd"]]) != 1L ||
-        !is.finite(gaussParameter[["mean"]]) ||
-        !is.finite(gaussParameter[["sd"]]) ||
-        abs(gaussParameter[["mean"]]) >= 20 ||
-        gaussParameter[["sd"]] <= 0
-    ) {
-      stop(
-        "gaussParameter must be list(mean, sd) with a finite mean in (-20, 20) ",
-        "and a finite sd > 0"
-      )
-    }
     result[["gaussParameter"]] <- gaussParameter
   }
 
-  # Planning only for propDiffMin
+  # grow: a minimal effect, or power and nBlocksPlan to find one ----
+  # Planning exists on propDiff only (design: planning); each branch below
+  # is a row of its table.
   planning <- NULL
-  if (eType == "grow" && !is.null(propDiffMin) && !is.null(power)) {
-    # Scenario 1: propDiffMin + power -> worst-case stopping time
-    planning <- computeNPlanSavi2x2(
-      propDiffMin = propDiffMin,
-      na = na,
-      nb = nb,
-      power = power,
-      alpha = alpha,
-      alternative = alternative,
-      nSim = nSim,
-      nBoot = nBoot,
-      nMax = nMax,
-      seed = seed,
-      wantSamplePaths = wantSamplePaths,
-      pb = pb
-    )
-    result[["designScenario"]] <- "1a"
-    result[["power"]] <- power
-    nBlocksPlan <- planning[["nPlan"]]
-    # na, nb are planned, not simulated: no standard error for them.
-    result[["nPlanTwoSe"]] <- c(
-      NA,
-      NA,
-      2 * planning[["bootObjNPlan"]][["bootSe"]]
-    )
-    result[["bootObjNBlocksPlan"]] <- planning[["bootObjNPlan"]]
-    result[["nMean"]] <- c("nMean" = planning[["nMean"]])
-    result[["nMeanTwoSe"]] <- 2 * planning[["bootObjNMean"]][["bootSe"]]
-    result[["bootObjNMean"]] <- planning[["bootObjNMean"]]
-  } else if (eType == "grow" && !is.null(propDiffMin) && !is.null(nBlocksPlan)) {
-    # Scenario 2: propDiffMin + nBlocksPlan -> worst-case power
-    planning <- computePowerSavi2x2(
-      propDiffMin = propDiffMin,
-      na = na,
-      nb = nb,
-      nBlocks = nBlocksPlan,
-      alpha = alpha,
-      alternative = alternative,
-      nSim = nSim,
-      nBoot = nBoot,
-      seed = seed,
-      wantSamplePaths = wantSamplePaths,
-      pb = pb
-    )
-    result[["designScenario"]] <- "2"
-    result[["power"]] <- planning[["power"]]
-    result[["powerTwoSe"]] <- 2 * planning[["bootObjPower"]][["bootSe"]]
-    result[["bootObjPower"]] <- planning[["bootObjPower"]]
-  } else if (eType == "grow" && is.null(esMin)) {
-    # Scenario 3: power + nBlocksPlan -> the minimal detectable propDiff,
-    esMin <- computeEsMinSavi2x2(
-      na = na,
-      nb = nb,
-      nBlocksPlan = nBlocksPlan,
-      power = power,
-      alpha = alpha,
-      alternative = alternative,
-      nSim = nSim,
-      seed = seed,
-      pb = pb
-    )
-    # NA: the worst-case power never reaches the target on the search
-    # bounds, so no minimal effect can be reported.
-    if (is.na(esMin)) {
-      stop(sprintf(
-        paste(
-          "no minimal propDiff found: at nBlocksPlan = %g the worst-case power",
-          "does not reach %g for any magnitude in (0.01, 0.9); try a larger",
-          "nBlocksPlan or a smaller power"
-        ),
-        nBlocksPlan,
-        power
-      ))
+  if (eType == "grow") {
+    if (!is.null(logOddsMin) && !is.null(power)) {
+      warning("no planning on logOdds: power is dropped")
+      power <- NULL
     }
-    result[["designScenario"]] <- "3"
-    result[["esMin"]] <- c("propDiff" = esMin)
-    result[["power"]] <- power
-  }
-  # Scenarios 1 and 2 keep the worst baseline and its simulated paths.
-  if (!is.null(planning)) {
-    result[["worstCaseThetaA"]] <- planning[["worstCaseThetaA"]]
-    result[["worstCaseThetaB"]] <- planning[["worstCaseThetaB"]]
-    result[["breakVector"]] <- planning[["breakVector"]]
-    result[["samplePaths"]] <- planning[["samplePaths"]]
+    if (!is.null(propDiffMin) && !is.null(power) && is.null(nBlocksPlan)) {
+      # Scenario 1a: propDiffMin + power -> worst-case stopping time
+      planning <- computeNPlanSavi2x2(
+        propDiffMin = propDiffMin,
+        na = na,
+        nb = nb,
+        power = power,
+        alpha = alpha,
+        alternative = alternative,
+        nSim = nSim,
+        nBoot = nBoot,
+        nMax = nMax,
+        seed = seed,
+        wantSamplePaths = wantSamplePaths,
+        pb = pb
+      )
+      result[["designScenario"]] <- "1a"
+      result[["power"]] <- power
+      nBlocksPlan <- planning[["nPlan"]]
+      # na, nb are planned, not simulated: no standard error for them.
+      result[["nPlanTwoSe"]] <- c(
+        NA,
+        NA,
+        2 * planning[["bootObjNPlan"]][["bootSe"]]
+      )
+      result[["bootObjNBlocksPlan"]] <- planning[["bootObjNPlan"]]
+      result[["nMean"]] <- c("nMean" = planning[["nMean"]])
+      result[["nMeanTwoSe"]] <- 2 * planning[["bootObjNMean"]][["bootSe"]]
+      result[["bootObjNMean"]] <- planning[["bootObjNMean"]]
+    } else if (
+      !is.null(propDiffMin) && is.null(power) && !is.null(nBlocksPlan)
+    ) {
+      # Scenario 2: propDiffMin + nBlocksPlan -> worst-case power
+      planning <- computePowerSavi2x2(
+        propDiffMin = propDiffMin,
+        na = na,
+        nb = nb,
+        nBlocks = nBlocksPlan,
+        alpha = alpha,
+        alternative = alternative,
+        nSim = nSim,
+        nBoot = nBoot,
+        seed = seed,
+        wantSamplePaths = wantSamplePaths,
+        pb = pb
+      )
+      result[["designScenario"]] <- "2"
+      result[["power"]] <- planning[["power"]]
+      result[["powerTwoSe"]] <- 2 * planning[["bootObjPower"]][["bootSe"]]
+      result[["bootObjPower"]] <- planning[["bootObjPower"]]
+    } else if (is.null(esMin) && !is.null(power) && !is.null(nBlocksPlan)) {
+      # Scenario 3: power + nBlocksPlan -> the minimal detectable propDiff
+      esMin <- computeEsMinSavi2x2(
+        na = na,
+        nb = nb,
+        nBlocksPlan = nBlocksPlan,
+        power = power,
+        alpha = alpha,
+        alternative = alternative,
+        nSim = nSim,
+        seed = seed,
+        pb = pb
+      )
+      # NA: the worst-case power never reaches the target on the search
+      # bounds, so no minimal effect can be reported.
+      if (is.na(esMin)) {
+        stop(sprintf(
+          paste(
+            "no minimal propDiff found: at nBlocksPlan = %g the worst-case power",
+            "does not reach %g for any magnitude in (0.01, 0.9); try a larger",
+            "nBlocksPlan or a smaller power"
+          ),
+          nBlocksPlan,
+          power
+        ))
+      }
+      result[["designScenario"]] <- "3"
+      result[["esMin"]] <- c("propDiff" = esMin)
+      result[["power"]] <- power
+    } else if (!is.null(esMin) && is.null(power)) {
+      # A minimal effect alone, or logOddsMin with nBlocksPlan: no simulation
+    } else {
+      stop(
+        "can't design with eType = 'grow': give a minimal effect alone, ",
+        "propDiffMin with power or with nBlocksPlan, or power and ",
+        "nBlocksPlan without a minimal effect; per-block sizes fix nBlocksPlan"
+      )
+    }
+    # Scenarios 1a and 2 keep the worst baseline and its simulated paths.
+    if (!is.null(planning)) {
+      result[["worstCaseThetaA"]] <- planning[["worstCaseThetaA"]]
+      result[["worstCaseThetaB"]] <- planning[["worstCaseThetaB"]]
+      result[["breakVector"]] <- planning[["breakVector"]]
+      result[["samplePaths"]] <- planning[["samplePaths"]]
+    }
   }
 
   # The e-variable's defining quantity beyond eType and alternative, for
@@ -1591,7 +1466,7 @@ solveUmpLogOdds <- function(
 #'   `samplePaths` (a list of `nSim x nMax` sparse matrices, or `NULL`),
 #'   `n1Vector` (the block index), `nPlan`, and the baseline it was taken
 #'   at, `worstCaseThetaA`, `worstCaseThetaB`.
-#' @noRd
+#'
 sampleStoppingTimesSavi2x2 <- function(
   propDiffMin,
   na,
