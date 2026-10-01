@@ -1708,7 +1708,6 @@ sampleStoppingTimesSavi2x2 <- function(
   # baseline's paths crossed 1 / alpha within nMax (never-crossing paths are
   # Inf).
   nPlan <- NULL
-  worstCaseIndex <- NULL
   worstCaseThetaA <- NULL
   worstCaseThetaB <- NULL
   if (!is.null(power)) {
@@ -1720,14 +1719,16 @@ sampleStoppingTimesSavi2x2 <- function(
       names = FALSE,
       type = 1
     )
-    worstCaseIndex <- which.max(quantiles)
-    nPlan <- ceiling(quantiles[worstCaseIndex])
-    worstCaseThetaA <- thetaATrue[worstCaseIndex]
-    worstCaseThetaB <- thetaBTrue[worstCaseIndex]
+    # The row of the hardest curve: its quantile is nPlan, its baseline is
+    # reported, and its paths feed the warning below.
+    worstRow <- which.max(quantiles)
+    nPlan <- ceiling(quantiles[worstRow])
+    worstCaseThetaA <- thetaATrue[worstRow]
+    worstCaseThetaB <- thetaBTrue[worstRow]
   }
 
   if (!is.null(nPlan) && !is.finite(nPlan)) {
-    fractionNeverCrossed <- mean(!is.finite(stoppingTimes[worstCaseIndex, ]))
+    fractionNeverCrossed <- mean(!is.finite(stoppingTimes[worstRow, ]))
     warning(sprintf(
       paste(
         "the %g quantile of the stopping time is Inf: %.1f%% of the paths at",
@@ -1736,7 +1737,7 @@ sampleStoppingTimesSavi2x2 <- function(
       ),
       power,
       100 * fractionNeverCrossed,
-      thetaATrue[worstCaseIndex],
+      worstCaseThetaA,
       nMax
     ))
   }
@@ -1810,20 +1811,20 @@ computePowerSavi2x2 <- function(
   # the smallest; the row index only selects its paths for the bootstrap.
   stoppingTimes <- samplingResult[["stoppingTimes"]]
   powerVec <- rowMeans(stoppingTimes <= nBlocks)
-  worstCaseIndex <- which.min(powerVec)
+  worstRow <- which.min(powerVec)
 
   bootObjPower <- computeBootObj(
-    values = stoppingTimes[worstCaseIndex, ],
+    values = stoppingTimes[worstRow, ],
     objType = "power",
     nPlan = nBlocks,
     nBoot = nBoot
   )
 
   list(
-    "power" = powerVec[worstCaseIndex],
+    "power" = powerVec[worstRow],
     "powerVec" = powerVec,
-    "worstCaseThetaA" = samplingResult[["thetaA"]][worstCaseIndex],
-    "worstCaseThetaB" = samplingResult[["thetaB"]][worstCaseIndex],
+    "worstCaseThetaA" = samplingResult[["thetaA"]][worstRow],
+    "worstCaseThetaB" = samplingResult[["thetaB"]][worstRow],
     "bootObjPower" = bootObjPower,
     "nBlocks" = nBlocks,
     "thetaA" = samplingResult[["thetaA"]],
@@ -1900,7 +1901,7 @@ computeNPlanSavi2x2 <- function(
     names = FALSE,
     type = 1
   )
-  worstCaseIndex <- which.max(nPlanVec)
+  worstRow <- which.max(nPlanVec)
 
   # Simulation uncertainty at the worst baseline only: the bootstrap
   # quantile, and the mean stopping time with paths capped at nPlan. A
@@ -1910,13 +1911,13 @@ computeNPlanSavi2x2 <- function(
   nMean <- NA_real_
   if (is.finite(nPlan)) {
     bootObjNPlan <- computeBootObj(
-      values = stoppingTimes[worstCaseIndex, ],
+      values = stoppingTimes[worstRow, ],
       objType = "nPlan",
       power = power,
       nBoot = nBoot
     )
     bootObjNMean <- computeBootObj(
-      values = stoppingTimes[worstCaseIndex, ],
+      values = stoppingTimes[worstRow, ],
       objType = "nMean",
       nPlan = nPlan,
       nBoot = nBoot
