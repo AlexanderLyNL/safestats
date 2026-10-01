@@ -1644,13 +1644,16 @@ sampleStoppingTimesSavi2x2 <- function(
   eValuesStopped <- matrix(NA_real_, nrow = nBaselines, ncol = nSim)
   samplePaths <- if (wantSamplePaths) vector("list", nBaselines) else NULL
 
+  message("Simulating ", nSim, " stopping times for propDiffMin = ", propDiffMin)
+
   if (pb) {
     pbSavi <- utils::txtProgressBar(
-      style = 3,
+      style = 1,
       title = "Sampling worst-case stopping time"
     )
   }
 
+  # 1 for oneSided, 2 for twoSided
   for (k in seq_len(nBaselines)) {
     if (wantSamplePaths) {
       samplePaths[[k]] <- matrix(0, nrow = nSim, ncol = nMax)
@@ -1659,8 +1662,7 @@ sampleStoppingTimesSavi2x2 <- function(
       if (pb) {
         utils::setTxtProgressBar(
           pbSavi,
-          "value" = ((k - 1) * nSim + sim) / (nBaselines * nSim),
-          "title" = "Trials"
+          "value" = ((k - 1) * nSim + sim) / (nBaselines * nSim)
         )
       }
 
