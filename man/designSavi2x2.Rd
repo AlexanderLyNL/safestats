@@ -65,7 +65,9 @@ ratio.}
 \item{betaParameter}{\code{list(betaA1, betaA2, betaB1, betaB2)}, the Beta
 prior shapes on \code{thetaA} and \code{thetaB} for "eBeta", each a single
 finite positive number; \code{NULL} means \code{1 / (2 * na)} and \code{1 / (2 * nb)},
-taking block 1's sizes with a warning when they vary by block.}
+taking block 1's sizes with a warning when they vary by block. A given
+prior keeps its own block 1: the test does not replace it by the UMP
+e-value.}
 
 \item{gaussParameter}{\code{list(mean, sd)}, the Normal prior on \code{logOdds}
 for "eGauss", restricted to the grid \verb{(-20, 20)} and to the side of a
@@ -97,9 +99,9 @@ Returns a saviDesign object that includes:
 \describe{
 \item{nPlan}{the planned sample size(s): \code{list(na, nb)}, with
 \code{nBlocksPlan} when given or planned.}
-\item{parameter}{the savi test defining parameter: the prior in use as
-one named string for "eBeta" and "eGauss", or the minimal effect named
-\code{propDiffMin} or \code{logOddsMin} for "grow".}
+\item{parameter}{for "eBeta" and "eGauss", the prior as one named
+string, or \code{"default"} when \code{NULL}; absent for "grow", whose minimal
+effect is \code{esMin}.}
 \item{esMin}{the minimal relevant effect size provided by the user, or
 found in scenario 3, signed and named \code{propDiff} or \code{logOdds}; \code{NULL}
 for "eBeta" and "eGauss".}
@@ -109,8 +111,10 @@ power found in scenario 2.}
 \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 \item{eType}{any of "eBeta", "grow", "eGauss" provided by the user.}
 \item{h0}{the null value, 0.}
-\item{betaParameter}{for "eBeta", the Beta prior in use.}
-\item{gaussParameter}{for "eGauss", the Normal prior in use.}
+\item{betaParameter}{for "eBeta", the Beta prior given, \code{NULL} for the
+default.}
+\item{gaussParameter}{for "eGauss", the Normal prior given, \code{NULL} for
+the default.}
 \item{runningIntersection}{logical, as provided by the user.}
 \item{designScenario}{"1a", "2" or "3" when planned.}
 \item{nPlanTwoSe, bootObjNBlocksPlan, nMean, nMeanTwoSe, bootObjNMean}{
@@ -137,9 +141,10 @@ as \code{x - y > 0} does in \code{\link[stats:t.test]{stats::t.test()}}.
 \item \code{"eBeta"} (\code{propDiff}) and \code{"eGauss"} (\code{logOdds}) are unrestricted: a
 minimal effect is an error, a \code{power} is dropped with a warning, and
 \code{nBlocksPlan} is kept as the planned block count. Each reads one
-prior, \code{betaParameter} or \code{gaussParameter}, filled with its default
-when \code{NULL}. A one-sided \code{alternative} acts in the UMP first block,
-and for \code{"eGauss"} also restricts the prior to that side.
+prior, \code{betaParameter} or \code{gaussParameter}; \code{NULL} keeps the default,
+which \code{\link[=savi2x2TestStat]{savi2x2TestStat()}} fills in. A one-sided \code{alternative} acts in
+the UMP first block, and for \code{"eGauss"} also restricts the prior to
+that side.
 \item \code{"grow"} plugs in exactly one of \code{propDiffMin}, \code{logOddsMin} as the
 fixed alternative and reads no prior. As in \code{\link[=designSaviZ]{designSaviZ()}}, a value
 whose sign contradicts a one-sided \code{alternative} is flipped with a

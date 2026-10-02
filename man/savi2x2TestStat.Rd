@@ -8,7 +8,7 @@ savi2x2TestStat(
   ya,
   yb,
   designObj = NULL,
-  wantCi = TRUE,
+  wantCi = FALSE,
   wantConfidenceSequence = FALSE,
   ciValue = NULL
 )
@@ -25,8 +25,7 @@ number of observations in group B per block.}
 \item{designObj}{an object obtained from \code{\link[=designSavi2x2]{designSavi2x2()}}, which also
 supplies \code{na} and \code{nb}.}
 
-\item{wantCi}{default \code{TRUE}, also compute a savi confidence interval on
-all blocks.}
+\item{wantCi}{default \code{FALSE}, compute a confidence interval.}
 
 \item{wantConfidenceSequence}{logical that can be set to true when the
 user wants a savi confidence sequence to be estimated, one row per

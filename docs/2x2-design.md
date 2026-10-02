@@ -58,19 +58,20 @@ sign the minimal effect, then apply the eType's rules. eBeta and eGauss stop
 on a minimal effect, drop a `power` with a warning, keep `nBlocksPlan` as
 the planned count (stored and printed, read only by scenarios 2 and 3), and
 read one prior each, `betaParameter` for eBeta and `gaussParameter` for
-eGauss, filled with its default when `NULL`; the prior the eType does not
+eGauss, stored as given (`NULL` for the default, which `savi2x2TestStat`
+fills in on the data's block sizes); the prior the eType does not
 read is ignored and not stored. grow reads no prior and ignores a supplied
 one; it plans as in the planning table below, and any other combination of
 `power` and `nBlocksPlan` is an error, except that `logOddsMin` drops a
 `power` with a warning. `betaParameter` is
 `list(betaA1, betaA2, betaB1, betaB2)`, exactly these names, each a single
 finite positive number; `NULL` means `1 / (2 * na)` and `1 / (2 * nb)`,
-taking block 1's sizes with a warning when sizes vary by block. All three
+taking block 1's sizes with a warning when sizes vary by block; a given
+`betaParameter` opts out of the UMP first block (below). All three
 eTypes accept every `alternative`; eBeta and eGauss use a one-sided one in
 the UMP first block, and eGauss also restricts its prior to that side.
 `gaussParameter` is `list(mean, sd)` with finite `mean` inside the grid
-`(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`, and
-the design stores the list it uses.
+`(-20, 20)` and finite `sd > 0`; `NULL` means `list(mean = 0, sd = 1)`.
 
 ## Inputs and result objects
 
@@ -91,23 +92,25 @@ The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
   the print methods show per-block size vectors as `mean na`, `mean nb`.
 - `esMin`, named by the supplied effect; no `effectMeasure` field.
 - `betaParameter = list(betaA1, betaA2, betaB1, betaB2)`, eBeta only:
-  positive success and failure shapes, exactly these names; `NULL` means
-  `1 / (2 na)`, `1 / (2 nb)` on block 1's sizes (a warning when sizes vary).
+  positive success and failure shapes, exactly these names, as given;
+  `NULL` (the default) means `1 / (2 na)`, `1 / (2 nb)` on block 1's sizes
+  (a warning when sizes vary).
 - `gaussParameter = list(mean, sd)`, eGauss only: the Normal prior on
-  `logOdds`, exactly these names; `NULL` stores `list(mean = 0, sd = 1)`.
+  `logOdds`, exactly these names, as given; `NULL` (the default) means
+  `list(mean = 0, sd = 1)`.
   The prior the eType does not read is absent (`NULL`).
-- `parameter`, for printing: the e-variable's defining quantity beyond
-  `eType` and `alternative`. eBeta and eGauss store their prior as one named
+- `parameter`, eBeta and eGauss only, for printing: the prior as one named
   string formatted in the constructor, names and values comma-separated
-  (`betaA1, betaA2, betaB1, betaB2 = 0.05, 0.05, 0.05, 0.05`), so the shared
-  print methods need no 2x2 branch; grow stores the signed `esMin` named
-  `propDiffMin` or `logOddsMin`, as `phiS` is for the z grow test.
+  (`betaA1, betaA2, betaB1, betaB2 = 0.05, 0.05, 0.05, 0.05`), or `"default"`
+  named `betaParameter` or `gaussParameter` when the prior is `NULL`. grow
+  stores none, since `esMin` already shows its minimal effect; the shared
+  print methods skip a missing 2x2 `parameter`.
   Constructor defaults
   `runningIntersection = FALSE`, `relevanceTest = FALSE`; `NULL` arguments
   preserve these defaults. `nMax` is a simulation cap, not a design field.
 
 The single entry point is `savi2x2TestStat(ya, yb, designObj = NULL,
-wantCi = TRUE, wantConfidenceSequence = FALSE, ciValue = NULL)`. It reads
+wantCi = FALSE, wantConfidenceSequence = FALSE, ciValue = NULL)`. It reads
 the effect from the design: `propDiff` for eBeta, `logOdds` for eGauss, and
 for grow the name of `esMin`. The shared checks, the UMP replacement of
 block 1, and the result fill are written once; each of the four e-processes
@@ -144,8 +147,11 @@ process. `predictiveThetas2x2` computes independent Beta posterior
 means using prior shapes, previous successes, and previous cumulative sizes.
 The denominator uses pooled probability
 `(na * thetaA + nb * thetaB) / (na + nb)`; sum the two binomial log-density
-ratios over blocks. Block 1's plug-in factor is **replaced** by the UMP
-conditional factor, as for grow; the posterior still absorbs block 1.
+ratios over blocks. With the default prior, block 1's plug-in factor is
+**replaced** by the UMP conditional factor, as for grow; the posterior still
+absorbs block 1. A given `betaParameter` keeps block 1's plug-in factor,
+with a message: a user prior already defines block 1's numerator. This
+opt-out is eBeta only; grow and eGauss always replace.
 
 **PropDiff grow.** `logEValueVec2x2PropDiffGrow` learns on
 `thetaA = thetaB + propDiffMin` with the signed value: 1000 interior grid
@@ -180,7 +186,7 @@ below 0, `twoSided`: both) and normalized on 2000 equally spaced log-odds
 values in `[-20,20]`; later factors use the grid posterior including
 block 1. For both eTypes `savi2x2TestStat`
 **replaces** block 1 of the cumulative process by `savi2x2TestStatUmp` at
-the design's `alternative`, exactly as on propDiff.
+the design's `alternative`, as for grow on propDiff.
 
 `savi2x2TestStatUmp(ya, yb, na, nb, alpha, alternative)` returns one plain
 conditional e-factor, averaging the two one-sided factors for `twoSided`.
