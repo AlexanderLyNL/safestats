@@ -470,9 +470,9 @@ savi2x2TestStat <- function(
 #' \describe{
 #'   \item{nPlan}{the planned sample size(s): `list(na, nb)`, with
 #'   `nBlocksPlan` when given or planned.}
-#'   \item{parameter}{the savi test defining parameter: the prior in use as
-#'   one named string for "eBeta" and "eGauss", or the minimal effect named
-#'   `propDiffMin` or `logOddsMin` for "grow".}
+#'   \item{parameter}{for "eBeta" and "eGauss", the prior as one named
+#'   string, or `"default"` when `NULL`; absent for "grow", whose minimal
+#'   effect is `esMin`.}
 #'   \item{esMin}{the minimal relevant effect size provided by the user, or
 #'   found in scenario 3, signed and named `propDiff` or `logOdds`; `NULL`
 #'   for "eBeta" and "eGauss".}
@@ -718,22 +718,23 @@ designSavi2x2 <- function(
     }
   }
 
-  # The e-variable's defining quantity beyond eType and alternative, for
-  # printing. grow stores the signed minimal effect, as phiS is for the z
-  # grow test; scenario 3 has found esMin by now. eBeta and eGauss store
-  # the prior in use as one named string, names and values comma-separated,
-  # so the shared print methods show it side by side as they do nPlan.
-  if (eType == "grow") {
-    result[["parameter"]] <- stats::setNames(
-      unname(result[["esMin"]]),
-      paste0(names(result[["esMin"]]), "Min")
-    )
-  } else {
-    prior <- if (eType == "eBeta") result[["betaParameter"]] else gaussParameter
-    result[["parameter"]] <- stats::setNames(
-      paste(vapply(prior, format, character(1)), collapse = ", "),
-      paste(names(prior), collapse = ", ")
-    )
+  # eBeta and eGauss only: the prior as one named string, names and values
+  # comma-separated, so the shared print methods show it side by side as
+  # they do nPlan; a NULL prior shows as "default". grow has none: its
+  # defining quantity is esMin, which the print methods already show.
+  if (eType != "grow") {
+    prior <- if (eType == "eBeta") betaParameter else gaussParameter
+    result[["parameter"]] <- if (is.null(prior)) {
+      stats::setNames(
+        "default",
+        if (eType == "eBeta") "betaParameter" else "gaussParameter"
+      )
+    } else {
+      stats::setNames(
+        paste(vapply(prior, format, character(1)), collapse = ", "),
+        paste(names(prior), collapse = ", ")
+      )
+    }
   }
 
   result[["nPlan"]] <- list("na" = na, "nb" = nb)
