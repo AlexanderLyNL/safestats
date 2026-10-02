@@ -254,7 +254,9 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t",
   if (!is.null(statValue))
     out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
 
-  out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
+  # A 2x2 grow design holds no parameter: its esMin is shown instead.
+  if (!is.null(parameter))
+    out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
 
   if (!is.null(designObj[["eType"]]))
     out <- c(out, paste("type", "=", designObj[["eType"]]))
@@ -349,7 +351,8 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t",
 print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
 
-  if (is.null(designObj[["parameter"]])) {
+  # A 2x2 grow design holds no parameter: its esMin is shown instead.
+  if (is.null(designObj[["parameter"]]) && !identical(designObj[["testType"]], "2x2")) {
     print.default(x)
     return()
   }
