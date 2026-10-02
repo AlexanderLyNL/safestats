@@ -181,17 +181,43 @@ savi2x2TestStat <- function(
 
   result <- constructSaviTestObj("Two Proportions")
 
-  # Compute: eValueVec ----
-  # UMP conditional e-value for block 1
-  eValueUmp <- savi2x2TestStatUmp(
-    ya[1],
-    yb[1],
-    na[1],
-    nb[1],
-    alpha,
-    alternative
-  )
+  # Prior: a user-supplied Beta prior keeps its own block 1; the default
+  # prior has block 1 replaced by the UMP conditional e-value.
+  replaceUmpAtFirstBlock <- TRUE
+  if (eType == "eBeta") {
+    if (!is.null(betaParameter)) {
+      replaceUmpAtFirstBlock <- FALSE
+      message("betaParameter given: block 1 keeps the eBeta e-value")
+    } else {
+      # Default shapes 1 / (2 n): a vague prior on the scale of one block. The
+      # prior only acts before block 1's data, so varying sizes take block 1's.
+      if (any(na != na[1]) || any(nb != nb[1])) {
+        warning(
+          "betaParameter defaults to 1 / (2 * na[1]) and 1 / (2 * nb[1]) on ",
+          "the first block's sizes na = ",
+          na[1],
+          ", nb = ",
+          nb[1]
+        )
+      }
+      betaParameter <- list(
+        "betaA1" = 1 / (2 * na[1]),
+        "betaA2" = 1 / (2 * na[1]),
+        "betaB1" = 1 / (2 * nb[1]),
+        "betaB2" = 1 / (2 * nb[1])
+      )
+    }
+  }
+  if (eType == "eGauss") {
+    # Gaussian prior on logOdds: N(mean, sd), restricted to the helper's grid
+    # (-20, 20) and to the side of a one-sided alternative.
+    if (is.null(gaussParameter)) {
+      gaussParameter <- list("mean" = 0, "sd" = 1)
+    }
+    result[["gaussParameter"]] <- gaussParameter
+  }
 
+  # Compute: eValueVec ----
   # The plain cumulative log e-process of the chosen e-variable, block 1
   # included; each helper is a self-contained construction.
   logEValueVec <- switch(paste(eType, effect),
@@ -235,17 +261,27 @@ savi2x2TestStat <- function(
   logNumerator <- if (eType == "eGauss") {
     logEValueVec + cumsum(stats::dhyper(ya, na, nb, ya + yb, log = TRUE))
   }
-  # Replace block 1 by the UMP e-value
+  # Replace block 1 by the UMP e-value, unless a custom Beta prior opted out.
   # logEValueVec[1] should be log(1) = 0 but write it out for clarity
   # No UMP e-value at this alpha (NULL): block 1 keeps its plain factor.
-  if (!is.null(eValueUmp)) {
-    logEValueVec <- logEValueVec - logEValueVec[1] + log(eValueUmp)
-  } else {
-    warning(
-      "no UMP e-value exists for the first block at alpha = ",
+  if (replaceUmpAtFirstBlock) {
+    eValueUmp <- savi2x2TestStatUmp(
+      ya[1],
+      yb[1],
+      na[1],
+      nb[1],
       alpha,
-      "; block 1 keeps the plain e-value"
+      alternative
     )
+    if (is.null(eValueUmp)) {
+      warning(
+        "no UMP e-value exists for the first block at alpha = ",
+        alpha,
+        "; block 1 keeps the plain e-value"
+      )
+    } else {
+      logEValueVec <- logEValueVec - logEValueVec[1] + log(eValueUmp)
+    }
   }
 
   # Compute: confSeq ----
@@ -356,9 +392,10 @@ savi2x2TestStat <- function(
 #' - `"eBeta"` (`propDiff`) and `"eGauss"` (`logOdds`) are unrestricted: a
 #'   minimal effect is an error, a `power` is dropped with a warning, and
 #'   `nBlocksPlan` is kept as the planned block count. Each reads one
-#'   prior, `betaParameter` or `gaussParameter`, filled with its default
-#'   when `NULL`. A one-sided `alternative` acts in the UMP first block,
-#'   and for `"eGauss"` also restricts the prior to that side.
+#'   prior, `betaParameter` or `gaussParameter`; `NULL` keeps the default,
+#'   which [savi2x2TestStat()] fills in. A one-sided `alternative` acts in
+#'   the UMP first block, and for `"eGauss"` also restricts the prior to
+#'   that side.
 #' - `"grow"` plugs in exactly one of `propDiffMin`, `logOddsMin` as the
 #'   fixed alternative and reads no prior. As in [designSaviZ()], a value
 #'   whose sign contradicts a one-sided `alternative` is flipped with a
@@ -408,7 +445,9 @@ savi2x2TestStat <- function(
 #' @param betaParameter `list(betaA1, betaA2, betaB1, betaB2)`, the Beta
 #'   prior shapes on `thetaA` and `thetaB` for "eBeta", each a single
 #'   finite positive number; `NULL` means `1 / (2 * na)` and `1 / (2 * nb)`,
-#'   taking block 1's sizes with a warning when they vary by block.
+#'   taking block 1's sizes with a warning when they vary by block. A given
+#'   prior keeps its own block 1: the test does not replace it by the UMP
+#'   e-value.
 #' @param gaussParameter `list(mean, sd)`, the Normal prior on `logOdds`
 #'   for "eGauss", restricted to the grid `(-20, 20)` and to the side of a
 #'   one-sided `alternative`; `NULL` means `list(mean = 0, sd = 1)`.
@@ -443,8 +482,10 @@ savi2x2TestStat <- function(
 #'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{eType}{any of "eBeta", "grow", "eGauss" provided by the user.}
 #'   \item{h0}{the null value, 0.}
-#'   \item{betaParameter}{for "eBeta", the Beta prior in use.}
-#'   \item{gaussParameter}{for "eGauss", the Normal prior in use.}
+#'   \item{betaParameter}{for "eBeta", the Beta prior given, `NULL` for the
+#'   default.}
+#'   \item{gaussParameter}{for "eGauss", the Normal prior given, `NULL` for
+#'   the default.}
 #'   \item{runningIntersection}{logical, as provided by the user.}
 #'   \item{designScenario}{"1a", "2" or "3" when planned.}
 #'   \item{nPlanTwoSe, bootObjNBlocksPlan, nMean, nMeanTwoSe, bootObjNMean}{
@@ -561,34 +602,13 @@ designSavi2x2 <- function(
     warning("eType = '", eType, "' has no planning: power is dropped")
     power <- NULL
   }
+
+  # The prior as given; NULL means the default, which savi2x2TestStat fills
+  # in on the data's block sizes.
   if (eType == "eBeta") {
-    # Default shapes 1 / (2 n): a vague prior on the scale of one block. The
-    # prior only acts before block 1's data, so varying sizes take block 1's.
-    if (is.null(betaParameter)) {
-      if (any(na != na[1]) || any(nb != nb[1])) {
-        warning(
-          "betaParameter defaults to 1 / (2 * na[1]) and 1 / (2 * nb[1]) on ",
-          "the first block's sizes na = ",
-          na[1],
-          ", nb = ",
-          nb[1]
-        )
-      }
-      betaParameter <- list(
-        "betaA1" = 1 / (2 * na[1]),
-        "betaA2" = 1 / (2 * na[1]),
-        "betaB1" = 1 / (2 * nb[1]),
-        "betaB2" = 1 / (2 * nb[1])
-      )
-    }
     result[["betaParameter"]] <- betaParameter
   }
   if (eType == "eGauss") {
-    # Gaussian prior on logOdds: N(mean, sd), restricted to the helper's grid
-    # (-20, 20) and to the side of a one-sided alternative.
-    if (is.null(gaussParameter)) {
-      gaussParameter <- list("mean" = 0, "sd" = 1)
-    }
     result[["gaussParameter"]] <- gaussParameter
   }
 
