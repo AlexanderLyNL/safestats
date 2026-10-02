@@ -72,6 +72,13 @@ constructSaviDesignObj <- function(testName) {
     testSpecificList <- list("ratio"=NULL, "testName"=testName)
   } else if (testName=="Logrank") {
     testSpecificList <- list("exact"=NULL)
+  } else if (testName=="Two Proportions") {
+    testSpecificList <- list(
+      "betaParameter"=NULL,
+      "gaussParameter"=NULL,
+      "relevanceTest"=FALSE,
+      "runningIntersection"=FALSE,
+      "testName"=testName)
   }
 
   result <- utils::modifyList(result, testSpecificList)
@@ -106,6 +113,8 @@ constructSaviTestObj <- function(testName) {
     testSpecificList <- list("stderr"=NULL, "testName"=testName)
   } else if (testName=="Logrank") {
     testSpecificList <- list("sumStats"=NULL, "testName"=testName)
+  } else if (testName=="Two Proportions") {
+    testSpecificList <- list("betaPrior"=NULL, "testName"=testName)
   }
 
   result <- utils::modifyList(result, testSpecificList)
@@ -171,7 +180,9 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t",
   }
 
   if (is.null(runningIntersection)) {
-    if (is.null(designObj[["runningIntersection"]]))
+    runningIntersection <- designObj[["runningIntersection"]]
+
+    if (is.null(runningIntersection))
       runningIntersection <- FALSE
   }
 
@@ -243,7 +254,9 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t",
   if (!is.null(statValue))
     out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
 
-  out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
+  # A 2x2 grow design holds no parameter: its esMin is shown instead.
+  if (!is.null(parameter))
+    out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
 
   if (!is.null(designObj[["eType"]]))
     out <- c(out, paste("type", "=", designObj[["eType"]]))
@@ -279,7 +292,14 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t",
     nPlan <- designObj[["nPlan"]]
 
     if (!is.null(nPlan)) {
-      out <- paste(names(nPlan), "=", nPlan)
+      # The 2x2 nPlan is a list; per-block sizes print as their mean.
+      if (is.list(nPlan)) {
+        isVector <- lengths(nPlan) > 1L
+        nPlan[isVector] <- lapply(nPlan[isVector], mean)
+        names(nPlan)[isVector] <- paste("mean", names(nPlan)[isVector])
+        nPlan <- unlist(nPlan)
+      }
+      out <- paste(names(nPlan), "=", sapply(nPlan, format, digits = max(1L, digits - 2L)))
       cat(paste0("for experiments with ", paste(out, collapse = ", "), sep="\n"))
     }
 
@@ -331,7 +351,8 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t",
 print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
 
-  if (is.null(designObj[["parameter"]])) {
+  # A 2x2 grow design holds no parameter: its esMin is shown instead.
+  if (is.null(designObj[["parameter"]]) && !identical(designObj[["testType"]], "2x2")) {
     print.default(x)
     return()
   }
@@ -369,25 +390,28 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
         itemTwoSe <- designObj[[itemNeem]]
 
-        if (!is.null(itemTwoSe)) {
-          tempNeem <- names(designObj[[item]])
+        # The 2x2 nPlan is a list; per-block sizes print as their mean.
+        if (is.list(itemValue)) {
+          isVector <- lengths(itemValue) > 1L
+          itemValue[isVector] <- lapply(itemValue[isVector], mean)
+          names(itemValue)[isVector] <- paste("mean", names(itemValue)[isVector])
+          itemValue <- unlist(itemValue)
+        }
 
-          for (i in seq_along(itemValue)) {
-            if (i==1) {
-              itemValueString <- paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                        format(itemTwoSe[i], digits=digits))
-            } else {
-              itemValueString <- paste(itemValueString,
-                                       paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                              format(itemTwoSe[i], digits=digits)),
-                                       sep=", ")
-            }
-          }
-          tempNeem <- paste0(names(designObj[[item]]), "\U00B1", "2se")
-          displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
+        if (!is.null(itemTwoSe)) {
+          # An NA standard error prints that element plainly: the 2x2 nPlan
+          # holds na, nb, nBlocksPlan and only the last one is simulated.
+          hasSe <- !is.na(itemTwoSe)
+          itemValueString <- sapply(itemValue, format, digits=digits)
+          itemValueString[hasSe] <- paste0(itemValueString[hasSe], "\U00B1",
+                                           sapply(itemTwoSe[hasSe], format, digits=digits))
+          tempNeem <- names(itemValue)
+          tempNeem[hasSe] <- paste0(tempNeem[hasSe], "\U00B1", "2se")
+          displayList[[paste(tempNeem, collapse=", ")]] <- paste(itemValueString, collapse=", ")
         } else {
-          tempNeem <- names(designObj[[item]])
-          displayList[[paste(tempNeem, collapse=", ")]] <- itemValue
+          tempNeem <- names(itemValue)
+          displayList[[paste(tempNeem, collapse=", ")]] <-
+            paste(sapply(itemValue, format, digits=digits), collapse=", ")
         }
       } else if (item=="power") {
         powerTwoSe <- designObj[["powerTwoSe"]]
@@ -1091,7 +1115,9 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
   designObj <- x[["designObj"]]
 
   if (is.null(runningIntersection)) {
-    if (is.null(designObj[["runningIntersection"]]))
+    runningIntersection <- designObj[["runningIntersection"]]
+
+    if (is.null(runningIntersection))
       runningIntersection <- FALSE
   }
 
@@ -1111,7 +1137,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     xlab <- switch(x[["testName"]],
                    "Z-Test"="n1",
                    "T-Test"="n1",
-                   "logrank"="Number of events")
+                   "logrank"="Number of events",
+                   "Two Proportions"="Number of blocks")
   }
 
   if (isTRUE(wantConfSeqPlot)) {
@@ -1174,7 +1201,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
         ylab <- switch(x[["testName"]],
                        "Z-Test"="mu",
                        "T-Test"="mu",
-                       "logrank"="log(hazard ratio)")
+                       "logrank"="log(hazard ratio)",
+                       "Two Proportions"=if (x[["designObj"]][["eType"]] == "eBeta") "propDiff" else "logOdds")
 
       graphics::mtext(ylab, side = 2, line = 4,
                       las = 0, cex = cex, adj=0.5)
