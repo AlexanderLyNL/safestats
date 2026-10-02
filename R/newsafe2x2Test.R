@@ -235,7 +235,8 @@ savi2x2TestStat <- function(
       nb,
       esMin,
       alpha,
-      alternative
+      alternative,
+      betaParameter
     ),
     "grow logOdds" = logEValueVec2x2LogOddsGrow(
       ya,
@@ -353,8 +354,9 @@ savi2x2TestStat <- function(
   # x-axis of plot.saviTest(): the block index.
   result[["n"]] <- c("na" = sum(na), "nb" = sum(nb), "nBlocks" = nBlocks)
   # eBeta only: the Beta posterior of the observed blocks, the prior a further
-  # block would use. grow and eGauss hold no Beta prior.
-  if (!is.null(betaParameter)) {
+  # block would use. grow's prior lives on its curve, with no conjugate
+  # update to store; eGauss holds no Beta prior.
+  if (eType == "eBeta") {
     result[["betaParameter"]] <- list(
       "betaA1" = betaParameter[["betaA1"]] + sum(ya),
       "betaA2" = betaParameter[["betaA2"]] + sum(na) - sum(ya),
@@ -447,7 +449,9 @@ savi2x2TestStat <- function(
 #'   finite positive number; `NULL` means `1 / (2 * na)` and `1 / (2 * nb)`,
 #'   taking block 1's sizes with a warning when they vary by block. A given
 #'   prior keeps its own block 1: the test does not replace it by the UMP
-#'   e-value.
+#'   e-value. For "grow" on propDiff, the test puts `Beta(betaA1, betaA2)` on
+#'   `thetaA` rescaled to its feasible interval on the curve, B's shapes
+#'   unused, and `NULL` means uniform; planning ignores it.
 #' @param gaussParameter `list(mean, sd)`, the Normal prior on `logOdds`
 #'   for "eGauss", restricted to the grid `(-20, 20)` and to the side of a
 #'   one-sided `alternative`; `NULL` means `list(mean = 0, sd = 1)`.
@@ -482,8 +486,8 @@ savi2x2TestStat <- function(
 #'   \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 #'   \item{eType}{any of "eBeta", "grow", "eGauss" provided by the user.}
 #'   \item{h0}{the null value, 0.}
-#'   \item{betaParameter}{for "eBeta", the Beta prior given, `NULL` for the
-#'   default.}
+#'   \item{betaParameter}{for "eBeta" and "grow" on propDiff, the Beta prior
+#'   given, `NULL` for the default.}
 #'   \item{gaussParameter}{for "eGauss", the Normal prior given, `NULL` for
 #'   the default.}
 #'   \item{runningIntersection}{logical, as provided by the user.}
@@ -610,6 +614,11 @@ designSavi2x2 <- function(
   }
   if (eType == "eGauss") {
     result[["gaussParameter"]] <- gaussParameter
+  }
+  # grow on propDiff: the test's prior on the curve, uniform when NULL; the
+  # planners ignore it.
+  if (eType == "grow" && is.null(logOddsMin)) {
+    result[["betaParameter"]] <- betaParameter
   }
 
   # grow: a minimal effect, or power and nBlocksPlan to find one ----

@@ -67,7 +67,9 @@ prior shapes on \code{thetaA} and \code{thetaB} for "eBeta", each a single
 finite positive number; \code{NULL} means \code{1 / (2 * na)} and \code{1 / (2 * nb)},
 taking block 1's sizes with a warning when they vary by block. A given
 prior keeps its own block 1: the test does not replace it by the UMP
-e-value.}
+e-value. For "grow" on propDiff, the test puts \code{Beta(betaA1, betaA2)} on
+\code{thetaA} rescaled to its feasible interval on the curve, B's shapes
+unused, and \code{NULL} means uniform; planning ignores it.}
 
 \item{gaussParameter}{\code{list(mean, sd)}, the Normal prior on \code{logOdds}
 for "eGauss", restricted to the grid \verb{(-20, 20)} and to the side of a
@@ -111,8 +113,8 @@ power found in scenario 2.}
 \item{alternative}{any of "twoSided", "greater", "less" provided by the user.}
 \item{eType}{any of "eBeta", "grow", "eGauss" provided by the user.}
 \item{h0}{the null value, 0.}
-\item{betaParameter}{for "eBeta", the Beta prior given, \code{NULL} for the
-default.}
+\item{betaParameter}{for "eBeta" and "grow" on propDiff, the Beta prior
+given, \code{NULL} for the default.}
 \item{gaussParameter}{for "eGauss", the Normal prior given, \code{NULL} for
 the default.}
 \item{runningIntersection}{logical, as provided by the user.}

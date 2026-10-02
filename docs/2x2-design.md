@@ -60,10 +60,11 @@ the planned count (stored and printed, read only by scenarios 2 and 3), and
 read one prior each, `betaParameter` for eBeta and `gaussParameter` for
 eGauss, stored as given (`NULL` for the default, which `savi2x2TestStat`
 fills in on the data's block sizes); the prior the eType does not
-read is ignored and not stored. grow reads no prior and ignores a supplied
-one; it plans as in the planning table below, and any other combination of
-`power` and `nBlocksPlan` is an error, except that `logOddsMin` drops a
-`power` with a warning. `betaParameter` is
+read is ignored and not stored. grow on propDiff also stores
+`betaParameter` as given, read by the test only (below); grow on logOdds
+reads no prior and ignores a supplied one. grow plans as in the planning
+table below, and any other combination of `power` and `nBlocksPlan` is an
+error, except that `logOddsMin` drops a `power` with a warning. `betaParameter` is
 `list(betaA1, betaA2, betaB1, betaB2)`, exactly these names, each a single
 finite positive number; `NULL` means `1 / (2 * na)` and `1 / (2 * nb)`,
 taking block 1's sizes with a warning when sizes vary by block; a given
@@ -91,10 +92,10 @@ The `saviDesign` has `testName = "Two Proportions"`, `testType = "2x2"`,
 - `nPlan = list(na, nb)`, adding named `nBlocksPlan` when given or planned;
   the print methods show per-block size vectors as `mean na`, `mean nb`.
 - `esMin`, named by the supplied effect; no `effectMeasure` field.
-- `betaParameter = list(betaA1, betaA2, betaB1, betaB2)`, eBeta only:
-  positive success and failure shapes, exactly these names, as given;
-  `NULL` (the default) means `1 / (2 na)`, `1 / (2 nb)` on block 1's sizes
-  (a warning when sizes vary).
+- `betaParameter = list(betaA1, betaA2, betaB1, betaB2)`, eBeta and grow
+  on propDiff: positive success and failure shapes, exactly these names, as
+  given; for eBeta, `NULL` (the default) means `1 / (2 na)`, `1 / (2 nb)` on
+  block 1's sizes (a warning when sizes vary); for grow, uniform.
 - `gaussParameter = list(mean, sd)`, eGauss only: the Normal prior on
   `logOdds`, exactly these names, as given; `NULL` (the default) means
   `list(mean = 0, sd = 1)`.
@@ -158,8 +159,9 @@ opt-out is eBeta only; grow and eGauss always replace.
 points in `thetaA`'s feasible interval, `(d, 1)` for `d > 0` and
 `(0, 1 + d)` for `d < 0`, with a Beta prior on its rescaling to `(0,1)`.
 The helper's optional `betaParameter` gives `Beta(betaA1, betaA2)`, A's
-shapes only, and `NULL` the uniform `Beta(1, 1)`; the design, test, sampler
-and planners pass none, so grow runs uniform. Each
+shapes only, and `NULL` the uniform `Beta(1, 1)`; the test passes the
+design's `betaParameter`, while the sampler and planners pass none, so
+planning assumes the uniform prior. Each
 block uses the grid posterior mean, the pooled denominator, then updates
 weights on the log scale.
 Two-sided grow runs separate positive/negative curves and averages their

@@ -34,7 +34,9 @@ prior shapes on \code{thetaA} and \code{thetaB} for "eBeta", each a single
 finite positive number; \code{NULL} means \code{1 / (2 * na)} and \code{1 / (2 * nb)},
 taking block 1's sizes with a warning when they vary by block. A given
 prior keeps its own block 1: the test does not replace it by the UMP
-e-value.}
+e-value. For "grow" on propDiff, the test puts \code{Beta(betaA1, betaA2)} on
+\code{thetaA} rescaled to its feasible interval on the curve, B's shapes
+unused, and \code{NULL} means uniform; planning ignores it.}
 
 \item{alpha}{numeric in (0, 1), one minus the confidence level.}
 
