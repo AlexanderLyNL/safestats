@@ -74,8 +74,7 @@ savi2x2TestStatUmp <- function(
 #'   number of observations in group B per block.
 #' @param designObj an object obtained from [designSavi2x2()], which also
 #'   supplies `na` and `nb`.
-#' @param wantCi default `TRUE`, also compute a savi confidence interval on
-#'   all blocks.
+#' @param wantCi default `FALSE`, compute a confidence interval.
 #' @param wantConfidenceSequence logical that can be set to true when the
 #'   user wants a savi confidence sequence to be estimated, one row per
 #'   block; takes precedence over `wantCi`.
@@ -130,7 +129,7 @@ savi2x2TestStat <- function(
   ya,
   yb,
   designObj = NULL,
-  wantCi = TRUE,
+  wantCi = FALSE,
   wantConfidenceSequence = FALSE,
   ciValue = NULL
 ) {
@@ -162,7 +161,7 @@ savi2x2TestStat <- function(
   # Checking: data ----
   # design handle all the other argument
   if (nBlocks == 1L) {
-    warnings("There is only 1 table, switched to UMP conditional e-variable")
+    warning("There is only 1 table, switched to UMP conditional e-variable")
   }
 
   if (length(yb) != nBlocks || length(na) != nBlocks || length(nb) != nBlocks) {
