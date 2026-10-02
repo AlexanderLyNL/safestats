@@ -11,5 +11,3 @@ cran-comments.md
 ^CRAN-SUBMISSION$
 ^\.positai$
 ^\.claude$
-^AGENTS\.md$
-^docs$

@@ -1375,7 +1375,7 @@ solveRIPr2x2PropDiff <- function(
 #' exactly the midpoint `(1 - d) / 2`; in general the root is
 #' `(1 - d) / 2 + d (nHigh - nLow) / (6 (nLow + nHigh)) + O(d^3)`. The rate
 #' ignores the first-block UMP factor, which moves the simulated worst case
-#' when one group is very small (2x2-review.md, R9).
+#' when one group is very small.
 #'
 #' `"greater"`: `thetaA = thetaB + d`, so `thetaB` is the lower proportion
 #' and `nLow = nb`. `"less"`: `thetaA = thetaB - d`, so `thetaA` is the
