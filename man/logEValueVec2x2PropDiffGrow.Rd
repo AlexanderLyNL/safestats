@@ -12,6 +12,7 @@ logEValueVec2x2PropDiffGrow(
   propDiffMin,
   alpha,
   alternative = c("twoSided", "greater", "less"),
+  betaParameter = NULL,
   earlyStopping = FALSE,
   nWeight = 1000L
 )
@@ -42,6 +43,10 @@ and the null rejection rule e >= 1/alpha.}
 hypothesis. Must be one of "twoSided" (default), "greater" or "less",
 where "greater" means that group A has the larger proportion.}
 
+\item{betaParameter}{\code{NULL} or a list with \code{betaA1}, \code{betaA2}: the prior
+\code{Beta(betaA1, betaA2)} on \code{thetaA} rescaled to its feasible interval on
+the curve; B's shapes are unused. \code{NULL} means \code{Beta(1, 1)}, uniform.}
+
 \item{earlyStopping}{logical, if \code{TRUE} cut the vector at the first
 crossing of \code{1 / alpha}.}
 
@@ -52,8 +57,9 @@ A numeric vector, element \code{i} the log e-value on blocks \verb{1..i}.
 }
 \description{
 The alternative is restricted to the curve \code{thetaA = thetaB + propDiffMin}, signed by \code{alternative}, which leaves one free parameter;
-its posterior on a grid of \code{nWeight} points under a uniform prior gives
-the predictable plug-in for each block, against the pooled null mean.
+its posterior on a grid of \code{nWeight} points under a Beta prior, uniform
+by default, gives the predictable plug-in for each block, against the
+pooled null mean.
 \code{"twoSided"} runs both signs of the magnitude and averages their
 cumulative e-processes.
 }

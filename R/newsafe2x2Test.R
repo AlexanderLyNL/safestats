@@ -1173,13 +1173,17 @@ logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
 #'
 #' The alternative is restricted to the curve `thetaA = thetaB +
 #' propDiffMin`, signed by `alternative`, which leaves one free parameter;
-#' its posterior on a grid of `nWeight` points under a uniform prior gives
-#' the predictable plug-in for each block, against the pooled null mean.
+#' its posterior on a grid of `nWeight` points under a Beta prior, uniform
+#' by default, gives the predictable plug-in for each block, against the
+#' pooled null mean.
 #' `"twoSided"` runs both signs of the magnitude and averages their
 #' cumulative e-processes.
 #'
 #' @inheritParams savi2x2TestStat
 #' @inheritParams designSavi2x2
+#' @param betaParameter `NULL` or a list with `betaA1`, `betaA2`: the prior
+#'   `Beta(betaA1, betaA2)` on `thetaA` rescaled to its feasible interval on
+#'   the curve; B's shapes are unused. `NULL` means `Beta(1, 1)`, uniform.
 #' @param earlyStopping logical, if `TRUE` cut the vector at the first
 #'   crossing of `1 / alpha`.
 #' @param nWeight integer > 0, the number of grid points.
@@ -1187,6 +1191,7 @@ logEValueVec2x2PropDiffEBeta <- function(ya, yb, na, nb, betaParameter) {
 #' @return A numeric vector, element `i` the log e-value on blocks `1..i`.
 logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb,
   propDiffMin, alpha, alternative = c("twoSided", "greater", "less"),
+  betaParameter = NULL,
   earlyStopping = FALSE,
   nWeight = 1e3L
 ) {
@@ -1231,8 +1236,18 @@ logEValueVec2x2PropDiffGrow <- function(ya, yb, na, nb,
   logThetaB <- log(thetaBGrid)
   logOneMinusThetaB <- log1p(-thetaBGrid)
 
-  # Prior: Beta(1, 1) on rho, uniform prior on
-  logWeights <- stats::dbeta(rho, 1, 1,log = TRUE)
+  # Prior: Beta(1, 1) on rho, uniform prior on the line
+  # A given betaParameter puts Beta(betaA1, betaA2) on rho instead. thetaA
+  # increases with rho on both curves, so this is A's prior rescaled.
+  if (is.null(betaParameter)) {
+    betaParameter <- list("betaA1" = 1, "betaA2" = 1)
+  }
+  logWeights <- stats::dbeta(
+    rho,
+    betaParameter[["betaA1"]],
+    betaParameter[["betaA2"]],
+    log = TRUE
+  )
   logWeights <- matrix(logWeights - max(logWeights), nWeight, nSides)
 
   # Cumulative log likelihoods per side. Block i plugs in the posterior mean
