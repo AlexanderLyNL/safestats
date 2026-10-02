@@ -156,9 +156,10 @@ opt-out is eBeta only; grow and eGauss always replace.
 **PropDiff grow.** `logEValueVec2x2PropDiffGrow` learns on
 `thetaA = thetaB + propDiffMin` with the signed value: 1000 interior grid
 points in `thetaA`'s feasible interval, `(d, 1)` for `d > 0` and
-`(0, 1 + d)` for `d < 0`, with a uniform prior, `Beta(1, 1)`, on its rescaling
-to `(0,1)`; grow reads no prior, and neither the helper nor the sampler and
-planners take a prior argument. Each
+`(0, 1 + d)` for `d < 0`, with a Beta prior on its rescaling to `(0,1)`.
+The helper's optional `betaParameter` gives `Beta(betaA1, betaA2)`, A's
+shapes only, and `NULL` the uniform `Beta(1, 1)`; the design, test, sampler
+and planners pass none, so grow runs uniform. Each
 block uses the grid posterior mean, the pooled denominator, then updates
 weights on the log scale.
 Two-sided grow runs separate positive/negative curves and averages their
