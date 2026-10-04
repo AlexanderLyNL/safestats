@@ -9,7 +9,7 @@ checkAndReturnEsMinParameterSide(
   paramToCheck,
   alternative = c("twoSided", "greater", "less"),
   esMinName = c("noName", "meanDiffMin", "meanDiffTrue", "phiS", "deltaMin", "deltaS",
-    "hrMin", "thetaS", "deltaTrue", "g", "kappaG"),
+    "hrMin", "thetaS", "deltaTrue", "g", "kappaG", "propDiffMin", "logOddsMin"),
   paramDomain = NULL
 )
 }
@@ -21,7 +21,8 @@ minimal clinically relevant effect size called with a non-null esMinName name}
 of "twoSided" (default), "greater" or "less".}
 
 \item{esMinName}{provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for
-the t-test, or "hrMin" for the logrank test}
+the t-test, "hrMin" for the logrank test, or "propDiffMin" and "logOddsMin" for the
+2x2 test (both A minus B)}
 
 \item{paramDomain}{Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}}
 }

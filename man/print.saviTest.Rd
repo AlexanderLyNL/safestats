@@ -5,7 +5,13 @@
 \alias{print.saviTest}
 \title{Print Method for Savi Test Objects}
 \usage{
-\method{print}{saviTest}(x, digits = getOption("digits"), prefix = "\\t", ...)
+\method{print}{saviTest}(
+  x,
+  digits = getOption("digits"),
+  prefix = "\\t",
+  runningIntersection = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{a saviTest object.}
@@ -15,6 +21,10 @@
 \item{prefix}{string, passed to strwrap for displaying the method components.}
 
 \item{...}{further arguments to be passed to or from methods.}
+
+\item{runningIntersection}{logical, if \code{TRUE} then report the minimum
+of the upper confidence sequence across time, and the maximum of the lower
+confidence sequence across time}
 }
 \value{
 No returned value, called for side effects.

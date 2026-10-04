@@ -72,6 +72,13 @@ constructSaviDesignObj <- function(testName) {
     testSpecificList <- list("ratio"=NULL, "testName"=testName)
   } else if (testName=="Logrank") {
     testSpecificList <- list("exact"=NULL)
+  } else if (testName=="Two Proportions") {
+    testSpecificList <- list(
+      "betaParameter"=NULL,
+      "gaussParameter"=NULL,
+      "relevanceTest"=FALSE,
+      "runningIntersection"=FALSE,
+      "testName"=testName)
   }
 
   result <- utils::modifyList(result, testSpecificList)
@@ -106,6 +113,8 @@ constructSaviTestObj <- function(testName) {
     testSpecificList <- list("stderr"=NULL, "testName"=testName)
   } else if (testName=="Logrank") {
     testSpecificList <- list("sumStats"=NULL, "testName"=testName)
+  } else if (testName=="Two Proportions") {
+    testSpecificList <- list("betaPrior"=NULL, "testName"=testName)
   }
 
   result <- utils::modifyList(result, testSpecificList)
@@ -151,6 +160,9 @@ getNameAlternative <- function(alternative=c("twoSided", "greater", "less"), tes
 #' @param x a saviTest object.
 #' @param digits number of significant digits to be used.
 #' @param prefix string, passed to strwrap for displaying the method components.
+#' @param runningIntersection logical, if \code{TRUE} then report the minimum
+#' of the upper confidence sequence across time, and the maximum of the lower
+#' confidence sequence across time
 #' @param ... further arguments to be passed to or from methods.
 #'
 #' @return No returned value, called for side effects.
@@ -158,13 +170,22 @@ getNameAlternative <- function(alternative=c("twoSided", "greater", "less"), tes
 #'
 #' @examples
 #' saviTTest(rnorm(19))
-print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
+print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t",
+                           runningIntersection=NULL, ...) {
   designObj <- x[["designObj"]]
 
   if (is.null(designObj)) {
     print.default(x)
     return()
   }
+
+  if (is.null(runningIntersection)) {
+    runningIntersection <- designObj[["runningIntersection"]]
+
+    if (is.null(runningIntersection))
+      runningIntersection <- FALSE
+  }
+
 
   if (!is.null(x[["testType"]]) && x[["testType"]] != designObj[["testType"]])
     designObj[["testType"]] <- x[["testType"]]
@@ -201,8 +222,13 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t", ...) 
   confSeq <- x[["confSeq"]]
 
   if (!is.null(confSeq) && !is.null(ciValue)) {
+    if (runningIntersection && !is.null(x[["confSeqMatrix"]])) {
+      confSeq <- c(max(x[["confSeqMatrix"]][, 1]),
+                   min(x[["confSeqMatrix"]][, 2]))
+    }
+
     cat(format(100*(ciValue)), " percent confidence sequence:\n",
-        " ", paste(format(x[["confSeq"]][1:2], digits = digits),
+        " ", paste(format(confSeq, digits = digits),
                    collapse = " "), "\n", sep = "")
   }
   cat("\n")
@@ -228,7 +254,9 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t", ...) 
   if (!is.null(statValue))
     out <- c(out, paste(names(statValue), "=", format(statValue, digits = max(1L, digits - 2L))))
 
-  out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
+  # A 2x2 grow design holds no parameter: its esMin is shown instead.
+  if (!is.null(parameter))
+    out <- c(out, paste(names(parameter), "=", format(parameter, digits = max(1L, digits - 2L))))
 
   if (!is.null(designObj[["eType"]]))
     out <- c(out, paste("type", "=", designObj[["eType"]]))
@@ -264,7 +292,14 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t", ...) 
     nPlan <- designObj[["nPlan"]]
 
     if (!is.null(nPlan)) {
-      out <- paste(names(nPlan), "=", nPlan)
+      # The 2x2 nPlan is a list; per-block sizes print as their mean.
+      if (is.list(nPlan)) {
+        isVector <- lengths(nPlan) > 1L
+        nPlan[isVector] <- lapply(nPlan[isVector], mean)
+        names(nPlan)[isVector] <- paste("mean", names(nPlan)[isVector])
+        nPlan <- unlist(nPlan)
+      }
+      out <- paste(names(nPlan), "=", sapply(nPlan, format, digits = max(1L, digits - 2L)))
       cat(paste0("for experiments with ", paste(out, collapse = ", "), sep="\n"))
     }
 
@@ -316,7 +351,8 @@ print.saviTest <- function(x, digits = getOption("digits"), prefix = "\t", ...) 
 print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...) {
   designObj <- x
 
-  if (is.null(designObj[["parameter"]])) {
+  # A 2x2 grow design holds no parameter: its esMin is shown instead.
+  if (is.null(designObj[["parameter"]]) && !identical(designObj[["testType"]], "2x2")) {
     print.default(x)
     return()
   }
@@ -354,25 +390,28 @@ print.saviDesign <- function(x, digits = getOption("digits"), prefix = "\t", ...
 
         itemTwoSe <- designObj[[itemNeem]]
 
-        if (!is.null(itemTwoSe)) {
-          tempNeem <- names(designObj[[item]])
+        # The 2x2 nPlan is a list; per-block sizes print as their mean.
+        if (is.list(itemValue)) {
+          isVector <- lengths(itemValue) > 1L
+          itemValue[isVector] <- lapply(itemValue[isVector], mean)
+          names(itemValue)[isVector] <- paste("mean", names(itemValue)[isVector])
+          itemValue <- unlist(itemValue)
+        }
 
-          for (i in seq_along(itemValue)) {
-            if (i==1) {
-              itemValueString <- paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                        format(itemTwoSe[i], digits=digits))
-            } else {
-              itemValueString <- paste(itemValueString,
-                                       paste0(format(itemValue[i], digits=digits), "\U00B1",
-                                              format(itemTwoSe[i], digits=digits)),
-                                       sep=", ")
-            }
-          }
-          tempNeem <- paste0(names(designObj[[item]]), "\U00B1", "2se")
-          displayList[[paste(tempNeem, collapse=", ")]] <- itemValueString
+        if (!is.null(itemTwoSe)) {
+          # An NA standard error prints that element plainly: the 2x2 nPlan
+          # holds na, nb, nBlocksPlan and only the last one is simulated.
+          hasSe <- !is.na(itemTwoSe)
+          itemValueString <- sapply(itemValue, format, digits=digits)
+          itemValueString[hasSe] <- paste0(itemValueString[hasSe], "\U00B1",
+                                           sapply(itemTwoSe[hasSe], format, digits=digits))
+          tempNeem <- names(itemValue)
+          tempNeem[hasSe] <- paste0(tempNeem[hasSe], "\U00B1", "2se")
+          displayList[[paste(tempNeem, collapse=", ")]] <- paste(itemValueString, collapse=", ")
         } else {
-          tempNeem <- names(designObj[[item]])
-          displayList[[paste(tempNeem, collapse=", ")]] <- itemValue
+          tempNeem <- names(itemValue)
+          displayList[[paste(tempNeem, collapse=", ")]] <-
+            paste(sapply(itemValue, format, digits=digits), collapse=", ")
         }
       } else if (item=="power") {
         powerTwoSe <- designObj[["powerTwoSe"]]
@@ -1036,15 +1075,15 @@ plot.saviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' (anti-clockwise).
 #' @param fillOddEven logical controlling the polygon shading mode: see
 #' \code{\link[graphics]{polygon}()} for details. Default \code{FALSE}.
-#' @param runInt logical, if \code{TRUE} (default), then shows the running
-#' intersection of the confidence sequence.
+#' @param runningIntersection logical, if \code{TRUE} then plot the running
+#' minimum of the upper confidence sequence across time, and the running
+#' maximum of the lower confidence sequence across time
 #' @param wantRelevance logical, if \code{FALSE}, then don't show the
 #' e-values for relevanceTest. Default \code{wantRelevance==NULL}, if
 #' \code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
 #' automatically.
 #' @param xaxt default NULL. If "n" then suppresses plotting of the x-axis.
 #' @param yaxt default NULL. If "n" then suppresses plotting of the y-axis.
-#'
 #'
 #' @return Returns nothing just plots
 #' @export
@@ -1065,7 +1104,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
                           wantConfSeqPlot=FALSE, add=FALSE,
                           density=NULL, angle=45,
                           xaxt=NULL, yaxt=NULL,
-                          fillOddEven=FALSE, runInt=TRUE,
+                          fillOddEven=FALSE, runningIntersection=NULL,
                           wantRelevance=NULL,
                           ...) {
   eValueVec <- x[["eValueVec"]]
@@ -1074,6 +1113,13 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
   n1Vec <- x[["n1Vec"]]
 
   designObj <- x[["designObj"]]
+
+  if (is.null(runningIntersection)) {
+    runningIntersection <- designObj[["runningIntersection"]]
+
+    if (is.null(runningIntersection))
+      runningIntersection <- FALSE
+  }
 
   relevanceTest <- FALSE
 
@@ -1091,7 +1137,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     xlab <- switch(x[["testName"]],
                    "Z-Test"="n1",
                    "T-Test"="n1",
-                   "logrank"="Number of events")
+                   "logrank"="Number of events",
+                   "Two Proportions"="Number of blocks")
   }
 
   if (isTRUE(wantConfSeqPlot)) {
@@ -1154,7 +1201,8 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
         ylab <- switch(x[["testName"]],
                        "Z-Test"="mu",
                        "T-Test"="mu",
-                       "logrank"="log(hazard ratio)")
+                       "logrank"="log(hazard ratio)",
+                       "Two Proportions"=if (x[["designObj"]][["eType"]] == "eBeta") "propDiff" else "logOdds")
 
       graphics::mtext(ylab, side = 2, line = 4,
                       las = 0, cex = cex, adj=0.5)
@@ -1165,7 +1213,7 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
     if (is.null(fillPlot))
       fillPlot <- if (maxX <= switchNFill) TRUE else FALSE
 
-    if (runInt) {
+    if (runningIntersection) {
       upperLine <- makeRunningIntersection(upperLine)
       lowerLine <- makeRunningIntersection(lowerLine,
                                            upper=FALSE)

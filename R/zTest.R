@@ -371,6 +371,10 @@ saviZTest.default <- function(
   n2Vec <- NULL
   fpt <- NULL
   fptRelevance <- NULL
+  runningIntersection <- designObj[["runningIntersection"]]
+
+  if (is.null(runningIntersection))
+    runningIntersection <- FALSE
 
   ### Def: test type -------
   if (is.null(y)) {
@@ -487,13 +491,17 @@ saviZTest.default <- function(
       confSeqMatrix[i, ] <- kaas
     }
 
-    tempConfSeq <- c(max(confSeqMatrix[, 1]), min(confSeqMatrix[, 2]))
 
-    if (tempConfSeq[1] >= tempConfSeq[2]) {
-      warning("Possible high degree of heterogeneity",
-              "leading to an empty running intersection confidence sequence")
-    } else if (tempConfSeq[1] < tempConfSeq[2]) {
-      result[["confSeq"]] <- tempConfSeq
+
+    if (runningIntersection) {
+      tempConfSeq <- c(max(confSeqMatrix[, 1]), min(confSeqMatrix[, 2]))
+
+      if (tempConfSeq[1] >= tempConfSeq[2]) {
+        warning("Possible high degree of heterogeneity",
+                "leading to an empty running intersection confidence sequence")
+      } else if (tempConfSeq[1] < tempConfSeq[2]) {
+        result[["confSeq"]] <- tempConfSeq
+      }
     }
 
     fpt <- suppressWarnings(

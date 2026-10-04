@@ -1,3 +1,13 @@
+# safestats 0.8.9
+* Added:
+  - runningIntersection argument added to display the resulting running
+  intersection confidence sequence if needed
+  - added savi 2x2 test conditional
+  - added savi one-way anova test functions (initial versions)
+* Bug fixes:
+  - Removed some html code from the help files 
+  - Cleaned up vignette code
+  
 # safestats 0.8.8
 * Added:
   - Generic plot functions for saviDesign and saviTest objects. 

@@ -1,8 +1,8 @@
 Package: safestats
 Type: Package
 Title: Safe Anytime-Valid Inference
-Version: 0.8.8
-Date: 2026-09-01
+Version: 0.8.9
+Date: 2026-10-02
 Authors@R: c(
   person("Alexander", "Ly", email = "alexander.ly.nl@gmail.com",
   role = c("cre", "aut")),
@@ -59,7 +59,7 @@ Suggests:
     rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: no
-RoxygenNote: 8.0.0
 Language: en-GB
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0

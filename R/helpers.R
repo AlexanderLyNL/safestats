@@ -36,7 +36,7 @@ addCite <- function(..., breakLine=TRUE) {
     if (i == refLength && base::isFALSE(breakLine)) {
       res <- paste(res, refs[[i]])
     } else {
-      res <- paste(res, refs[[i]], "</br> </br>")
+      res <- paste(res, refs[[i]], "\n \n")
     }
   }
 
@@ -126,7 +126,8 @@ extractNameFromArgs <- function(list, name) {
 #' @param paramToCheck numeric. Either a named savi test defining parameter such as phiS, or thetaS, or a
 #' minimal clinically relevant effect size called with a non-null esMinName name
 #' @param esMinName provides the name of the effect size. Either "meanDiffMin" for the z-test, "deltaMin" for
-#' the t-test, or "hrMin" for the logrank test
+#' the t-test, "hrMin" for the logrank test, or "propDiffMin" and "logOddsMin" for the
+#' 2x2 test (both A minus B)
 #' @param paramDomain Domain of the paramToCheck, typically, positiveNumbers. Default \code{NULL}
 #'
 #' @return paramToCheck after checking, perhaps with a change in sign
@@ -135,7 +136,7 @@ checkAndReturnEsMinParameterSide <- function(
     esMinName=c("noName", "meanDiffMin", "meanDiffTrue",
                 "phiS", "deltaMin", "deltaS",
                 "hrMin", "thetaS", "deltaTrue",
-                "g", "kappaG"), paramDomain=NULL) {
+                "g", "kappaG", "propDiffMin", "logOddsMin"), paramDomain=NULL) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
@@ -150,7 +151,8 @@ checkAndReturnEsMinParameterSide <- function(
   esMinName <- match.arg(esMinName)
 
   if (alternative == "twoSided") {
-    if (esMinName %in% c("meanDiffMin", "meanDiffTrue", "deltaMin", "deltaTrue"))
+    if (esMinName %in% c("meanDiffMin", "meanDiffTrue", "deltaMin", "deltaTrue",
+                         "propDiffMin", "logOddsMin"))
       return(abs(paramToCheck))
 
     return(paramToCheck)
@@ -172,6 +174,12 @@ checkAndReturnEsMinParameterSide <- function(
     paramDomain <- "realNumbers"
   } else if (paramName=="deltaS" || esMinName=="deltaMin"  || esMinName=="deltaTrue") {
     hypParamName <- "delta"
+    paramDomain <- "realNumbers"
+  } else if (esMinName=="propDiffMin") {
+    hypParamName <- "propDiff"
+    paramDomain <- "realNumbers"
+  } else if (esMinName=="logOddsMin") {
+    hypParamName <- "logOdds"
     paramDomain <- "realNumbers"
   } else if (paramName=="thetaS" || esMinName=="hrMin") {
     hypParamName <- "theta"

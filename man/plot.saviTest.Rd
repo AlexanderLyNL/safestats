@@ -34,7 +34,7 @@
   xaxt = NULL,
   yaxt = NULL,
   fillOddEven = FALSE,
-  runInt = TRUE,
+  runningIntersection = NULL,
   wantRelevance = NULL,
   ...
 )
@@ -120,8 +120,9 @@ corresponding to e-values that did not (yet) cross a threshold}
 
 \item{yaxt}{default NULL. If "n" then suppresses plotting of the y-axis.}
 
-\item{runInt}{logical, if \code{TRUE} (default), then shows the running
-intersection of the confidence sequence.}
+\item{runningIntersection}{logical, if \code{TRUE} then plot the running
+minimum of the upper confidence sequence across time, and the running
+maximum of the lower confidence sequence across time}
 
 \item{wantRelevance}{logical, if \code{FALSE}, then don't show the
 e-values for relevanceTest. Default \code{wantRelevance==NULL}, if

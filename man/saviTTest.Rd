@@ -219,8 +219,11 @@ saviTTest(Pair(extra.1, extra.2) ~ 1, data = sleep2,
           designObj=designObjPaired)
 }
 \references{
-Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
-Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
-Pérez-Ortiz, M. F., Lardy, T., de Heide, R., & Grünwald, P. D. (2024). E-statistics, group invariance and anytime valid testing. \emph{The Annals of Statistics}, \strong{52}(\emph{4}), 1410-1432, http://dx.doi.org/10.1214/24-AOS2394. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
-Wang, H., & Ramdas, A. (in press). Anytime-valid t-tests and confidence sequences for Gaussian means with unknown variance. \emph{Sequential Analysis}, https://doi.org/10.48550/arXiv.2310.03722. \if{html}{\out{</br>}} \if{html}{\out{</br>}}
+Grünwald, P. D., de Heide, R., & Koolen, W. (2024). Safe testing. \emph{Journal of the Royal Statistical Society. Series B (Methodological),} \strong{86}(\emph{5}), 1091-1128. (With discussions), https://doi.org/10.1093/jrsssb/qkae011.
+
+Ly, A, Boehm, Grünwald, P. D., Ramdas, A., & van Ravenzwaaij, D. (2024). Safe Anytime-Valid Inference: Practical maximally flexible sampling designs for experiments based on e-values. \emph{PsyArXiv Preprint}, https://doi.org/10.31234/osf.io/h5vae.
+
+Pérez-Ortiz, M. F., Lardy, T., de Heide, R., & Grünwald, P. D. (2024). E-statistics, group invariance and anytime valid testing. \emph{The Annals of Statistics}, \strong{52}(\emph{4}), 1410-1432, http://dx.doi.org/10.1214/24-AOS2394.
+
+Wang, H., & Ramdas, A. (in press). Anytime-valid t-tests and confidence sequences for Gaussian means with unknown variance. \emph{Sequential Analysis}, https://doi.org/10.48550/arXiv.2310.03722.
 }
