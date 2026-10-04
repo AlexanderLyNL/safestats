@@ -7,8 +7,9 @@
 * https://win-builder.r-project.org/upload.aspx
 
 ## R CMD check results
-There were no ERRORs, or WARNINGs. There was 1 NOTE. Win-builder flags my email address 
-again? It also mentions an invalid URL, but when I copy paste it, it does work. 
+There were no ERRORs, or WARNINGs. There was 1 NOTE. Win-builder (R-oldrelease) flags my 
+email address again? It also mentions an invalid URL, but when I copy paste it, it does 
+work. Nothing on Win-builder R-release and R-devel.
 
 ## Downstream dependencies
 * revdepcheck::revdep_check(num_workers = 4)
