@@ -1348,19 +1348,14 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
 #' saviTest object using ggplot2. Returns a ggplot object, so the plot can be
 #' further modified with the usual `+` syntax.
 #'
-#' @inheritParams plot.saviDesign,plot.saviTest
+#' @rdname plot.saviTest
+#' @inheritParams plot.saviTest
 #'
-#' @param x a saviTest object.
-#' @param add either FALSE (default) or an existing ggplot object to which the
-#'   layers are added (the ggplot analogue of `add=TRUE` in base graphics). If
-#'   `TRUE` is passed, the last plot `ggplot2::last_plot()` is used.
-#' @param lwd line width in base graphics units; converted to ggplot2 linewidth.
-#' @param cex scaling factor for the text size.
-#' @param density,angle,fillOddEven ignored; hatching is not supported by
-#'   ggplot2 (see the ggpattern package). Kept for compatibility.
-#' @param xaxt,yaxt use "n" to suppress the x or y axis.
-#' @param xStart where the x-axis starts when `xlim` is not given. Defaults to
-#'   1 on a log scale and 0 otherwise.
+#' @param add either \code{FALSE} (default) or an existing ggplot object to which the
+#' layers are added (the ggplot analogue of \code{add=TRUE} in base graphics). If
+#' \code{TRUE} is passed, the last plot \code{ggplot2::last_plot()} is used.
+#' @param xStart where the x-axis starts when \code{xlim} is not given.
+#' Defaults to 1 on a log scale and 0 otherwise.
 #'
 #' @return a ggplot object.
 ggplotSaviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
@@ -1658,11 +1653,27 @@ ggplotSaviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
   return(p)
 }
 
+
+#' Helper function to make axis limits and breaks for ggplot
+#'
 # Limits and breaks for one axis. A user-supplied lim is used as is. Otherwise
 # defaultLim (first entry NA means "use start") is extended to the outermost
 # breaks, so that the capped axis line covers the whole range, and the first
 # break is put at start.
-makeAxisLimitsAndBreaks <- function(lim, defaultLim, logScale=FALSE, start=NULL) {
+#'
+#' @param lim vector of limits
+#' @param defaultLim vector of limits
+#' @param logScale logical, \code{TRUE} or \code{FALSE}
+#' @param start numeric, default \code{NULL} then 0 for normal and 1 for log scale
+#'
+#' @returns list with limits and breaks
+#' @export
+#'
+#' @examples
+#' makeAxisLimitsAndBreaks(c(1,1))
+makeAxisLimitsAndBreaks <- function(
+    lim, defaultLim, logScale=FALSE, start=NULL) {
+
   extend <- is.null(lim)
 
   if (extend) {
@@ -1719,14 +1730,13 @@ makeAxisLimitsAndBreaks <- function(lim, defaultLim, logScale=FALSE, start=NULL)
 #'
 #' Differences with the base graphics version:
 #' * The percentages of stopped sample paths are shown as a ggplot2 legend
-#'   below the plot. Hence, `legendAdj` and `legendAdjRelevance` are ignored.
-#' * The "Quantiles [%]" label is drawn inside the plot at the top left.
-#' * The "True ..." text is the subtitle, and `main` the title.
-#' * `density` is ignored, as hatching is not supported by ggplot2 (see the
-#'   ggpattern package), and so is `yLabPAdj`.
+#'   below the plot. Hence, \code{legendAdj} and \code{legendAdjRelevance} are ignored.
+#' * The `Quantiles [\%]` label is drawn inside the plot at the top left.
+#' * The "True ..." text is the subtitle, and \code{main} the title.
+#' * \code{density} is ignored, as hatching is not supported by ggplot2 (see the
+#'   ggpattern package), and so is \code{yLabPAdj}.
 #'
-#'
-#' @inheritParams plot.saviDesign
+#' @rdname plot.saviDesign
 #'
 #' @return a ggplot object, or NULL if the design has no sample paths.
 ggplotSaviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,

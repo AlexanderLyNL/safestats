@@ -3,9 +3,48 @@
 \name{plot.safeDesign}
 \alias{plot.safeDesign}
 \alias{plot.saviDesign}
+\alias{ggplotSaviDesign}
 \title{Plots the saviDesign object for designs with sample paths}
 \usage{
 \method{plot}{saviDesign}(
+  x,
+  main = NULL,
+  xlab = NULL,
+  ylab = NULL,
+  xlim = NULL,
+  ylim = NULL,
+  maxNBins = 40,
+  numSamplePaths = 100,
+  wantStepLines = FALSE,
+  wantQuantiles = NULL,
+  breaks = NULL,
+  lwd = 2,
+  pch = 15,
+  colQuant = "#AA0000",
+  overColour = "#8FC6E3",
+  overColourBorder = "#1F78B4E6",
+  underColour = "#E7A72199",
+  underColourBorder = "#BD8E17FF",
+  continueColour = "#8CA252E6",
+  continueColourBorder = "#637939E6",
+  histInnerColour = col,
+  col = overColour,
+  border = overColourBorder,
+  cex = 1.3,
+  yLabPAdj = -1,
+  wantNotStoppedHist = FALSE,
+  wantNotStoppedSamplePaths = TRUE,
+  wantLegend = TRUE,
+  legendAdjRelevance = c(-0.1, 0.5, 1),
+  legendAdj = c(0.2, 0.8),
+  legendCexFactor = 0.85,
+  histFewestAtTop = FALSE,
+  density = NULL,
+  wantTitle = TRUE,
+  ...
+)
+
+ggplotSaviDesign(
   x,
   main = NULL,
   xlab = NULL,
@@ -137,9 +176,24 @@ Non-positive values of density also inhibit the drawing of shading lines.}
 }
 \value{
 Nothing it only plots
+
+a ggplot object, or NULL if the design has no sample paths.
 }
 \description{
-Plots the saviDesign object for designs with sample paths
+Plots the saviDesign object for designs with sample paths using ggplot2.
+Takes the same arguments as plot.saviDesign, but returns a ggplot object,
+so the plot can be further modified with the usual \code{+} syntax.
+}
+\details{
+Differences with the base graphics version:
+\itemize{
+\item The percentages of stopped sample paths are shown as a ggplot2 legend
+below the plot. Hence, \code{legendAdj} and \code{legendAdjRelevance} are ignored.
+\item The \verb{Quantiles [\\\%]} label is drawn inside the plot at the top left.
+\item The "True ..." text is the subtitle, and \code{main} the title.
+\item \code{density} is ignored, as hatching is not supported by ggplot2 (see the
+ggpattern package), and so is \code{yLabPAdj}.
+}
 }
 \section{Functions}{
 \itemize{
