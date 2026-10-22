@@ -1339,3 +1339,867 @@ plot.saviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
       graphics::lines(n1Vec, eRelevanceVec, lwd=lwd, col=underColour)
   }
 }
+
+# ggplot2 versions -----
+
+#' ggplot2 version of plot.saviTest
+#'
+#' Plots either the sequence of e-values or the confidence sequence of a
+#' saviTest object using ggplot2. Returns a ggplot object, so the plot can be
+#' further modified with the usual `+` syntax.
+#'
+#' @inheritParams plot.saviDesign,plot.saviTest
+#'
+#' @param x a saviTest object.
+#' @param add either FALSE (default) or an existing ggplot object to which the
+#'   layers are added (the ggplot analogue of `add=TRUE` in base graphics). If
+#'   `TRUE` is passed, the last plot `ggplot2::last_plot()` is used.
+#' @param lwd line width in base graphics units; converted to ggplot2 linewidth.
+#' @param cex scaling factor for the text size.
+#' @param density,angle,fillOddEven ignored; hatching is not supported by
+#'   ggplot2 (see the ggpattern package). Kept for compatibility.
+#' @param xaxt,yaxt use "n" to suppress the x or y axis.
+#' @param xStart where the x-axis starts when `xlim` is not given. Defaults to
+#'   1 on a log scale and 0 otherwise.
+#'
+#' @return a ggplot object.
+ggplotSaviTest <- function(x, main=NULL, xlab=NULL, ylab=NULL,
+                           xlim=NULL, ylim=NULL, xStart=NULL, lwd=3, cex=1.3,
+                           fillPlot=NULL, switchNFill=1e4,
+                           logScale=NULL, switchNLog=30,
+                           h0Colour="darkgrey",
+                           overColour="#8FC6E3",
+                           overColourBorder="#1F78B4E6",
+                           underColour="#E7A72199",
+                           underColourBorder="#BD8E17FF",
+                           continueColour="#8CA252E6",
+                           continueColourBorder="#637939E6",
+                           col=overColour,
+                           border=overColourBorder,
+                           wantConfSeqPlot=FALSE, add=FALSE,
+                           density=NULL, angle=45,
+                           xaxt=NULL, yaxt=NULL,
+                           fillOddEven=FALSE, runningIntersection=NULL,
+                           wantRelevance=NULL,
+                           ...) {
+  if (!requireNamespace("ggplot2", quietly=TRUE))
+    stop("Package 'ggplot2' is needed for this function.")
+
+  eValueVec <- x[["eValueVec"]]
+  eRelevanceVec <- x[["eRelevanceVec"]]
+
+  n1Vec <- x[["n1Vec"]]
+
+  designObj <- x[["designObj"]]
+
+  # base lwd is in units of 1/96 inch, ggplot2 linewidth in mm
+  lineWidth <- lwd/ggplot2::.pt
+
+  if (isTRUE(add))
+    add <- ggplot2::last_plot()
+
+  isNewPlot <- !inherits(add, "ggplot")
+
+  if (is.null(runningIntersection)) {
+    runningIntersection <- designObj[["runningIntersection"]]
+
+    if (is.null(runningIntersection))
+      runningIntersection <- FALSE
+  }
+
+  relevanceTest <- FALSE
+
+  if ((is.null(wantRelevance) || isTRUE(wantRelevance)) && isTRUE(designObj[["relevanceTest"]]) && !is.null(eRelevanceVec)) {
+    relevanceTest <- TRUE
+    alphaRelevance <- designObj[["relevanceTestSim"]][["alpha"]]
+  }
+
+  if (is.null(n1Vec) || is.null(eValueVec)) {
+    warning("Can't plot. No sequential analysis.")
+    return()
+  }
+
+  if (is.null(xlab)) {
+    xlab <- switch(x[["testName"]],
+                   "Z-Test"="n1",
+                   "T-Test"="n1",
+                   "logrank"="Number of events",
+                   "Two Proportions"="Number of blocks")
+  }
+
+  if (isNewPlot) {
+    # Mimic bty="n": no frame, and axis lines capped at the outer ticks so
+    # they don't meet in a corner, as with graphics::axis()
+    p <- ggplot2::ggplot() +
+      ggplot2::theme_classic(base_size=11*cex) +
+      ggplot2::theme(panel.border=ggplot2::element_blank(),
+                     panel.background=ggplot2::element_blank(),
+                     plot.background=ggplot2::element_blank(),
+                     axis.title.y=ggplot2::element_text(margin=ggplot2::margin(r=10))) +
+      ggplot2::guides(x=ggplot2::guide_axis(cap="both"),
+                      y=ggplot2::guide_axis(cap="both"))
+
+    if (!is.null(xaxt) && xaxt=="n")
+      p <- p + ggplot2::theme(axis.text.x=ggplot2::element_blank(),
+                              axis.ticks.x=ggplot2::element_blank(),
+                              axis.line.x=ggplot2::element_blank())
+
+    if (!is.null(yaxt) && yaxt=="n")
+      p <- p + ggplot2::theme(axis.text.y=ggplot2::element_blank(),
+                              axis.ticks.y=ggplot2::element_blank(),
+                              axis.line.y=ggplot2::element_blank())
+
+    if (!is.null(main))
+      p <- p + ggplot2::ggtitle(main)
+  } else {
+    p <- add
+  }
+
+  if (isTRUE(wantConfSeqPlot)) {
+    confSeqMatrix <- x[["confSeqMatrix"]]
+    h0 <- designObj[["h0"]]
+
+    upperLine <- confSeqMatrix[, 2]
+    lowerLine <- confSeqMatrix[, 1]
+
+    upperLineFinite <- upperLine[is.finite(upperLine)]
+    lowerLineFinite <- lowerLine[is.finite(lowerLine)]
+
+    maxBound <- max(upperLineFinite, na.rm=TRUE)
+    minBound <- min(lowerLineFinite, na.rm=TRUE)
+
+    if (maxBound > 0)
+      upperLine[is.infinite(upperLine)] <- 2*maxBound
+    else if (maxBound <= 0)
+      upperLine[is.infinite(upperLine)] <- 1/2*maxBound
+
+    if (minBound > 0)
+      lowerLine[is.infinite(lowerLine)] <- 1/2*minBound
+    else if (minBound <= 0)
+      lowerLine[is.infinite(lowerLine)] <- 2*minBound
+
+    maxX <- max(n1Vec, na.rm=TRUE)
+
+    if (is.null(fillPlot))
+      fillPlot <- if (maxX <= switchNFill) TRUE else FALSE
+
+    if (runningIntersection) {
+      upperLine <- makeRunningIntersection(upperLine)
+      lowerLine <- makeRunningIntersection(lowerLine,
+                                           upper=FALSE)
+    }
+
+    plotData <- data.frame("n1"=n1Vec, "lower"=lowerLine, "upper"=upperLine)
+
+    if (fillPlot) {
+      p <- p + ggplot2::geom_ribbon(data=plotData,
+                                    ggplot2::aes(x=.data[["n1"]],
+                                                 ymin=.data[["lower"]],
+                                                 ymax=.data[["upper"]]),
+                                    fill=col, colour=border,
+                                    linewidth=lineWidth)
+    } else {
+      p <- p +
+        ggplot2::geom_line(data=plotData,
+                           ggplot2::aes(x=.data[["n1"]], y=.data[["upper"]]),
+                           colour=border, linewidth=lineWidth) +
+        ggplot2::geom_line(data=plotData,
+                           ggplot2::aes(x=.data[["n1"]], y=.data[["lower"]]),
+                           colour=border, linewidth=lineWidth)
+    }
+
+    p <- p + ggplot2::annotate("segment", x=1, xend=maxX, y=h0, yend=h0,
+                               linewidth=lineWidth, linetype="dashed",
+                               colour=h0Colour)
+
+    if (isNewPlot) {
+      if (is.null(logScale))
+        logScale <- if (maxX > switchNLog) TRUE else FALSE
+
+      xAxis <- makeAxisLimitsAndBreaks(xlim, defaultLim=c(NA, maxX),
+                                       logScale=logScale, start=xStart)
+      yAxis <- makeAxisLimitsAndBreaks(ylim, defaultLim=c(minBound, maxBound))
+
+      if (isTRUE(logScale))
+        p <- p + ggplot2::scale_x_log10(breaks=xAxis[["breaks"]])
+      else
+        p <- p + ggplot2::scale_x_continuous(breaks=xAxis[["breaks"]])
+
+      p <- p + ggplot2::scale_y_continuous(breaks=yAxis[["breaks"]])
+
+      if (is.null(ylab))
+        ylab <- switch(x[["testName"]],
+                       "Z-Test"="mu",
+                       "T-Test"="mu",
+                       "logrank"="log(hazard ratio)",
+                       "Two Proportions"=if (x[["designObj"]][["eType"]] == "eBeta") "propDiff" else "logOdds")
+
+      # coord_cartesian zooms instead of dropping data outside the limits,
+      # which mimics base graphics clipping
+      p <- p + ggplot2::coord_cartesian(xlim=xAxis[["limits"]],
+                                        ylim=yAxis[["limits"]]) +
+        ggplot2::labs(x=xlab, y=ylab)
+    }
+
+    return(p)
+  }
+
+  # e-value plot
+  alpha <- designObj[["alpha"]]
+
+  nInfinite <- sum(is.infinite(eValueVec))
+
+  if (relevanceTest) {
+    nInfinite <- nInfinite+sum(is.infinite(eRelevanceVec))
+  }
+
+  if (nInfinite >= 1) {
+    warning("Overflow: E-values infinite, removed for plotting")
+
+    finiteIndex <- which(is.finite(eValueVec))
+
+    if (relevanceTest) {
+      finiteIndex <- intersect(finiteIndex, which(is.finite(eRelevanceVec)))
+      eRelevanceVec <- eRelevanceVec[finiteIndex]
+    }
+
+    eValueVec <- eValueVec[finiteIndex]
+    n1Vec <- n1Vec[finiteIndex]
+  }
+
+  maxEValue <- max(eValueVec, na.rm=TRUE)
+  minEValue <- min(eValueVec, na.rm=TRUE)
+
+  if (relevanceTest) {
+    maxEValue <- max(eRelevanceVec, maxEValue, na.rm=TRUE)
+    minEValue <- min(eRelevanceVec, minEValue, na.rm=TRUE)
+  }
+
+  if (minEValue <= .Machine[["double.xmin"]])
+    minEValue <- 1e-300
+
+  if (maxEValue >= .Machine[["double.xmax"]])
+    maxEValue <- 1e300
+
+  if (isNewPlot) {
+    rangeEValue <- maxEValue-minEValue
+
+    if (is.null(logScale)) {
+      logScale <- if (rangeEValue/(1/alpha-1) > 5) TRUE else FALSE
+
+      if (abs(log(minEValue)) > abs(log(maxEValue)))
+        logScale <- TRUE
+    }
+
+    maxY <- ceiling(max(maxEValue, 1/alpha))
+
+    minY <- minEValue
+
+    if (relevanceTest)
+      minY <- min(minY, alphaRelevance)
+
+    if (isFALSE(logScale))
+      minY <- 0
+
+    lastIndex <- length(n1Vec)
+    maxX <- n1Vec[lastIndex]
+
+    xAxis <- makeAxisLimitsAndBreaks(xlim, defaultLim=c(NA, maxX), start=xStart)
+    yAxis <- makeAxisLimitsAndBreaks(ylim, defaultLim=c(minY, maxY),
+                                     logScale=logScale)
+
+    threshValue <- 1/alpha
+
+    p <- p + ggplot2::annotate("segment", x=1, xend=maxX,
+                               y=threshValue, yend=threshValue,
+                               linewidth=lineWidth, linetype="dashed",
+                               colour="grey40")
+
+    if (maxY/threshValue < 10)
+      p <- p + ggplot2::annotate("segment", x=1, xend=maxX, y=1, yend=1,
+                                 linewidth=lineWidth, linetype="dotted",
+                                 colour="grey60")
+
+    if (relevanceTest)
+      p <- p + ggplot2::annotate("segment", x=1, xend=maxX,
+                                 y=alphaRelevance, yend=alphaRelevance,
+                                 linewidth=lineWidth, linetype="dashed",
+                                 colour="grey40")
+
+    p <- p + ggplot2::scale_x_continuous(breaks=xAxis[["breaks"]])
+
+    if (isTRUE(logScale))
+      p <- p + ggplot2::scale_y_log10(breaks=yAxis[["breaks"]])
+    else
+      p <- p + ggplot2::scale_y_continuous(breaks=yAxis[["breaks"]])
+
+    if (is.null(ylab))
+      ylab <- "e-value"
+
+    p <- p + ggplot2::coord_cartesian(xlim=xAxis[["limits"]],
+                                      ylim=yAxis[["limits"]]) +
+      ggplot2::labs(x=xlab, y=ylab)
+  }
+
+  plotData <- data.frame("n1"=n1Vec, "eValue"=eValueVec)
+
+  p <- p + ggplot2::geom_line(data=plotData,
+                              ggplot2::aes(x=.data[["n1"]], y=.data[["eValue"]]),
+                              linewidth=lineWidth, colour=overColour)
+
+  if (relevanceTest) {
+    relevanceData <- data.frame("n1"=n1Vec, "eValue"=eRelevanceVec)
+
+    p <- p + ggplot2::geom_line(data=relevanceData,
+                                ggplot2::aes(x=.data[["n1"]], y=.data[["eValue"]]),
+                                linewidth=lineWidth, colour=underColour)
+  }
+
+  return(p)
+}
+
+# Limits and breaks for one axis. A user-supplied lim is used as is. Otherwise
+# defaultLim (first entry NA means "use start") is extended to the outermost
+# breaks, so that the capped axis line covers the whole range, and the first
+# break is put at start.
+makeAxisLimitsAndBreaks <- function(lim, defaultLim, logScale=FALSE, start=NULL) {
+  extend <- is.null(lim)
+
+  if (extend) {
+    if (is.null(start))
+      start <- if (isTRUE(logScale)) 1 else 0
+
+    if (isTRUE(logScale) && start <= 0)
+      start <- 1
+
+    lim <- defaultLim
+
+    if (is.na(lim[1]))
+      lim[1] <- start
+    else
+      start <- NULL
+  } else {
+    start <- NULL
+  }
+
+  if (isTRUE(logScale)) {
+    logLim <- log10(lim)
+    lo <- if (is.null(start)) floor(logLim[1]) else logLim[1]
+    hi <- ceiling(logLim[2])
+    step <- max(1, ceiling((hi-lo)/6))
+    breaks <- 10^seq(lo, by=step, length.out=ceiling((hi-lo)/step)+1)
+
+    # Rather than a whole extra decade, end at the first 1, 2 or 5 times a
+    # power of ten above the data, e.g. 1, 10, 100, 200 for data up to 180
+    if (extend) {
+      niceValues <- c(1, 2, 5, 10)*10^floor(logLim[2])
+      upper <- niceValues[niceValues >= lim[2]*(1-1e-8)][1]
+      breaks <- unique(c(breaks[breaks < upper], upper))
+    }
+  } else {
+    breaks <- pretty(lim)
+
+    if (!is.null(start))
+      breaks[1] <- start
+  }
+
+  if (extend)
+    lim <- range(breaks)
+  else
+    breaks <- breaks[breaks >= lim[1] & breaks <= lim[2]]
+
+  list("limits"=lim, "breaks"=breaks)
+}
+
+#' ggplot2 version of plot.saviDesign
+#'
+#' Plots the saviDesign object for designs with sample paths using ggplot2.
+#' Takes the same arguments as plot.saviDesign, but returns a ggplot object,
+#' so the plot can be further modified with the usual `+` syntax.
+#'
+#' Differences with the base graphics version:
+#' * The percentages of stopped sample paths are shown as a ggplot2 legend
+#'   below the plot. Hence, `legendAdj` and `legendAdjRelevance` are ignored.
+#' * The "Quantiles [%]" label is drawn inside the plot at the top left.
+#' * The "True ..." text is the subtitle, and `main` the title.
+#' * `density` is ignored, as hatching is not supported by ggplot2 (see the
+#'   ggpattern package), and so is `yLabPAdj`.
+#'
+#'
+#' @inheritParams plot.saviDesign
+#'
+#' @return a ggplot object, or NULL if the design has no sample paths.
+ggplotSaviDesign <- function(x, main=NULL, xlab=NULL, ylab=NULL,
+                             xlim=NULL, ylim=NULL, maxNBins=40,
+                             numSamplePaths=100, wantStepLines=FALSE,
+                             wantQuantiles=NULL,
+                             breaks=NULL, lwd=2, pch=15,
+                             colQuant="#AA0000",
+                             overColour="#8FC6E3",
+                             overColourBorder="#1F78B4E6",
+                             underColour="#E7A72199",
+                             underColourBorder="#BD8E17FF",
+                             continueColour="#8CA252E6",
+                             continueColourBorder="#637939E6",
+                             histInnerColour=col,
+                             col=overColour,
+                             border=overColourBorder,
+                             cex=1.3, yLabPAdj=-1,
+                             wantNotStoppedHist=FALSE,
+                             wantNotStoppedSamplePaths=TRUE,
+                             wantLegend=TRUE,
+                             legendAdjRelevance=c(-0.1, 0.5, 1),
+                             legendAdj=c(0.2, 0.8),
+                             legendCexFactor=0.85,
+                             histFewestAtTop=FALSE,
+                             density=NULL, wantTitle=TRUE, ...) {
+  if (!requireNamespace("ggplot2", quietly=TRUE))
+    stop("Package 'ggplot2' is needed for this function.")
+
+  designScenario <- x[["designScenario"]]
+
+  if (is.null(designScenario) || !(designScenario %in% c("1a", "2")))
+    return()
+
+  alpha <- x[["alpha"]]
+  nPlan <- x[["nPlan"]][1]
+
+  if (designScenario=="1a") {
+    nPlanBatch <- x[["nPlanBatch"]][1]
+    breakVector <- x[["breakVector"]]
+    stoppingTimes <- x[["bootObjN1Plan"]][["data"]]
+  }
+
+  if (designScenario=="2") {
+
+    if (is.null(x[["nPlanBatch"]]))
+      x[["nPlanBatch"]] <- nPlan
+
+    nPlanBatch <- x[["nPlanBatch"]]
+    samplePaths <- x[["samplePaths"]]
+    mIter <- dim(samplePaths)[1]
+
+    firstPassageTimes <- breakVector <- integer(mIter)
+
+    for (j in 1:mIter) {
+      firstPassageTimes[j] <- suppressWarnings(
+        min(which(samplePaths[j, ] >= 1/alpha))
+      )
+    }
+
+    stoppingTimes <- firstPassageTimes
+    stoppingTimes[is.infinite(firstPassageTimes)] <- nPlanBatch
+    breakVector[is.infinite(firstPassageTimes)] <- 1
+    breakVector[Matrix::which(x[["breakVector"]]==-1)] <- -1
+  }
+
+  # base lwd is in units of 1/96 inch, ggplot2 linewidth in mm, and base text
+  # sizes are relative to the 11pt base_size of the theme
+  lineWidth <- lwd/ggplot2::.pt
+  thinLineWidth <- 1/ggplot2::.pt
+  textSize <- 11*cex/ggplot2::.pt
+
+  # Mimic bty="n": no frame, and axis lines that end at the outer ticks
+  p <- ggplot2::ggplot() +
+    ggplot2::theme_classic(base_size=11*cex) +
+    ggplot2::theme(panel.border=ggplot2::element_blank(),
+                   panel.background=ggplot2::element_blank(),
+                   axis.title.y=ggplot2::element_text(margin=ggplot2::margin(r=10)))
+
+  if (numSamplePaths==0) {
+    maxStoppingTimes <- max(stoppingTimes)
+    minStoppingTimes <- min(stoppingTimes)
+
+    if (is.null(breaks)) {
+      breaks <- if (maxStoppingTimes-minStoppingTimes+1 > maxNBins)
+        maxNBins
+      else
+        (minStoppingTimes-1):nPlanBatch
+    }
+
+    stopHist <- graphics::hist(stoppingTimes, breaks=breaks, plot=FALSE)
+    histBreaks <- stopHist[["breaks"]]
+    lastIndex <- length(stopHist[["counts"]])
+
+    histData <- data.frame("xmin"=histBreaks[-(lastIndex+1)],
+                           "xmax"=histBreaks[-1],
+                           "density"=stopHist[["density"]])
+
+    if (maxStoppingTimes-minStoppingTimes > maxNBins) {
+      firstPassageTimes <- stoppingTimes[!breakVector]
+      fptHist <- graphics::hist(
+        firstPassageTimes, breaks=histBreaks,
+        plot=FALSE)
+
+      lastBottom <- fptHist[["density"]][lastIndex]
+    } else {
+      rejectedAtNBatch <- stopHist[["counts"]][lastIndex]-sum(breakVector)
+      totalCount <- sum(stopHist[["counts"]])
+
+      lastBottom <- rejectedAtNBatch/totalCount
+    }
+
+    if (is.null(xlab))
+      xlab <- "Stopping times"
+
+    if (is.null(ylab))
+      ylab <- "Density"
+
+    xAxis <- makeAxisLimitsAndBreaks(xlim, defaultLim=c(NA, max(histBreaks)),
+                                     start=min(0, histBreaks[1]))
+    yAxis <- makeAxisLimitsAndBreaks(ylim, defaultLim=c(0, max(stopHist[["density"]])))
+
+    p <- p +
+      ggplot2::geom_rect(data=histData,
+                         ggplot2::aes(xmin=.data[["xmin"]], xmax=.data[["xmax"]],
+                                      ymin=0, ymax=.data[["density"]]),
+                         fill=histInnerColour, colour=border,
+                         linewidth=lineWidth) +
+      ggplot2::annotate("rect",
+                        xmin=histBreaks[lastIndex], xmax=histBreaks[lastIndex+1],
+                        ymin=lastBottom, ymax=stopHist[["density"]][lastIndex],
+                        fill=col, colour=border, linewidth=thinLineWidth) +
+      ggplot2::annotate("segment", x=nPlan, xend=nPlan, y=0, yend=Inf,
+                        linewidth=lineWidth, linetype="dashed") +
+      ggplot2::scale_x_continuous(breaks=xAxis[["breaks"]]) +
+      ggplot2::scale_y_continuous(breaks=yAxis[["breaks"]]) +
+      ggplot2::guides(x=ggplot2::guide_axis(cap="both"),
+                      y=ggplot2::guide_axis(cap="both")) +
+      ggplot2::coord_cartesian(xlim=xAxis[["limits"]], ylim=yAxis[["limits"]]) +
+      ggplot2::labs(title=main, x=xlab, y=ylab)
+
+    return(p)
+  }
+
+  if (numSamplePaths < 0)
+    return()
+
+  alphaRelevance <- NULL
+  relevanceTestSim <- x[["relevanceTestSim"]]
+  relevanceTest <- isTRUE(x[["relevanceTest"]])
+
+  fptAll <- stoppingTimes
+
+  # Stop indexes ----
+  #
+  indexStopAlt <- Matrix::which(breakVector==0)
+  indexStopFut <- Matrix::which(breakVector==-1)
+  indexStopNot <- Matrix::which(breakVector==1)
+
+  nAlt <- length(indexStopAlt)
+  nFut <- length(indexStopFut)
+  nNotStopped <- length(indexStopNot)
+
+  nAll <- length(stoppingTimes)
+
+  fptAlt <- stoppingTimes[indexStopAlt]
+  fptNot <- stoppingTimes[indexStopNot]
+
+  if (relevanceTest) {
+    fptFut <- as.integer(relevanceTestSim[["stoppingTimes"]][indexStopFut])
+    alphaRelevance <- relevanceTestSim[["alpha"]]
+
+    fptAll[indexStopFut] <- fptFut
+  }
+
+  fptAllFinite <- fptAll
+
+  # Compute hist  ----
+  #
+  breaksMin <- min(fptAll)
+
+  nMax <- min(nPlanBatch, max(fptAllFinite))
+
+  if (is.null(breaks)) {
+    breaks <- if (nMax-breaksMin+1 > maxNBins) {
+      seq(breaksMin-1, nMax, length=maxNBins)
+    } else {
+      (breaksMin-1):nMax
+    }
+  }
+
+  emptyHist <- list(counts=rep(0, length=length(breaks)-1))
+
+  histAlt <- if (nAlt > 0) graphics::hist(fptAlt, plot=FALSE, breaks=breaks) else
+    emptyHist
+
+  histFut <- if (isTRUE(relevanceTest) && nFut > 0) graphics::hist(fptFut, plot=FALSE, breaks=breaks) else
+    emptyHist
+
+  histNot <- if (isTRUE(wantNotStoppedHist) && nNotStopped > 0) graphics::hist(fptNot, plot=FALSE, breaks=breaks) else
+    emptyHist
+
+  nHistTotal <- sum(histAlt[["counts"]], histFut[["counts"]], histNot[["counts"]])
+
+  if (!is.null(histAlt[["breaks"]]))
+    breaks <- histAlt[["breaks"]]
+
+  yMaxHist <- max(histAlt[["counts"]], histFut[["counts"]])/nHistTotal
+
+  yMin <- -1*log(3/(2*alpha))
+
+  if (isTRUE(relevanceTest))
+    yMin <- min(c(yMin, -1*log(3/(2*alphaRelevance))))
+
+  if (is.null(ylim))
+    ylim <- c(yMin, 2.75*log(1/alpha))
+
+  someConstant <- 0.8*(ylim[2]+log(alpha))/yMaxHist
+  textHeightQuant <- (ylim[2]+log(alpha))+log(1/alpha)
+
+  # Reference lines ----
+  #
+  p <- p +
+    ggplot2::annotate("segment", x=0, xend=1.5*nPlanBatch, y=0, yend=0,
+                      colour="darkgrey", linewidth=lineWidth, linetype="dashed") +
+    ggplot2::annotate("segment", x=0, xend=1.5*nPlanBatch,
+                      y=log(1/alpha), yend=log(1/alpha), linewidth=thinLineWidth)
+
+  if (relevanceTest)
+    p <- p + ggplot2::annotate("segment", x=0, xend=1.5*nPlanBatch,
+                               y=log(alphaRelevance), yend=log(alphaRelevance),
+                               linewidth=thinLineWidth)
+
+  # Draw hist -----
+  #
+  histOrder <- if (nAlt >= nFut) c(2, 1, 3) else 1:3
+
+  if (histFewestAtTop)
+    histOrder <- if (nAlt >= nFut) 1:3 else c(2, 1, 3)
+
+  lineColours <- c(col, underColour, continueColour)
+  borderColours <- c(border, underColourBorder, continueColourBorder)
+
+  countMat <- rbind(histAlt[["counts"]],
+                    histFut[["counts"]],
+                    histNot[["counts"]])[histOrder, , drop=FALSE]
+
+  cumsumCountMat <- apply(countMat, 2, cumsum)
+
+  heightLowerMat <- rbind(0, cumsumCountMat[-3, , drop=FALSE])/nHistTotal
+  heightUpperMat <- cumsumCountMat/nHistTotal
+
+  histRects <- vector("list", 3)
+
+  for (i in 1:3) {
+    tempIndex <- which(countMat[i, ]!=0)
+
+    if (length(tempIndex)==0)
+      next()
+
+    histRects[[i]] <- data.frame(
+      "xmin"=breaks[tempIndex]+0.5,
+      "xmax"=breaks[tempIndex+1]+0.5,
+      "ymin"=someConstant*heightLowerMat[i, tempIndex] + log(1/alpha),
+      "ymax"=someConstant*heightUpperMat[i, tempIndex] + log(1/alpha),
+      "fill"=lineColours[histOrder[i]],
+      "border"=borderColours[histOrder[i]])
+  }
+
+  histRects <- do.call(rbind, histRects)
+
+  if (!is.null(histRects))
+    p <- p + ggplot2::geom_rect(data=histRects,
+                                ggplot2::aes(xmin=.data[["xmin"]], xmax=.data[["xmax"]],
+                                             ymin=.data[["ymin"]], ymax=.data[["ymax"]]),
+                                fill=histRects[["fill"]], colour=histRects[["border"]],
+                                linewidth=2/ggplot2::.pt)
+
+  # Draw sample paths -----
+  #
+  stoppedPaths <- x[["samplePaths"]]
+
+  if (relevanceTest)
+    stoppedPaths[indexStopFut, ] <- relevanceTestSim[["samplePaths"]][indexStopFut, ]
+
+  nLinesNot <- if (isFALSE(wantNotStoppedSamplePaths)) 0 else
+    min(ceiling(nNotStopped/nAll*numSamplePaths), nNotStopped)
+
+  if (nAlt >= nFut) {
+    nLinesFut <- min(ceiling(nFut/nAll*numSamplePaths), nFut)
+    nLinesAlt <- max(min(numSamplePaths-nLinesFut-nLinesNot, nAlt), 0)
+  } else {
+    nLinesAlt <- min(ceiling(nAlt/nAll*numSamplePaths), nAlt)
+    nLinesFut <- max(min(numSamplePaths-nLinesAlt-nLinesNot, nFut), 0)
+  }
+
+  outcomes <- c("alt", "fut", "not")
+
+  linesOrder <- order(c(nAlt, nFut, nNotStopped), decreasing=TRUE)
+
+  nLinesToPlot <- c(nLinesAlt, nLinesFut, nLinesNot)[linesOrder]
+
+  lastPoints <- c(1/alpha, if (relevanceTest) alphaRelevance else NA, NA)[linesOrder]
+
+  lineIndexes <- list(indexStopAlt, indexStopFut, indexStopNot)[linesOrder]
+
+  pathColours <- lineColours
+
+  pathData <- list()
+  endPointData <- list()
+
+  for (i in 1:3) {
+    someNLinesToPlot <- nLinesToPlot[i]
+
+    if (someNLinesToPlot==0)
+      next()
+
+    someLastPoint <- lastPoints[i]
+    someIndexSet <- lineIndexes[[i]]
+
+    pathColours[linesOrder[i]] <- grDevices::adjustcolor(
+      lineColours[linesOrder[i]],
+      alpha.f=max(1-someNLinesToPlot/sum(nLinesToPlot), 0.25))
+
+    for (j in 1:someNLinesToPlot) {
+      stoppedTime <- fptAllFinite[someIndexSet[j]]
+
+      evidenceLine <- stoppedPaths[someIndexSet[j], 1:stoppedTime]
+
+      if (!is.na(someLastPoint))
+        evidenceLine[stoppedTime] <- someLastPoint
+
+      if (isTRUE(wantStepLines)) {
+        xLine <- c(0, rep(1:stoppedTime, each=2))
+        yLine <- c(0, 0, rep(log(evidenceLine), each=2))
+        yLine <- yLine[-length(yLine)]
+      } else {
+        xLine <- 0:stoppedTime
+        yLine <- c(0, log(evidenceLine))
+      }
+
+      pathId <- length(pathData)+1
+
+      pathData[[pathId]] <- data.frame("n"=xLine, "logEvidence"=yLine,
+                                       "path"=pathId,
+                                       "outcome"=outcomes[linesOrder[i]])
+
+      if (!is.na(someLastPoint))
+        endPointData[[pathId]] <- data.frame("n"=stoppedTime,
+                                             "logEvidence"=log(someLastPoint),
+                                             "border"=borderColours[linesOrder[i]])
+    }
+  }
+
+  pathData <- do.call(rbind, pathData)
+  endPointData <- do.call(rbind, endPointData)
+
+  if (!is.null(pathData)) {
+    if (relevanceTest) {
+      legendOutcomes <- outcomes
+      legendLabels <- c(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
+                        paste0("Inferior effect: ", round(nFut/nAll*100, 1), "%"),
+                        paste0("No decision: ", round(nNotStopped/nAll*100, 1), "%"))
+    } else {
+      legendOutcomes <- c("alt", "not")
+      legendLabels <- c(paste0("Alternative: ", round(nAlt/nAll*100, 1), "%"),
+                        paste0("No rejection: ", round(nNotStopped/nAll*100, 1), "%"))
+    }
+
+    # Paths are drawn in the order of their group, that is, in the order above
+    p <- p +
+      ggplot2::geom_path(data=pathData,
+                         ggplot2::aes(x=.data[["n"]], y=.data[["logEvidence"]],
+                                      group=.data[["path"]],
+                                      colour=.data[["outcome"]]),
+                         linewidth=lineWidth) +
+      ggplot2::scale_colour_manual(
+        values=stats::setNames(pathColours, outcomes),
+        limits=outcomes, breaks=legendOutcomes, labels=legendLabels,
+        name=NULL,
+        guide=ggplot2::guide_legend(
+          override.aes=list(colour=borderColours[match(legendOutcomes, outcomes)])))
+  }
+
+  if (!is.null(endPointData))
+    p <- p + ggplot2::geom_point(data=endPointData,
+                                 ggplot2::aes(x=.data[["n"]], y=.data[["logEvidence"]]),
+                                 colour=endPointData[["border"]], shape=pch, size=2)
+
+  # Quantiles -----
+  #
+  if (is.null(wantQuantiles) && !is.null(x[["power"]]))
+    wantQuantiles <- x[["power"]]
+
+  if (!is.null(wantQuantiles) && !isFALSE(wantQuantiles)) {
+    p <- p + ggplot2::annotate("text", x=-Inf, y=textHeightQuant,
+                               label="Quantiles [%]", hjust=0,
+                               colour=colQuant, size=textSize)
+
+    badQuantileIndeces <- which(wantQuantiles > nAlt/nAll)
+
+    if (length(badQuantileIndeces) >= 1) {
+      warning(paste0("The requested quantile(s) ", wantQuantiles[badQuantileIndeces], " cannot be displayed. Max power in this simulation run: ", nAlt/nAll))
+      wantQuantiles <- wantQuantiles[-badQuantileIndeces]
+    }
+
+    quants <- unname(round(stats::quantile(stoppingTimes, wantQuantiles), 2))
+
+    quantileNames <- round(wantQuantiles*100, 2)
+
+    if (length(quants) >= 1) {
+      if (relevanceTest) {
+        quantFut <- vapply(quants, function(q) round(sum(fptFut <= q)/nAll*100, 2),
+                           numeric(1))
+
+        # The spaces mimic pos=2 and pos=4 of graphics::text()
+        p <- p +
+          ggplot2::annotate("text", x=quants, y=textHeightQuant,
+                            label=paste0(quantileNames, "  "), hjust=1,
+                            colour=overColourBorder, size=legendCexFactor*textSize) +
+          ggplot2::annotate("text", x=quants, y=textHeightQuant, label="+",
+                            colour=colQuant, size=textSize) +
+          ggplot2::annotate("text", x=quants, y=textHeightQuant,
+                            label=paste0("  ", quantFut), hjust=0,
+                            colour=underColourBorder, size=legendCexFactor*textSize)
+      } else {
+        p <- p + ggplot2::annotate("text", x=quants, y=textHeightQuant,
+                                   label=quantileNames,
+                                   colour=overColourBorder, size=textSize)
+      }
+
+      # TODO(Alexander): perhaps change the lower position as minimum of -log(1/alpha) and log(beta)
+      #
+      p <- p +
+        ggplot2::annotate("segment", x=quants, xend=quants,
+                          y=-0.9*log(1/alpha), yend=0.95*textHeightQuant,
+                          colour=colQuant, linewidth=thinLineWidth) +
+        ggplot2::annotate("text", x=quants, y=-log(1/alpha), label=quants,
+                          colour=colQuant, size=textSize)
+    }
+  }
+
+  # Axes and labels -----
+  #
+  if (is.null(xlab))
+    xlab <- "Sample size"
+
+  if (is.null(ylab))
+    ylab <- "Evidence"
+
+  criticalE <- c(if (relevanceTest) alphaRelevance else alpha, 1, 1/alpha)
+
+  xAxis <- makeAxisLimitsAndBreaks(xlim, defaultLim=c(NA, nPlanBatch), start=0)
+
+  subtitle <- if (wantTitle)
+    paste0("True ", names(x[["esMin"]]), " = ", round(x[["esTrue"]], 3))
+
+  # The y-axis line runs from the bottom up to 1/alpha, the x-axis line from 0
+  # to the right, as in the base graphics version
+  p <- p +
+    ggplot2::scale_x_continuous(breaks=xAxis[["breaks"]]) +
+    ggplot2::scale_y_continuous(breaks=log(criticalE),
+                                labels=as.character(criticalE)) +
+    ggplot2::guides(x=ggplot2::guide_axis(cap="lower"),
+                    y=ggplot2::guide_axis(cap="upper")) +
+    ggplot2::coord_cartesian(xlim=xAxis[["limits"]], ylim=ylim) +
+    ggplot2::labs(title=main, subtitle=subtitle, x=xlab, y=ylab) +
+    ggplot2::theme(axis.title.y=ggplot2::element_text(hjust=0.25,
+                                                      margin=ggplot2::margin(r=10)),
+                   plot.subtitle=ggplot2::element_text(colour=colQuant,
+                                                       size=ggplot2::rel(legendCexFactor)),
+                   legend.position=if (wantLegend) "bottom" else "none",
+                   legend.text=ggplot2::element_text(size=ggplot2::rel(legendCexFactor)))
+
+  return(p)
+}
