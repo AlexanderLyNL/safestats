@@ -3,6 +3,7 @@
 \name{plot.safeTest}
 \alias{plot.safeTest}
 \alias{plot.saviTest}
+\alias{ggplotSaviTest}
 \title{Plots the saviTest object for sequential analyses}
 \usage{
 \method{plot}{saviTest}(
@@ -12,6 +13,41 @@
   ylab = NULL,
   xlim = NULL,
   ylim = NULL,
+  lwd = 3,
+  cex = 1.3,
+  fillPlot = NULL,
+  switchNFill = 10000,
+  logScale = NULL,
+  switchNLog = 30,
+  h0Colour = "darkgrey",
+  overColour = "#8FC6E3",
+  overColourBorder = "#1F78B4E6",
+  underColour = "#E7A72199",
+  underColourBorder = "#BD8E17FF",
+  continueColour = "#8CA252E6",
+  continueColourBorder = "#637939E6",
+  col = overColour,
+  border = overColourBorder,
+  wantConfSeqPlot = FALSE,
+  add = FALSE,
+  density = NULL,
+  angle = 45,
+  xaxt = NULL,
+  yaxt = NULL,
+  fillOddEven = FALSE,
+  runningIntersection = NULL,
+  wantRelevance = NULL,
+  ...
+)
+
+ggplotSaviTest(
+  x,
+  main = NULL,
+  xlab = NULL,
+  ylab = NULL,
+  xlim = NULL,
+  ylim = NULL,
+  xStart = NULL,
   lwd = 3,
   cex = 1.3,
   fillPlot = NULL,
@@ -79,11 +115,9 @@ than switchNLog}
 \item{wantConfSeqPlot}{logical, if \code{TRUE} then plot the
 confidence sequence instead of the e-value progression}
 
-\item{add}{logical, default \code{FALSE} so a new plot is made.
-If \code{TRUE} and \code{wantConfSeqPlot==FALSE} then adds the e-value
-progression line to an existing plot. If TRUE and
-\code{wantConfSeqPlot==TRUE} then adds another anytime-valid confidence
-sequence.}
+\item{add}{either \code{FALSE} (default) or an existing ggplot object to which the
+layers are added (the ggplot analogue of \code{add=TRUE} in base graphics). If
+\code{TRUE} is passed, the last plot \code{ggplot2::last_plot()} is used.}
 
 \item{density}{the density of shading lines, in lines per inch.
 The default value of \code{NULL} means that no shading lines are drawn.
@@ -128,12 +162,19 @@ maximum of the lower confidence sequence across time}
 e-values for relevanceTest. Default \code{wantRelevance==NULL}, if
 \code{designObj[["relevanceTest"]]==TRUE} then relevance e-values tests are shown
 automatically.}
+
+\item{xStart}{where the x-axis starts when \code{xlim} is not given.
+Defaults to 1 on a log scale and 0 otherwise.}
 }
 \value{
 Returns nothing just plots
+
+a ggplot object.
 }
 \description{
-Plots the saviTest object for sequential analyses
+Plots either the sequence of e-values or the confidence sequence of a
+saviTest object using ggplot2. Returns a ggplot object, so the plot can be
+further modified with the usual \code{+} syntax.
 }
 \section{Functions}{
 \itemize{
