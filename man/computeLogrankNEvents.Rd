@@ -18,7 +18,8 @@ computeLogrankNEvents(
   nMax = 1000L,
   parameter = NULL,
   digits = getOption("digits"),
-  pb = TRUE
+  pb = TRUE,
+  ...
 )
 }
 \arguments{
@@ -62,6 +63,8 @@ algorithm, typically, this equals hrMin, which corresponds to the GROW choice.}
 \item{digits}{number of significant digits to be used.}
 
 \item{pb}{logical, if \code{TRUE}, then show progress bar.}
+
+\item{...}{further arguments to be passed to or from methods.}
 }
 \value{
 a list which contains at least nEvents and an adapted bootObject of class  \code{\link[boot]{boot}}.

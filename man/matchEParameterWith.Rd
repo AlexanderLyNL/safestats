@@ -10,7 +10,8 @@ matchEParameterWith(
   sigma = 1,
   alternative = c("twoSided", "greater", "less"),
   eType = c("mom", "eGauss", "imom", "eCauchy", "grow"),
-  parameter = NULL
+  parameter = NULL,
+  exact = TRUE
 )
 }
 \arguments{
@@ -30,6 +31,10 @@ meanDiffMin, "eGauss" a zero-centred normal prior, "eCauchy" a zero centred Cauc
 
 \item{parameter}{numeric, an optional savi test defining parameter. Default set to \code{NULL}.
 and adapts to meanDiffMin and eType, see \code{\link{matchEParameterWith}} for details.}
+
+\item{exact}{a logical indicating whether the exact savi logrank test needs to be performed based on
+the hypergeometric likelihood. Default is \code{TRUE}, if \code{FALSE} then the savi z-test (for Gaussian data)
+applied to the logrank z-statistic is used instead.}
 }
 \value{
 the parameter, a numeric value

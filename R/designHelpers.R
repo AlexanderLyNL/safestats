@@ -599,6 +599,7 @@ matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power=NULL, beta
 #' sigma (for z-tests), alternative and eType
 #'
 #' @inheritParams designSaviZ
+#' @inheritParams saviLogrankTest
 #' @param esMin numeric: meanDiffMin for z-tests, or deltaMin for t-tests
 #' @param analysisType character. Either "z", "t", or "logRank", currently.
 #'
@@ -607,11 +608,12 @@ matchAlphaRelevanceWith <- function(alphaRelevance, alpha=NULL, power=NULL, beta
 #'
 #' @examples
 #' matchEParameterWith(0.4)
-matchEParameterWith <- function(esMin, analysisType=c("z", "t", "logRank"),
-                                sigma=1,
-                                alternative=c("twoSided", "greater", "less"),
-                                eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
-                                parameter=NULL) {
+matchEParameterWith <- function(
+    esMin, analysisType=c("z", "t", "logRank"),
+    sigma=1,
+    alternative=c("twoSided", "greater", "less"),
+    eType=c("mom", "eGauss", "imom", "eCauchy", "grow"),
+    parameter=NULL, exact=TRUE) {
   alternative <- match.arg(alternative)
   eType <- match.arg(eType)
   analysisType <- match.arg(analysisType)
@@ -643,7 +645,16 @@ matchEParameterWith <- function(esMin, analysisType=c("z", "t", "logRank"),
         parameter <- -parameter
     }
   } else if (analysisType=="logRank") {
-    parameter <- if (esMin > 1) 1/esMin else esMin
+    if (exact) {
+      parameter <- if (esMin > 1) 1/esMin else esMin
+    } else {
+      parameter <- switch(eType,
+                          "mom"=1/2*esMin^2,
+                          "eGauss"=esMin^2,
+                          "imom"=abs(esMin),
+                          "eCauchy"=abs(esMin),
+                          "grow"=abs(esMin))
+    }
   }
 
   return(parameter)

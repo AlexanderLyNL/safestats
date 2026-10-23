@@ -294,11 +294,19 @@ saviLogrankTest <- function(formula, designObj=NULL, ciValue=NULL, data=NULL, su
     # but to avoid rounding erros zStat is used instead
     zStat <- zStat - sqrt(nEff)*(log(h0))
 
+    tempParameter <- matchEParameterWith(
+      "parameter"=NULL,
+      "analysisType"="z",
+      "esMin"=phiS, "sigma"=1,
+      "alternative"=alternative,
+      "eType"=designObj[["eType"]], exact=FALSE
+    )
+
     eValue <- saviZTestStat("z"=unname(zStat),
-                            "parameter"=1/2*phiS^2, "n1"=nEff,
+                            "parameter"=tempParameter, "n1"=nEff,
                             "n2"=NULL, "alternative"=alternative,
                             "paired"=FALSE, "sigma"=1,
-                            "eType"="mom")
+                            "eType"=designObj[["eType"]])
 
     if (is.null(ciValue))
       ciValue <- 1 - designObj[["alpha"]]
@@ -535,7 +543,7 @@ designSaviLogrank <- function(
     #
     saviZObj <- designSaviZ("meanDiffMin"=meanDiffMin , "beta"=beta,
                             "alpha"=alpha, "nPlan"=nEvents,
-                            "alternative"=alternative,
+                            "alternative"=alternative, "eType"=eType,
                             "sigma"=1, "testType"="oneSample")
 
     nEvents <- saviZObj[["nPlan"]]
@@ -549,6 +557,8 @@ designSaviLogrank <- function(
     nEventsTwoSe <- saviZObj[["nPlanTwoSe"]]
     saviZObj[["nPlanTwoSe"]] <- NULL
     saviZObj[["nEventsTwoSe"]] <- nEventsTwoSe
+
+    saviZObj[["testName"]] <- "Logrank"
 
     if (!is.null(nEventsBatch)) {
       note <- paste0("If it is only possible to look at the data once, ",
@@ -1503,7 +1513,8 @@ computeLogrankBetaFrom <- function(
 computeLogrankNEvents <- function(hrMin, beta, m0=50000, m1=50000, alpha=0.05,
                                   alternative = c("twoSided", "greater","less"),
                                   nSim=1e3L, nBoot=nSim, groupSizePerTimeFunction = returnOne,
-                                  nMax=1e3L, parameter=NULL, digits = getOption("digits"), pb=TRUE) {
+                                  nMax=1e3L, parameter=NULL, digits = getOption("digits"), pb=TRUE,
+                                  ...) {
 
   # TODO(Alexander): Remove in v0.9.0
   #
