@@ -116,6 +116,10 @@ designSaviTwoProportions <- function(na, nb,
   if (!is.null(previousSaviTestResult)) {
     #use posterior for hyperparameter settings
     hyperParameterValues <- previousSaviTestResult[["posteriorHyperParameters"]]
+
+    # Note(Alexander): Fix order for printing
+    hyperParameterValues <- hyperParameterValues[c("betaA1", "betaA2", "betaB1", "betaB2")]
+
     priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
     note <- c(note, "Hyperparameters set according to posterior values from previous test result")
   } else if (is.null(hyperParameterValues)) {
@@ -133,6 +137,10 @@ designSaviTwoProportions <- function(na, nb,
     if (any(hyperParameterValues <= 0)) {
       stop("Provide Beta prior hyperparameter values that yield a proper prior: parameters should be > 0.")
     }
+
+    # Note(Alexander): Fix order for printing
+    hyperParameterValues <- hyperParameterValues[c("betaA1", "betaA2", "betaB1", "betaB2")]
+
     priorValuesForPrint <- paste(hyperParameterValues, collapse = " ")
   }
 
@@ -372,8 +380,8 @@ saviTwoProportionsTest <- function(ya, yb, designObj = NULL, wantConfidenceSeque
   #seen in this experiment
   posteriorHyperParameters <- list(
     betaA1 = sum(ya) + designObj[["betaPriorParameterValues"]][["betaA1"]],
-    betaB1 = length(ya)*designObj[["nPlan"]][["na"]] - sum(ya) + designObj[["betaPriorParameterValues"]][["betaA2"]],
-    betaA2 = sum(yb) + designObj[["betaPriorParameterValues"]][["betaB1"]],
+    betaA2 = length(ya)*designObj[["nPlan"]][["na"]] - sum(ya) + designObj[["betaPriorParameterValues"]][["betaA2"]],
+    betaB1 = sum(yb) + designObj[["betaPriorParameterValues"]][["betaB1"]],
     betaB2 = length(yb)*designObj[["nPlan"]][["nb"]] - sum(yb) + designObj[["betaPriorParameterValues"]][["betaB2"]]
   )
 
