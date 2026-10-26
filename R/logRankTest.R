@@ -382,10 +382,19 @@ saviLogrankTestStat <- function(z, nEvents, designObj, ciValue=NULL,
 
   phiS <- log(designObj[["parameter"]])
 
-  eValue <- saviZTestStat("z"=unname(zStat), "parameter"=phiS^2/2,
+  tempParameter <- matchEParameterWith(
+    "parameter"=NULL,
+    "analysisType"="z",
+    "esMin"=phiS, "sigma"=1,
+    "alternative"=designObj[["alternative"]],
+    "eType"=designObj[["eType"]], exact=FALSE
+  )
+
+  eValue <- saviZTestStat("z"=unname(zStat), "parameter"=tempParameter,
                           "n1"=nEff, "n2"=NULL,
-                          "alternative"=designObj[["alternative"]], "paired"=FALSE, "sigma"=1,
-                          "eType"="mom")
+                          "alternative"=designObj[["alternative"]],
+                          "paired"=FALSE, "sigma"=1,
+                          "eType"=designObj[["eType"]])
 
   tempConfSeq <- computeConfidenceIntervalZ(
     "nEff"=nEff, "meanObs"=meanObs, "parameter"=1/2*phiS^2,
